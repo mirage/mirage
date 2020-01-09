@@ -522,7 +522,8 @@ module Make (P: S) = struct
     Codegen.append_main "let _ = Printexc.record_backtrace true";
     Codegen.newline_main ();
     Cache.save ~argv (Info.build_dir i) >>= fun () ->
-    Engine.configure_and_connect ~init i jobs >>| fun () ->
+    Engine.configure i jobs >>| fun () ->
+    Engine.connect i ~init jobs;
     Codegen.newline_main ()
 
   let clean_main i jobs =

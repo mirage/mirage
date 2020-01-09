@@ -22,6 +22,7 @@
      - Please update the invariant section.
 *)
 
+open Astring
 open Graph
 open Functoria_misc
 open Functoria
@@ -43,17 +44,6 @@ let is_sequence l =
 
 (* {2 Graph} *)
 
-type subconf = <
-  name: string;
-  module_name: string;
-  keys: Key.t list;
-  packages: package list Key.value;
-  connect: Info.t -> string -> string list -> string;
-  build: Info.t -> (unit, Rresult.R.msg) result;
-  configure: Info.t -> (unit, Rresult.R.msg) result;
-  clean: Info.t -> (unit, Rresult.R.msg) result;
->
-
 (* Helpers for If nodes. *)
 module If = struct
   type dir = Else | Then
@@ -67,7 +57,7 @@ end
 
 type label =
   | If of If.path Key.value
-  | Impl of subconf
+  | Dev : 'a Device.t -> label
   | App
 
 type edge_label =
@@ -75,8 +65,6 @@ type edge_label =
   | Dependency of int
   | Condition of If.path
   | Functor
-
-
 
 module V_ = struct
   type t = label
@@ -90,6 +78,38 @@ end
 
 module G = Persistent.Digraph.AbstractLabeled (V_) (E_)
 module Tbl = Hashtbl.Make(G.V)
+
+let pp_label ppf = function
+  | If _ -> Fmt.string ppf "if"
+  | App -> Fmt.string ppf "app"
+  | Dev d -> Fmt.pf ppf "dev %a" Device.pp d
+
+let pp_vertex ppf v =
+  Fmt.pf ppf "%d:%a" (G.V.hash v) pp_label (G.V.label v)
+
+let nice_name d =
+  Device.module_name d
+  |> String.cuts ~sep:"."
+  |> String.concat ~sep:"_"
+  |> String.Ascii.lowercase
+  |> Name.ocamlify
+
+let impl_name v = match G.V.label v with
+  | If _ | App -> assert false
+  | Dev d ->
+    match Device.module_type d with
+    | Type _ -> Device.module_name d
+    | _ ->
+      let id = G.V.hash v in
+      let prefix = String.Ascii.capitalize (nice_name d) in
+      Fmt.strf "%s__%d" prefix id
+
+let var_name v = match G.V.label v with
+  | If _ | App -> assert false
+  | Dev d ->
+    let id = G.V.hash v in
+    let prefix = nice_name d in
+    Fmt.strf "%s__%i" prefix id
 
 type t = G.t
 type vertex = G.V.t
@@ -150,8 +170,8 @@ let add_pred_with_subst g preds v =
 
 (* {2 Graph construction} *)
 
-let add_impl graph ~impl ~args ~deps =
-  let v = G.V.create (Impl impl) in
+let add graph ~args ~deps d =
+  let v = G.V.create (Dev d) in
   v,
   G.add_vertex graph v
   |> fold_lefti (fun i -> add_edge v (Parameter i)) args
@@ -183,13 +203,13 @@ let create impl =
       then H.find tbl (abstract impl), g
       else
         let v, g = match explode impl with
-          | `Impl c ->
+          | `Dev c ->
             let deps, g =
               List.fold_right
                 (fun (Abstract x) (l,g) -> let v, g = aux g x in v::l, g)
-                c#deps ([], g)
+                (Device.extra_deps c) ([], g)
             in
-            add_impl g ~impl:(c :> subconf) ~args:[] ~deps
+            add g ~args:[] ~deps c
           | `If (cond, then_, else_) ->
             let then_, g = aux g then_ in
             let else_, g = aux g else_ in
@@ -205,7 +225,7 @@ let create impl =
   snd @@ aux G.empty impl
 
 let is_impl v = match G.V.label v with
-  | Impl _ -> true
+  | Dev _ -> true
   | App | If _ -> false
 
 (* {2 Graph destruction/extraction} *)
@@ -240,12 +260,18 @@ let get_children g v =
   assert (is_sequence deps);
   `Args (List.map snd args), `Deps (List.map snd deps), cond, funct
 
+type a_device = D: 'a Device.t -> a_device
+
 let explode g v =
   match G.V.label v, get_children g v with
-  | Impl i , (args      , deps    , [], None  ) -> `Impl (i, args, deps)
+  | Dev i  , (args      , deps    , [], None  ) -> `Dev (D i, args, deps)
   | If cond, (`Args []  , `Deps [], l , None  ) -> `If (cond, l)
   | App    , (`Args args, `Deps [], [], Some f) -> `App (f, args)
-  | (Impl _ | If _ | App), _ -> assert false
+  | (Dev _ | If _ | App), _ -> assert false
+
+let device v = match G.V.label v with
+  | Dev v -> Some (D v)
+  | _ -> None
 
 let fold f g z =
   if Dfs.has_cycle g then
@@ -302,8 +328,8 @@ module RemovePartialApp = struct
 
   let predicate g v = match explode g v with
     | `App (v',args) -> begin match explode g v' with
-        | `Impl (impl, `Args args', `Deps deps) ->
-          let add g = add_impl g ~impl ~args:(args'@args) ~deps in
+        | `Dev ((D d), `Args args', `Deps deps) ->
+          let add g = add g  ~args:(args'@args) ~deps d in
           Some (v, v', add)
         | `App (f, args') ->
           let add g = add_app g ~f ~args:(args' @ args) in
@@ -337,7 +363,7 @@ module MergeNode = struct
           match G.V.label v with
           | If cond' -> set_equal cond cond'
           | App
-          | Impl _   -> false
+          | Dev _   -> false
         ) l
       then Some (v, cond, l)
       else None
@@ -366,7 +392,7 @@ module EvalIf = struct
 
   let predicate ~partial ~context _ v = match G.V.label v with
     | If cond when not partial || Key.mem context cond -> Some v
-    | If _ | App | Impl _ -> None
+    | If _ | App | Dev _ -> None
 
   let extract path l =
     let rec aux = function
@@ -423,13 +449,13 @@ module Dot = Graphviz.Dot(struct
       | App -> [ `Label "$"; `Shape `Diamond ]
       | If cond ->
         [ `Label (Fmt.strf "If\n%a" Key.pp_deps cond) ]
-      | Impl f ->
+      | Dev f ->
         let label =
           Fmt.strf
             "%s\n%s\n%a"
-            f#name f#module_name
+            (var_name v) (Device.module_name f)
             Fmt.(list ~sep:(unit ", ") Key.pp)
-            f#keys
+            (Device.keys f)
         in
         [ `Label label; `Shape `Box; ]
 
@@ -444,7 +470,7 @@ module Dot = Graphviz.Dot(struct
       | Condition path ->
         let cond =
           match V.label @@ E.src e with
-          | If cond -> cond | App | Impl _ -> assert false
+          | If cond -> cond | App | Dev _ -> assert false
         in
         let l = [ `Style `Dotted; `Headport `N ] in
         if Key.default cond = path then `Style `Bold :: l else l

@@ -1,7 +1,7 @@
 open F0
 module Key = Functoria_key
 
-let main = Functoria.(foreign "App" job)
+let main = Functoria.(main "App" job)
 
 let key =
   let doc = Key.Arg.info ~doc:"How to say hello." ["hello"] in

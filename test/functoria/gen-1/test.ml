@@ -1,3 +1,5 @@
+open Rresult
+
 (* yiikes *)
 let () =
   Functoria_misc.Codegen.set_main_ml "main.ml";
@@ -5,10 +7,6 @@ let () =
   Functoria_misc.Codegen.append_main "let return x = x";
   Functoria_misc.Codegen.append_main "let run x = x";
   Functoria_misc.Codegen.newline_main ()
-
-let ok msg = function
-  | Ok () -> ()
-  | Error (`Msg e) -> Fmt.failwith "%s: %s" msg e
 
 let test_device context device =
   let t = Functoria_graph.create device in
@@ -21,10 +19,9 @@ let test_device context device =
       ~name:"foo"
       ~build_dir:Fpath.(v ".")
   in
-  Functoria_engine.configure_and_connect ~init:[] info t
-  |> ok "configure_and_connect";
+  Functoria_engine.configure info t >>= fun () ->
+  Functoria_engine.connect info t;
   Functoria_engine.build info t
-  |> ok "build"
 
 let opam_deps = [
   "base-bigarray", "base";
@@ -48,10 +45,12 @@ let test () =
   let context = Functoria_key.empty_context in
   let sigs = Functoria.(job @-> info @-> job) in
   let keys =
-    Functoria.(foreign "App.Make" sigs
+    Functoria.(main "App.Make" sigs
                $ keys sys_argv
                $ app_info ~opam_deps ())
   in
   test_device context keys
 
-let () = test ()
+let () = match test () with
+  | Ok () -> ()
+  | Error (`Msg e) -> failwith e

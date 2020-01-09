@@ -34,6 +34,8 @@
 
 *)
 
+open Rresult
+
 (** {1:combinators Combinators} *)
 
 (** The type for values representing module types. *)
@@ -70,7 +72,7 @@ val abstract: _ impl -> abstract_impl
 
 (** {1:keys Keys} *)
 
-type key = Functoria_key.t
+type abstract_key = Functoria_key.t
 (** The type for command-line keys. See {!Functoria_key.t}. *)
 
 type context = Functoria_key.context
@@ -129,138 +131,147 @@ val package :
 (** {1:app Application Builder}
 
     Values of type {!impl} are tied to concrete module implementation
-    with the {!foreign} construct. Module implementations of type
+    with the {!device} and {!foreign} construct. Module implementations of type
     {!job} can then be {{!Functoria_app.Make.register}registered} into
     an application builder. The builder is in charge if parsing the
     command-line arguments and of generating code for the final
     application. See {!Functoria_app} for details. *)
 
+(** Alias for {!main}, where [?extra_deps] has been renamed to
+    [?deps]. *)
 val foreign:
   ?packages:package list ->
-  ?keys:key list ->
+  ?packages_v: package list Functoria_key.value ->
+  ?keys:abstract_key list ->
   ?deps:abstract_impl list ->
   string -> 'a typ -> 'a impl
-(** [foreign name typ] is the module [name], having the module type
-    [typ].
+
+val main:
+  ?packages:package list ->
+  ?packages_v: package list Functoria_key.value ->
+  ?keys:abstract_key list ->
+  ?extra_deps:abstract_impl list ->
+  string -> 'a typ -> 'a impl
+(** [foreign name typ] is the functor [name], having the module type [typ].
+    The connect code will call [<name>.start].
 
     {ul
-    {- If [packages] is set, then the given packages are
+    {- If [packages] or [packages_v] is set, then the given packages are
        installed before compiling the current application.}
     {- If [keys] is set, use the given {{!Functoria_key.key}keys} to
        parse at configure and runtime the command-line arguments
-       before calling [name.connect].}
-    {- If [deps] is set, the given list of {{!abstract_impl}abstract}
+       before calling [<name>.connect].}
+    {- If [extra_deps] is set, the given list of {{!abstract_impl}abstract}
        implementations is added as data-dependencies: they will be
-       initialized before calling [name.connect]. }
+       initialized before calling [<name>.connect]. }
     }
-
-    For a more flexible definition of packages, or for a custom configuration
-    step, see the {!configurable} class type and the {!class:foreign} class.
 *)
 
 module Info = Functoria_info
 
-(** Signature for configurable module implementations. A
-    [configurable] is a module implementation which contains a runtime
-    state which can be set either at configuration time (by the
-    application builder) or at runtime, using command-line
-    arguments. *)
-class type ['ty] configurable = object
+(** Signature for functoria devices. A [device] is a module
+    implementation which contains a runtime state which can be set
+    either at configuration time (by the application builder) or at
+    runtime, using command-line arguments. *)
+module Device : sig
 
-  method ty: 'ty typ
-  (** [ty] is the module type of the configurable. *)
+  type 'a t
+  (** The type for devices whose runtime state is of type ['a]. *)
 
-  method name: string
-  (** [name] is the unique variable name holding the runtime state of
-      the configurable. *)
+  val module_type: 'a t -> 'a typ
+  (** [module_type t] is [t]'s module type. *)
 
-  method module_name: string
-  (** [module_name] is the name of the module implementing the
-      configurable. *)
+  val module_name: 'a t -> string
+  (** [module_name t] is [t]'s module name. *)
 
-  method packages: package list value
-  (** [packages] is the list of OPAM packages which needs to be
-      installed before compiling the configurable. *)
+  val packages: 'a t -> package list value
+  (** [packages t] is the list of OPAM packages that are needed by [t].*)
 
-  method connect: Info.t -> string -> string list -> string
-  (** [connect info mod args] is the code to execute in order to
-      initialize the state associated with the module [mod] (usually
-      calling [mod.connect]) with the arguments [args], in the context
-      of the project information [info]. *)
+  type 'a code = string
+  (** The type for fragments of code of type ['a]. *)
 
-  method configure: Info.t -> (unit, Rresult.R.msg) result
-  (** [configure info] is the code to execute in order to configure
-      the device.  During the configuration phase, the specficied
-      {!packages} might not yet be there.  The code might involve
-      generating more OCaml code, running shell scripts, etc. *)
+  val connect: 'a t -> Info.t -> string -> string list -> 'a code
+  (** [connect t info impl_name args] is the code to execute in order
+      to create a new state (usually calling [<module_name t>.connect])
+      with the arguments [args], in the context of the project
+      information [info]. The freshly created state will be made
+      available in [var_name t] *)
 
-  method build: Info.t -> (unit, Rresult.R.msg) result
-  (** [build info] is the code to execute in order to build
-      the device.  During the build phase, you can rely that all
-      {!packages} are installed (via opam).  The code might involve
-      generating more OCaml code (crunching directories), running
+  val configure: 'a t -> Info.t -> (unit, R.msg) result
+  (** [configure t info] runs [t]'s configuration hooks. During the
+      configuration phase, [packages t] might not yet be installed
+      yet. The code might involve generating more OCaml code, running
       shell scripts, etc. *)
 
-  method clean: Info.t -> (unit, Rresult.R.msg) result
-  (** [clean info] is the code to clean-up what has been generated
-      by {!build} and {!configure}. *)
+  val build: 'a t -> Info.t -> (unit, R.msg) result
+  (** [build t info] runs the build hooks for [t] the device.  During
+      the build phase, you can rely on every [packages t] to be
+      installed. The code might involve generating more OCaml code
+      (crunching directories), running shell scripts, etc. *)
 
-  method keys: key list
-  (** [keys] is the list of command-line keys to set-up the
-      configurable. *)
+  val clean: 'a t -> Info.t -> (unit, R.msg) result
+  (** [clean t info] runs [t]'s clean-up hooks. *)
 
-  method deps: abstract_impl list
-  (** [deps] is the list of {{!abstract_impl} abstract
-      implementations} that must be initialized before calling
-      {!connect}. *)
+  val keys: 'a t -> abstract_key list
+  (** [keys t] is the list of command-line keys which can be used
+      to configure [t]. *)
+
+  val extra_deps: 'a t -> abstract_impl list
+  (** [runtime_deps t] is the list of {{!abstract_impl}
+      implementations} that must be initialized before running the code
+      generated by [connect t]. *)
+
+  val id: 'a t -> int
+  (** [id t] is [t]'s unique identifier. Freshly generated for each
+     call to {!v}. *)
+
+  val v:
+    ?packages:package list ->
+    ?packages_v:package list Functoria_key.value ->
+    ?keys:Functoria_key.t list ->
+    ?extra_deps:abstract_impl list ->
+    ?connect:(Info.t -> string -> string list -> 'a code) ->
+    ?configure:(Info.t -> (unit, R.msg) result) ->
+    ?build:(Info.t -> (unit, R.msg) result) ->
+    ?clean:(Info.t -> (unit, R.msg) result) ->
+    string -> 'a typ -> 'a t
+
+  val start: string -> string list -> 'a code
+  (** [start impl_name args] is the code [<impl_name>.start <args>]. *)
+
+  val extend:
+    ?packages:package list ->
+    ?packages_v:package list value ->
+    ?pre_configure:(Info.t -> (unit, R.msg) result) ->
+    ?post_configure:(Info.t -> (unit, R.msg) result) ->
+    ?pre_build:(Info.t -> (unit, R.msg) result) ->
+    ?post_build:(Info.t -> (unit, R.msg) result) ->
+    ?pre_clean:(Info.t -> (unit, R.msg) result) ->
+    ?post_clean:(Info.t -> (unit, R.msg) result) ->
+    'a t -> 'a t
+
+  val pp: 'a t Fmt.t
+  (** [pp] is the pretty-printer for devices. *)
+
+  val equal: 'a t -> 'b t -> bool
+  (** [equal] is the equality function for devices. *)
 
 end
 
+val of_device: 'a Device.t -> 'a impl
+(** [of_device t] is the implementation device [t]. *)
 
-val impl: 'a configurable -> 'a impl
-(** [impl c] is the implementation of the configurable [c]. *)
-
-(** [base_configurable] pre-defining many methods from the
-    {!configurable} class. To be used as follow:
-
-    {[
-      let time_conf = object
-        inherit base_configurable
-        method ty = time
-        method name = "time"
-        method module_name = "OS.Time"
-      end
-    ]}
-*)
-class base_configurable: object
-  method packages: package list value
-  method keys: key list
-  method connect: Info.t -> string -> string list -> string
-  method configure: Info.t -> (unit, Rresult.R.msg) result
-  method build: Info.t -> (unit, Rresult.R.msg) result
-  method clean: Info.t -> (unit, Rresult.R.msg) result
-  method deps: abstract_impl list
-end
-
-class ['a] foreign:
+val impl:
   ?packages:package list ->
-  ?keys:key list ->
-  ?deps:abstract_impl list ->
-  string -> 'a typ -> ['a] configurable
-(** This class can be inherited to define a {!configurable} with an API
-    similar to {!foreign}.
-
-    In particular, it allows dynamic packages. Here is an example:
-    {[
-      let main = impl @@ object
-          inherit [_] foreign
-              "Unikernel.Main" (console @-> job)
-          method packages = Key.(if_ is_xen)
-              [package ~sublibs:["xen"] "vchan"]
-              [package ~sublibs:["lwt"] "vchan"]
-        end
-    ]}
-*)
+  ?packages_v:package list Functoria_key.value ->
+  ?keys:Functoria_key.t list ->
+  ?extra_deps:abstract_impl list ->
+  ?connect:(Info.t -> string -> string list -> string) ->
+  ?configure:(Info.t -> (unit, R.msg) result) ->
+  ?build:(Info.t -> (unit, R.msg) result) ->
+  ?clean:(Info.t -> (unit, R.msg) result) ->
+  string -> 'a typ -> 'a impl
+(** [impl ...] is [of_device @@ Device.v ...] *)
 
 (** {1 Useful module implementations} *)
 
@@ -297,13 +308,11 @@ val info: info typ
 
 val app_info:
   ?opam_deps:(string * string) list ->
-  ?type_modname:string ->
   ?gen_modname:string -> unit -> info impl
 (** [app_info] is the module implementation whose state contains all
-    the information available at configure-time. The type of the
-    generated value lives in the module [type_modname]: if not set, it
-    is [Functoria_info]. The value is stored into a generated module
-    name [gen_modname]: if not set, it is [Info_gen]. *)
+    the information available at configure-time. The value is stored
+    into a generated module name [gen_modname]: if not set, it is
+    [Info_gen]. *)
 
 (** {1 Sharing} *)
 
@@ -322,4 +331,4 @@ module ImplTbl: Hashtbl.S with type key = abstract_impl
 val explode: 'a impl ->
   [ `App of abstract_impl * abstract_impl
   | `If of bool value * 'a impl * 'a impl
-  | `Impl of 'a configurable ]
+  | `Dev of 'a Device.t ]

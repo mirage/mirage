@@ -29,10 +29,8 @@ module type Monoid = sig
   val union: t -> t -> t
 end
 
-(** Generation of fresh names *)
 module Name: sig
   val ocamlify: string -> string
-  val create: string -> prefix:string -> string
 end
 
 module Codegen: sig

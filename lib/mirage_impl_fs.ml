@@ -12,19 +12,14 @@ let typ = Type FS
 
 let fat_pkg = package ~min:"0.14.0" ~max:"0.15.0" "fat-filesystem"
 
-let fat_conf = impl @@ object
-    inherit base_configurable
-    method ty = block @-> typ
-    method! packages = Mirage_key.pure [ fat_pkg ]
-    method name = "fat"
-    method module_name = "Fat.FS"
-    method! connect _ modname l =
-      match l with
-      | [block_name] ->
-        Fmt.strf "%s.connect %s" modname block_name
-      | _ ->
-        failwith (connect_err "fat" 1)
-  end
+let connect err _ modname l =
+  match l with
+  | [block_name] -> Fmt.strf "%s.connect %s" modname block_name
+  | _ -> failwith (connect_err err 1)
+
+let fat_conf =
+  let packages = [ fat_pkg ] in
+  impl ~connect:(connect "fat") ~packages "Fat.FS" (block @-> typ)
 
 let fat block = fat_conf $ block
 
@@ -52,50 +47,45 @@ ${FAT} add ${IMG} %s
 echo Created '%s'|}
     block_file Fpath.pp (Fpath.append root dir) regexp block_file
 
+let count =
+  let i = ref 0 in
+  fun () -> incr i; !i
+
 let fat_block ?(dir = ".") ?(regexp = "*") () =
-  let name =
-    Name.(
-      ocamlify @@ create (Fmt.strf "fat%s:%s" dir regexp) ~prefix:"fat_block")
-  in
+  let name = "fat_block" ^ string_of_int (count ()) in
   let block_file = name ^ ".img" in
-  impl @@ object
-    inherit Mirage_impl_block.block_conf block_file as super
-    method! packages = Key.map (List.cons fat_pkg) super#packages
-    method! build i =
-      let root = Info.build_dir i in
-      let file = Fmt.strf "make-%s-image.sh" name in
-      let dir = Fpath.of_string dir |> R.error_msg_to_invalid_arg in
-      Log.info (fun m -> m "Generating block generator script: %s" file);
-      with_output ~mode:0o755 (Fpath.v file)
-        (fun oc () ->
-           let fmt = Format.formatter_of_out_channel oc in
-           fat_shell_script fmt ~block_file ~root ~dir ~regexp;
-           R.ok () )
-        "fat shell script"
-      >>= fun () ->
-      Log.info (fun m -> m "Executing block generator script: ./%s" file);
-      Bos.OS.Cmd.run (Bos.Cmd.v ("./" ^ file)) >>= fun () -> super#build i
-    method! clean i =
-      let file = Fmt.strf "make-%s-image.sh" name in
-      Bos.OS.File.delete (Fpath.v file)
-      >>= fun () ->
-      Bos.OS.File.delete (Fpath.v block_file) >>= fun () -> super#clean i
-  end
+  let file = Fmt.strf "make-%s-image.sh" name in
+  let pre_build i =
+    let root = Info.build_dir i in
+    let dir = Fpath.of_string dir |> R.error_msg_to_invalid_arg in
+    Log.info (fun m -> m "Generating block generator script: %s" file);
+    with_output ~mode:0o755 (Fpath.v file)
+      (fun oc () ->
+         let fmt = Format.formatter_of_out_channel oc in
+         fat_shell_script fmt ~block_file ~root ~dir ~regexp;
+         R.ok () )
+      "fat shell script"
+    >>= fun () ->
+    Log.info (fun m -> m "Executing block generator script: ./%s" file);
+    Bos.OS.Cmd.run (Bos.Cmd.v ("./" ^ file))
+  in
+  let pre_clean _ =
+    Bos.OS.File.delete (Fpath.v file) >>= fun () ->
+    Bos.OS.File.delete (Fpath.v block_file)
+  in
+  let packages = [ fat_pkg ] in
+  let block = Mirage_impl_block.block_conf block_file in
+  of_device @@ Device.extend ~packages ~pre_build ~pre_clean block
 
 let fat_of_files ?dir ?regexp () = fat @@ fat_block ?dir ?regexp ()
 
 let kv_ro_of_fs_conf =
-  impl @@ object
-    inherit base_configurable
-    method ty = typ @-> Mirage_impl_kv.ro
-    method name = "kv_ro_of_fs"
-    method module_name = "Mirage_fs.To_KV_RO"
-    method! packages =
-      Key.pure [package ~min:"3.0.0" ~max:"4.0.0" "mirage-fs"]
-    method! connect _ modname = function
-      | [fs] -> Fmt.strf "%s.connect %s" modname fs
-      | _ -> failwith (connect_err "kv_ro_of_fs" 1)
-  end
+  let packages = [package ~min:"3.0.0" ~max:"4.0.0" "mirage-fs"] in
+  let connect _ modname = function
+    | [fs] -> Fmt.strf "%s.connect %s" modname fs
+    | _ -> failwith (connect_err "kv_ro_of_fs" 1)
+  in
+  impl ~packages ~connect "Mirage_fs.To_KV_RO" (typ @-> Mirage_impl_kv.ro)
 
 let kv_ro_of_fs x = kv_ro_of_fs_conf $ x
 

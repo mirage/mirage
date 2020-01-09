@@ -43,14 +43,10 @@ let right_tcpip_library ?libs ~sublibs pkg =
   | #Mirage_key.mode_solo5 ->
     [ package ~min ~max ?libs ~sublibs pkg ]
 
-let ipv4_keyed_conf ~ip ?gateway () = impl @@ object
-    inherit base_configurable
-    method ty = random @-> mclock @-> ethernet @-> arpv4 @-> ipv4
-    method name = Name.create "ipv4" ~prefix:"ipv4"
-    method module_name = "Static_ipv4.Make"
-    method! packages = right_tcpip_library ~sublibs:["ipv4"] "tcpip"
-    method! keys = gateway @?? [Key.abstract ip]
-    method! connect _ modname = function
+let ipv4_keyed_conf ~ip ?gateway () =
+  let packages_v = right_tcpip_library ~sublibs:["ipv4"] "tcpip" in
+  let keys = gateway @?? [Key.abstract ip] in
+  let connect _ modname = function
     | [ _random ; _mclock ; etif ; arp ] ->
       Fmt.strf
         "%s.connect@[@ %a@ %a@ %s@ %s@]"
@@ -58,36 +54,34 @@ let ipv4_keyed_conf ~ip ?gateway () = impl @@ object
         Fmt.(prefix (unit "~ip:") pp_key) ip
         (opt_opt_key "gateway") gateway
         etif arp
-      | _ -> failwith (connect_err "ipv4 keyed" 4)
-  end
+    | _ -> failwith (connect_err "ipv4 keyed" 4)
+  in
+  impl ~packages_v ~keys ~connect
+    "Static_ipv4.Make" (random @-> mclock @-> ethernet @-> arpv4 @-> ipv4)
 
-let charrua_pkg =
-  Key.pure [ package ~min:"1.2.0" ~max:"2.0.0" "charrua-client-mirage" ]
+let charrua_pkg = [ package ~min:"1.2.0" ~max:"2.0.0" "charrua-client-mirage" ]
 
-let dhcp_conf = impl @@ object
-    inherit base_configurable
-    method ty = random @-> time @-> network @-> Mirage_impl_dhcp.dhcp
-    method name = "dhcp_client"
-    method module_name = "Dhcp_client_mirage.Make"
-    method! packages = charrua_pkg
-    method! connect _ modname = function
-      | [ _random; _time; network ] -> Fmt.strf "%s.connect %s " modname network
-      | _ -> failwith (connect_err "dhcp" 3)
-  end
+let dhcp_conf =
+  let packages = charrua_pkg in
+  let connect _ modname = function
+    | [ _random; _time; network ] -> Fmt.strf "%s.connect %s " modname network
+    | _ -> failwith (connect_err "dhcp" 3)
+  in
+  impl ~packages ~connect
+    "Dhcp_client_mirage.Make"
+    (random @-> time @-> network @-> Mirage_impl_dhcp.dhcp)
 
-let ipv4_dhcp_conf = impl @@ object
-    inherit base_configurable
-    method ty = Mirage_impl_dhcp.dhcp @-> random @-> mclock @-> ethernet @-> arpv4 @-> ipv4
-    method name = Name.create "dhcp_ipv4" ~prefix:"dhcp_ipv4"
-    method module_name = "Dhcp_ipv4.Make"
-    method! packages = charrua_pkg
-    method! connect _ modname = function
-      | [ dhcp ; _random ; _mclock ; ethernet ; arp ] ->
-        Fmt.strf "%s.connect@[@ %s@ %s@ %s@]"
-          modname dhcp ethernet arp
-      | _ -> failwith (connect_err "ipv4 dhcp" 5)
-  end
-
+let ipv4_dhcp_conf =
+  let packages = charrua_pkg in
+  let connect _ modname = function
+    | [ dhcp ; _random ; _mclock ; ethernet ; arp ] ->
+      Fmt.strf "%s.connect@[@ %s@ %s@ %s@]"
+        modname dhcp ethernet arp
+    | _ -> failwith (connect_err "ipv4 dhcp" 5)
+  in
+  impl ~packages ~connect
+    "Dhcp_ipv4.Make"
+    (Mirage_impl_dhcp.dhcp @-> random @-> mclock @-> ethernet @-> arpv4 @-> ipv4)
 
 let dhcp random time net = dhcp_conf $ random $ time $ net
 let ipv4_of_dhcp
@@ -117,41 +111,38 @@ type ipv6_config = {
 }
 (** Types for IP manual configuration. *)
 
-let ipv4_qubes_conf = impl @@ object
-    inherit base_configurable
-    method ty = qubesdb @-> random @-> mclock @-> ethernet @-> arpv4 @-> ipv4
-    method name = Name.create "qubes_ipv4" ~prefix:"qubes_ipv4"
-    method module_name = "Qubesdb_ipv4.Make"
-    method! packages =
-      Key.pure [ package ~min:"0.8.0" ~max:"0.9.0" "mirage-qubes-ipv4" ]
-    method! connect _ modname = function
-      | [  db ; _random ; _mclock ;etif; arp ] ->
-        Fmt.strf "%s.connect@[@ %s@ %s@ %s@]" modname db etif arp
-      | _ -> failwith (connect_err "qubes ipv4" 5)
-  end
+let ipv4_qubes_conf =
+  let packages = [ package ~min:"0.8.0" ~max:"0.9.0" "mirage-qubes-ipv4" ] in
+  let connect _ modname = function
+    | [  db ; _random ; _mclock ;etif; arp ] ->
+      Fmt.strf "%s.connect@[@ %s@ %s@ %s@]" modname db etif arp
+    | _ -> failwith (connect_err "qubes ipv4" 5)
+  in
+  impl ~packages ~connect
+    "Qubesdb_ipv4.Make"
+    (qubesdb @-> random @-> mclock @-> ethernet @-> arpv4 @-> ipv4)
 
 let ipv4_qubes
     ?(random = default_random)
     ?(clock = default_monotonic_clock) db ethernet arp =
   ipv4_qubes_conf $ db $ random $ clock $ ethernet $ arp
 
-let ipv6_conf ?addresses ?netmasks ?gateways () = impl @@ object
-    inherit base_configurable
-    method ty = ethernet @-> random @-> time @-> mclock @-> ipv6
-    method name = Name.create "ipv6" ~prefix:"ipv6"
-    method module_name = "Ipv6.Make"
-    method! packages = right_tcpip_library ~sublibs:["ipv6"] "tcpip"
-    method! keys = addresses @?? netmasks @?? gateways @?? []
-    method! connect _ modname = function
-      | [ etif ; _random ; _time ; _clock ] ->
-        Fmt.strf "%s.connect@[@ %a@ %a@ %a@ %s@]"
-          modname
-          (opt_key "ip") addresses
-          (opt_key "netmask") netmasks
-          (opt_key "gateways") gateways
-          etif
-      | _ -> failwith (connect_err "ipv6" 3)
-  end
+let ipv6_conf ?addresses ?netmasks ?gateways () =
+  let packages_v = right_tcpip_library ~sublibs:["ipv6"] "tcpip" in
+  let keys = addresses @?? netmasks @?? gateways @?? [] in
+  let connect _ modname = function
+    | [ etif ; _random ; _time ; _clock ] ->
+      Fmt.strf "%s.connect@[@ %a@ %a@ %a@ %s@]"
+        modname
+        (opt_key "ip") addresses
+        (opt_key "netmask") netmasks
+        (opt_key "gateways") gateways
+        etif
+    | _ -> failwith (connect_err "ipv6" 3)
+  in
+  impl ~packages_v ~keys ~connect
+    "Ipv6.Make"
+    (ethernet @-> random @-> time @-> mclock @-> ipv6)
 
 let create_ipv6
     ?(random = default_random)

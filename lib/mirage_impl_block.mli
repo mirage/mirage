@@ -19,17 +19,7 @@ val block_of_xenstore_id : string -> block Functoria.impl
 
 val block_of_file : string -> block Functoria.impl
 
-class block_conf :
-  string
-  -> object
-       inherit Functoria.base_configurable
-
-       method module_name : string
-
-       method name : string
-
-       method ty : block Functoria.typ
-     end
+val block_conf : string -> block Functoria.Device.t
 
 type block_t = {filename: string; number: int}
 

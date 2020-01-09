@@ -59,55 +59,49 @@ module C = struct
   let version = "1.0"
   let packages = [Functoria.package "functoria"; Functoria.package "f0"]
   let ignore_dirs = []
+  let keys = Key.[abstract vote; abstract warn_error]
 
-  let create jobs = Functoria.impl @@ object (self)
-      inherit Functoria.base_configurable
-      method ty = Functoria.job
-      method name = "f0"
-      method module_name = "F0"
-      method! connect _ _ _ = "()"
-      method! keys = [
-        Functoria_key.(abstract vote);
-        Functoria_key.(abstract warn_error);
-      ]
-      method! packages = Key.pure [
-          Functoria.package "fmt";
-        ]
+  let connect _ _ _ = "()"
 
-      method! configure i =
-        let dune = Fmt.strf
-            "(executable\n\
-            \   (name      %s)\n\
-            \   (modules (:standard \\ config))\n\
-            \   (libraries cmdliner fmt functoria-runtime))\n"
-            (output i)
-        in
-        Bos.OS.File.write (dune_file i) dune
+  let configure i =
+    let dune = Fmt.strf
+        "(executable\n\
+        \   (name      %s)\n\
+        \   (modules (:standard \\ config))\n\
+        \   (libraries cmdliner fmt functoria-runtime))\n"
+        (output i)
+    in
+    Bos.OS.File.write (dune_file i) dune
 
-      method! clean i =
-        Bos.OS.File.delete (dune_file i) >>= fun () ->
-        Bos.OS.File.delete Fpath.(v @@ output i ^ ".exe") >>= fun () ->
-        List.fold_left (fun acc key ->
-            acc >>= fun () ->
-            let file = Fpath.v (Key.name key) in
-            Bos.OS.File.delete file
-          ) (Ok ()) self#keys
+  let build i =
+    Bos.OS.Dir.with_current (Functoria.Info.build_dir i) (fun () ->
+        let root, prefix = split_root () in
+        let exe = Fpath.(prefix / output i + "exe") in
+        write_key i vote (fun x -> x);
+        write_key i warn_error string_of_bool;
+        run @@ Bos.Cmd.(v "dune" % "build"
+                        % "--root" % Fpath.to_string root
+                        % p exe);
+        run @@ Bos.Cmd.(v "mv"
+                        % p Fpath.(root / "_build" / "default" // exe)
+                        % (output i ^ ".exe"));
+      ) ()
 
-      method! build i =
-        Bos.OS.Dir.with_current (Functoria.Info.build_dir i) (fun () ->
-            let root, prefix = split_root () in
-            let exe = Fpath.(prefix / output i + "exe") in
-            write_key i vote (fun x -> x);
-            write_key i warn_error string_of_bool;
-            run @@ Bos.Cmd.(v "dune" % "build"
-                            % "--root" % Fpath.to_string root
-                            % Fpath.(to_string exe));
-            run @@ Bos.Cmd.(v "mv" % Fpath.(to_string @@ root / "_build" / "default" // exe)
-                            % (output i ^ ".exe"));
-          ) ()
+  let clean i =
+    Bos.OS.File.delete (dune_file i) >>= fun () ->
+    Bos.OS.File.delete Fpath.(v @@ output i ^ ".exe") >>= fun () ->
+    List.fold_left (fun acc key ->
+        acc >>= fun () ->
+        let file = Fpath.v (Key.name key) in
+        Bos.OS.File.delete file
+      ) (Ok ()) keys
 
-      method! deps = List.map Functoria.abstract jobs
-    end
+  let create jobs =
+    let packages = Functoria.[package "fmt"] in
+    let extra_deps = List.map Functoria.abstract jobs in
+    Functoria.impl
+      ~keys ~packages ~configure ~connect
+      ~clean ~build ~extra_deps "F0" Functoria.job
 end
 
 include Functoria_app.Make(C)

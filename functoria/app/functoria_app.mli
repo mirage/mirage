@@ -75,7 +75,7 @@ module Make (P: S): sig
 
   val register:
     ?packages:package list ->
-    ?keys:key list ->
+    ?keys:abstract_key list ->
     ?init:job impl list ->
     string -> job impl list -> unit
   (** [register name jobs] registers the application named by [name]
@@ -103,10 +103,6 @@ module Name: sig
       characters outside of ['a'-'z''A'-'Z''0''9''_''-'], and
       replacing '-' with '_'.  If the resulting string starts with a
       digit or is empty then it raises [Invalid_argument]. *)
-
-  val create: string -> prefix:string -> string
-  (** [name key ~prefix] is an deterministic name starting by
-      [prefix]. The name is derived from [key].  *)
 
 end
 

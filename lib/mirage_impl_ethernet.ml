@@ -6,17 +6,12 @@ open Mirage_impl_network
 type ethernet = ETHERNET
 let ethernet = Type ETHERNET
 
-let ethernet_conf = object
-  inherit base_configurable
-  method ty = network @-> ethernet
-  method name = "ethernet"
-  method module_name = "Ethernet.Make"
-  method! packages =
-    Key.pure [ package ~min:"2.2.0" ~max:"3.0.0" "ethernet" ]
-  method! connect _ modname = function
-    | [ eth ] -> Fmt.strf "%s.connect %s" modname eth
+let etif_conf =
+  let packages = [ package ~min:"2.2.0" ~max:"3.0.0" "ethernet" ] in
+  let connect _ m = function
+    | [ eth ] -> Fmt.strf "%s.connect %s" m eth
     | _ -> failwith (connect_err "ethernet" 1)
-end
+  in
+  impl ~packages ~connect "Ethernet.Make" (network @-> ethernet)
 
-let etif_func = impl ethernet_conf
-let etif network = etif_func $ network
+let etif network = etif_conf $ network

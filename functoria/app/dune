@@ -1,6 +1,4 @@
 (library
  (name functoria_app)
  (public_name functoria.app)
- (libraries functoria cmdliner rresult fmt.tty fmt.cli astring fpath bos logs logs.cli logs.fmt)
- (wrapped false)
-)
+ (libraries functoria rresult astring fpath bos logs))

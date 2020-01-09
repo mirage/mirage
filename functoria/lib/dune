@@ -1,5 +1,6 @@
 (library
  (name functoria)
  (public_name functoria)
- (libraries unix cmdliner rresult fmt astring fpath ocamlgraph bos)
+ (libraries unix cmdliner rresult fmt astring fpath ocamlgraph bos
+            fmt.cli logs.fmt fmt.tty logs.cli)
  (wrapped false))

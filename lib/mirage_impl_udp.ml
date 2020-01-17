@@ -1,5 +1,4 @@
 module Key = Mirage_key
-
 open Rresult
 open Functoria
 open Mirage_impl_ip
@@ -7,27 +6,31 @@ open Mirage_impl_misc
 open Mirage_impl_random
 
 type 'a udp = UDP
+
 type udpv4 = v4 udp
+
 type udpv6 = v6 udp
 
 let udp = Type UDP
-let udpv4: udpv4 typ = udp
-let udpv6: udpv6 typ = udp
+
+let udpv4 : udpv4 typ = udp
+
+let udpv6 : udpv6 typ = udp
 
 (* Value restriction ... *)
 let udp_direct_func () =
-  let packages_v = right_tcpip_library ~sublibs:["udp"] "tcpip" in
+  let packages_v = right_tcpip_library ~sublibs:[ "udp" ] "tcpip" in
   let connect _ modname = function
     | [ ip; _random ] -> Fmt.strf "%s.connect %s" modname ip
-    | _  -> failwith (connect_err "udp" 2)
+    | _ -> failwith (connect_err "udp" 2)
   in
   impl ~packages_v ~connect "Udp.Make" (ip @-> random @-> udp)
 
-let direct_udp ?(random=default_random) ip = udp_direct_func () $ ip $ random
+let direct_udp ?(random = default_random) ip = udp_direct_func () $ ip $ random
 
 let udpv4_socket_conf ipv4_key =
   let keys = [ Key.abstract ipv4_key ] in
-  let packages_v = right_tcpip_library ~sublibs:["udpv4-socket"] "tcpip" in
+  let packages_v = right_tcpip_library ~sublibs:[ "udpv4-socket" ] "tcpip" in
   let configure i =
     match get_target i with
     | `Unix | `MacOSX -> R.ok ()

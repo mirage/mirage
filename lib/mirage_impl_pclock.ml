@@ -1,11 +1,12 @@
 open Functoria
 
 type pclock = PCLOCK
+
 let pclock = Type PCLOCK
 
 let default_posix_clock =
   let packages_v =
-        Mirage_key.(if_ is_unix)
+    Mirage_key.(if_ is_unix)
       [ package ~min:"3.0.0" ~max:"4.0.0" "mirage-clock-unix" ]
       [ package ~min:"3.0.0" ~max:"4.0.0" "mirage-clock-freestanding" ]
   in

@@ -1,5 +1,5 @@
 (executable
-  (name        main)
-  (public_name mirage)
-  (package     mirage)
-  (libraries   mirage))
+ (name main)
+ (public_name mirage)
+ (package mirage)
+ (libraries mirage))

@@ -18,6 +18,8 @@
 
 (** Deprecated MirageOS signatures, use them directly *)
 
-[@@@ocaml.deprecated "This module will be removed from MirageOS 4.0. Please use the individual signatures (mirage-net / mirage-block / ...) directly."]
+[@@@ocaml.deprecated
+"This module will be removed from MirageOS 4.0. Please use the individual \
+ signatures (mirage-net / mirage-block / ...) directly."]
 
 include Mirage_types

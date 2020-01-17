@@ -17,36 +17,43 @@
 open Rresult
 
 type 'a key = 'a Functoria_key.key
+
 type 'a value = 'a Functoria_key.value
+
 type keys = Functoria_key.t
+
 type info = Functoria_info.t
+
 type package = Functoria_package.t
 
 type _ typ =
-  | Type: 'a -> 'a typ (* module type *)
-  | Function: 'a typ * 'b typ -> ('a -> 'b) typ (* functor *)
+  | Type : 'a -> 'a typ (* module type *)
+  | Function : 'a typ * 'b typ -> ('a -> 'b) typ
+
+(* functor *)
 
 type _ impl =
-  | Dev: 'ty device -> 'ty impl (* base devices *)
-  | App: ('a, 'b) app -> 'b impl   (* functor application *)
-  | If: bool value * 'a impl * 'a impl -> 'a impl
+  | Dev : 'ty device -> 'ty impl (* base devices *)
+  | App : ('a, 'b) app -> 'b impl (* functor application *)
+  | If : bool value * 'a impl * 'a impl -> 'a impl
 
 and ('a, 'b) app = {
-  f: ('a -> 'b) impl;  (* functor *)
-  x: 'a impl;          (* parameter *)
+  f : ('a -> 'b) impl;
+  (* functor *)
+  x : 'a impl; (* parameter *)
 }
 
-and abstract_impl = Abstract: _ impl -> abstract_impl
+and abstract_impl = Abstract : _ impl -> abstract_impl
 
 and 'a device = {
-  id: int;
-  module_name: string;
-  module_type: 'a typ;
-  keys: keys list;
-  packages: package list value;
-  connect: info -> string -> string list -> string;
-  configure: info -> (unit, R.msg) result;
-  build: info -> (unit, R.msg) result;
-  clean: info -> (unit, R.msg) result;
-  extra_deps: abstract_impl list;
+  id : int;
+  module_name : string;
+  module_type : 'a typ;
+  keys : keys list;
+  packages : package list value;
+  connect : info -> string -> string list -> string;
+  configure : info -> (unit, R.msg) result;
+  build : info -> (unit, R.msg) result;
+  clean : info -> (unit, R.msg) result;
+  extra_deps : abstract_impl list;
 }

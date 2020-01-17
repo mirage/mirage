@@ -12,4 +12,5 @@ val rw : rw Functoria.typ
 
 val direct_kv_rw : string -> rw Functoria.impl
 
-val mem_kv_rw : ?clock:Mirage_impl_pclock.pclock Functoria.impl -> unit -> rw Functoria.impl
+val mem_kv_rw :
+  ?clock:Mirage_impl_pclock.pclock Functoria.impl -> unit -> rw Functoria.impl

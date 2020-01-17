@@ -16,10 +16,10 @@
 
 (** Runtime information about the application.
 
-    {e Release %%VERSION%% } *)
+    {e Release %%VERSION%%} *)
 
 type t = Functoria_runtime.info = {
-  name     : string;
-  libraries: string list;
+  name : string;
+  libraries : string list;
   packages : (string * string) list;
 }

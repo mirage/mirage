@@ -24,18 +24,21 @@ let argv_xen =
       (* Some hypervisor configurations try to pass some extra arguments.
        * They means well, but we can't do much with them,
        * and they cause Functoria to abort. *)
-      "let filter (key, _) = List.mem key (List.map snd Key_gen.runtime_keys) in@ \
-       Bootvar.argv ~filter ()"
+      "let filter (key, _) = List.mem key (List.map snd Key_gen.runtime_keys) \
+       in@ Bootvar.argv ~filter ()"
   in
-  impl ~packages ~connect  "Bootvar" ty
+  impl ~packages ~connect "Bootvar" ty
 
 let default_argv =
-  match_impl Key.(value target) [
-    `Xen, argv_xen;
-    `Qubes, argv_xen;
-    `Virtio, argv_solo5;
-    `Hvt, argv_solo5;
-    `Muen, argv_solo5;
-    `Genode, argv_solo5;
-    `Spt, argv_solo5
-  ] ~default:argv_unix
+  match_impl
+    Key.(value target)
+    [
+      (`Xen, argv_xen);
+      (`Qubes, argv_xen);
+      (`Virtio, argv_solo5);
+      (`Hvt, argv_solo5);
+      (`Muen, argv_solo5);
+      (`Genode, argv_solo5);
+      (`Spt, argv_solo5);
+    ]
+    ~default:argv_unix

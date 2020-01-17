@@ -17,7 +17,6 @@
 
 open Functoria_misc
 open Rresult
-
 module Graph = Functoria_graph
 module Key = Functoria_key
 module Package = Functoria_package
@@ -28,54 +27,54 @@ type t = Graph.t
 let if_keys =
   let open Graph in
   Graph.collect (module Key.Set) @@ function
-  | If cond      -> Key.deps cond
+  | If cond -> Key.deps cond
   | App | Dev _ -> Key.Set.empty
 
 let all_keys =
   let open Graph in
   Graph.collect (module Key.Set) @@ function
-  | Dev c   -> Key.Set.of_list (Device.keys c)
+  | Dev c -> Key.Set.of_list (Device.keys c)
   | If cond -> Key.deps cond
-  | App     -> Key.Set.empty
+  | App -> Key.Set.empty
 
 module M = struct
   type t = Package.t list Key.value
+
   let union x y = Key.(pure List.append $ x $ y)
+
   let empty = Key.pure []
 end
 
 let packages =
   let open Graph in
   Graph.collect (module M) @@ function
-  | Dev c     -> Device.packages c
+  | Dev c -> Device.packages c
   | If _ | App -> M.empty
 
 (* [module_expresion tbl c args] returns the module expression of
    the functor [c] applies to [args]. *)
 let module_expression fmt (c, args) =
-  Fmt.pf fmt "%s%a"
-    (Device.module_name c)
+  Fmt.pf fmt "%s%a" (Device.module_name c)
     Fmt.(list (parens @@ of_to_string @@ Graph.impl_name))
     args
 
 let find_all_devices info g i =
   let ctx = Functoria.Info.context info in
   let open Functoria in
-  let rec id: type a . a impl -> int = fun impl ->
+  let rec id : type a. a impl -> int =
+   fun impl ->
     match explode impl with
-    | `Dev c               -> Device.id c
+    | `Dev c -> Device.id c
     | `App (Abstract x, _) -> id x
-    | `If (b, x, y)        -> if Key.eval ctx b then id x else id y
+    | `If (b, x, y) -> if Key.eval ctx b then id x else id y
   in
   let id = id i in
-  let p = function
-    | Graph.Dev d -> Device.id d = id
-    | App | If _ -> false
-  in
+  let p = function Graph.Dev d -> Device.id d = id | App | If _ -> false in
   Graph.find_all g p
 
 let build info t =
-  let f v = match Graph.explode t v with
+  let f v =
+    match Graph.explode t v with
     | `App _ | `If _ -> assert false
     | `Dev (Graph.D c, _, _) -> Device.build c info
   in
@@ -83,18 +82,16 @@ let build info t =
   Graph.fold f t @@ R.ok ()
 
 let configure info t =
-  let f v = match Graph.explode t v with
+  let f v =
+    match Graph.explode t v with
     | `App _ | `If _ -> assert false
     | `Dev (Graph.D c, `Args args, `Deps _) ->
-      Device.configure c info >>| fun () ->
-      if args = [] then ()
-      else begin
-        Codegen.append_main
-          "@[<2>module %s =@ %a@]"
-          (Graph.impl_name v)
-          module_expression (c, args);
-        Codegen.newline_main ();
-      end
+        Device.configure c info >>| fun () ->
+        if args = [] then ()
+        else (
+          Codegen.append_main "@[<2>module %s =@ %a@]" (Graph.impl_name v)
+            module_expression (c, args);
+          Codegen.newline_main () )
   in
   let f v res = res >>= fun () -> f v in
   Graph.fold f t @@ R.ok ()
@@ -105,57 +102,50 @@ let meta_init fmt (connect_name, result_name) =
 let emit_connect fmt (iname, names, connect_string) =
   (* We avoid potential collision between double application
      by prefixing with "_". This also avoid warnings. *)
-  let rnames = List.map (fun x -> "_"^x) names in
-  let bind ppf name =
-    Fmt.pf ppf "_%s >>= fun %s ->@ " name name
-  in
-  Fmt.pf fmt
-    "@[<v 2>let %s = lazy (@ \
-     %a\
-     %a\
-     %s@ )@]@."
-    iname
-    Fmt.(list ~sep:nop meta_init) (List.combine names rnames)
-    Fmt.(list ~sep:nop bind) rnames
-    (connect_string rnames)
+  let rnames = List.map (fun x -> "_" ^ x) names in
+  let bind ppf name = Fmt.pf ppf "_%s >>= fun %s ->@ " name name in
+  Fmt.pf fmt "@[<v 2>let %s = lazy (@ %a%a%s@ )@]@." iname
+    Fmt.(list ~sep:nop meta_init)
+    (List.combine names rnames)
+    Fmt.(list ~sep:nop bind)
+    rnames (connect_string rnames)
 
 let emit_run init main =
   (* "exit 1" is ok in this code, since cmdliner will print help. *)
-  let force ppf name =
-    Fmt.pf ppf "Lazy.force %s >>= fun _ ->@ " name
-  in
+  let force ppf name = Fmt.pf ppf "Lazy.force %s >>= fun _ ->@ " name in
   Codegen.append_main
-    "@[<v 2>\
-     let () =@ \
-     let t =@ @[<v 2>%aLazy.force %s@]@ \
-     in run t@]"
-    Fmt.(list ~sep:nop force) init main
+    "@[<v 2>let () =@ let t =@ @[<v 2>%aLazy.force %s@]@ in run t@]"
+    Fmt.(list ~sep:nop force)
+    init main
 
-let connect ?(init=[]) info t =
-  let f v = match Graph.explode t v with
+let connect ?(init = []) info t =
+  let f v =
+    match Graph.explode t v with
     | `App _ | `If _ -> assert false
     | `Dev (Graph.D c, `Args args, `Deps deps) ->
-      let var_name = Graph.var_name v in
-      let impl_name = Graph.impl_name v in
-      let arg_names = List.map Graph.var_name (args @ deps) in
-      Codegen.append_main "%a"
-        emit_connect (var_name, arg_names, Device.connect c info impl_name);
+        let var_name = Graph.var_name v in
+        let impl_name = Graph.impl_name v in
+        let arg_names = List.map Graph.var_name (args @ deps) in
+        Codegen.append_main "%a" emit_connect
+          (var_name, arg_names, Device.connect c info impl_name)
   in
   Graph.fold (fun v () -> f v) t ();
   let main_name = Graph.var_name (Graph.find_root t) in
   let init_names =
-    List.fold_left (fun acc i ->
+    List.fold_left
+      (fun acc i ->
         match find_all_devices info t i with
         | [] -> assert false
-        | ds -> List.map Graph.var_name ds @ acc
-      ) [] init
+        | ds -> List.map Graph.var_name ds @ acc)
+      [] init
   in
   emit_run init_names main_name
 
 let clean i g =
-  let f v = match Graph.explode g v with
+  let f v =
+    match Graph.explode g v with
     | `App _ | `If _ -> assert false
-    | `Dev (Graph.D c,_,_) -> Device.clean c i
+    | `Dev (Graph.D c, _, _) -> Device.clean c i
   in
   let f v res = res >>= fun () -> f v in
   Graph.fold f g @@ R.ok ()

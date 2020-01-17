@@ -2,6 +2,7 @@ open Functoria
 open Mirage_impl_misc
 
 type http = HTTP
+
 let http = Type HTTP
 
 let connect err _i modname = function

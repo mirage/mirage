@@ -4,6 +4,7 @@ open Mirage_impl_misc
 open Mirage_impl_network
 
 type ethernet = ETHERNET
+
 let ethernet = Type ETHERNET
 
 let etif_conf =

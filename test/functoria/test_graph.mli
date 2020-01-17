@@ -1,1 +1,1 @@
-val suite: unit Alcotest.test_case list
+val suite : unit Alcotest.test_case list

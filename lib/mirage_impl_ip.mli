@@ -22,56 +22,56 @@ val ipv4 : ipv4 Functoria.typ
 
 val ipv6 : ipv6 Functoria.typ
 
-type ipv4_config =
-  {network: Ipaddr.V4.Prefix.t * Ipaddr.V4.t; gateway: Ipaddr.V4.t option}
+type ipv4_config = {
+  network : Ipaddr.V4.Prefix.t * Ipaddr.V4.t;
+  gateway : Ipaddr.V4.t option;
+}
 
-type ipv6_config =
-  { addresses: Ipaddr.V6.t list
-  ; netmasks: Ipaddr.V6.Prefix.t list
-  ; gateways: Ipaddr.V6.t list }
+type ipv6_config = {
+  addresses : Ipaddr.V6.t list;
+  netmasks : Ipaddr.V6.Prefix.t list;
+  gateways : Ipaddr.V6.t list;
+}
 
 val create_ipv4 :
-     ?group:string
-  -> ?config:ipv4_config
-  -> ?random:random impl
-  -> ?clock:mclock impl
-  -> ethernet impl
-  -> arpv4 impl
-  -> ipv4 impl
+  ?group:string ->
+  ?config:ipv4_config ->
+  ?random:random impl ->
+  ?clock:mclock impl ->
+  ethernet impl ->
+  arpv4 impl ->
+  ipv4 impl
 
 val create_ipv6 :
-     ?random:random impl
-  -> ?time:Mirage_impl_time.time impl
-  -> ?clock:mclock impl
-  -> ?group:string
-  -> ethernet impl
-  -> ipv6_config
-  -> ipv6 impl
+  ?random:random impl ->
+  ?time:Mirage_impl_time.time impl ->
+  ?clock:mclock impl ->
+  ?group:string ->
+  ethernet impl ->
+  ipv6_config ->
+  ipv6 impl
 
 val dhcp :
-  random impl
-  -> Mirage_impl_time.time impl
-  -> network impl
-  -> Mirage_impl_dhcp.dhcp impl
+  random impl ->
+  Mirage_impl_time.time impl ->
+  network impl ->
+  Mirage_impl_dhcp.dhcp impl
 
 val ipv4_of_dhcp :
-     ?random:random impl
-  -> ?clock:mclock impl
-  -> Mirage_impl_dhcp.dhcp impl
-  -> ethernet impl
-  -> arpv4 impl
-  -> ipv4 impl
+  ?random:random impl ->
+  ?clock:mclock impl ->
+  Mirage_impl_dhcp.dhcp impl ->
+  ethernet impl ->
+  arpv4 impl ->
+  ipv4 impl
 
 val ipv4_qubes :
-     ?random:random impl
-  -> ?clock:mclock impl
-  -> qubesdb impl
-  -> ethernet impl
-  -> arpv4 impl
-  -> ipv4 impl
+  ?random:random impl ->
+  ?clock:mclock impl ->
+  qubesdb impl ->
+  ethernet impl ->
+  arpv4 impl ->
+  ipv4 impl
 
 val right_tcpip_library :
-     ?libs:string list
-  -> sublibs:string list
-  -> string
-  -> package list value
+  ?libs:string list -> sublibs:string list -> string -> package list value

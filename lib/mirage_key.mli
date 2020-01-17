@@ -16,59 +16,62 @@
 
 (** Mirage keys.
 
- {e Release %%VERSION%% } *)
+    {e Release %%VERSION%%} *)
 
 module Arg : sig
-  include module type of struct include Functoria_key.Arg end
+  include module type of struct
+    include Functoria_key.Arg
+  end
 
   val ipv4_address : Ipaddr.V4.t converter
-  val ipv4 : (Ipaddr.V4.Prefix.t * Ipaddr.V4.t) converter
-  val ipv6 : Ipaddr.V6.t converter
-  val ipv6_prefix : Ipaddr.V6.Prefix.t converter
 
+  val ipv4 : (Ipaddr.V4.Prefix.t * Ipaddr.V4.t) converter
+
+  val ipv6 : Ipaddr.V6.t converter
+
+  val ipv6_prefix : Ipaddr.V6.Prefix.t converter
 end
 
 include Functoria.KEY with module Arg := Arg
 
 type mode_unix = [ `Unix | `MacOSX ]
+
 type mode_xen = [ `Xen | `Qubes ]
+
 type mode_solo5 = [ `Hvt | `Spt | `Virtio | `Muen | `Genode ]
+
 type mode = [ mode_unix | mode_xen | mode_solo5 ]
 
 (** {2 Mirage keys} *)
 
-val target: mode key
-(** [-t TARGET]: Key setting the configuration mode for the current project.
-    Is one of ["unix"], ["macosx"], ["xen"], ["qubes"], ["virtio"], ["hvt"],
-    ["muen"], ["genode"] or ["spt"].
-*)
+val target : mode key
+(** [-t TARGET]: Key setting the configuration mode for the current project. Is
+    one of ["unix"], ["macosx"], ["xen"], ["qubes"], ["virtio"], ["hvt"],
+    ["muen"], ["genode"] or ["spt"]. *)
 
-val pp_target: mode Fmt.t
+val pp_target : mode Fmt.t
 (** Pretty printer for the mode. *)
 
-val is_unix: bool value
-(** Is true iff the {!target} key is a UNIXish system (["unix" or "macosx"]).
-*)
+val is_unix : bool value
+(** Is true iff the {!target} key is a UNIXish system (["unix" or "macosx"]). *)
 
-val is_solo5: bool value
-(** Is true iff the {!target} key is a Solo5-based target.
-*)
+val is_solo5 : bool value
+(** Is true iff the {!target} key is a Solo5-based target. *)
 
-val is_xen: bool value
-(** Is true iff the {!target} key is a Xen-based system (["xen" or "qubes"]).
-*)
+val is_xen : bool value
+(** Is true iff the {!target} key is a Xen-based system (["xen" or "qubes"]). *)
 
-val warn_error: bool key
+val warn_error : bool key
 (** [--warn-error]. Enable {i -warn-error} for OCaml sources. Set to [false] by
     default, but might might enabled by default in later releases. *)
 
-val target_debug: bool key
+val target_debug : bool key
 (** [-g]. Enables target-specific support for debugging. *)
 
-val no_depext: bool key
+val no_depext : bool key
 (** [--no-depext]. Disables opam depext in depend target of generated Makefile. *)
 
-val tracing_size: int -> int key
+val tracing_size : int -> int key
 (** [--tracing-size]: Key setting the tracing ring buffer size. *)
 
 (** {2 Generic keys}
@@ -76,8 +79,8 @@ val tracing_size: int -> int key
     Some keys have a [group] optional argument. This group argument allows to
     give several keys a prefix.
 
-    For example, if we have two [ip] stacks, one external and one internal,
-    We can use the [group] option to name them [in] and [out]. This way, the
+    For example, if we have two [ip] stacks, one external and one internal, We
+    can use the [group] option to name them [in] and [out]. This way, the
     available keys will be [--in-ip] and [--out-ip].
 
     If a key has another, non-optional argument. It is the default value.
@@ -87,11 +90,11 @@ val tracing_size: int -> int key
     {3 File system keys} *)
 
 val kv_ro : ?group:string -> unit -> [ `Archive | `Crunch | `Direct | `Fat ] key
-(** The type of key value store.
-    Is one of ["archive"], ["crunch"], ["direct"], or ["fat"]. *)
+(** The type of key value store. Is one of ["archive"], ["crunch"], ["direct"],
+    or ["fat"]. *)
 
-(** {3 Block device keys} *)
 val block : ?group:string -> unit -> [ `XenstoreId | `BlockFile | `Ramdisk ] key
+(** {3 Block device keys} *)
 
 (** {3 PRNG key} *)
 
@@ -115,7 +118,7 @@ val interface : ?group:string -> string -> string key
 module V4 : sig
   open Ipaddr.V4
 
-  val network : ?group:string -> (Prefix.t * t)-> (Prefix.t * t) key
+  val network : ?group:string -> Prefix.t * t -> (Prefix.t * t) key
   (** A network defined by an address and netmask. *)
 
   val gateway : ?group:string -> t option -> t option key
@@ -126,7 +129,6 @@ module V4 : sig
 
   val ips : ?group:string -> t list -> t list key
   (** A list of IPv4 addresses bound by a socket. *)
-
 end
 
 (** Ipv6 keys. *)
@@ -141,22 +143,21 @@ module V6 : sig
 
   val gateways : ?group:string -> t list -> t list key
   (** A list of gateways. *)
-
 end
 
-val resolver: ?default:Ipaddr.V4.t -> unit -> Ipaddr.V4.t key
+val resolver : ?default:Ipaddr.V4.t -> unit -> Ipaddr.V4.t key
 (** The address of the DNS resolver to use. *)
 
-val resolver_port: ?default:int -> unit -> int key
+val resolver_port : ?default:int -> unit -> int key
 (** The port of the DNS resolver. *)
 
-val syslog: Ipaddr.V4.t option -> Ipaddr.V4.t option key
+val syslog : Ipaddr.V4.t option -> Ipaddr.V4.t option key
 (** The address to send syslog frames to. *)
 
-val syslog_port: int option -> int option key
+val syslog_port : int option -> int option key
 (** The port to send syslog frames to. *)
 
-val syslog_hostname: string -> string key
+val syslog_hostname : string -> string key
 (** The hostname to use in syslog frames. *)
 
-val logs: Mirage_runtime.log_threshold list key
+val logs : Mirage_runtime.log_threshold list key

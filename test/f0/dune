@@ -1,1 +1,3 @@
-(library (name f0) (libraries functoria.app))
+(library
+ (name f0)
+ (libraries functoria.app))

@@ -21,36 +21,51 @@
 
 open Rresult
 
-val err_cmdliner: ?usage:bool -> ('a, string) result -> 'a Cmdliner.Term.ret
+val err_cmdliner : ?usage:bool -> ('a, string) result -> 'a Cmdliner.Term.ret
 
 module type Monoid = sig
   type t
-  val empty: t
-  val union: t -> t -> t
+
+  val empty : t
+
+  val union : t -> t -> t
 end
 
-module Name: sig
-  val ocamlify: string -> string
+module Name : sig
+  val ocamlify : string -> string
 end
 
-module Codegen: sig
-  val generated_header: ?argv:string array -> unit -> string
-  val append: Format.formatter -> ('a, Format.formatter, unit) format -> 'a
-  val newline: Format.formatter -> unit
-  val set_main_ml: string -> unit
-  val append_main: ('a, Format.formatter, unit) format -> 'a
-  val newline_main: unit -> unit
+module Codegen : sig
+  val generated_header : ?argv:string array -> unit -> string
+
+  val append : Format.formatter -> ('a, Format.formatter, unit) format -> 'a
+
+  val newline : Format.formatter -> unit
+
+  val set_main_ml : string -> unit
+
+  val append_main : ('a, Format.formatter, unit) format -> 'a
+
+  val newline_main : unit -> unit
 end
 
 (** Universal map *)
-module Univ: sig
+module Univ : sig
   type 'a key
-  val new_key: string -> 'a key
+
+  val new_key : string -> 'a key
+
   type t
-  val empty: t
-  val add: 'a key -> 'a -> t -> t
-  val mem: 'a key -> t -> bool
-  val find: 'a key -> t -> 'a option
-  val merge: default:t -> t -> t
-  val dump: t Fmt.t
+
+  val empty : t
+
+  val add : 'a key -> 'a -> t -> t
+
+  val mem : 'a key -> t -> bool
+
+  val find : 'a key -> t -> 'a option
+
+  val merge : default:t -> t -> t
+
+  val dump : t Fmt.t
 end

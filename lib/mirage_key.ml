@@ -26,29 +26,29 @@ module Arg = struct
   let from_run s = "Mirage_runtime.Arg." ^ s
 
   let make d m of_string to_string =
-    let parser s = match of_string s with
-      | Error (`Msg m) -> `Error ("Can't parse ip address: "^s^": "^m)
+    let parser s =
+      match of_string s with
+      | Error (`Msg m) -> `Error ("Can't parse ip address: " ^ s ^ ": " ^ m)
       | Ok ip -> `Ok ip
     and serialize ppf t =
       Fmt.pf ppf "(Ipaddr.%s.of_string_exn %S)" m (to_string t)
-    and pp ppf t =
-      Fmt.string ppf (to_string t)
-    in
-    Functoria_key.Arg.conv
-      ~conv:(parser, pp)
-      ~serialize
+    and pp ppf t = Fmt.string ppf (to_string t) in
+    Functoria_key.Arg.conv ~conv:(parser, pp) ~serialize
       ~runtime_conv:(from_run d)
 
   module type S = sig
     type t
+
     val of_string : string -> (t, [ `Msg of string ]) result
+
     val to_string : t -> string
   end
 
-  let of_module (type t) d m (module M:S with type t = t) =
+  let of_module (type t) d m (module M : S with type t = t) =
     make d m M.of_string M.to_string
 
   let ipv4_address = of_module "ipv4_address" "V4" (module Ipaddr.V4)
+
   let ipv4 =
     let serialize fmt (prefix, ip) =
       Format.fprintf fmt "(Ipaddr.V4.Prefix.of_address_string_exn %S)"
@@ -59,98 +59,102 @@ module Arg = struct
     in
     let parse str =
       match Ipaddr.V4.Prefix.of_address_string str with
-      | Error (`Msg m) -> `Error (str ^ " is not a valid IPv4 address and netmask: "^m)
+      | Error (`Msg m) ->
+          `Error (str ^ " is not a valid IPv4 address and netmask: " ^ m)
       | Ok n -> `Ok n
     in
-    let runtime_conv = "Mirage_runtime.Arg.ipv4"
-    in
-    Functoria_key.Arg.conv
-      ~conv:(parse, print)
-      ~serialize
-      ~runtime_conv
+    let runtime_conv = "Mirage_runtime.Arg.ipv4" in
+    Functoria_key.Arg.conv ~conv:(parse, print) ~serialize ~runtime_conv
 
   let ipv6 = of_module "ipv6" "V6" (module Ipaddr.V6)
+
   let ipv6_prefix = of_module "ipv6_prefix" "V6.Prefix" (module Ipaddr.V6.Prefix)
 end
 
 (** {2 Documentation helper} *)
 
 let mirage_section = "MIRAGE PARAMETERS"
+
 let unikernel_section = "UNIKERNEL PARAMETERS"
 
-let pp_group =
-  Fmt.(option ~none:(unit "the unikernel") @@ fmt "the %s group")
+let pp_group = Fmt.(option ~none:(unit "the unikernel") @@ fmt "the %s group")
 
 (** {2 Special keys} *)
 
 (** {3 Mode} *)
 
 type mode_unix = [ `Unix | `MacOSX ]
+
 type mode_xen = [ `Xen | `Qubes ]
+
 type mode_solo5 = [ `Hvt | `Spt | `Virtio | `Muen | `Genode ]
+
 type mode = [ mode_unix | mode_xen | mode_solo5 ]
 
 let first_ukvm_mention = ref true
-let ukvm_warning = "The `ukvm' target has been renamed to `hvt'. \
-Support for the `ukvm` target will be removed in a future MirageOS release. \
-Please reconfigure using `-t hvt' at your earliest convenience."
 
-let target_conv: mode Cmdliner.Arg.converter =
+let ukvm_warning =
+  "The `ukvm' target has been renamed to `hvt'. Support for the `ukvm` target \
+   will be removed in a future MirageOS release. Please reconfigure using `-t \
+   hvt' at your earliest convenience."
+
+let target_conv : mode Cmdliner.Arg.converter =
   let parser, printer =
-    Cmdliner.Arg.enum [
-      "unix"  , `Unix;
-      "macosx", `MacOSX;
-      "xen"   , `Xen;
-      "virtio", `Virtio;
-      "hvt"   , `Hvt;
-      "muen"  , `Muen;
-      "qubes" , `Qubes;
-      "genode", `Genode;
-      "spt"   , `Spt;
-    ]
+    Cmdliner.Arg.enum
+      [
+        ("unix", `Unix);
+        ("macosx", `MacOSX);
+        ("xen", `Xen);
+        ("virtio", `Virtio);
+        ("hvt", `Hvt);
+        ("muen", `Muen);
+        ("qubes", `Qubes);
+        ("genode", `Genode);
+        ("spt", `Spt);
+      ]
   in
   let filter_ukvm s =
     let str =
-      if s = "ukvm" then begin
-        if !first_ukvm_mention then begin
-          Logs.warn (fun m -> m "%s" ukvm_warning) ;
-          first_ukvm_mention := false
-        end ;
-        "hvt"
-      end else
-        s
+      if s = "ukvm" then (
+        if !first_ukvm_mention then (
+          Logs.warn (fun m -> m "%s" ukvm_warning);
+          first_ukvm_mention := false );
+        "hvt" )
+      else s
     in
     parser str
   in
-  filter_ukvm, printer
+  (filter_ukvm, printer)
 
 let pp_target fmt m = snd target_conv fmt m
 
-let default_unix = lazy (
-  match Bos.OS.Cmd.(run_out Bos.Cmd.(v "uname" % "-s") |> out_string) with
-  | Ok ("Darwin", _) -> `MacOSX
-  | _ -> `Unix
-)
+let default_unix =
+  lazy
+    ( match Bos.OS.Cmd.(run_out Bos.Cmd.(v "uname" % "-s") |> out_string) with
+    | Ok ("Darwin", _) -> `MacOSX
+    | _ -> `Unix )
 
 let target =
   let doc =
-    "Target platform to compile the unikernel for. Valid values are: \
-     $(i,xen), $(i,qubes), $(i,unix), $(i,macosx), $(i,virtio), $(i,hvt), $(i,spt), $(i,muen), $(i,genode)."
+    "Target platform to compile the unikernel for. Valid values are: $(i,xen), \
+     $(i,qubes), $(i,unix), $(i,macosx), $(i,virtio), $(i,hvt), $(i,spt), \
+     $(i,muen), $(i,genode)."
   in
   let serialize ppf = function
-    | `Unix   -> Fmt.pf ppf "`Unix"
-    | `Xen    -> Fmt.pf ppf "`Xen"
+    | `Unix -> Fmt.pf ppf "`Unix"
+    | `Xen -> Fmt.pf ppf "`Xen"
     | `Virtio -> Fmt.pf ppf "`Virtio"
-    | `Hvt    -> Fmt.pf ppf "`Hvt"
-    | `Muen   -> Fmt.pf ppf "`Muen"
+    | `Hvt -> Fmt.pf ppf "`Hvt"
+    | `Muen -> Fmt.pf ppf "`Muen"
     | `MacOSX -> Fmt.pf ppf "`MacOSX"
-    | `Qubes  -> Fmt.pf ppf "`Qubes"
+    | `Qubes -> Fmt.pf ppf "`Qubes"
     | `Genode -> Fmt.pf ppf "`Genode"
-    | `Spt    -> Fmt.pf ppf "`Spt"
+    | `Spt -> Fmt.pf ppf "`Spt"
   in
   let conv = Arg.conv ~conv:target_conv ~runtime_conv:"target" ~serialize in
   let doc =
-    Arg.info ~docs:mirage_section ~docv:"TARGET" ~doc ["t";"target"] ~env:"MODE"
+    Arg.info ~docs:mirage_section ~docv:"TARGET" ~doc [ "t"; "target" ]
+      ~env:"MODE"
   in
   let default = Lazy.force default_unix in
   let key = Arg.opt ~stage:`Configure conv default doc in
@@ -173,20 +177,22 @@ let is_xen =
 
 let warn_error =
   let doc = "Enable -warn-error when compiling OCaml sources." in
-  let doc = Arg.info ~docs:mirage_section ~docv:"BOOL" ~doc ["warn-error"] in
+  let doc = Arg.info ~docs:mirage_section ~docv:"BOOL" ~doc [ "warn-error" ] in
   let key = Arg.flag ~stage:`Configure doc in
   Key.create "warn_error" key
 
 let target_debug =
-  let doc = "Enables target-specific support for debugging. Supported \
-             targets: hvt (compiles solo5-hvt with GDB server support)." in
-  let doc = Arg.info ~docs:mirage_section ~docv:"DEBUG" ~doc ["g"] in
+  let doc =
+    "Enables target-specific support for debugging. Supported targets: hvt \
+     (compiles solo5-hvt with GDB server support)."
+  in
+  let doc = Arg.info ~docs:mirage_section ~docv:"DEBUG" ~doc [ "g" ] in
   let key = Arg.flag ~stage:`Configure doc in
   Key.create "target_debug" key
 
 let no_depext =
   let doc = "Disable call to depext when generating Makefile." in
-  let doc = Arg.info ~docs:mirage_section ~docv:"BOOL" ~doc ["no-depext"] in
+  let doc = Arg.info ~docs:mirage_section ~docv:"BOOL" ~doc [ "no-depext" ] in
   let key = Arg.flag ~stage:`Configure doc in
   Key.create "no_depext" key
 
@@ -194,17 +200,20 @@ let no_depext =
 
 let tracing_size default =
   let doc = "The size of the trace ring buffer." in
-  let doc = Arg.info ~docs:mirage_section ~docv:"SIZE" ~doc ["tracing-size"] in
+  let doc =
+    Arg.info ~docs:mirage_section ~docv:"SIZE" ~doc [ "tracing-size" ]
+  in
   let key = Arg.opt ~stage:`Configure Arg.int default doc in
   Key.create "tracing_size" key
 
 (** {2 General mirage keys} *)
 
-let create_simple ?(group="") ?(stage=`Both) ~doc ~default conv name =
-  let prefix = if group = "" then group else group^"-" in
+let create_simple ?(group = "") ?(stage = `Both) ~doc ~default conv name =
+  let prefix = if group = "" then group else group ^ "-" in
   let doc =
-    Arg.info ~docs:unikernel_section ~docv:(String.Ascii.uppercase name) ~doc
-      [prefix ^ name]
+    Arg.info ~docs:unikernel_section
+      ~docv:(String.Ascii.uppercase name)
+      ~doc [ prefix ^ name ]
   in
   let key = Arg.opt ~stage conv default doc in
   Key.create (prefix ^ name) key
@@ -213,18 +222,20 @@ let create_simple ?(group="") ?(stage=`Both) ~doc ~default conv name =
 
 let kv_ro ?group () =
   let conv =
-    Cmdliner.Arg.enum [
-      "fat"    , `Fat ;
-      "archive", `Archive ;
-      "crunch" , `Crunch ;
-      "direct" , `Direct
-    ]
+    Cmdliner.Arg.enum
+      [
+        ("fat", `Fat);
+        ("archive", `Archive);
+        ("crunch", `Crunch);
+        ("direct", `Direct);
+      ]
   in
-  let serialize = Fmt.of_to_string @@ function
-    | `Fat     -> "`Fat"
+  let serialize =
+    Fmt.of_to_string @@ function
+    | `Fat -> "`Fat"
     | `Archive -> "`Archive"
-    | `Crunch  -> "`Crunch"
-    | `Direct  -> "`Direct"
+    | `Crunch -> "`Crunch"
+    | `Direct -> "`Direct"
   in
   let conv = Arg.conv ~conv ~serialize ~runtime_conv:"kv_ro" in
   let doc =
@@ -238,16 +249,14 @@ let kv_ro ?group () =
 (** {3 Block device keys} *)
 let block ?group () =
   let conv =
-    Cmdliner.Arg.enum [
-      "xenstore", `XenstoreId;
-      "file", `BlockFile;
-      "ramdisk", `Ramdisk;
-    ]
+    Cmdliner.Arg.enum
+      [ ("xenstore", `XenstoreId); ("file", `BlockFile); ("ramdisk", `Ramdisk) ]
   in
-  let serialize = Fmt.of_to_string @@ function
+  let serialize =
+    Fmt.of_to_string @@ function
     | `XenstoreId -> "`XenstoreId"
     | `BlockFile -> "`BlockFile"
-    | `Ramdisk   -> "`Ramdisk"
+    | `Ramdisk -> "`Ramdisk"
   in
   let conv = Arg.conv ~conv ~serialize ~runtime_conv:"block" in
   let doc =
@@ -261,24 +270,21 @@ let block ?group () =
 (** {3 PRNG key} *)
 let prng =
   let conv =
-    Cmdliner.Arg.enum [
-      "stdlib"  , `Stdlib ;
-      "nocrypto", `Nocrypto ;
-      "fortuna" , `Nocrypto ;
-    ]
+    Cmdliner.Arg.enum
+      [ ("stdlib", `Stdlib); ("nocrypto", `Nocrypto); ("fortuna", `Nocrypto) ]
   in
-  let serialize = Fmt.of_to_string @@ function
-    | `Stdlib   -> "`Stdlib"
+  let serialize =
+    Fmt.of_to_string @@ function
+    | `Stdlib -> "`Stdlib"
     | `Nocrypto -> "`Nocrypto"
   in
   let conv = Arg.conv ~conv ~serialize ~runtime_conv:"prng" in
   let doc =
     Fmt.strf
-      "Use the $(i,stdlib), a lagged-Fibonacci PRNG \
-       (not cryptographically secure), or $(i,fortuna), a Fortuna PRNG \
-       (https://en.wikipedia.org/wiki/Fortuna_(PRNG)). \
-       The selected PRNG is seeded by mirage-entropy \
-       (https://github.com/mirage/mirage-entropy)."
+      "Use the $(i,stdlib), a lagged-Fibonacci PRNG (not cryptographically \
+       secure), or $(i,fortuna), a Fortuna PRNG \
+       (https://en.wikipedia.org/wiki/Fortuna_(PRNG)). The selected PRNG is \
+       seeded by mirage-entropy (https://github.com/mirage/mirage-entropy)."
   in
   create_simple ~doc ~stage:`Configure ~default:`Stdlib conv "prng"
 
@@ -286,11 +292,10 @@ let prng =
 
 let dhcp ?group () =
   let doc = Fmt.strf "Enable dhcp for %a." pp_group group in
-  create_simple
-    ~doc ?group ~stage:`Configure ~default:false Arg.bool "dhcp"
+  create_simple ~doc ?group ~stage:`Configure ~default:false Arg.bool "dhcp"
 
-let net ?group (): [`Socket | `Direct] option Key.key =
-  let conv = Cmdliner.Arg.enum ["socket", `Socket ; "direct", `Direct] in
+let net ?group () : [ `Socket | `Direct ] option Key.key =
+  let conv = Cmdliner.Arg.enum [ ("socket", `Socket); ("direct", `Direct) ] in
   let serialize fmt = function
     | `Socket -> Fmt.string fmt "`Socket"
     | `Direct -> Fmt.string fmt "`Direct"
@@ -299,7 +304,8 @@ let net ?group (): [`Socket | `Direct] option Key.key =
   let doc =
     Fmt.strf "Use $(i,socket) or $(i,direct) group for %a." pp_group group
   in
-  create_simple ~doc ?group ~stage:`Configure ~default:None (Arg.some conv) "net"
+  create_simple ~doc ?group ~stage:`Configure ~default:None (Arg.some conv)
+    "net"
 
 (** {3 Network keys} *)
 
@@ -308,9 +314,13 @@ let interface ?group default =
   create_simple ~doc ~default ?group Arg.string "interface"
 
 module V4 = struct
-
   let network ?group default =
-    let doc = Fmt.strf "The network of %a specified as an IP address and netmask, e.g. 192.168.0.1/16 ." pp_group group in
+    let doc =
+      Fmt.strf
+        "The network of %a specified as an IP address and netmask, e.g. \
+         192.168.0.1/16 ."
+        pp_group group
+    in
     create_simple ~doc ~default ?group Arg.ipv4 "ipv4"
 
   let gateway ?group default =
@@ -328,11 +338,9 @@ module V4 = struct
       Fmt.strf "The IPv4 addresses bound by the socket in %a." pp_group group
     in
     create_simple ~doc ~default ?group Arg.(list ipv4_address) "ips"
-
 end
 
 module V6 = struct
-
   let ips ?group default =
     let doc = Fmt.strf "The ip addresses of %a." pp_group group in
     create_simple ~doc ~default ?group Arg.(list ipv6) "ips"
@@ -344,7 +352,6 @@ module V6 = struct
   let gateways ?group default =
     let doc = Fmt.strf "The gateways of %a." pp_group group in
     create_simple ~doc ~default ?group Arg.(list ipv6) "gateways"
-
 end
 
 let resolver ?(default = Ipaddr.V4.of_string_exn "91.239.100.100") () =
@@ -368,14 +375,14 @@ let syslog_hostname default =
   create_simple ~doc ~default Arg.string "syslog-hostname"
 
 let pp_level ppf = function
-  | Logs.Error    -> Fmt.string ppf "Logs.Error"
-  | Logs.Warning  -> Fmt.string ppf "Logs.Warning"
-  | Logs.Info     -> Fmt.string ppf "Logs.Info"
-  | Logs.Debug    -> Fmt.string ppf "Logs.Debug"
-  | Logs.App      -> Fmt.string ppf "Logs.App"
+  | Logs.Error -> Fmt.string ppf "Logs.Error"
+  | Logs.Warning -> Fmt.string ppf "Logs.Warning"
+  | Logs.Info -> Fmt.string ppf "Logs.Info"
+  | Logs.Debug -> Fmt.string ppf "Logs.Debug"
+  | Logs.App -> Fmt.string ppf "Logs.App"
 
 let pp_pattern ppf = function
-  | `All   -> Fmt.string ppf "`All"
+  | `All -> Fmt.string ppf "`All"
   | `Src s -> Fmt.pf ppf "`Src %S" s
 
 let pp_threshold ppf (pattern, level) =
@@ -390,14 +397,15 @@ let logs =
   in
   let runtime_conv = "(Cmdliner.Arg.list Mirage_runtime.Arg.log_threshold)" in
   let doc =
-    strf "Be more or less verbose. $(docv) must be of the form@ \
-          $(b,*:info,foo:debug) means that that the log threshold is set to@ \
-          $(b,info) for every log sources but the $(b,foo) which is set to@ \
-          $(b,debug)."
+    strf
+      "Be more or less verbose. $(docv) must be of the form@ \
+       $(b,*:info,foo:debug) means that that the log threshold is set to@ \
+       $(b,info) for every log sources but the $(b,foo) which is set to@ \
+       $(b,debug)."
   in
   let logs = Key.Arg.conv ~conv ~serialize ~runtime_conv in
-  let info = Key.Arg.info ~env ~docv:"LEVEL" ~doc ~docs ["l";"logs"] in
+  let info = Key.Arg.info ~env ~docv:"LEVEL" ~doc ~docs [ "l"; "logs" ] in
   let arg = Key.Arg.(opt logs []) info in
   Key.create "logs" arg
 
-include (Key: Functoria.KEY with module Arg := Arg and module Alias := Alias)
+include (Key : Functoria.KEY with module Arg := Arg and module Alias := Alias)

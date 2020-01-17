@@ -1,6 +1,7 @@
 open Functoria
 
 type mclock = MCLOCK
+
 let mclock = Type MCLOCK
 
 let default_monotonic_clock =

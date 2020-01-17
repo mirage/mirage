@@ -1,5 +1,4 @@
 open Functoria
-module Name = Functoria_app.Name
 module Key = Mirage_key
 
 type console = CONSOLE

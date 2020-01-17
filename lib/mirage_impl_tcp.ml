@@ -1,5 +1,4 @@
 module Key = Mirage_key
-module Name = Functoria_app.Name
 open Functoria
 open Mirage_impl_ip
 open Mirage_impl_mclock

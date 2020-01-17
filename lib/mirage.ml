@@ -17,7 +17,6 @@
  *)
 
 module Key = Mirage_key
-module Name = Functoria_app.Name
 module Codegen = Functoria_app.Codegen
 
 module Log = Mirage_impl_misc.Log

@@ -1,5 +1,4 @@
 module Key = Mirage_key
-module Name = Functoria_app.Name
 
 open Rresult
 open Functoria

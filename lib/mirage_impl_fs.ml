@@ -1,6 +1,6 @@
 module Codegen = Functoria_app.Codegen
 module Key = Mirage_key
-module Name = Functoria_app.Name
+
 open Functoria
 open Mirage_impl_block
 open Mirage_impl_misc

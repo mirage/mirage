@@ -1,8 +1,8 @@
 open Functoria
-module Name = Functoria_app.Name
-module Key = Mirage_key
 open Rresult
 open Astring
+
+module Key = Mirage_key
 
 type ro = RO
 let ro = Type RO

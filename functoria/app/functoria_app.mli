@@ -94,18 +94,6 @@ module type DSL = module type of struct include Functoria end
 
 (** {1 Misc} *)
 
-(** Name helpers. *)
-module Name: sig
-
-  val ocamlify: string -> string
-  (** [ocamlify n] is an OCaml identifier looking very much like [n],
-      but where invalid characters have been removed or replaced: all
-      characters outside of ['a'-'z''A'-'Z''0''9''_''-'], and
-      replacing '-' with '_'.  If the resulting string starts with a
-      digit or is empty then it raises [Invalid_argument]. *)
-
-end
-
 (** Code generation helpers. *)
 module Codegen: sig
 

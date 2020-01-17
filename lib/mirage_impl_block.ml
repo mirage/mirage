@@ -1,8 +1,8 @@
 open Functoria
-module Name = Functoria_app.Name
-module Key = Mirage_key
 open Mirage_impl_misc
 open Rresult
+
+module Key = Mirage_key
 
 type block = BLOCK
 let block = Type BLOCK

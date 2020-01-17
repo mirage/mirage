@@ -28,91 +28,69 @@ let make_block_t =
 let xen_block_packages =
   [ package ~min:"1.7.0" ~max:"2.0.0" ~sublibs:["front"] "mirage-block-xen" ]
 
-(* this class takes a string rather than an int as `id` to allow the user to
-   pass stuff like "/dev/xvdi1", which mirage-block-xen also understands *)
-class xenstore_conf id =
-  let name = Name.create id ~prefix:"block" in
-  object
-    inherit base_configurable
-    method ty = block
-    method name = name
-    method module_name = "Block"
-    method! packages = Key.pure xen_block_packages
-    method! configure i =
-      match get_target i with
-      | `Qubes | `Xen -> R.ok ()
-      | _ -> R.error_msg "XenStore IDs are only valid ways of specifying block \
-                          devices when the target is Xen or Qubes."
-    method! connect _ s _ =
-      Fmt.strf "%s.connect %S" s id
-  end
+(* this function takes a string rather than an int as `id` to allow
+   the user to pass stuff like "/dev/xvdi1", which mirage-block-xen
+   also understands *)
+let xenstore_conf id =
+  let configure i =
+    match get_target i with
+    | `Qubes | `Xen -> R.ok ()
+    | _ -> failwith "XenStore IDs are only valid ways of specifying block \
+                     devices when the target is Xen or Qubes."
+  in
+  let connect _ impl_name _ = Fmt.strf "%s.connect %S" impl_name id in
+  impl ~configure ~connect ~packages:xen_block_packages "Block" block
 
-let block_of_xenstore_id id = impl (new xenstore_conf id)
+let block_of_xenstore_id id = xenstore_conf id
 
 (* calculate the XenStore ID for the nth available block device.
    Taken from https://github.com/mirage/mirage-block-xen/blob/
    a64d152586c7ebc1d23c5adaa4ddd440b45a3a83/lib/device_number.ml#L64 . *)
 let xenstore_id_of_index number =
-        (if number < 16
-         then (202 lsl 8) lor (number lsl 4)
-         else (1 lsl 28)  lor (number lsl 8))
+  (if number < 16
+   then (202 lsl 8) lor (number lsl 4)
+   else (1 lsl 28)  lor (number lsl 8))
 
-class block_conf file =
-  let name = Name.create file ~prefix:"block" in
-  object (self)
-    inherit base_configurable
-    method ty = block
-    method name = name
-    method module_name = "Block"
-    method! packages =
-      Key.match_ Key.(value target) @@ function
-      | #Mirage_key.mode_xen -> xen_block_packages
-      | #Mirage_key.mode_solo5 ->
-        [ package ~min:"0.6.1" ~max:"0.7.0" "mirage-block-solo5" ]
-      | #Mirage_key.mode_unix ->
-        [ package ~min:"2.12.0" ~max:"3.0.0" "mirage-block-unix" ]
-
-    method! configure _ =
-      let _block = make_block_t file in
-      R.ok ()
-
-    method private connect_name target root =
-      match target with
-      | #Mirage_key.mode_unix ->
-        Fpath.(to_string (root / file)) (* open the file directly *)
-      | #Mirage_key.mode_xen ->
-        let b = make_block_t file in
-        xenstore_id_of_index b.number |> string_of_int
-      | #Mirage_key.mode_solo5 ->
-        (* XXX For now, on Solo5, just pass the "file" name through directly as
+let block_conf file =
+  let connect_name target root =
+    match target with
+    | #Mirage_key.mode_unix ->
+      Fpath.(to_string (root / file)) (* open the file directly *)
+    | #Mirage_key.mode_xen ->
+      let b = make_block_t file in
+      xenstore_id_of_index b.number |> string_of_int
+    | #Mirage_key.mode_solo5 ->
+      (* XXX For now, on Solo5, just pass the "file" name through directly as
          * the Solo5 block device name *)
-        file
+      file
+  in
+  let packages_v =
+    Key.match_ Key.(value target) @@ function
+    | #Mirage_key.mode_xen -> xen_block_packages
+    | #Mirage_key.mode_solo5 ->
+      [ package ~min:"0.6.1" ~max:"0.7.0" "mirage-block-solo5" ]
+    | #Mirage_key.mode_unix ->
+      [ package ~min:"2.12.0" ~max:"3.0.0" "mirage-block-unix" ]
+  in
+  let configure _ =
+    let _ : block_t = make_block_t file in
+    R.ok ()
+  in
+  let connect i s _ =
+    match get_target i with
+    | `Muen -> failwith "Block devices not supported on Muen target."
+    | _ ->
+      Fmt.strf "%s.connect %S" s
+        (connect_name (get_target i) @@ Info.build_dir i)
+  in
+  Device.v ~configure ~packages_v ~connect "Block" block
 
-    method! connect i s _ =
-      match get_target i with
-      | `Muen -> failwith "Block devices not supported on Muen target."
-      | _ ->
-        Fmt.strf "%s.connect %S" s
-          (self#connect_name (get_target i) @@ Info.build_dir i)
-  end
+let block_of_file file = of_device (block_conf file)
 
-let block_of_file file = impl (new block_conf file)
-
-class ramdisk_conf rname =
-  object
-    inherit base_configurable
-    method ty = block
-    method name = "ramdisk"
-    method module_name = "Ramdisk"
-    method! packages =
-      Key.pure [ package "mirage-block-ramdisk" ]
-
-    method! connect _i modname _names =
-      Fmt.strf "%s.connect ~name:%S" modname rname
-  end
-
-
-let ramdisk rname = impl (new ramdisk_conf rname)
+let ramdisk rname =
+  let packages = [ package "mirage-block-ramdisk" ] in
+  let connect _ m _ = Fmt.strf "%s.connect ~name:%S" m rname in
+  impl ~connect ~packages "Ramdisk" block
 
 let generic_block ?group ?(key = Key.value @@ Key.block ?group ()) name =
   match_impl key [
@@ -121,27 +99,25 @@ let generic_block ?group ?(key = Key.value @@ Key.block ?group ()) name =
     `Ramdisk, ramdisk name;
   ] ~default:(ramdisk name)
 
-let tar_block dir =
-  let name = Name.create ("tar_block" ^ dir) ~prefix:"tar_block" in
-  let block_file = name ^ ".img" in
-  impl @@ object
-    inherit block_conf block_file as super
-    method! build i =
-      Bos.OS.Cmd.run Bos.Cmd.(v "tar" % "-cvf" % block_file % dir) >>= fun () ->
-      super#build i
-  end
+let count =
+  let i = ref 0 in
+  fun () -> incr i; !i
 
-let archive_conf = impl @@ object
-    inherit base_configurable
-    method ty = block @-> Mirage_impl_kv.ro
-    method name = "archive"
-    method module_name = "Tar_mirage.Make_KV_RO"
-    method! packages =
-      Key.pure [ package ~min:"1.0.0" ~max:"2.0.0" "tar-mirage" ]
-    method! connect _ modname = function
-      | [ block ] -> Fmt.strf "%s.connect %s" modname block
-      | _ -> failwith (connect_err "archive" 1)
-  end
+let tar_block dir =
+  let name = "tar_block" ^ string_of_int (count ()) in
+  let block_file = name ^ ".img" in
+  let pre_build _ =
+    Bos.OS.Cmd.run Bos.Cmd.(v "tar" % "-cvf" % block_file % dir)
+  in
+  of_device @@ Device.extend ~pre_build (block_conf block_file)
+
+let archive_conf =
+  let packages = [ package ~min:"1.0.0" ~max:"2.0.0" "tar-mirage" ] in
+  let connect _ modname = function
+    | [ block ] -> Fmt.strf "%s.connect %s" modname block
+    | _ -> failwith (connect_err "archive" 1)
+  in
+  impl ~packages ~connect "Tar_mirage.Make_KV_RO" (block @-> Mirage_impl_kv.ro)
 
 let archive block = archive_conf $ block
 let archive_of_files ?(dir=".") () = archive @@ tar_block dir

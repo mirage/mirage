@@ -23,50 +23,15 @@ module Key = Functoria_key
 module Package = Functoria_package
 module Info = Functoria_info
 
-type package = Package.t
-let package = Package.v
+include Functoria_s
 
-type _ typ =
-  | Type: 'a -> 'a typ
-  | Function: 'a typ * 'b typ -> ('a -> 'b) typ
+let package = Package.v
 
 let (@->) f t = Function (f, t)
 
 let typ ty = Type ty
-
-module rec Typ: sig
-
-  type _ impl =
-    | Impl: 'ty Typ.configurable -> 'ty impl (* base implementation *)
-    | App: ('a, 'b) app -> 'b impl   (* functor application *)
-    | If: bool Key.value * 'a impl * 'a impl -> 'a impl
-
-  and ('a, 'b) app = {
-    f: ('a -> 'b) impl;  (* functor *)
-    x: 'a impl;          (* parameter *)
-  }
-
-  and abstract_impl = Abstract: _ impl -> abstract_impl
-
-  class type ['ty] configurable = object
-    method ty: 'ty typ
-    method name: string
-    method module_name: string
-    method keys: Key.t list
-    method packages: package list Key.value
-    method connect: Info.t -> string -> string list -> string
-    method configure: Info.t -> (unit, R.msg) R.t
-    method build: Info.t -> (unit, R.msg) R.t
-    method clean: Info.t -> (unit, R.msg) R.t
-    method deps: abstract_impl list
-  end
-
-end = Typ
-
-include Typ
-
 let ($) f x = App { f; x }
-let impl x = Impl x
+let of_device x = Dev x
 let abstract x = Abstract x
 let if_impl b x y = If(b,x,y)
 
@@ -74,86 +39,167 @@ let rec match_impl kv ~default = function
   | [] -> default
   | (f, i) :: t -> If (Key.(pure ((=) f) $ kv), i, match_impl kv ~default t)
 
-class base_configurable = object
-  method packages: package list Key.value = Key.pure []
-  method keys: Key.t list = []
-  method connect (_:Info.t) (_:string) l =
-    Printf.sprintf "return (%s)" (String.concat ~sep:", " l)
-  method configure (_: Info.t): (unit, R.msg) R.t = R.ok ()
-  method build (_: Info.t): (unit, R.msg) R.t = R.ok ()
-  method clean (_: Info.t): (unit, R.msg) R.t = R.ok ()
-  method deps: abstract_impl list = []
-end
+let rec pp_typ: type a . a typ Fmt.t = fun ppf -> function
+  | Type _ -> Fmt.string ppf "_"
+  | Function (a, b) -> Fmt.pf ppf "(%a -> %a)" pp_typ a pp_typ b
 
-class ['ty] foreign
-     ?(packages=[]) ?(keys=[]) ?(deps=[]) module_name ty
-  : ['ty] configurable
-  =
-  let name = Name.create module_name ~prefix:"f" in
-  object
-    method ty = ty
-    method name = name
-    method module_name = module_name
-    method keys = keys
-    method packages = Key.pure packages
-    method connect _ modname args =
-      Fmt.strf
-        "@[%s.start@ %a@]"
-        modname
-        Fmt.(list ~sep:sp string)  args
-    method clean _ = R.ok ()
-    method configure _ = R.ok ()
-    method build _ = R.ok ()
-    method deps = deps
-  end
+let rec pp_impl: type a. a impl Fmt.t = fun ppf -> function
+  | Dev d -> Fmt.pf ppf "Dev %a" pp_device d
+  | App a -> Fmt.pf ppf "App %a" pp_app a
+  | If (_, x, y) -> Fmt.pf ppf "If (_,%a,%a)" pp_impl x pp_impl y
 
-let foreign ?packages ?keys ?deps module_name ty =
-  Impl (new foreign ?packages ?keys ?deps module_name ty)
+and pp_app: type a b. (a, b) app Fmt.t = fun ppf t ->
+  Fmt.pf ppf "{@[ f: %a;@, x: %a @]}" pp_impl t.f pp_impl t.x
 
-(* {Misc} *)
+and pp_abstract_impl ppf (Abstract i) = pp_impl ppf i
+
+and pp_device: type a. a device Fmt.t = fun ppf t ->
+  let open Fmt.Dump in
+  let fields = [
+    field "id" (fun t -> t.id) Fmt.int;
+    field "module_name" (fun t -> t.module_name) string;
+    field "module_type" (fun t -> t.module_type) pp_typ;
+    field "keys" (fun t -> t.keys) (list Functoria_key.pp);
+    field "packages" (fun t -> t.packages) Functoria_key.pp_deps;
+    field "extra_deps" (fun t -> t.extra_deps) (list pp_abstract_impl);
+  ] in
+  record fields ppf t
+
+let equal_device x y = x.id = y.id
 
 let rec equal
   : type t1 t2. t1 impl -> t2 impl -> bool
   = fun x y -> match x, y with
-    | Impl c, Impl c' ->
-      c#name = c'#name
-      && List.for_all2 Key.equal c#keys c'#keys
-      && List.for_all2 equal_any c#deps c'#deps
+    | Dev c, Dev c' -> equal_device c c'
     | App a, App b -> equal a.f b.f && equal a.x b.x
     | If (cond1, t1, e1), If (cond2, t2, e2) ->
       (* Key.value is a functional value (it contains a closure for eval).
          There is no prettier way than physical equality. *)
       cond1 == cond2 && equal t1 t2 && equal e1 e2
-    | Impl _, (If _ | App _)
-    | App _ , (If _ | Impl _)
-    | If _  , (App _ | Impl _) -> false
+    | Dev _, (If _ | App _)
+    | App _ , (If _ | Dev _)
+    | If _  , (App _ | Dev _) -> false
 
-and equal_any (Abstract x) (Abstract y) = equal x y
+module Device = struct
+
+  let pp = pp_device
+  let equal = equal_device
+
+  let default_connect _ _ l =
+    Printf.sprintf "return (%s)" (String.concat ~sep:", " l)
+
+  let niet _ = Ok ()
+  type 'a t = 'a device
+  type 'a code = string
+
+  let merge_packages packages packages_v = match packages, packages_v with
+    | None, None -> Key.pure []
+    | Some p, None -> Key.pure p
+    | None, Some p -> p
+    | Some a, Some b -> Key.(pure List.append $ pure a $ b)
+
+  let count =
+    let i = ref 0 in
+    fun () -> incr i; !i
+
+  let v
+      ?packages ?packages_v ?(keys=[]) ?(extra_deps=[])
+      ?(connect=default_connect)
+      ?(configure=niet) ?(build=niet) ?(clean=niet)
+      module_name module_type =
+    let id = count () in
+    let packages = merge_packages packages packages_v in
+    { module_type; id; module_name; keys; connect; packages;
+      clean; configure; build; extra_deps }
+
+  let id t = t.id
+  let module_name t = t.module_name
+  let module_type t = t.module_type
+  let packages t = t.packages
+  let connect t = t.connect
+  let configure t = t.configure
+  let build t = t.build
+  let clean t = t.clean
+  let keys t = t.keys
+  let extra_deps t = t.extra_deps
+
+  let start impl_name args =
+    Fmt.strf
+      "@[%s.start@ %a@]"
+      impl_name
+      Fmt.(list ~sep:sp string) args
+
+let exec_hook i = function
+  | None -> Ok ()
+  | Some h -> h i
+
+let extend
+      ?packages ?packages_v
+      ?pre_configure ?post_configure
+      ?pre_build ?post_build
+      ?pre_clean ?post_clean
+      t =
+  let packages =
+    Key.(pure List.append $ (merge_packages packages packages_v) $ t.packages)
+  in
+  let exec pre f post i =
+      exec_hook i pre >>= fun () ->
+      f i >>= fun () ->
+      exec_hook i post
+  in
+  let configure = exec pre_configure t.configure post_configure in
+  let build = exec pre_build t.build post_build in
+  let clean = exec pre_clean t.clean post_clean in
+  { t with packages; configure; build; clean }
+
+end
+
+let impl
+    ?packages ?packages_v ?keys ?extra_deps
+    ?connect
+    ?configure ?build ?clean
+    module_name module_type =
+  of_device @@ Device.v ?packages ?packages_v ?keys ?extra_deps
+    ?connect ?configure ?build ?clean module_name module_type
+
+let main ?packages ?packages_v ?keys ?extra_deps module_name ty =
+  let connect _ = Device.start in
+  impl ?packages ?packages_v ?keys ?extra_deps ~connect module_name ty
+
+let foreign ?packages ?packages_v ?keys ?deps module_name ty =
+  main ?packages ?packages_v ?keys ?extra_deps:deps module_name ty
+
+(* {Misc} *)
 
 let rec hash: type t . t impl -> int = function
-  | Impl c ->
-    Hashtbl.hash
-      (c#name, Hashtbl.hash c#keys, List.map hash_any c#deps)
+  | Dev c -> hash_device c
   | App { f; x } -> Hashtbl.hash (`Bla (hash f, hash x))
   | If (cond, t, e) ->
     Hashtbl.hash (`If (cond, hash t, hash e))
+
+and hash_device: type t . t device -> int = fun c ->
+  Hashtbl.hash
+    (c.module_name,
+     c.module_type,
+     Hashtbl.hash c.keys,
+     List.map hash_any c.extra_deps)
 
 and hash_any (Abstract x) = hash x
 
 module ImplTbl = Hashtbl.Make (struct
     type t = abstract_impl
     let hash = hash_any
-    let equal = equal_any
+    let equal = (==)
   end)
 
 let explode x = match x with
-  | Impl c -> `Impl c
+  | Dev c -> `Dev c
   | App { f; x } -> `App (Abstract f, Abstract x)
   | If (cond, x, y) -> `If (cond, x, y)
 
-type key = Functoria_key.t
 type context = Functoria_key.context
-type 'a value = 'a Functoria_key.value
+
+type abstract_key = Functoria_key.t
 
 module type KEY =
   module type of Functoria_key
@@ -173,90 +219,75 @@ let src = Logs.Src.create "functoria" ~doc:"functoria library"
 module Log = (val Logs.src_log src : Logs.LOG)
 
 type job = JOB
-let job = Type JOB
+let job = typ JOB
 
 (* Noop, the job that does nothing. *)
-let noop = impl @@ object
-    inherit base_configurable
-    method ty = job
-    method name = "noop"
-    method module_name = "Pervasives"
-  end
+let noop = impl "Unit" job
 
 (* Default argv *)
 type argv = ARGV
-let argv = Type ARGV
+let argv = typ ARGV
 
-let sys_argv = impl @@ object
-    inherit base_configurable
-    method ty = argv
-    method name = "argv"
-    method module_name = "Sys"
-    method !connect _info _m _ = "return Sys.argv"
-  end
-
+let sys_argv =
+  let connect _ _ _ = "return Sys.argv" in
+  impl ~connect "Sys" argv
 
 (* Keys *)
 
 module Keys = struct
 
-   let file = Fpath.(v (String.Ascii.lowercase Key.module_name) + "ml")
+  let with_output f k =
+    Bos.OS.File.with_oc f k () >>=
+    R.reword_error_msg
+      (fun _ -> `Msg (Fmt.strf "couldn't open output channel %a" Fpath.pp f))
 
-   let wrap f err =
-     match f () with
-     | Ok b -> b
-     | Error _ -> R.error_msg err
+  let configure ~file i =
+    Log.info (fun m -> m "Generating: %a" Fpath.pp file);
+    with_output file
+      (fun oc () ->
+         let fmt = Format.formatter_of_out_channel oc in
+         Codegen.append fmt "(* %s *)" (Codegen.generated_header ());
+         Codegen.newline fmt;
+         let keys = Key.Set.of_list @@ Info.keys i in
+         let pp_var k = Key.serialize (Info.context i) k in
+         Fmt.pf fmt "@[<v>%a@]@." (Fmt.iter Key.Set.iter pp_var) keys;
+         let runvars = Key.Set.elements (Key.filter_stage `Run keys) in
+         let pp_runvar ppf v = Fmt.pf ppf "%s_t" (Key.ocaml_name v) in
+         let pp_names ppf v = Fmt.pf ppf "%S" (Key.name v) in
+         Codegen.append fmt "let runtime_keys = List.combine %a %a"
+           Fmt.Dump.(list pp_runvar) runvars Fmt.Dump.(list pp_names) runvars;
+         Codegen.newline fmt;
+         Ok ())
 
-   let with_output f k =
-     wrap
-       (Bos.OS.File.with_oc f k)
-       ("couldn't open output channel " ^ Fpath.to_string f)
-
-   let configure i =
-     Log.info (fun m -> m "Generating: %a" Fpath.pp file);
-     with_output file
-       (fun oc () ->
-          let fmt = Format.formatter_of_out_channel oc in
-          Codegen.append fmt "(* %s *)" (Codegen.generated_header ());
-          Codegen.newline fmt;
-          let keys = Key.Set.of_list @@ Info.keys i in
-          let pp_var k = Key.serialize (Info.context i) k in
-          Fmt.pf fmt "@[<v>%a@]@." (Fmt.iter Key.Set.iter pp_var) keys;
-          let runvars = Key.Set.elements (Key.filter_stage `Run keys) in
-          let pp_runvar ppf v = Fmt.pf ppf "%s_t" (Key.ocaml_name v) in
-          let pp_names ppf v = Fmt.pf ppf "%S" (Key.name v) in
-          Codegen.append fmt "let runtime_keys = List.combine %a %a"
-            Fmt.Dump.(list pp_runvar) runvars Fmt.Dump.(list pp_names) runvars;
-          Codegen.newline fmt;
-          R.ok ())
-
-  let clean _i = Bos.OS.Path.delete file
-
-  let name = "key"
+  let clean ~file _ = Bos.OS.Path.delete file
 
 end
 
-let keys (argv: argv impl) = impl @@ object
-    inherit base_configurable
-    method ty = job
-    method name = Keys.name
-    method module_name = Key.module_name
-    method !configure = Keys.configure
-    method !clean = Keys.clean
-    method !packages = Key.pure [package "functoria-runtime"]
-    method !deps = [ abstract argv ]
-    method !connect info modname = function
-      | [ argv ] ->
-        Fmt.strf
-          "return (Functoria_runtime.with_argv (List.map fst %s.runtime_keys) %S %s)"
-          modname (Info.name info) argv
-      | _ -> failwith "The keys connect should receive exactly one argument."
-  end
+let keys (argv: argv impl) =
+  let packages = [package "functoria-runtime"] in
+  let extra_deps = [ abstract argv ] in
+  let module_name = Key.module_name in
+  let file = Fpath.(v (String.Ascii.lowercase module_name) + "ml") in
+  let configure = Keys.configure ~file and clean = Keys.clean ~file in
+  let connect info impl_name = function
+    | [ argv ] ->
+      Fmt.strf
+        "return (Functoria_runtime.with_argv (List.map fst %s.runtime_keys) %S %s)"
+        impl_name (Info.name info) argv
+    | _ -> failwith "The keys connect should receive exactly one argument."
+  in
+  impl ~configure ~clean ~packages ~extra_deps ~connect
+    module_name job
 
 (* Module emiting a file containing all the build information. *)
 
-type info = Info
-let info = Type Info
+let info =
+  let i =
+    Info.create
+      ~packages:[] ~keys:[] ~context:Key.empty_context
+      ~name:"dummy" ~build_dir:Fpath.(v "dummy")
+  in
+  Type i
 
 let pp_libraries fmt l =
   Fmt.pf fmt "[@ %a]"
@@ -268,11 +299,11 @@ let pp_packages fmt l =
          (fun fmt (n, v) -> pf fmt "%S, %S" n v)
         ) l
 
-let pp_dump_pkgs module_name fmt (name, pkg, libs) =
+let pp_dump_pkgs fmt (name, pkg, libs) =
   Fmt.pf fmt
-    "%s.{@ name = %S;@ \
+    "Functoria_runtime.{@ name = %S;@ \
      @[<v 2>packages = %a@]@ ;@ @[<v 2>libraries = %a@]@ }"
-    module_name name
+    name
     pp_packages (String.Map.bindings pkg)
     pp_libraries (String.Set.elements libs)
 
@@ -308,31 +339,21 @@ let default_opam_deps pkgs =
   let deps = String.Set.fold String.Map.remove roots deps in
   Ok deps
 
-let app_info
-    ?opam_deps ?(type_modname="Functoria_runtime")  ?(gen_modname="Info_gen") ()
-  =
-  impl @@ object
-    inherit base_configurable
-    method ty = info
-    method name = "info"
-    val file = Fpath.(v (String.Ascii.lowercase gen_modname) + "ml")
-    method module_name = gen_modname
-    method !packages = Key.pure [package "functoria-runtime"]
-    method !connect _ modname _ = Fmt.strf "return %s.info" modname
-
-    method !clean _i = Bos.OS.Path.delete file
-
-    method !configure _i = Ok ()
-
-    method !build i =
-      Log.info (fun m -> m "Generating: %a" Fpath.pp file);
-      let opam_deps = match opam_deps with
-        | None -> default_opam_deps (Info.package_names i)
-        | Some pkgs -> Ok (String.Map.of_list pkgs)
-      in
-      opam_deps >>= fun opam ->
-      let ocl = String.Set.of_list (Info.libraries i) in
-      Bos.OS.File.writef file
-        "@[<v 2>let info = %a@]" (pp_dump_pkgs type_modname)
-        (Info.name i, opam, ocl)
-  end
+let app_info ?opam_deps ?(gen_modname="Info_gen") () =
+  let file = Fpath.(v (String.Ascii.lowercase gen_modname) + "ml") in
+  let module_name = gen_modname in
+  let packages = [package "functoria-runtime"] in
+  let connect _ impl_name _ = Fmt.strf "return %s.info" impl_name in
+  let clean _ = Bos.OS.Path.delete file in
+  let build i =
+    Log.info (fun m -> m "Generating: %a" Fpath.pp file);
+    let opam_deps = match opam_deps with
+      | None -> default_opam_deps (Info.package_names i)
+      | Some pkgs -> Ok (String.Map.of_list pkgs)
+    in
+    opam_deps >>= fun opam ->
+    let ocl = String.Set.of_list (Info.libraries i) in
+    Bos.OS.File.writef file
+      "@[<v 2>let info = %a@]" pp_dump_pkgs (Info.name i, opam, ocl)
+  in
+  impl ~packages ~connect ~clean ~build module_name info

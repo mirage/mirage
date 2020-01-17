@@ -17,6 +17,8 @@
 
 (** Functoria engine. *)
 
+open Rresult
+
 module Key = Functoria_key
 module Package = Functoria_package
 
@@ -35,33 +37,22 @@ val packages: t -> Package.t list Key.value
 
 (** {2 Triggering Hooks} *)
 
-type modules
-(** The type for the generated module tables. *)
-
-val configure: Functoria.Info.t -> t -> (modules, Rresult.R.msg) result
+val configure: Functoria.Info.t -> t -> (unit, R.msg) result
 (** [configure i t] calls all the configuration hooks for each of the
     implementations appearing in [t], in topological order. Use the
-    build information [i]. Return a module table associating
-    implementations in [t] to concrete module names. *)
+    build information [i]. *)
 
-val connect:
-  ?init:'a Functoria.impl list -> modules:modules ->
-  Functoria.Info.t -> t -> unit
-(** [connect ?init ~modules i t] generates the [connect] functions in
+val connect: ?init:'a Functoria.impl list ->  Functoria.Info.t -> t -> unit
+(** [connect ?init i t] generates the [connect] functions in
     [main.ml], for each of the implementations appearing [t], in
     topological order. Use build information [i]. *)
 
-val configure_and_connect:
-  ?init:'a Functoria.impl list ->
-  Functoria.Info.t -> t -> (unit, Rresult.R.msg) result
-(** [configure_and_connect] is [configure |> connect]. *)
-
-val build: Functoria.Info.t -> t -> (unit, Rresult.R.msg) result
+val build: Functoria.Info.t -> t -> (unit, R.msg) result
 (** [build i t] calls the build hooks for each of the implementations
     appearing in [t], in topological order. Use the build information
     [i]. *)
 
-val clean: Functoria.Info.t -> t -> (unit, Rresult.R.msg) result
+val clean: Functoria.Info.t -> t -> (unit, R.msg) result
 (** [clean i t] calls the clean hooks for each of the implementations
     appearing in [t], in topological order. Use the build information
     [i]. *)

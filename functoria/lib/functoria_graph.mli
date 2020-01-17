@@ -18,21 +18,11 @@
 
 open Functoria
 
-type subconf = <
-  name       : string;
-  module_name: string;
-  keys       : key list;
-  packages   : package list value ;
-  connect    : Info.t -> string -> string list -> string;
-  build      : Info.t -> (unit, Rresult.R.msg) result;
-  configure  : Info.t -> (unit, Rresult.R.msg) result;
-  clean      : Info.t -> (unit, Rresult.R.msg) result;
->
-(** A subset of {!configurable} with neither polymorphism nor recursion. *)
-
 type t
 type vertex
 
+val pp_vertex: vertex Fmt.t
+    
 module If: sig
   type path
 end
@@ -40,7 +30,7 @@ end
 (** The description of a vertex *)
 type label =
   | If of If.path value
-  | Impl of subconf
+  | Dev: 'a Device.t -> label
   | App
 
 module Tbl: Hashtbl.S with type key = vertex
@@ -64,7 +54,7 @@ val eval: ?partial:bool -> context:context -> t -> t
 
 val is_fully_reduced: t -> bool
 (** [is_fully_reduced g] is true if [g] contains only
-    [Impl] vertices. *)
+    [Dev] vertices. *)
 
 val fold: (vertex -> 'a -> 'a) -> t -> 'a -> 'a
 (** [fold f g z] applies [f] on each vertex of [g] in topological order. *)
@@ -75,13 +65,21 @@ val find_all: t -> (label -> bool) -> vertex list
 val find_root: t -> vertex
 (** [find_root g] returns the only vertex of [g] that has no predecessors. *)
 
+type a_device = D: 'a Device.t -> a_device
+
+val device: vertex -> a_device option
+
+val var_name: vertex -> string
+
+val impl_name: vertex -> string
+
 val explode:
   t -> vertex ->
   [ `App of vertex * vertex list
   | `If of If.path value * (If.path * vertex) list
-  | `Impl of subconf
-             * [> `Args of vertex list ]
-             * [> `Deps of vertex list ] ]
+  | `Dev of a_device
+            * [> `Args of vertex list ]
+            * [> `Deps of vertex list ] ]
 (** [explode g v] deconstructs the vertex [v] in the graph [g]
     into it's possible components.
     It also checks that the local invariants are respected. *)

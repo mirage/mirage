@@ -37,34 +37,13 @@ module Name = struct
     String.iter begin function
       | 'a'..'z' | 'A'..'Z'
       | '0'..'9' | '_' as c -> Buffer.add_char b c
-      | '-' -> Buffer.add_char b '_'
+      | '-' | '.' -> Buffer.add_char b '_'
       | _ -> ()
     end s;
     let s' = Buffer.contents b in
     if String.length s' = 0 || ('0' <= s'.[0] && s'.[0] <= '9') then
       raise (Invalid_argument s);
     s'
-
-  let ids = Hashtbl.create 1024
-
-  let names = Hashtbl.create 1024
-
-  let create name =
-    let n =
-      try 1 + Hashtbl.find ids name
-      with Not_found -> 1 in
-    Hashtbl.replace ids name n;
-    Format.sprintf "%s%d" name n
-
-  let find_or_create tbl key create_value =
-    try Hashtbl.find tbl key
-    with Not_found ->
-      let value = create_value () in
-      Hashtbl.add tbl key value;
-      value
-
-  let create key ~prefix =
-    find_or_create names key (fun () -> create prefix)
 
 end
 

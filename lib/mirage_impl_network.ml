@@ -1,4 +1,6 @@
+open Rresult
 open Functoria
+
 module Key = Mirage_key
 
 type network = NETWORK
@@ -8,31 +10,30 @@ let all_networks = ref []
 
 let network_conf (intf : string Key.key) =
   let key = Key.abstract intf in
-  object
-    inherit base_configurable
-    method ty = network
-    val name = Functoria_app.Name.create "net" ~prefix:"net"
-    method name = name
-    method module_name = "Netif"
-    method! keys = [ key ]
-    method! packages =
-      Key.match_ Key.(value target) @@ function
-      | `Unix -> [ package ~min:"2.7.0" ~max:"3.0.0" "mirage-net-unix" ]
-      | `MacOSX -> [ package ~min:"1.8.0" ~max:"2.0.0" "mirage-net-macosx" ]
-      | `Xen -> [ package ~min:"1.13.0" ~max:"2.0.0" "mirage-net-xen"]
-      | `Qubes ->
-        [ package ~min:"1.13.0" ~max:"2.0.0" "mirage-net-xen" ;
-          Mirage_impl_qubesdb.pkg ]
-      | #Mirage_key.mode_solo5 ->
-        [ package ~min:"0.6.1" ~max:"0.7.0" "mirage-net-solo5" ]
-    method! connect _ modname _ =
-      Fmt.strf "%s.connect %a" modname Key.serialize_call key
-    method! configure i =
-      all_networks := Key.get (Info.context i) intf :: !all_networks;
-      Rresult.R.ok ()
-  end
+  let keys = [key] in
+  let packages_v =
+    Key.match_ Key.(value target) @@ function
+    | `Unix -> [ package ~min:"2.7.0" ~max:"3.0.0" "mirage-net-unix" ]
+    | `MacOSX -> [ package ~min:"1.8.0" ~max:"2.0.0" "mirage-net-macosx" ]
+    | `Xen -> [ package ~min:"1.13.0" ~max:"2.0.0" "mirage-net-xen"]
+    | `Qubes ->
+      [ package ~min:"1.13.0" ~max:"2.0.0" "mirage-net-xen" ;
+        Mirage_impl_qubesdb.pkg ]
+    | #Mirage_key.mode_solo5 ->
+      [ package ~min:"0.6.1" ~max:"0.7.0" "mirage-net-solo5" ]
+  in
+  let connect  _ modname _ =
+    (* @samoht: why not just use the args paramater? *)
+    Fmt.strf "%s.connect %a" modname Key.serialize_call key
+  in
+  let configure i =
+    all_networks := Key.get (Info.context i) intf :: !all_networks;
+    R.ok ()
+  in
+  impl ~keys ~packages_v ~connect ~configure "Netif" network
 
-let netif ?group dev = impl (network_conf @@ Key.interface ?group dev)
+let netif ?group dev = network_conf @@ Key.interface ?group dev
+
 let default_network =
   match_impl Key.(value target) [
     `Unix   , netif "tap0";

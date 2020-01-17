@@ -15,39 +15,30 @@ let pp_level ppf = function
 
 let mirage_log ?ring_size ~default =
   let logs = Key.logs in
-  impl @@ object
-    inherit base_configurable
-    method ty = pclock @-> reporter
-    method name = "mirage_logs"
-    method module_name = "Mirage_logs.Make"
-    method! packages =
-      Key.pure [ package ~min:"1.2.0" ~max:"2.0.0" "mirage-logs" ]
-    method! keys = [ Key.abstract logs ]
-    method! connect _ modname = function
-      | [ _pclock ] ->
-        Fmt.strf
-          "@[<v 2>\
-           let ring_size = %a in@ \
-           let reporter = %s.create ?ring_size () in@ \
-           Mirage_runtime.set_level ~default:%a %a;@ \
-           %s.set_reporter reporter;@ \
-           Lwt.return reporter"
-          Fmt.(Dump.option int) ring_size
-          modname
-          pp_level default
-          pp_key logs
-          modname
+  let packages = [ package ~min:"1.2.0" ~max:"2.0.0" "mirage-logs" ] in
+  let keys = [ Key.abstract logs ] in
+  let connect _ modname = function
+    | [ _pclock ] ->
+      Fmt.strf
+        "@[<v 2>\
+         let ring_size = %a in@ \
+         let reporter = %s.create ?ring_size () in@ \
+         Mirage_runtime.set_level ~default:%a %a;@ \
+         %s.set_reporter reporter;@ \
+         Lwt.return reporter"
+        Fmt.(Dump.option int) ring_size
+        modname
+        pp_level default
+        pp_key logs
+        modname
     | _ -> failwith (connect_err "log" 1)
-  end
+  in
+  impl ~packages ~keys ~connect "Mirage_logs.Make" (pclock @-> reporter)
 
 let default_reporter
     ?(clock=default_posix_clock) ?ring_size ?(level=Logs.Info) () =
   mirage_log ?ring_size ~default:level $ clock
 
-let no_reporter = impl @@ object
-    inherit base_configurable
-    method ty = reporter
-    method name = "no_reporter"
-    method module_name = "Mirage_runtime"
-    method! connect _ _ _ = "assert false"
-  end
+let no_reporter =
+  let connect _ _ _ = "assert false" in
+  impl ~connect "Mirage_runtime" reporter

@@ -16,12 +16,12 @@
  *)
 
 open Functoria_misc
-open Astring
 open Rresult
 
 module Graph = Functoria_graph
 module Key = Functoria_key
 module Package = Functoria_package
+module Device = Functoria.Device
 
 type t = Graph.t
 
@@ -29,12 +29,12 @@ let if_keys =
   let open Graph in
   Graph.collect (module Key.Set) @@ function
   | If cond      -> Key.deps cond
-  | App | Impl _ -> Key.Set.empty
+  | App | Dev _ -> Key.Set.empty
 
 let all_keys =
   let open Graph in
   Graph.collect (module Key.Set) @@ function
-  | Impl c  -> Key.Set.of_list c#keys
+  | Dev c   -> Key.Set.of_list (Device.keys c)
   | If cond -> Key.deps cond
   | App     -> Key.Set.empty
 
@@ -47,86 +47,57 @@ end
 let packages =
   let open Graph in
   Graph.collect (module M) @@ function
-  | Impl c     -> c#packages
+  | Dev c     -> Device.packages c
   | If _ | App -> M.empty
-
-(* Return a unique variable name holding the state of the given
-   module construction. *)
-let name c id =
-  let prefix = Name.ocamlify c#name in
-  Name.create (Fmt.strf "%s%i" prefix id) ~prefix
 
 (* [module_expresion tbl c args] returns the module expression of
    the functor [c] applies to [args]. *)
-let module_expression tbl fmt (c, args) =
+let module_expression fmt (c, args) =
   Fmt.pf fmt "%s%a"
-    c#module_name
-    Fmt.(list (parens @@ of_to_string @@ Graph.Tbl.find tbl))
+    (Device.module_name c)
+    Fmt.(list (parens @@ of_to_string @@ Graph.impl_name))
     args
 
-(* [module_name tbl c args] return the module name of the result of
-   the functor application. If [args = []], it returns
-   [c#module_name]. *)
-let module_name c id args =
-  let base = c#module_name in
-  if args = [] then base
-  else
-    let prefix = match String.cut ~sep:"." base with
-      | Some (l, _) -> l
-      | None -> base
-    in
-    let prefix = Name.ocamlify prefix in
-    Name.create (Fmt.strf "%s%i" prefix id) ~prefix
-
-(* FIXME: Can we do better than lookup by name? *)
-let find_device info g i =
+let find_all_devices info g i =
   let ctx = Functoria.Info.context info in
   let open Functoria in
-  let rec name: type a . a impl -> string = fun impl ->
+  let rec id: type a . a impl -> int = fun impl ->
     match explode impl with
-    | `Impl c              -> c#name
-    | `App (Abstract x, _) -> name x
-    | `If (b, x, y)        -> if Key.eval ctx b then name x else name y
+    | `Dev c               -> Device.id c
+    | `App (Abstract x, _) -> id x
+    | `If (b, x, y)        -> if Key.eval ctx b then id x else id y
   in
-  let name = name i in
-  let open Graph in
+  let id = id i in
   let p = function
-    | Impl c     -> c#name = name
+    | Graph.Dev d -> Device.id d = id
     | App | If _ -> false
   in
-  match Graph.find_all g p with
-  | []  -> invalid_arg "Functoria.find_device: no device"
-  | [x] -> x
-  | _   -> invalid_arg "Functoria.find_device: too many devices."
+  Graph.find_all g p
 
 let build info t =
   let f v = match Graph.explode t v with
-    | `App _ | `If _ -> R.ok ()
-    | `Impl (c, _, _) -> c#build info
+    | `App _ | `If _ -> assert false
+    | `Dev (Graph.D c, _, _) -> Device.build c info
   in
   let f v res = res >>= fun () -> f v in
   Graph.fold f t @@ R.ok ()
 
 let configure info t =
-  let tbl = Graph.Tbl.create 17 in
   let f v = match Graph.explode t v with
     | `App _ | `If _ -> assert false
-    | `Impl (c, `Args args, `Deps _) ->
-      let modname = module_name c (Graph.hash v) args in
-      Graph.Tbl.add tbl v modname;
-      c#configure info >>| fun () ->
+    | `Dev (Graph.D c, `Args args, `Deps _) ->
+      Device.configure c info >>| fun () ->
       if args = [] then ()
       else begin
         Codegen.append_main
           "@[<2>module %s =@ %a@]"
-          modname
-          (module_expression tbl) (c,args);
+          (Graph.impl_name v)
+          module_expression (c, args);
         Codegen.newline_main ();
       end
   in
   let f v res = res >>= fun () -> f v in
-  Graph.fold f t @@ R.ok () >>| fun () ->
-  tbl
+  Graph.fold f t @@ R.ok ()
 
 let meta_init fmt (connect_name, result_name) =
   Fmt.pf fmt "let _%s =@[@ Lazy.force %s @]in@ " result_name connect_name
@@ -160,36 +131,31 @@ let emit_run init main =
      in run t@]"
     Fmt.(list ~sep:nop force) init main
 
-let connect ?(init=[]) ~modules info t =
-  let tbl = Graph.Tbl.create 17 in
+let connect ?(init=[]) info t =
   let f v = match Graph.explode t v with
     | `App _ | `If _ -> assert false
-    | `Impl (c, `Args args, `Deps deps) ->
-      let ident = name c (Graph.hash v) in
-      let modname = Graph.Tbl.find modules v in
-      Graph.Tbl.add tbl v ident;
-      let names = List.map (Graph.Tbl.find tbl) (args @ deps) in
+    | `Dev (Graph.D c, `Args args, `Deps deps) ->
+      let var_name = Graph.var_name v in
+      let impl_name = Graph.impl_name v in
+      let arg_names = List.map Graph.var_name (args @ deps) in
       Codegen.append_main "%a"
-        emit_connect (ident, names, c#connect info modname);
+        emit_connect (var_name, arg_names, Device.connect c info impl_name);
   in
   Graph.fold (fun v () -> f v) t ();
-  let main_name = Graph.Tbl.find tbl @@ Graph.find_root t in
+  let main_name = Graph.var_name (Graph.find_root t) in
   let init_names =
-    List.map (fun name -> Graph.Tbl.find tbl @@ find_device info t name) init
+    List.fold_left (fun acc i ->
+        match find_all_devices info t i with
+        | [] -> assert false
+        | ds -> List.map Graph.var_name ds @ acc
+      ) [] init
   in
-  emit_run init_names main_name;
-  ()
-
-type modules = string Graph.Tbl.t
-
-let configure_and_connect ?init info g =
-  configure info g >>| fun modules ->
-  connect ~modules info ?init g
+  emit_run init_names main_name
 
 let clean i g =
   let f v = match Graph.explode g v with
-    | `Impl (c,_,_) -> c#clean i
-    | _ -> R.ok ()
+    | `App _ | `If _ -> assert false
+    | `Dev (Graph.D c,_,_) -> Device.clean c i
   in
   let f v res = res >>= fun () -> f v in
   Graph.fold f g @@ R.ok ()

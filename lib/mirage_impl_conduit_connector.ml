@@ -4,31 +4,25 @@ open Mirage_impl_random
 open Mirage_impl_stackv4
 
 type conduit_connector = Conduit_connector
+
 let conduit_connector = Type Conduit_connector
 
 let pkg = package ~min:"2.0.2" ~max:"3.0.0" "conduit-mirage"
 
-let tcp_conduit_connector = impl @@ object
-    inherit base_configurable
-    method ty = stackv4 @-> conduit_connector
-    method name = "tcp_conduit_connector"
-    method module_name = "Conduit_mirage.With_tcp"
-    method! packages = Mirage_key.pure [ pkg ]
-    method! connect _ modname = function
+let tcp_conduit_connector =
+  let packages = [ pkg ] in
+  let connect _ modname = function
       | [ stack ] -> Fmt.strf "Lwt.return (%s.connect %s)@;" modname stack
       | _ -> failwith (connect_err "tcp conduit" 1)
-  end
+  in
+  impl ~packages ~connect
+    "Conduit_mirage.With_tcp" (stackv4 @-> conduit_connector)
 
-let tls_conduit_connector = impl @@ object
-    inherit base_configurable
-    method ty = conduit_connector
-    method name = "tls_conduit_connector"
-    method module_name = "Conduit_mirage"
-    method! packages =
-      Mirage_key.pure [
-        package ~min:"0.10.0" ~max:"0.11.0" ~sublibs:["mirage"] "tls" ;
-        pkg
-      ]
-    method! deps = [ abstract nocrypto ]
-    method! connect _ _ _ = "Lwt.return Conduit_mirage.with_tls"
-  end
+let tls_conduit_connector =
+  let packages = [
+    package ~min:"0.10.0" ~max:"0.11.0" ~sublibs:["mirage"] "tls" ;
+    pkg
+  ] in
+  let extra_deps = [ abstract nocrypto ] in
+  let connect _ _ _ = "Lwt.return Conduit_mirage.with_tls" in
+  impl ~packages ~connect ~extra_deps "Conduit_mirage" conduit_connector

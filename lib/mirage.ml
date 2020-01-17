@@ -189,7 +189,7 @@ let mprof_trace = Mirage_impl_tracing.mprof_trace
 
 let noop = Functoria.noop
 let info = Functoria.info
-let app_info = Functoria.app_info ~type_modname:"Mirage_info" ()
+let app_info = Functoria.app_info ()
 
 open Mirage_configure
 open Mirage_build
@@ -208,46 +208,40 @@ module Project = struct
 
   let ignore_dirs = Mirage_build.ignore_dirs
 
-  let create jobs = impl @@ object
-      inherit base_configurable
-      method ty = job
-      method name = "mirage"
-      method module_name = "Mirage_runtime"
-      method! keys = [
-        Key.(abstract target);
-        Key.(abstract warn_error);
-        Key.(abstract target_debug);
-        Key.(abstract no_depext);
-      ]
-      method! packages =
-        (* XXX: use %%VERSION_NUM%% here instead of hardcoding a version? *)
-        let min = "3.7.0" and max = "3.8.0" in
-        let common = [
-          package ~build:true ~min:"4.06.0" "ocaml";
-          package "lwt";
-          package ~min ~max "mirage-types";
-          package ~min ~max "mirage-runtime" ;
-          package ~build:true ~min ~max "mirage" ;
-          package ~build:true "ocamlfind" ;
-          package ~build:true "ocamlbuild" ;
-        ] in
-        Key.match_ Key.(value target) @@ function
-        | #Mirage_key.mode_unix ->
-          package ~min:"4.0.0" ~max:"5.0.0" "mirage-unix" :: common
-        | #Mirage_key.mode_xen ->
-          package ~min:"5.0.0" ~max:"6.0.0" "mirage-xen" :: common
-        | #Mirage_key.mode_solo5 as tgt ->
-          package ~min:"0.6.0" ~max:"0.7.0" ~libs:[]
-            (fst (Mirage_configure_solo5.solo5_pkg tgt)) ::
-          package ~min:"0.6.1" ~max:"0.7.0" "mirage-solo5" ::
-          common
-
-      method! build = build
-      method! configure = configure
-      method! clean = clean
-      method! connect _ _mod _names = "Lwt.return_unit"
-      method! deps = List.map abstract jobs
-    end
+  let create jobs =
+    let keys = Key.[
+        abstract target;
+        abstract warn_error;
+        abstract target_debug;
+        abstract no_depext;
+      ] in
+    let packages_v =
+      (* XXX: use %%VERSION_NUM%% here instead of hardcoding a version? *)
+      let min = "3.7.0" and max = "3.8.0" in
+      let common = [
+        package ~build:true ~min:"4.06.0" "ocaml";
+        package "lwt";
+        package ~min ~max "mirage-types";
+        package ~min ~max "mirage-runtime" ;
+        package ~build:true ~min ~max "mirage" ;
+        package ~build:true "ocamlfind" ;
+        package ~build:true "ocamlbuild" ;
+      ] in
+      Key.match_ Key.(value target) @@ function
+      | #Mirage_key.mode_unix ->
+        package ~min:"4.0.0" ~max:"5.0.0" "mirage-unix" :: common
+      | #Mirage_key.mode_xen ->
+        package ~min:"5.0.0" ~max:"6.0.0" "mirage-xen" :: common
+      | #Mirage_key.mode_solo5 as tgt ->
+        package ~min:"0.6.0" ~max:"0.7.0" ~libs:[]
+          (fst (Mirage_configure_solo5.solo5_pkg tgt)) ::
+        package ~min:"0.6.1" ~max:"0.7.0" "mirage-solo5" ::
+        common
+    in
+    let extra_deps = List.map abstract jobs in
+    let connect _ _ _ = "return ()" in
+    impl ~keys ~packages_v ~build ~configure ~clean ~connect
+      ~extra_deps "Mirage_runtime" job
 
 end
 

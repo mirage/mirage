@@ -377,7 +377,6 @@ val direct_stackv4:
   ?clock:mclock impl ->
   ?random:random impl ->
   ?time:time impl ->
-  ?group:string ->
   network impl -> ethernet impl -> arpv4 impl -> ipv4 impl -> stackv4 impl
 
 (** Network stack with sockets. Exposes the key {!Key.V4.interfaces}. *)
@@ -386,11 +385,11 @@ val socket_stackv4:
 
 (** Build a stackv4 by looking up configuration information via QubesDB,
  *  building an ipv4, then building a stack on top of that. *)
-val qubes_ipv4_stack: ?group:string -> ?qubesdb:qubesdb impl -> ?arp:(ethernet impl -> arpv4 impl) -> network impl -> stackv4 impl
+val qubes_ipv4_stack: ?qubesdb:qubesdb impl -> ?arp:(ethernet impl -> arpv4 impl) -> network impl -> stackv4 impl
 
 (** Build a stackv4 by obtaining a DHCP lease, using the lease to
  *  build an ipv4, then building a stack on top of that. *)
-val dhcp_ipv4_stack: ?group:string -> ?random:random impl -> ?time:time impl -> ?arp:(ethernet impl -> arpv4 impl) -> network impl -> stackv4 impl
+val dhcp_ipv4_stack: ?random:random impl -> ?time:time impl -> ?arp:(ethernet impl -> arpv4 impl) -> network impl -> stackv4 impl
 
 (** Build a stackv4 by checking the {!Key.V4.network}, and {!Key.V4.gateway} keys
  *  for ipv4 configuration information, filling in unspecified information from [?config],

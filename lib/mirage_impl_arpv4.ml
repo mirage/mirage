@@ -7,20 +7,15 @@ open Mirage_impl_misc
 type arpv4 = Arpv4
 let arpv4 = Type Arpv4
 
-let arp_conf = object
-  inherit base_configurable
-  method ty = ethernet @-> time @-> arpv4
-  method name = "arp"
-  method module_name = "Arp.Make"
-  method! packages =
-    Key.pure [ package ~min:"2.2.0" ~max:"3.0.0" "arp-mirage" ]
-  method! connect _ modname = function
+let arp_conf =
+  let packages = [ package ~min:"2.2.0" ~max:"3.0.0" "arp-mirage" ] in
+  let connect _ modname = function
     | [ eth ; _time ] -> Fmt.strf "%s.connect %s" modname eth
     | _ -> failwith (connect_err "arp" 3)
-end
+  in
+  impl ~packages ~connect "Arp.Make" (ethernet @-> time @-> arpv4)
 
-let arp_func = impl arp_conf
 let arp
     ?(time = default_time)
     (eth : ethernet impl) =
-  arp_func $ eth $ time
+  arp_conf $ eth $ time

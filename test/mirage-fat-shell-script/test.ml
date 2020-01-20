@@ -25,9 +25,9 @@ let test_output_fat =
     ~root:(Fpath.v "ROOT") ~dir:(Fpath.v "DIR") ~regexp:"REGEXP"
 
 let () =
-  let tests = [("output_fat", test_output_fat)] in
+  let tests = [ ("output_fat", test_output_fat) ] in
   List.iter
     (fun (name, f) ->
       print_banner name;
-      print_endline @@ with_fmt_str f )
+      print_endline @@ with_fmt_str f)
     tests

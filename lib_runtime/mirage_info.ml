@@ -15,7 +15,7 @@
  *)
 
 type t = Functoria_runtime.info = {
-  name: string;
-  libraries: string list;
-  packages: (string * string) list;
-  }
+  name : string;
+  libraries : string list;
+  packages : (string * string) list;
+}

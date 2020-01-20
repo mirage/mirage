@@ -1,6 +1,5 @@
 module Codegen = Functoria_app.Codegen
 module Key = Mirage_key
-
 open Functoria
 open Mirage_impl_block
 open Mirage_impl_misc
@@ -14,7 +13,7 @@ let fat_pkg = package ~min:"0.14.0" ~max:"0.15.0" "fat-filesystem"
 
 let connect err _ modname l =
   match l with
-  | [block_name] -> Fmt.strf "%s.connect %s" modname block_name
+  | [ block_name ] -> Fmt.strf "%s.connect %s" modname block_name
   | _ -> failwith (connect_err err 1)
 
 let fat_conf =
@@ -49,7 +48,9 @@ echo Created '%s'|}
 
 let count =
   let i = ref 0 in
-  fun () -> incr i; !i
+  fun () ->
+    incr i;
+    !i
 
 let fat_block ?(dir = ".") ?(regexp = "*") () =
   let name = "fat_block" ^ string_of_int (count ()) in
@@ -61,9 +62,9 @@ let fat_block ?(dir = ".") ?(regexp = "*") () =
     Log.info (fun m -> m "Generating block generator script: %s" file);
     with_output ~mode:0o755 (Fpath.v file)
       (fun oc () ->
-         let fmt = Format.formatter_of_out_channel oc in
-         fat_shell_script fmt ~block_file ~root ~dir ~regexp;
-         R.ok () )
+        let fmt = Format.formatter_of_out_channel oc in
+        fat_shell_script fmt ~block_file ~root ~dir ~regexp;
+        R.ok ())
       "fat shell script"
     >>= fun () ->
     Log.info (fun m -> m "Executing block generator script: ./%s" file);
@@ -80,9 +81,9 @@ let fat_block ?(dir = ".") ?(regexp = "*") () =
 let fat_of_files ?dir ?regexp () = fat @@ fat_block ?dir ?regexp ()
 
 let kv_ro_of_fs_conf =
-  let packages = [package ~min:"3.0.0" ~max:"4.0.0" "mirage-fs"] in
+  let packages = [ package ~min:"3.0.0" ~max:"4.0.0" "mirage-fs" ] in
   let connect _ modname = function
-    | [fs] -> Fmt.strf "%s.connect %s" modname fs
+    | [ fs ] -> Fmt.strf "%s.connect %s" modname fs
     | _ -> failwith (connect_err "kv_ro_of_fs" 1)
   in
   impl ~packages ~connect "Mirage_fs.To_KV_RO" (typ @-> Mirage_impl_kv.ro)
@@ -93,8 +94,10 @@ let kv_ro_of_fs x = kv_ro_of_fs_conf $ x
 
 let generic_kv_ro ?group ?(key = Key.value @@ Key.kv_ro ?group ()) dir =
   match_impl key
-    [ (`Fat, kv_ro_of_fs @@ fat_of_files ~dir ())
-    ; (`Archive, archive_of_files ~dir ())
-    ; (`Crunch, Mirage_impl_kv.crunch dir)
-    ; (`Direct, Mirage_impl_kv.direct_kv_ro dir) ]
+    [
+      (`Fat, kv_ro_of_fs @@ fat_of_files ~dir ());
+      (`Archive, archive_of_files ~dir ());
+      (`Crunch, Mirage_impl_kv.crunch dir);
+      (`Direct, Mirage_impl_kv.direct_kv_ro dir);
+    ]
     ~default:(Mirage_impl_kv.direct_kv_ro dir)

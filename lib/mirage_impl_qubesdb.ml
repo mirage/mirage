@@ -4,7 +4,7 @@ open Mirage_impl_misc
 
 type qubesdb = QUBES_DB
 
-let qubesdb = Type QUBES_DB
+let qubesdb = Type.v QUBES_DB
 
 let pkg = package ~min:"0.8.0" ~max:"0.9.0" "mirage-qubes"
 

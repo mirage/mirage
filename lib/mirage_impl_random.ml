@@ -2,7 +2,7 @@ open Functoria
 
 type random = RANDOM
 
-let random = Type RANDOM
+let random = Type.v RANDOM
 
 let stdlib_random =
   let packages = [ package ~min:"0.1.0" ~max:"1.0.0" "mirage-random-stdlib" ] in

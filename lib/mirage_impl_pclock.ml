@@ -2,7 +2,7 @@ open Functoria
 
 type pclock = PCLOCK
 
-let pclock = Type PCLOCK
+let pclock = Type.v PCLOCK
 
 let default_posix_clock =
   let packages_v =

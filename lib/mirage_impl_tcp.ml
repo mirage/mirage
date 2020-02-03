@@ -12,7 +12,7 @@ type tcpv4 = v4 tcp
 
 type tcpv6 = v6 tcp
 
-let tcp = Type TCP
+let tcp = Type.Type TCP
 
 let tcpv4 : tcpv4 typ = tcp
 

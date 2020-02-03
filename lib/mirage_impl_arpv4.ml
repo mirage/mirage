@@ -6,7 +6,7 @@ open Mirage_impl_misc
 
 type arpv4 = Arpv4
 
-let arpv4 = Type Arpv4
+let arpv4 = Type.v Arpv4
 
 let arp_conf =
   let packages = [ package ~min:"2.2.0" ~max:"3.0.0" "arp-mirage" ] in

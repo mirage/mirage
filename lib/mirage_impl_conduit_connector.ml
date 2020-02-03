@@ -5,7 +5,7 @@ open Mirage_impl_stackv4
 
 type conduit_connector = Conduit_connector
 
-let conduit_connector = Type Conduit_connector
+let conduit_connector = Type.v Conduit_connector
 
 let pkg = package ~min:"2.0.2" ~max:"3.0.0" "conduit-mirage"
 

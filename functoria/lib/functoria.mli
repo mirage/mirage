@@ -33,10 +33,8 @@ open Rresult
 
 (** {1:combinators Combinators} *)
 
+type 'a typ = 'a Functoria_type.t
 (** The type for values representing module types. *)
-type _ typ =
-  | Type : 'a -> 'a typ
-  | Function : 'b typ * 'c typ -> ('b -> 'c) typ
 
 val typ : 'a -> 'a typ
 (** [type t] is a value representing the module type [t]. *)
@@ -320,3 +318,5 @@ val explode :
   [ `App of abstract_impl * abstract_impl
   | `If of bool value * 'a impl * 'a impl
   | `Dev of 'a Device.t ]
+
+module Type = Functoria_type

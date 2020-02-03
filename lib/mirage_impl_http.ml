@@ -3,7 +3,7 @@ open Mirage_impl_misc
 
 type http = HTTP
 
-let http = Type HTTP
+let http = Type.v HTTP
 
 let connect err _i modname = function
   | [ conduit ] -> Fmt.strf "%s.connect %s" modname conduit

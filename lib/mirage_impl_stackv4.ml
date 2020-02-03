@@ -14,7 +14,7 @@ open Mirage_impl_udp
 
 type stackv4 = STACKV4
 
-let stackv4 = Type STACKV4
+let stackv4 = Type.v STACKV4
 
 let stackv4_direct_conf () =
   let packages_v = right_tcpip_library ~sublibs:[ "stack-direct" ] "tcpip" in

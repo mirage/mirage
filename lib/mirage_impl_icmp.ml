@@ -6,7 +6,7 @@ type 'a icmp = ICMP
 
 type icmpv4 = v4 icmp
 
-let icmp = Type ICMP
+let icmp = Type.v ICMP
 
 let icmpv4 : icmpv4 typ = icmp
 

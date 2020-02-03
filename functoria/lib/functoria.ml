@@ -24,9 +24,9 @@ include Functoria_s
 
 let package = Package.v
 
-let ( @-> ) f t = Function (f, t)
+let ( @-> ) = Functoria_type.( @-> )
 
-let typ ty = Type ty
+let typ = Functoria_type.v
 
 let ( $ ) f x = App { f; x }
 
@@ -39,11 +39,6 @@ let if_impl b x y = If (b, x, y)
 let rec match_impl kv ~default = function
   | [] -> default
   | (f, i) :: t -> If (Key.(pure (( = ) f) $ kv), i, match_impl kv ~default t)
-
-let rec pp_typ : type a. a typ Fmt.t =
- fun ppf -> function
-  | Type _ -> Fmt.string ppf "_"
-  | Function (a, b) -> Fmt.pf ppf "(%a -> %a)" pp_typ a pp_typ b
 
 let rec pp_impl : type a. a impl Fmt.t =
  fun ppf -> function
@@ -63,7 +58,7 @@ and pp_device : type a. a device Fmt.t =
     [
       field "id" (fun t -> t.id) Fmt.int;
       field "module_name" (fun t -> t.module_name) string;
-      field "module_type" (fun t -> t.module_type) pp_typ;
+      field "module_type" (fun t -> t.module_type) Functoria_type.pp;
       field "keys" (fun t -> t.keys) (list Functoria_key.pp);
       field "packages" (fun t -> t.packages) Functoria_key.pp_deps;
       field "extra_deps" (fun t -> t.extra_deps) (list pp_abstract_impl);
@@ -306,7 +301,7 @@ let info =
     Info.create ~packages:[] ~keys:[] ~context:Key.empty_context ~name:"dummy"
       ~build_dir:Fpath.(v "dummy")
   in
-  Type i
+  typ i
 
 let pp_libraries fmt l =
   Fmt.pf fmt "[@ %a]" Fmt.(iter ~sep:(unit ";@ ") List.iter @@ fmt "%S") l
@@ -383,3 +378,5 @@ let app_info ?opam_deps ?(gen_modname = "Info_gen") () =
       (Info.name i, opam, ocl)
   in
   impl ~packages ~connect ~clean ~build module_name info
+
+module Type = Functoria_type

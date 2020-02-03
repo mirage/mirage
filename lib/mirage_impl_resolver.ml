@@ -7,7 +7,7 @@ open Mirage_impl_random
 
 type resolver = Resolver
 
-let resolver = Type Resolver
+let resolver = Type.v Resolver
 
 let resolver_unix_system =
   let packages_v =

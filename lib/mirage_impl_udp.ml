@@ -11,7 +11,7 @@ type udpv4 = v4 udp
 
 type udpv6 = v6 udp
 
-let udp = Type UDP
+let udp = Type.Type UDP
 
 let udpv4 : udpv4 typ = udp
 

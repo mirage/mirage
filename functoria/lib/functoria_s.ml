@@ -14,8 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Rresult
-
 type 'a key = 'a Functoria_key.key
 
 type 'a value = 'a Functoria_key.value
@@ -43,15 +41,4 @@ and ('a, 'b) app = {
 
 and abstract_impl = Abstract : _ impl -> abstract_impl
 
-and 'a device = {
-  id : int;
-  module_name : string;
-  module_type : 'a typ;
-  keys : keys list;
-  packages : package list value;
-  connect : info -> string -> string list -> string;
-  configure : info -> (unit, R.msg) result;
-  build : info -> (unit, R.msg) result;
-  clean : info -> (unit, R.msg) result;
-  extra_deps : abstract_impl list;
-}
+and 'a device = ('a, abstract_impl) Functoria_device.t

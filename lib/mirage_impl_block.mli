@@ -18,7 +18,7 @@ val block_of_xenstore_id : string -> block Functoria.impl
 
 val block_of_file : string -> block Functoria.impl
 
-val block_conf : string -> block Functoria.Device.t
+val block_conf : string -> block Functoria.device
 
 type block_t = { filename : string; number : int }
 

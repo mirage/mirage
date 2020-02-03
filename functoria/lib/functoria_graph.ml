@@ -56,7 +56,7 @@ module If = struct
   let reduce f ~path ~add : path Key.value = Key.(pure (fuse path) $ f $ add)
 end
 
-type label = If of If.path Key.value | Dev : 'a Device.t -> label | App
+type label = If of If.path Key.value | Dev : 'a device -> label | App
 
 type edge_label =
   | Parameter of int
@@ -82,7 +82,7 @@ module Tbl = Hashtbl.Make (G.V)
 let pp_label ppf = function
   | If _ -> Fmt.string ppf "if"
   | App -> Fmt.string ppf "app"
-  | Dev d -> Fmt.pf ppf "dev %a" Device.pp d
+  | Dev d -> Fmt.pf ppf "dev %a" Functoria.pp_device d
 
 let pp_vertex ppf v = Fmt.pf ppf "%d:%a" (G.V.hash v) pp_label (G.V.label v)
 
@@ -251,7 +251,7 @@ let get_children g v =
   assert (is_sequence deps);
   (`Args (List.map snd args), `Deps (List.map snd deps), cond, funct)
 
-type a_device = D : 'a Device.t -> a_device
+type a_device = D : 'a device -> a_device
 
 let explode g v =
   match (G.V.label v, get_children g v) with

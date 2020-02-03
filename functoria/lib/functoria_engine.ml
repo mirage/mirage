@@ -21,6 +21,7 @@ module Graph = Functoria_graph
 module Key = Functoria_key
 module Package = Functoria_package
 module Device = Functoria.Device
+module Impl = Functoria.Impl
 
 type t = Graph.t
 
@@ -60,15 +61,7 @@ let module_expression fmt (c, args) =
 
 let find_all_devices info g i =
   let ctx = Functoria.Info.context info in
-  let open Functoria in
-  let rec id : type a. a impl -> int =
-   fun impl ->
-    match explode impl with
-    | `Dev c -> Device.id c
-    | `App (Abstract x, _) -> id x
-    | `If (b, x, y) -> if Key.eval ctx b then id x else id y
-  in
-  let id = id i in
+  let id = Impl.with_left_most_device ctx i { f = Device.id } in
   let p = function Graph.Dev d -> Device.id d = id | App | If _ -> false in
   Graph.find_all g p
 

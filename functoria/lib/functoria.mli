@@ -49,16 +49,13 @@ val ( @-> ) : 'a typ -> 'b typ -> ('a -> 'b) typ
     This describes a functor type that accepts two arguments -- a [kv_ro] and an
     [ip] device -- and returns a [kv_ro]. *)
 
-type 'a impl
+type 'a impl = 'a Functoria_impl.t
 (** The type for values representing module implementations. *)
 
 val ( $ ) : ('a -> 'b) impl -> 'a impl -> 'b impl
 (** [m $ a] applies the functor [m] to the module [a]. *)
 
-(** The type for abstract implementations. *)
-type abstract_impl = Abstract : _ impl -> abstract_impl
-
-val abstract : _ impl -> abstract_impl
+val abstract : _ impl -> Functoria_impl.abstract
 (** [abstract t] is [t] but with its type variable abstracted. Useful for
     dependencies. *)
 
@@ -130,7 +127,7 @@ val foreign :
   ?packages:package list ->
   ?packages_v:package list Functoria_key.value ->
   ?keys:abstract_key list ->
-  ?deps:abstract_impl list ->
+  ?deps:Functoria_impl.abstract list ->
   string ->
   'a typ ->
   'a impl
@@ -140,7 +137,7 @@ val main :
   ?packages:package list ->
   ?packages_v:package list Functoria_key.value ->
   ?keys:abstract_key list ->
-  ?extra_deps:abstract_impl list ->
+  ?extra_deps:Functoria_impl.abstract list ->
   string ->
   'a typ ->
   'a impl
@@ -163,7 +160,9 @@ module Device = Functoria_device
     contains a runtime state which can be set either at configuration time (by
     the application builder) or at runtime, using command-line arguments. *)
 
-type 'a device = ('a, abstract_impl) Device.t
+type 'a device = ('a, Functoria_impl.abstract) Device.t
+
+val pp_device : 'a device Fmt.t
 
 val of_device : 'a device -> 'a impl
 (** [of_device t] is the implementation device [t]. *)
@@ -172,7 +171,7 @@ val impl :
   ?packages:package list ->
   ?packages_v:package list Functoria_key.value ->
   ?keys:Functoria_key.t list ->
-  ?extra_deps:abstract_impl list ->
+  ?extra_deps:Functoria_impl.abstract list ->
   ?connect:(Info.t -> string -> string list -> string) ->
   ?configure:(Info.t -> (unit, R.msg) result) ->
   ?build:(Info.t -> (unit, R.msg) result) ->
@@ -220,28 +219,5 @@ val app_info :
     information available at configure-time. The value is stored into a
     generated module name [gen_modname]: if not set, it is [Info_gen]. *)
 
-(** {1 Sharing} *)
-
-val hash : 'a impl -> int
-(** [hash] is the hash function on implementations. FIXME(samoht) expand on how
-    it works. *)
-
-val equal : 'a impl -> 'a impl -> bool
-(** [equal] is the equality over implementations. *)
-
-val pp : 'a impl Fmt.t
-
-val pp_device : 'a device Fmt.t
-
-module ImplTbl : Hashtbl.S with type key = abstract_impl
-(** Hashtbl of implementations. *)
-
-(**/**)
-
-val explode :
-  'a impl ->
-  [ `App of abstract_impl * abstract_impl
-  | `If of bool value * 'a impl * 'a impl
-  | `Dev of 'a device ]
-
 module Type = Functoria_type
+module Impl = Functoria_impl

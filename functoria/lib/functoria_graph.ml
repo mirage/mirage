@@ -189,36 +189,16 @@ let add_app graph ~f ~args =
     |> fold_lefti (fun i -> add_edge v (Parameter i)) args )
 
 let create impl =
-  let module H = ImplTbl in
-  let tbl = H.create 50 in
-  let rec aux : type t. G.t -> t impl -> G.vertex * G.t =
-   fun g impl ->
-    if H.mem tbl @@ abstract impl then (H.find tbl (abstract impl), g)
-    else
-      let v, g =
-        match explode impl with
-        | `Dev c ->
-            let deps, g =
-              List.fold_right
-                (fun (Abstract x) (l, g) ->
-                  let v, g = aux g x in
-                  (v :: l, g))
-                (Device.extra_deps c) ([], g)
-            in
-            add g ~args:[] ~deps c
-        | `If (cond, then_, else_) ->
-            let then_, g = aux g then_ in
-            let else_, g = aux g else_ in
-            add_if g ~cond ~then_ ~else_
-        | `App (Abstract f, Abstract x) ->
-            let f, g = aux g f in
-            let x, g = aux g x in
-            add_app g ~f ~args:[ x ]
-      in
-      H.add tbl (abstract impl) v;
-      (v, g)
+  let g = ref G.empty in
+  let return (v, gr) =
+    g := gr;
+    v
   in
-  snd @@ aux G.empty impl
+  let dev = { Impl.f = (fun d ~deps -> return @@ add !g ~args:[] ~deps d) } in
+  let if_ ~cond ~then_ ~else_ = return @@ add_if !g ~cond ~then_ ~else_ in
+  let app ~f ~x = return @@ add_app !g ~f ~args:[ x ] in
+  let _ = Impl.map ~dev ~if_ ~app impl in
+  !g
 
 let is_impl v = match G.V.label v with Dev _ -> true | App | If _ -> false
 

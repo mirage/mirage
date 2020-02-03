@@ -1,5 +1,6 @@
 (*
  * Copyright (c) 2015 Gabriel Radanne <drupyog@zoho.com>
+ * Copyright (c) 2015-2020 Thomas Gazagnaire <thomas@gazagnaire.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,98 +15,62 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Rresult
-open Astring
-open Functoria_misc
+module Codegen = Functoria_misc.Codegen
 module Key = Functoria_key
-module Package = Functoria_package
 module Info = Functoria_info
-module Type = Functoria_type
-module Impl = Functoria_impl
 module Device = Functoria_device
+module Type = Functoria_type
+module Package = Functoria_package
+open Astring
+open Rresult
 
-type 'a value = 'a Functoria_key.value
+let src = Logs.Src.create "functoria" ~doc:"functoria library"
 
-type info = Functoria_info.t
+module Log = (val Logs.src_log src : Logs.LOG)
 
-type package = Functoria_package.t
+type _ t =
+  | Dev : 'ty device -> 'ty t (* base devices *)
+  | App : ('a, 'b) app -> 'b t (* functor application *)
+  | If : bool Key.value * 'a t * 'a t -> 'a t
 
-type 'a typ = 'a Functoria_type.t
+and ('a, 'b) app = { f (* functor *) : ('a -> 'b) t; x (* parameter *) : 'a t }
 
-type 'a impl = 'a Functoria_impl.t
+and 'a device = ('a, abstract) Device.t
 
-type 'a device = ('a, Impl.abstract) Device.t
+and abstract = Abstract : _ t -> abstract
 
-let package = Package.v
+let abstract t = Abstract t
 
-let ( @-> ) = Type.( @-> )
+let of_device v = Dev v
 
-let typ = Type.v
+let if_ b x y = If (b, x, y)
 
-let ( $ ) = Impl.( $ )
+let rec match_ kv ~default = function
+  | [] -> default
+  | (f, i) :: t -> If (Key.(pure (( = ) f) $ kv), i, match_ kv ~default t)
 
-let of_device = Impl.of_device
+let ( $ ) f x = App { f; x }
 
-let abstract = Impl.abstract
-
-let if_impl = Impl.if_
-
-let match_impl = Impl.match_
-
-let pp_device ppf t = Device.pp Impl.pp_abstract ppf t
-
-let impl ?packages ?packages_v ?keys ?extra_deps ?connect ?configure ?build
-    ?clean module_name module_type =
+let v ?packages ?packages_v ?keys ?extra_deps ?connect ?configure ?build ?clean
+    module_name module_type =
   of_device
   @@ Device.v ?packages ?packages_v ?keys ?extra_deps ?connect ?configure ?build
        ?clean module_name module_type
 
 let main ?packages ?packages_v ?keys ?extra_deps module_name ty =
   let connect _ = Device.start in
-  impl ?packages ?packages_v ?keys ?extra_deps ~connect module_name ty
+  v ?packages ?packages_v ?keys ?extra_deps ~connect module_name ty
 
-let foreign ?packages ?packages_v ?keys ?deps module_name ty =
-  main ?packages ?packages_v ?keys ?extra_deps:deps module_name ty
+let rec pp : type a. a t Fmt.t =
+ fun ppf -> function
+  | Dev d -> Fmt.pf ppf "Dev %a" (Device.pp pp_abstract) d
+  | App a -> Fmt.pf ppf "App %a" pp_app a
+  | If (_, x, y) -> Fmt.pf ppf "If (_,%a,%a)" pp x pp y
 
-type context = Functoria_key.context
+and pp_app : type a b. (a, b) app Fmt.t =
+ fun ppf t -> Fmt.pf ppf "{@[ f: %a;@, x: %a @]}" pp t.f pp t.x
 
-type abstract_key = Functoria_key.t
-
-module type KEY =
-  module type of Functoria_key
-    with type 'a Arg.converter = 'a Functoria_key.Arg.converter
-     and type 'a Arg.t = 'a Functoria_key.Arg.t
-     and type Arg.info = Functoria_key.Arg.info
-     and type 'a value = 'a Functoria_key.value
-     and type 'a key = 'a Functoria_key.key
-     and type t = Functoria_key.t
-     and type Set.t = Functoria_key.Set.t
-     and type 'a Alias.t = 'a Functoria_key.Alias.t
-     and type context = Functoria_key.context
-
-(** Devices *)
-
-let src = Logs.Src.create "functoria" ~doc:"functoria library"
-
-module Log = (val Logs.src_log src : Logs.LOG)
-
-type job = JOB
-
-let job = typ JOB
-
-(* Noop, the job that does nothing. *)
-let noop = impl "Unit" job
-
-(* Default argv *)
-type argv = ARGV
-
-let argv = typ ARGV
-
-let sys_argv =
-  let connect _ _ _ = "return Sys.argv" in
-  impl ~connect "Sys" argv
-
-(* Keys *)
+and pp_abstract ppf (Abstract i) = pp ppf i
 
 module Keys = struct
   let with_output f k =
@@ -136,8 +101,8 @@ module Keys = struct
   let clean ~file _ = Bos.OS.Path.delete file
 end
 
-let keys (argv : argv impl) =
-  let packages = [ package "functoria-runtime" ] in
+let keys (argv : Type.argv t) =
+  let packages = [ Package.v "functoria-runtime" ] in
   let extra_deps = [ abstract argv ] in
   let module_name = Key.module_name in
   let file = Fpath.(v (String.Ascii.lowercase module_name) + "ml") in
@@ -150,16 +115,9 @@ let keys (argv : argv impl) =
           impl_name (Info.name info) argv
     | _ -> failwith "The keys connect should receive exactly one argument."
   in
-  impl ~configure ~clean ~packages ~extra_deps ~connect module_name job
+  v ~configure ~clean ~packages ~extra_deps ~connect module_name Type.job
 
 (* Module emiting a file containing all the build information. *)
-
-let info =
-  let i =
-    Info.create ~packages:[] ~keys:[] ~context:Key.empty_context ~name:"dummy"
-      ~build_dir:Fpath.(v "dummy")
-  in
-  typ i
 
 let pp_libraries fmt l =
   Fmt.pf fmt "[@ %a]" Fmt.(iter ~sep:(unit ";@ ") List.iter @@ fmt "%S") l
@@ -220,7 +178,7 @@ let default_opam_deps pkgs =
 let app_info ?opam_deps ?(gen_modname = "Info_gen") () =
   let file = Fpath.(v (String.Ascii.lowercase gen_modname) + "ml") in
   let module_name = gen_modname in
-  let packages = [ package "functoria-runtime" ] in
+  let packages = [ Package.v "functoria-runtime" ] in
   let connect _ impl_name _ = Fmt.strf "return %s.info" impl_name in
   let clean _ = Bos.OS.Path.delete file in
   let build i =
@@ -235,4 +193,82 @@ let app_info ?opam_deps ?(gen_modname = "Info_gen") () =
     Bos.OS.File.writef file "@[<v 2>let info = %a@]" pp_dump_pkgs
       (Info.name i, opam, ocl)
   in
-  impl ~packages ~connect ~clean ~build module_name info
+  v ~packages ~connect ~clean ~build module_name Type.info
+
+(* Noop, the job that does nothing. *)
+let noop = v "Unit" Type.job
+
+let sys_argv =
+  let connect _ _ _ = "return Sys.argv" in
+  v ~connect "Sys" Type.argv
+
+let rec hash : type a. a t -> int = function
+  | Dev c -> Device.hash c
+  | App { f; x } -> Hashtbl.hash (hash f, hash x)
+  | If (cond, t, e) -> Hashtbl.hash (cond, hash t, hash e)
+
+let hash_abstract (Abstract x) = hash x
+
+let rec equal : type t1 t2. t1 t -> t2 t -> bool =
+ fun x y ->
+  match (x, y) with
+  | Dev c, Dev c' -> Device.equal c c'
+  | App a, App b -> equal a.f b.f && equal a.x b.x
+  | If (cond1, t1, e1), If (cond2, t2, e2) ->
+      (* Key.value is a functional value (it contains a closure for eval).
+         There is no prettier way than physical equality. *)
+      cond1 == cond2 && equal t1 t2 && equal e1 e2
+  | _ -> false
+
+let equal_abtract (Abstract a) (Abstract b) = equal a b
+
+module Tbl = Hashtbl.Make (struct
+  type t = abstract
+
+  let hash = hash_abstract
+
+  let equal = equal_abtract
+end)
+
+type 'b f_dev = { f : 'a. ('a, abstract) Device.t -> 'b }
+
+type 'a f_if = cond:bool Key.value -> then_:'a -> else_:'a -> 'a
+
+type 'a f_app = f:'a -> x:'a -> 'a
+
+let with_left_most_device ctx t { f } =
+  let rec aux : type a. a t -> _ = function
+    | Dev d -> f d
+    | App a -> aux a.f
+    | If (b, x, y) -> if Key.eval ctx b then aux x else aux y
+  in
+  aux t
+
+let map (type r) ~if_ ~app ~dev t =
+  let tbl = Tbl.create 50 in
+  let rec aux : type a. a t -> r =
+   fun impl ->
+    if Tbl.mem tbl @@ abstract impl then Tbl.find tbl (abstract impl)
+    else
+      let acc =
+        match impl with
+        | Dev d ->
+            let deps =
+              List.fold_right
+                (fun (Abstract x) l -> aux x :: l)
+                (Device.extra_deps d) []
+            in
+            dev.f d ~deps
+        | App a ->
+            let f = aux a.f in
+            let x = aux a.x in
+            app ~f ~x
+        | If (cond, then_, else_) ->
+            let then_ = aux then_ in
+            let else_ = aux else_ in
+            if_ ~cond ~then_ ~else_
+      in
+      Tbl.add tbl (abstract impl) acc;
+      acc
+  in
+  aux t

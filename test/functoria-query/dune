@@ -1,0 +1,17 @@
+(executable
+ (name config)
+ (libraries f0))
+
+(rule
+ (target packages)
+ (action
+  (with-stdout-to
+   %{target}
+   (run ./config.exe query packages))))
+
+(rule
+ (alias runtest)
+ (package functoria)
+ (deps packages.expected packages)
+ (action
+  (diff? packages.expected packages)))

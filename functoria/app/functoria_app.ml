@@ -415,13 +415,15 @@ module Make (P : S) = struct
     in
     let result =
       Cli.parse_args ?help_ppf ?err_ppf ~name:P.name ~version:P.version
-        ~configure:(Term.pure ()) ~describe:(Term.pure ()) ~build:(Term.pure ())
-        ~clean:(Term.pure ()) ~help:base_context argv
+        ~configure:(Term.pure ()) ~query:(Term.pure ()) ~describe:(Term.pure ())
+        ~build:(Term.pure ()) ~clean:(Term.pure ()) ~help:base_context argv
     in
     match result with
     | `Ok Cli.Help -> ()
     | `Error _
-    | `Ok (Cli.Configure _ | Cli.Describe _ | Cli.Build _ | Cli.Clean _) ->
+    | `Ok
+        ( Cli.Configure _ | Cli.Query _ | Cli.Describe _ | Cli.Build _
+        | Cli.Clean _ ) ->
         exit_err (Error error)
     | `Version | `Help -> ()
 
@@ -543,6 +545,12 @@ module Make (P : S) = struct
       (fun () -> configure_main ~argv i jobs)
       "configure"
 
+  let query i = function
+    | `Libraries ->
+        let libs = Functoria_info.libraries i in
+        List.iter (Fmt.pr "%s\n") libs;
+        Ok ()
+
   let build ~state i jobs =
     Log.info (fun m -> m "Building: %a" Fpath.pp state.config_file);
     with_current (Info.build_dir i) (fun () -> Engine.build i jobs) "build"
@@ -580,6 +588,9 @@ module Make (P : S) = struct
     | `Ok (Cli.Build ((_, jobs), info)) ->
         Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
         exit_err (build ~state info jobs)
+    | `Ok (Cli.Query { result = _, info; kind }) ->
+        Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
+        exit_err (query info kind)
     | `Ok (Cli.Describe { result = jobs, info; dotcmd; dot; output }) ->
         Config'.pp_info Fmt.(pf stdout) (Some Logs.Info) info;
         R.error_msg_to_invalid_arg (describe info jobs ~dotcmd ~dot ~output)
@@ -620,6 +631,7 @@ module Make (P : S) = struct
         | None -> not (Cache.present cached_context)
       in
       Config'.eval ~with_required:false ~partial context config
+    and query = Config'.eval ~with_required:true ~partial:false context config
     and build =
       Config'.eval_cached ~partial:false cached_context config
       |> set_output config
@@ -634,8 +646,8 @@ module Make (P : S) = struct
     in
 
     handle_parse_args_result argv
-      (Cli.parse_args ~name:P.name ~version:P.version ~configure ~describe
-         ~build ~clean ~help argv)
+      (Cli.parse_args ~name:P.name ~version:P.version ~configure ~query
+         ~describe ~build ~clean ~help argv)
 
   let register ?packages ?keys ?(init = default_init) name jobs =
     (* 1. Pre-parse the arguments set the log level, config file

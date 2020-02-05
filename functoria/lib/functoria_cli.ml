@@ -96,6 +96,13 @@ let output =
   in
   Arg.(value & opt (some string) None & doc)
 
+let kind =
+  let doc =
+    Arg.info ~docs:configuration_section ~docv:"INFO" []
+      ~doc:"The information to query."
+  in
+  Arg.(value & pos 0 (enum [ ("libraries", `Libraries) ]) `Libraries & doc)
+
 type 'a describe_args = {
   result : 'a;
   dotcmd : string;
@@ -105,8 +112,11 @@ type 'a describe_args = {
 
 type 'a configure_args = { result : 'a; output : string option }
 
+type 'a query_args = { kind : [ `Libraries ]; result : 'a }
+
 type 'a action =
   | Configure of 'a configure_args
+  | Query of 'a query_args
   | Describe of 'a describe_args
   | Build of 'a
   | Clean of 'a
@@ -120,6 +130,11 @@ let pp_configure pp_a ppf (c : 'a configure_args) =
     Fmt.(option string)
     c.output
 
+let pp_kind ppf = function `Libraries -> Fmt.string ppf "libraries"
+
+let pp_query pp_a ppf (q : 'a query_args) =
+  Fmt.pf ppf "@[kind:%a@;result:%a@]" pp_kind q.kind pp_a q.result
+
 let pp_describe pp_a ppf (d : 'a describe_args) =
   Fmt.pf ppf "@[result:%a@;dotcmd:%s@;dot:%a@;output:%a@]" pp_a d.result
     d.dotcmd Fmt.bool d.dot
@@ -128,6 +143,7 @@ let pp_describe pp_a ppf (d : 'a describe_args) =
 
 let pp_action pp_a ppf = function
   | Configure c -> Fmt.pf ppf "@[configure:@ @[<2>%a@]@]" (pp_configure pp_a) c
+  | Query q -> Fmt.pf ppf "@[query:@ @[<2>%a@]@]" (pp_query pp_a) q
   | Describe d -> Fmt.pf ppf "@[describe:@ @[<2>%a@]@]" (pp_describe pp_a) d
   | Build b -> Fmt.pf ppf "@[build:@ @[<2>%a@]@]" pp_a b
   | Clean c -> Fmt.pf ppf "@[clean:@ @[<2>%a@]@]" pp_a c
@@ -154,6 +170,21 @@ module Subcommands = struct
             `P
               "The $(b,configure) command initializes a fresh $(mname) \
                application.";
+          ] )
+
+  let query result =
+    ( Term.(
+        const (fun _ kind result -> Query { kind; result })
+        $ setup
+        $ kind
+        $ result),
+      Term.info "query" ~doc:"Query the libraries for a $(mname) application."
+        ~man:
+          [
+            `S "DESCRIPTION";
+            `P
+              "The $(b,query) command queries the libraries neeed to build \
+               the  $(mname) application.";
           ] )
 
   (** The 'describe' subcommand *)
@@ -268,13 +299,14 @@ let read_full_eval : string array -> bool option =
  fun argv ->
   match Term.eval_peek_opts ~argv full_eval with _, `Ok b -> b | _ -> None
 
-let parse_args ?help_ppf ?err_ppf ~name ~version ~configure ~describe ~build
-    ~clean ~help argv =
+let parse_args ?help_ppf ?err_ppf ~name ~version ~configure ~query ~describe
+    ~build ~clean ~help argv =
   Cmdliner.Term.eval_choice ?help:help_ppf ?err:err_ppf ~argv ~catch:false
     (Subcommands.default ~name ~version)
     [
       Subcommands.configure configure;
       Subcommands.describe describe;
+      Subcommands.query query;
       Subcommands.build build;
       Subcommands.clean clean;
       Subcommands.help help;

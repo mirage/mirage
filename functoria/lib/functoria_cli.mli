@@ -32,6 +32,8 @@ type 'a configure_args = { result : 'a; output : string option }
 (** A value of type [configure_args] is the result of parsing the arguments of a
     [configure] subcommand. *)
 
+type 'a query_args = { kind : [ `Libraries ]; result : 'a }
+
 type 'a describe_args = {
   result : 'a;
   dotcmd : string;
@@ -46,6 +48,7 @@ type 'a describe_args = {
 
 type 'a action =
   | Configure of 'a configure_args
+  | Query of 'a query_args
   | Describe of 'a describe_args
   | Build of 'a
   | Clean of 'a
@@ -64,6 +67,7 @@ val parse_args :
   name:string ->
   version:string ->
   configure:'a t ->
+  query:'a t ->
   describe:'a t ->
   build:'a t ->
   clean:'a t ->

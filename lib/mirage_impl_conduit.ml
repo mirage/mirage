@@ -4,7 +4,7 @@ open Mirage_impl_random
 
 type conduit = Conduit
 
-let conduit = Type Conduit
+let conduit = Type.v Conduit
 
 let conduit_with_connectors connectors =
   let packages = [ pkg ] in

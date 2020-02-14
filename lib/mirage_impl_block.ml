@@ -5,7 +5,7 @@ module Key = Mirage_key
 
 type block = BLOCK
 
-let block = Type BLOCK
+let block = Type.v BLOCK
 
 type block_t = { filename : string; number : int }
 

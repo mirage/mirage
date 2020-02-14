@@ -3,7 +3,7 @@ module Key = Mirage_key
 
 type console = CONSOLE
 
-let console = Type CONSOLE
+let console = Type.v CONSOLE
 
 let connect str _ m _ = Fmt.strf "%s.connect %S" m str
 

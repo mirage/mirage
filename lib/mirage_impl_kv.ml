@@ -5,7 +5,7 @@ module Key = Mirage_key
 
 type ro = RO
 
-let ro = Type RO
+let ro = Type.v RO
 
 let crunch dirname =
   let name = "Static" in
@@ -55,7 +55,7 @@ let direct_kv_ro dirname =
 
 type rw = RW
 
-let rw = Type RW
+let rw = Type.v RW
 
 let direct_kv_rw dirname =
   let packages = [ package ~min:"2.1.0" ~max:"3.0.0" "mirage-kv-unix" ] in

@@ -19,7 +19,7 @@ type ipv4 = v4 ip
 
 type ipv6 = v6 ip
 
-let ip = Type IP
+let ip = Type.Type IP
 
 let ipv4 : ipv4 typ = ip
 

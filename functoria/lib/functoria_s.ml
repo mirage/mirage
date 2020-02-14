@@ -26,9 +26,7 @@ type info = Functoria_info.t
 
 type package = Functoria_package.t
 
-type _ typ =
-  | Type : 'a -> 'a typ (* module type *)
-  | Function : 'a typ * 'b typ -> ('a -> 'b) typ
+type 'a typ = 'a Functoria_type.t
 
 (* functor *)
 

@@ -2,7 +2,7 @@ open Functoria
 
 type mclock = MCLOCK
 
-let mclock = Type MCLOCK
+let mclock = Type.v MCLOCK
 
 let default_monotonic_clock =
   let packages_v =

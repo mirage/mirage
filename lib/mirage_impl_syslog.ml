@@ -24,7 +24,7 @@ let default_syslog_config =
 
 type syslog = SYSLOG
 
-let syslog = Type SYSLOG
+let syslog = Type.v SYSLOG
 
 let opt p s = Fmt.(option @@ prefix (unit ("~" ^^ s ^^ ":")) p)
 

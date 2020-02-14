@@ -97,9 +97,9 @@ let impl_name v =
   match G.V.label v with
   | If _ | App -> assert false
   | Dev d -> (
-      match Device.module_type d with
-      | Type _ -> Device.module_name d
-      | _ ->
+      match Functoria_type.is_functor (Device.module_type d) with
+      | false -> Device.module_name d
+      | true ->
           let id = G.V.hash v in
           let prefix = String.Ascii.capitalize (nice_name d) in
           Fmt.strf "%s__%d" prefix id )

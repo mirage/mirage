@@ -20,13 +20,15 @@ open Functoria_misc
 module Key = Functoria_key
 module Package = Functoria_package
 module Info = Functoria_info
+module Type = Functoria_type
+module Device = Functoria_device
 include Functoria_s
 
 let package = Package.v
 
-let ( @-> ) = Functoria_type.( @-> )
+let ( @-> ) = Type.( @-> )
 
-let typ = Functoria_type.v
+let typ = Type.v
 
 let ( $ ) f x = App { f; x }
 
@@ -40,38 +42,23 @@ let rec match_impl kv ~default = function
   | [] -> default
   | (f, i) :: t -> If (Key.(pure (( = ) f) $ kv), i, match_impl kv ~default t)
 
-let rec pp_impl : type a. a impl Fmt.t =
+let rec pp : type a. a impl Fmt.t =
  fun ppf -> function
-  | Dev d -> Fmt.pf ppf "Dev %a" pp_device d
+  | Dev d -> Fmt.pf ppf "Dev %a" (Device.pp pp_abstract_impl) d
   | App a -> Fmt.pf ppf "App %a" pp_app a
-  | If (_, x, y) -> Fmt.pf ppf "If (_,%a,%a)" pp_impl x pp_impl y
+  | If (_, x, y) -> Fmt.pf ppf "If (_,%a,%a)" pp x pp y
 
 and pp_app : type a b. (a, b) app Fmt.t =
- fun ppf t -> Fmt.pf ppf "{@[ f: %a;@, x: %a @]}" pp_impl t.f pp_impl t.x
+ fun ppf t -> Fmt.pf ppf "{@[ f: %a;@, x: %a @]}" pp t.f pp t.x
 
-and pp_abstract_impl ppf (Abstract i) = pp_impl ppf i
+and pp_abstract_impl ppf (Abstract i) = pp ppf i
 
-and pp_device : type a. a device Fmt.t =
- fun ppf t ->
-  let open Fmt.Dump in
-  let fields =
-    [
-      field "id" (fun t -> t.id) Fmt.int;
-      field "module_name" (fun t -> t.module_name) string;
-      field "module_type" (fun t -> t.module_type) Functoria_type.pp;
-      field "keys" (fun t -> t.keys) (list Functoria_key.pp);
-      field "packages" (fun t -> t.packages) Functoria_key.pp_deps;
-      field "extra_deps" (fun t -> t.extra_deps) (list pp_abstract_impl);
-    ]
-  in
-  record fields ppf t
-
-let equal_device x y = x.id = y.id
+let pp_device ppf t = Device.pp pp_abstract_impl ppf t
 
 let rec equal : type t1 t2. t1 impl -> t2 impl -> bool =
  fun x y ->
   match (x, y) with
-  | Dev c, Dev c' -> equal_device c c'
+  | Dev c, Dev c' -> Device.equal c c'
   | App a, App b -> equal a.f b.f && equal a.x b.x
   | If (cond1, t1, e1), If (cond2, t2, e2) ->
       (* Key.value is a functional value (it contains a closure for eval).
@@ -79,91 +66,6 @@ let rec equal : type t1 t2. t1 impl -> t2 impl -> bool =
       cond1 == cond2 && equal t1 t2 && equal e1 e2
   | Dev _, (If _ | App _) | App _, (If _ | Dev _) | If _, (App _ | Dev _) ->
       false
-
-module Device = struct
-  let pp = pp_device
-
-  let equal = equal_device
-
-  let default_connect _ _ l =
-    Printf.sprintf "return (%s)" (String.concat ~sep:", " l)
-
-  let niet _ = Ok ()
-
-  type 'a t = 'a device
-
-  type 'a code = string
-
-  let merge_packages packages packages_v =
-    match (packages, packages_v) with
-    | None, None -> Key.pure []
-    | Some p, None -> Key.pure p
-    | None, Some p -> p
-    | Some a, Some b -> Key.(pure List.append $ pure a $ b)
-
-  let count =
-    let i = ref 0 in
-    fun () ->
-      incr i;
-      !i
-
-  let v ?packages ?packages_v ?(keys = []) ?(extra_deps = [])
-      ?(connect = default_connect) ?(configure = niet) ?(build = niet)
-      ?(clean = niet) module_name module_type =
-    let id = count () in
-    let packages = merge_packages packages packages_v in
-    {
-      module_type;
-      id;
-      module_name;
-      keys;
-      connect;
-      packages;
-      clean;
-      configure;
-      build;
-      extra_deps;
-    }
-
-  let id t = t.id
-
-  let module_name t = t.module_name
-
-  let module_type t = t.module_type
-
-  let packages t = t.packages
-
-  let connect t = t.connect
-
-  let configure t = t.configure
-
-  let build t = t.build
-
-  let clean t = t.clean
-
-  let keys t = t.keys
-
-  let extra_deps t = t.extra_deps
-
-  let start impl_name args =
-    Fmt.strf "@[%s.start@ %a@]" impl_name Fmt.(list ~sep:sp string) args
-
-  let exec_hook i = function None -> Ok () | Some h -> h i
-
-  let extend ?packages ?packages_v ?pre_configure ?post_configure ?pre_build
-      ?post_build ?pre_clean ?post_clean t =
-    let packages =
-      Key.(pure List.append $ merge_packages packages packages_v $ t.packages)
-    in
-    let exec pre f post i =
-      exec_hook i pre >>= fun () ->
-      f i >>= fun () -> exec_hook i post
-    in
-    let configure = exec pre_configure t.configure post_configure in
-    let build = exec pre_build t.build post_build in
-    let clean = exec pre_clean t.clean post_clean in
-    { t with packages; configure; build; clean }
-end
 
 let impl ?packages ?packages_v ?keys ?extra_deps ?connect ?configure ?build
     ?clean module_name module_type =
@@ -181,17 +83,9 @@ let foreign ?packages ?packages_v ?keys ?deps module_name ty =
 (* {Misc} *)
 
 let rec hash : type t. t impl -> int = function
-  | Dev c -> hash_device c
+  | Dev c -> Device.hash c
   | App { f; x } -> Hashtbl.hash (`Bla (hash f, hash x))
   | If (cond, t, e) -> Hashtbl.hash (`If (cond, hash t, hash e))
-
-and hash_device : type t. t device -> int =
- fun c ->
-  Hashtbl.hash
-    ( c.module_name,
-      c.module_type,
-      Hashtbl.hash c.keys,
-      List.map hash_any c.extra_deps )
 
 and hash_any (Abstract x) = hash x
 
@@ -378,5 +272,3 @@ let app_info ?opam_deps ?(gen_modname = "Info_gen") () =
       (Info.name i, opam, ocl)
   in
   impl ~packages ~connect ~clean ~build module_name info
-
-module Type = Functoria_type

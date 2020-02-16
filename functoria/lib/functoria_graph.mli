@@ -29,7 +29,7 @@ module If : sig
 end
 
 (** The description of a vertex *)
-type label = If of If.path value | Dev : 'a Device.t -> label | App
+type label = If of If.path value | Dev : 'a device -> label | App
 
 module Tbl : Hashtbl.S with type key = vertex
 
@@ -61,7 +61,7 @@ val find_all : t -> (label -> bool) -> vertex list
 val find_root : t -> vertex
 (** [find_root g] returns the only vertex of [g] that has no predecessors. *)
 
-type a_device = D : 'a Device.t -> a_device
+type a_device = D : 'a device -> a_device
 
 val device : vertex -> a_device option
 

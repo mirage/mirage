@@ -27,6 +27,11 @@ let configuration_section = "CONFIGURE OPTIONS"
 
 let description_section = "DESCRIBE OPTIONS"
 
+type query_kind = [ `Packages | `Opam ]
+
+let query_kinds : (string * query_kind) list =
+  [ ("packages", `Packages); ("opam", `Opam) ]
+
 let setup_log =
   Term.(
     const setup_log
@@ -101,7 +106,7 @@ let kind =
     Arg.info ~docs:configuration_section ~docv:"INFO" []
       ~doc:"The information to query."
   in
-  Arg.(value & pos 0 (enum [ ("packages", `Packages) ]) `Packages & doc)
+  Arg.(value & pos 0 (enum query_kinds) `Packages & doc)
 
 type 'a describe_args = {
   result : 'a;
@@ -111,8 +116,6 @@ type 'a describe_args = {
 }
 
 type 'a configure_args = { result : 'a; output : string option }
-
-type query_kind = [ `Packages ]
 
 type 'a query_args = { kind : query_kind; result : 'a }
 
@@ -132,8 +135,12 @@ let pp_configure pp_a ppf (c : 'a configure_args) =
     Fmt.(option string)
     c.output
 
-let pp_kind ppf (t : query_kind) =
-  match t with `Packages -> Fmt.string ppf "packages"
+let pp_kind ppf (q : query_kind) =
+  let rec aux = function
+    | [] -> invalid_arg "missing query kind!"
+    | (a, b) :: t -> if b = q then Fmt.string ppf a else aux t
+  in
+  aux query_kinds
 
 let pp_query pp_a ppf (q : 'a query_args) =
   Fmt.pf ppf "@[kind:%a@;result:%a@]" pp_kind q.kind pp_a q.result

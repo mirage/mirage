@@ -23,6 +23,7 @@ module Info = Functoria_info
 module Type = Functoria_type
 module Impl = Functoria_impl
 module Device = Functoria_device
+module Install = Functoria_install
 
 type 'a value = 'a Functoria_key.value
 
@@ -54,11 +55,11 @@ let match_impl = Impl.match_
 
 let pp_device ppf t = Device.pp Impl.pp_abstract ppf t
 
-let impl ?packages ?packages_v ?keys ?extra_deps ?connect ?configure ?build
-    ?clean module_name module_type =
+let impl ?packages ?packages_v ?install ?install_v ?keys ?extra_deps ?connect
+    ?configure ?build ?clean module_name module_type =
   of_device
-  @@ Device.v ?packages ?packages_v ?keys ?extra_deps ?connect ?configure ?build
-       ?clean module_name module_type
+  @@ Device.v ?packages ?packages_v ?install ?install_v ?keys ?extra_deps
+       ?connect ?configure ?build ?clean module_name module_type
 
 let main ?packages ?packages_v ?keys ?extra_deps module_name ty =
   let connect _ = Device.start in
@@ -156,8 +157,9 @@ let keys (argv : argv impl) =
 
 let info =
   let i =
-    Info.create ~packages:[] ~keys:[] ~context:Key.empty_context ~name:"dummy"
+    Info.v ~packages:[] ~keys:[] ~context:Key.empty_context ~build_cmd:[]
       ~build_dir:Fpath.(v "dummy")
+      ~install:Install.empty ~src:`None "dummy"
   in
   typ i
 

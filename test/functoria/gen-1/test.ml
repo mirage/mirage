@@ -1,25 +1,31 @@
 open Rresult
+module Codegen = Functoria_misc.Codegen
+module Graph = Functoria_graph
+module Key = Functoria_key
+module Engine = Functoria_engine
+module Install = Functoria_install
 
 (* yiikes *)
 let () =
-  Functoria_misc.Codegen.set_main_ml "main.ml";
-  Functoria_misc.Codegen.append_main "let (>>=) x f = f x";
-  Functoria_misc.Codegen.append_main "let return x = x";
-  Functoria_misc.Codegen.append_main "let run x = x";
-  Functoria_misc.Codegen.newline_main ()
+  Codegen.set_main_ml "main.ml";
+  Codegen.append_main "let (>>=) x f = f x";
+  Codegen.append_main "let return x = x";
+  Codegen.append_main "let run x = x";
+  Codegen.newline_main ()
 
 let test_device context device =
-  let t = Functoria_graph.create device in
-  let t = Functoria_graph.normalize t in
-  let keys = Functoria_key.Set.elements (Functoria_engine.all_keys t) in
-  let packages = Functoria_key.eval context (Functoria_engine.packages t) in
+  let t = Graph.create device in
+  let t = Graph.normalize t in
+  let keys = Key.Set.elements (Engine.all_keys t) in
+  let packages = Key.eval context (Engine.packages t) in
   let info =
-    Functoria.Info.create ~packages ~context ~keys ~name:"foo"
+    Functoria.Info.v ~packages ~context ~keys
       ~build_dir:Fpath.(v ".")
+      ~install:Install.empty ~build_cmd:[ "build"; "me" ] ~src:`None "foo"
   in
-  Functoria_engine.configure info t >>= fun () ->
-  Functoria_engine.connect info t;
-  Functoria_engine.build info t
+  Engine.configure info t >>= fun () ->
+  Engine.connect info t;
+  Engine.build info t
 
 let opam_deps =
   [
@@ -41,7 +47,7 @@ let opam_deps =
   ]
 
 let test () =
-  let context = Functoria_key.empty_context in
+  let context = Key.empty_context in
   let sigs = Functoria.(job @-> info @-> job) in
   let keys =
     Functoria.(main "App.Make" sigs $ keys sys_argv $ app_info ~opam_deps ())

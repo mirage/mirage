@@ -170,6 +170,8 @@ val of_device : 'a device -> 'a impl
 val impl :
   ?packages:package list ->
   ?packages_v:package list Functoria_key.value ->
+  ?install:Functoria_install.t ->
+  ?install_v:Functoria_install.t Functoria_key.value ->
   ?keys:Functoria_key.t list ->
   ?extra_deps:Functoria_impl.abstract list ->
   ?connect:(Info.t -> string -> string list -> string) ->

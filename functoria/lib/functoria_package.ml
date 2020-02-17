@@ -77,19 +77,19 @@ let v ?(build = false) ?sublibs ?libs ?min ?max ?pin name =
   let min = to_set min and max = to_set max in
   { name; build; libs; min; max; pin }
 
-let exts_to_string min max build =
+let exts_to_string ppf (min, max, build) =
   let bui = if build then "build & " else "" in
-  let esc_prefix prefix e = Printf.sprintf "%s %S" prefix e in
+  let esc_prefix prefix e = Fmt.str "%s %S" prefix e in
   let min_strs = List.map (esc_prefix ">=") (String.Set.elements min)
   and max_strs = List.map (esc_prefix "<") (String.Set.elements max)
   and flat xs = String.concat ~sep:" & " xs in
   match (String.Set.is_empty min, String.Set.is_empty max) with
-  | true, true -> if build then "{build}" else ""
-  | false, true -> Printf.sprintf "{%s %s}" bui (flat min_strs)
-  | true, false -> Printf.sprintf "{%s %s}" bui (flat max_strs)
+  | true, true -> if build then Fmt.string ppf " {build}"
+  | false, true -> Fmt.pf ppf " {%s %s}" bui (flat min_strs)
+  | true, false -> Fmt.pf ppf " {%s %s}" bui (flat max_strs)
   | false, false ->
-      Printf.sprintf "{%s %s & %s}" bui (flat min_strs) (flat max_strs)
+      Fmt.pf ppf " {%s %s & %s}" bui (flat min_strs) (flat max_strs)
 
 let pp ?(surround = "") ppf p =
-  Fmt.pf ppf "%s%s%s %s" surround p.name surround
-    (exts_to_string p.min p.max p.build)
+  Fmt.pf ppf "%s%s%s%a" surround p.name surround exts_to_string
+    (p.min, p.max, p.build)

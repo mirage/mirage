@@ -24,6 +24,7 @@ module Type = Functoria_type
 module Package = Functoria_package
 module Key = Functoria_key
 module Info = Functoria_info
+module Install = Functoria_install
 
 type ('a, 'b) t
 (** The type for devices whose runtime state is of type ['a] and having extra
@@ -37,6 +38,9 @@ val module_name : ('a, 'b) t -> string
 
 val packages : ('a, 'b) t -> Package.t list Key.value
 (** [packages t] is the list of OPAM packages that are needed by [t].*)
+
+val install : ('a, 'b) t -> Install.t Key.value
+(** [install t] is the list of files installed by [t]. *)
 
 val extra_deps : ('a, 'b) t -> 'b list
 (** [extra_deps t] is the list of dependencies that be initialized before
@@ -92,6 +96,8 @@ val start : string -> string list -> 'a code
 val v :
   ?packages:Package.t list ->
   ?packages_v:Package.t list Key.value ->
+  ?install:Install.t ->
+  ?install_v:Install.t Key.value ->
   ?keys:Key.t list ->
   ?extra_deps:'b list ->
   ?connect:(Info.t -> string -> string list -> 'a code) ->

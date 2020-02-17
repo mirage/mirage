@@ -20,6 +20,7 @@
 open Rresult
 module Key = Functoria_key
 module Package = Functoria_package
+module Install = Functoria_install
 
 type t = Functoria_graph.t
 (** The type for key graphs. *)
@@ -32,6 +33,9 @@ val all_keys : t -> Key.Set.t
 
 val packages : t -> Package.t list Key.value
 (** [packages t] is the set of packages in the graph [t]. *)
+
+val install : t -> Install.t Key.value
+(** [install t] is the set of files installed by the graph [t]. *)
 
 (** {2 Triggering Hooks} *)
 

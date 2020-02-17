@@ -23,7 +23,8 @@ let test_configure () =
   in
   let result =
     Cli.parse_args ~name:"name" ~version:"0.2" ~configure:extra_term
-      ~describe:extra_term ~build:extra_term ~clean:extra_term ~help:extra_term
+      ~query:extra_term ~describe:extra_term ~build:extra_term ~clean:extra_term
+      ~help:extra_term
       [| "name"; "configure"; "--xyz"; "--verbose" |]
   in
   Alcotest.(check result_t)
@@ -41,7 +42,8 @@ let test_describe () =
   in
   let result =
     Cli.parse_args ~name:"name" ~version:"0.2" ~configure:extra_term
-      ~describe:extra_term ~build:extra_term ~clean:extra_term ~help:extra_term
+      ~query:extra_term ~describe:extra_term ~build:extra_term ~clean:extra_term
+      ~help:extra_term
       [|
         "name";
         "describe";
@@ -68,7 +70,8 @@ let test_build () =
   in
   let result =
     Cli.parse_args ~name:"name" ~version:"0.2" ~configure:extra_term
-      ~describe:extra_term ~build:extra_term ~clean:extra_term ~help:extra_term
+      ~query:extra_term ~describe:extra_term ~build:extra_term ~clean:extra_term
+      ~help:extra_term
       [| "name"; "build"; "--cde"; "-x"; "--color=never"; "-v"; "-v" |]
   in
   Alcotest.(check result_t) "build" (`Ok (Cli.Build (true, true))) result
@@ -83,8 +86,8 @@ let test_clean () =
   in
   let result =
     Cli.parse_args ~name:"name" ~version:"0.2" ~configure:extra_term
-      ~describe:extra_term ~build:extra_term ~clean:extra_term ~help:extra_term
-      [| "name"; "clean" |]
+      ~query:extra_term ~describe:extra_term ~build:extra_term ~clean:extra_term
+      ~help:extra_term [| "name"; "clean" |]
   in
   Alcotest.(check result_t) "clean" (`Ok (Cli.Clean (false, false))) result
 
@@ -98,7 +101,8 @@ let test_help () =
   in
   let result =
     Cli.parse_args ~name:"name" ~version:"0.2" ~configure:extra_term
-      ~describe:extra_term ~build:extra_term ~clean:extra_term ~help:extra_term
+      ~query:extra_term ~describe:extra_term ~build:extra_term ~clean:extra_term
+      ~help:extra_term
       [| "name"; "help"; "--help"; "plain" |]
   in
   Alcotest.(check result_t) "help" `Help result
@@ -113,8 +117,8 @@ let test_default () =
   in
   let result =
     Cli.parse_args ~name:"name" ~version:"0.2" ~configure:extra_term
-      ~describe:extra_term ~build:extra_term ~clean:extra_term ~help:extra_term
-      [| "name" |]
+      ~query:extra_term ~describe:extra_term ~build:extra_term ~clean:extra_term
+      ~help:extra_term [| "name" |]
   in
   Alcotest.(check result_t) "default" `Help result
 

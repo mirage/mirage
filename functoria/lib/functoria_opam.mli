@@ -5,7 +5,6 @@ type t
 
 val v :
   ?build:string list ->
-  ?install:Install.t ->
   ?depends:Package.t list ->
   ?pins:(string * string) list ->
   src:[ `Auto | `None | `Some of string ] ->

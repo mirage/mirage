@@ -19,7 +19,6 @@
 module Key = Mirage_key
 module Codegen = Functoria_app.Codegen
 module Log = Mirage_impl_misc.Log
-module Install = Functoria_install
 include Functoria
 
 (** {2 OCamlfind predicates} *)
@@ -322,7 +321,9 @@ module Project = struct
     | `Virtio -> [ libvirt ]
     | _ -> []
 
-  let install ~name k = Install.v ~bin:[ bin ~name k ] ~etc:(etc ~name k) ()
+  let install i k =
+    let name = match Info.output i with None -> Info.name i | Some n -> n in
+    Install.v ~bin:[ bin ~name k ] ~etc:(etc ~name k) ()
 
   let create jobs =
     let keys =
@@ -359,7 +360,7 @@ module Project = struct
           :: package ~min:"0.6.1" ~max:"0.7.0" "mirage-solo5"
           :: common
     in
-    let install_v = Key.match_ Key.(value target) (install ~name) in
+    let install_v i = Key.match_ Key.(value target) (install i) in
     let extra_deps = List.map abstract jobs in
     let connect _ _ _ = "return ()" in
     impl ~keys ~packages_v ~install_v ~build ~configure ~clean ~connect
@@ -368,7 +369,7 @@ end
 
 include Functoria_app.Make (Project)
 
-(** {Custom registration} *)
+(** Custom registration *)
 
 let ( ++ ) acc x =
   match (acc, x) with

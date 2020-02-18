@@ -20,6 +20,7 @@
 module Package = Functoria_package
 module Key = Functoria_key
 module Opam = Functoria_opam
+module Install = Functoria_install
 
 type t
 (** The type for information about the final application. *)
@@ -60,7 +61,6 @@ val v :
   context:Key.context ->
   build_dir:Fpath.t ->
   build_cmd:string list ->
-  install:Opam.Install.t ->
   src:[ `Auto | `None | `Some of string ] ->
   string ->
   t

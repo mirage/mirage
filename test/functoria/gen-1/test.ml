@@ -3,7 +3,6 @@ module Codegen = Functoria_misc.Codegen
 module Graph = Functoria_graph
 module Key = Functoria_key
 module Engine = Functoria_engine
-module Install = Functoria_install
 
 (* yiikes *)
 let () =
@@ -21,7 +20,7 @@ let test_device context device =
   let info =
     Functoria.Info.v ~packages ~context ~keys
       ~build_dir:Fpath.(v ".")
-      ~install:Install.empty ~build_cmd:[ "build"; "me" ] ~src:`None "foo"
+      ~build_cmd:[ "build"; "me" ] ~src:`None "foo"
   in
   Engine.configure info t >>= fun () ->
   Engine.connect info t;

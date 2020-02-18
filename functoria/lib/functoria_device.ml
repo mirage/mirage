@@ -37,7 +37,7 @@ type ('a, 'impl) t = {
   module_type : 'a Type.t;
   keys : abstract_key list;
   packages : package list value;
-  install : Install.t value;
+  install : info -> Install.t value;
   connect : info -> string -> string list -> string;
   configure : info -> (unit, R.msg) result;
   build : info -> (unit, R.msg) result;
@@ -94,7 +94,10 @@ let v ?packages ?packages_v ?install ?install_v ?(keys = []) ?(extra_deps = [])
     ?(clean = niet) module_name module_type =
   let id = count () in
   let packages = merge_packages packages packages_v in
-  let install = merge_install install install_v in
+  let install i =
+    let aux = function None -> None | Some f -> Some (f i) in
+    merge_install (aux install) (aux install_v)
+  in
   {
     module_type;
     id;

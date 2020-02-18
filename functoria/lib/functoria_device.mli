@@ -39,8 +39,9 @@ val module_name : ('a, 'b) t -> string
 val packages : ('a, 'b) t -> Package.t list Key.value
 (** [packages t] is the list of OPAM packages that are needed by [t].*)
 
-val install : ('a, 'b) t -> Install.t Key.value
-(** [install t] is the list of files installed by [t]. *)
+val install : ('a, 'b) t -> Info.t -> Install.t Key.value
+(** [install t i] is the list of files installed by [t], using the build
+    information [i]. *)
 
 val extra_deps : ('a, 'b) t -> 'b list
 (** [extra_deps t] is the list of dependencies that be initialized before
@@ -96,8 +97,8 @@ val start : string -> string list -> 'a code
 val v :
   ?packages:Package.t list ->
   ?packages_v:Package.t list Key.value ->
-  ?install:Install.t ->
-  ?install_v:Install.t Key.value ->
+  ?install:(Info.t -> Install.t) ->
+  ?install_v:(Info.t -> Install.t Key.value) ->
   ?keys:Key.t list ->
   ?extra_deps:'b list ->
   ?connect:(Info.t -> string -> string list -> 'a code) ->

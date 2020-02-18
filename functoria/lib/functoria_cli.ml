@@ -27,10 +27,10 @@ let configuration_section = "CONFIGURE OPTIONS"
 
 let description_section = "DESCRIBE OPTIONS"
 
-type query_kind = [ `Packages | `Opam ]
+type query_kind = [ `Packages | `Opam | `Install ]
 
 let query_kinds : (string * query_kind) list =
-  [ ("packages", `Packages); ("opam", `Opam) ]
+  [ ("packages", `Packages); ("opam", `Opam); ("install", `Install) ]
 
 let setup_log =
   Term.(

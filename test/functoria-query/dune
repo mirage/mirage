@@ -17,17 +17,26 @@
    (run ./config.exe query opam))))
 
 (rule
- (alias runtest)
- (package functoria)
- (deps
-  (:x opam.expected)
-  (:y opam))
+ (target install)
  (action
-  (diff? %{x} %{y})))
+  (with-stdout-to
+   %{target}
+   (run ./config.exe query install))))
 
 (rule
  (alias runtest)
  (package functoria)
- (deps packages.expected packages)
  (action
-  (diff? packages.expected packages)))
+  (diff opam.expected opam)))
+
+(rule
+ (alias runtest)
+ (package functoria)
+ (action
+  (diff packages.expected packages)))
+
+(rule
+ (alias runtest)
+ (package functoria)
+ (action
+  (diff install.expected install)))

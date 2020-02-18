@@ -7,3 +7,5 @@ val union : t -> t -> t
 val empty : t
 
 val pp : t Fmt.t
+
+val dump : t Fmt.t

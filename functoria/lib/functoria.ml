@@ -159,7 +159,7 @@ let info =
   let i =
     Info.v ~packages:[] ~keys:[] ~context:Key.empty_context ~build_cmd:[]
       ~build_dir:Fpath.(v "dummy")
-      ~install:Install.empty ~src:`None "dummy"
+      ~src:`None "dummy"
   in
   typ i
 

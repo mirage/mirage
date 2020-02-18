@@ -26,7 +26,6 @@ type t = {
   name : string;
   depends : Package.t list;
   build : string list;
-  install : Install.t;
   pins : (string * string) list;
   src : string option;
 }
@@ -48,12 +47,11 @@ let guess_src () =
       in
       Some (Fmt.str "%s#%s" public branch)
 
-let v ?(build = []) ?(install = Install.empty) ?(depends = []) ?(pins = []) ~src
-    name =
+let v ?(build = []) ?(depends = []) ?(pins = []) ~src name =
   let src =
     match src with `Auto -> guess_src () | `None -> None | `Some d -> Some d
   in
-  { name; depends; build; install; pins; src }
+  { name; depends; build; pins; src }
 
 let pp_packages ppf packages =
   Fmt.pf ppf "\n  %a\n"
@@ -76,9 +74,6 @@ let pp_src ppf = function
 
 let pp ppf t =
   let pp_build = Fmt.list ~sep:(Fmt.unit " ") (Fmt.fmt "%S") in
-  let pp_install ppf t =
-    if t <> Install.empty then Fmt.pf ppf "\ninstall: [%a]" Install.pp t
-  in
   Fmt.pf ppf
     {|# %s
 
@@ -93,8 +88,7 @@ synopsis: "This is a dummy"
 build: [%a]
 
 depends: [%a]
-%a%a%a
+%a%a
 |}
     (Codegen.generated_header ())
-    t.name pp_build t.build pp_packages t.depends pp_install t.install pp_src
-    t.src pp_pins t.pins
+    t.name pp_build t.build pp_packages t.depends pp_src t.src pp_pins t.pins

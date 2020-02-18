@@ -24,6 +24,7 @@ module Device = Functoria.Device
 module Impl = Functoria.Impl
 module Opam = Functoria_opam
 module Install = Functoria_install
+module Info = Functoria_info
 
 type t = Graph.t
 
@@ -62,10 +63,10 @@ module Installs = struct
   let empty = Key.pure Install.empty
 end
 
-let install =
+let install i =
   let open Graph in
   Graph.collect (module Installs) @@ function
-  | Dev c -> Device.install c
+  | Dev c -> Device.install c i
   | If _ | App -> Installs.empty
 
 (* [module_expresion tbl c args] returns the module expression of

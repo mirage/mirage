@@ -19,6 +19,7 @@ open Astring
 module Package = Functoria_package
 module Key = Functoria_key
 module Opam = Functoria_opam
+module Install = Functoria_install
 
 type t = {
   name : string;
@@ -66,11 +67,10 @@ let keys t = Key.Set.elements t.keys
 
 let context t = t.context
 
-let v ~packages ~keys ~context ~build_dir ~build_cmd ~install ~src name =
+let v ~packages ~keys ~context ~build_dir ~build_cmd ~src name =
   let keys = Key.Set.of_list keys in
   let opam =
-    Opam.v ~depends:packages ~pins:(pins packages) ~build:build_cmd ~install
-      ~src name
+    Opam.v ~depends:packages ~pins:(pins packages) ~build:build_cmd ~src name
   in
   let packages =
     List.fold_left

@@ -303,6 +303,28 @@ module Project = struct
 
   let ignore_dirs = Mirage_build.ignore_dirs
 
+  let bin ~name = function
+    | #Mirage_key.mode_solo5 as tgt ->
+        let ext = snd (Mirage_configure_solo5.solo5_pkg tgt) in
+        let file = Fpath.v (name ^ ext) in
+        (file, file)
+    | #Mirage_key.mode_unix ->
+        (Fpath.((v "_build" / "main") + "native"), Fpath.v name)
+    | #Mirage_key.mode_xen ->
+        let file = Fpath.(v name + "xen") in
+        (file, file)
+
+  let etc ~name =
+    let libvirt = Mirage_configure_libvirt.filename ~name in
+    function
+    | `Xen -> Fpath.[ v name + "xl"; v name + "xl.in"; v name + "xe"; libvirt ]
+    | `Virtio -> [ libvirt ]
+    | _ -> []
+
+  let install i k =
+    let name = match Info.output i with None -> Info.name i | Some n -> n in
+    Install.v ~bin:[ bin ~name k ] ~etc:(etc ~name k) ()
+
   let create jobs =
     let keys =
       Key.
@@ -338,15 +360,16 @@ module Project = struct
           :: package ~min:"0.6.1" ~max:"0.7.0" "mirage-solo5"
           :: common
     in
+    let install_v i = Key.match_ Key.(value target) (install i) in
     let extra_deps = List.map abstract jobs in
     let connect _ _ _ = "return ()" in
-    impl ~keys ~packages_v ~build ~configure ~clean ~connect ~extra_deps
-      "Mirage_runtime" job
+    impl ~keys ~packages_v ~install_v ~build ~configure ~clean ~connect
+      ~extra_deps "Mirage_runtime" job
 end
 
 include Functoria_app.Make (Project)
 
-(** {Custom registration} *)
+(** Custom registration *)
 
 let ( ++ ) acc x =
   match (acc, x) with

@@ -23,6 +23,8 @@ module Graph = Functoria_graph
 module Key = Functoria_key
 module Cli = Functoria_cli
 module Engine = Functoria_engine
+module Opam = Functoria_opam
+module Install = Functoria_install
 
 let src = Logs.Src.create "functoria" ~doc:"functoria library"
 
@@ -40,11 +42,13 @@ let with_current f k err =
 module Config = struct
   type t = {
     name : string;
+    build_cmd : string list;
     build_dir : Fpath.t;
     packages : package list Key.value;
     keys : Key.Set.t;
     init : job impl list;
     jobs : Graph.t;
+    src : [ `Auto | `None | `Some of string ];
   }
 
   (* In practice, we get all the keys associated to [if] cases, and
@@ -58,21 +62,23 @@ module Config = struct
     in
     Key.Set.fold f all_keys skeys
 
-  let make ?(keys = []) ?(packages = []) ?(init = []) name build_dir main_dev =
+  let v ?(keys = []) ?(packages = []) ?(init = []) ~build_dir ~build_cmd ~src
+      name main_dev =
     let name = Name.ocamlify name in
     let jobs = Graph.create main_dev in
     let packages = Key.pure @@ packages in
     let keys = Key.Set.(union (of_list keys) (get_if_context jobs)) in
-    { packages; keys; name; build_dir; init; jobs }
+    { packages; keys; name; build_dir; init; jobs; build_cmd; src }
 
-  let eval ~partial context { name = n; build_dir; packages; keys; jobs; init }
-      =
+  let eval ~partial context
+      { name = n; build_dir; build_cmd; packages; keys; jobs; init; src } =
     let e = Graph.eval ~partial ~context jobs in
     let packages = Key.(pure List.append $ packages $ Engine.packages e) in
     let keys = Key.Set.elements (Key.Set.union keys @@ Engine.all_keys e) in
     Key.(
       pure (fun packages _ context ->
-          ((init, e), Info.create ~packages ~keys ~context ~name:n ~build_dir))
+          ( (init, e),
+            Info.v ~packages ~keys ~context ~build_dir ~build_cmd ~src n ))
       $ packages
       $ of_deps (Set.of_list keys))
 
@@ -245,6 +251,18 @@ module Make (P : S) = struct
     match Fpath.segs rel with
     | ".." :: _ -> failwith "--build-dir should be a sub-directory."
     | _ -> dir
+
+  let get_build_cmd ~state =
+    let build_dir =
+      match state.build_dir with
+      | None -> []
+      | Some d -> [ "--build-dir"; Fpath.to_string d ]
+    in
+    P.name
+    :: "build"
+    :: "--config-file"
+    :: Fpath.to_string state.config_file
+    :: build_dir
 
   let auto_generated =
     Fmt.str ";; %s" (Codegen.generated_header ~argv:[| P.name; "config" |] ())
@@ -534,6 +552,34 @@ module Make (P : S) = struct
   let clean_main i jobs =
     Engine.clean i jobs >>= fun () -> Bos.OS.File.delete Fpath.(v "main.ml")
 
+  let configure_opam i =
+    let file = Info.name i ^ ".opam" in
+    let opam = Info.opam i in
+    Log.info (fun m -> m "Generating: %s" file);
+    let oc = open_out_bin file in
+    let ppf = Format.formatter_of_out_channel oc in
+    Fmt.pf ppf "%a%!" Opam.pp opam;
+    close_out oc
+
+  let clean_opam i =
+    let file = Info.name i ^ ".opam" in
+    Bos.OS.File.delete Fpath.(v file)
+
+  let eval_install i (_, e) = Key.eval (Info.context i) (Engine.install i e)
+
+  let configure_install i jobs =
+    let file = Info.name i ^ ".install" in
+    let install = eval_install i jobs in
+    Log.info (fun m -> m "Generating: %s" file);
+    let oc = open_out_bin file in
+    let ppf = Format.formatter_of_out_channel oc in
+    Fmt.pf ppf "%a%!" Install.pp install;
+    close_out oc
+
+  let clean_install i =
+    let file = Info.name i ^ ".install" in
+    Bos.OS.File.delete Fpath.(v file)
+
   let configure ~state ~argv i jobs =
     let source_dir = get_relative_source_dir ~state in
     Log.debug (fun l -> l "source-dir=%a" Fpath.pp source_dir);
@@ -541,15 +587,25 @@ module Make (P : S) = struct
     Log.info (fun m ->
         m "Output       : %a" Fmt.(option string) (Info.output i));
     Log.info (fun m -> m "Build-dir    : %a" Fpath.pp (Info.build_dir i));
+    (* Generate .opam and .install at the project root *)
+    configure_opam i;
+    configure_install i jobs;
+    (* Generate main.ml, *_gen.ml in the build dir *)
     with_current (Info.build_dir i)
       (fun () -> configure_main ~argv i jobs)
       "configure"
 
-  let query i (t : Functoria_cli.query_kind) =
+  let query i (t : Functoria_cli.query_kind) jobs =
     match t with
     | `Packages ->
         let pkgs = Functoria_info.packages i in
         List.iter (Fmt.pr "%a\n" (Functoria_package.pp ~surround:"\"")) pkgs
+    | `Opam ->
+        let opam = Functoria_info.opam i in
+        Fmt.pr "%a%!" Functoria_opam.pp opam
+    | `Install ->
+        let install = eval_install i jobs in
+        Fmt.pr "%a%!" Functoria_install.pp install
 
   let build ~state i jobs =
     Log.info (fun m -> m "Building: %a" Fpath.pp state.config_file);
@@ -569,6 +625,8 @@ module Make (P : S) = struct
     | exception Not_found -> Bos.OS.Dir.delete ~recurse:true Fpath.(v "_build")
     | _ -> Bos.OS.Dir.delete ~recurse:true Fpath.(v "_build") )
     >>= fun () ->
+    clean_opam i >>= fun () ->
+    clean_install i >>= fun () ->
     with_current (Info.build_dir i)
       (fun () ->
         clean_main i job >>= fun () ->
@@ -588,9 +646,9 @@ module Make (P : S) = struct
     | `Ok (Cli.Build ((_, jobs), info)) ->
         Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
         exit_err (build ~state info jobs)
-    | `Ok (Cli.Query { result = _, info; kind }) ->
+    | `Ok (Cli.Query { result = jobs, info; kind }) ->
         Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
-        query info kind
+        query info kind jobs
     | `Ok (Cli.Describe { result = jobs, info; dotcmd; dot; output }) ->
         Config'.pp_info Fmt.(pf stdout) (Some Logs.Info) info;
         R.error_msg_to_invalid_arg (describe info jobs ~dotcmd ~dot ~output)
@@ -649,12 +707,15 @@ module Make (P : S) = struct
       (Cli.parse_args ~name:P.name ~version:P.version ~configure ~query
          ~describe ~build ~clean ~help argv)
 
-  let register ?packages ?keys ?(init = default_init) name jobs =
+  let register ?packages ?keys ?(init = default_init) ?(src = `Auto) name jobs =
     (* 1. Pre-parse the arguments set the log level, config file
        and root directory. *)
     let state = init_global_state Sys.argv in
     let build_dir = get_build_dir ~state in
+    let build_cmd = get_build_cmd ~state in
     let main_dev = P.create (init @ jobs) in
-    let c = Config.make ?keys ?packages ~init name build_dir main_dev in
+    let c =
+      Config.v ?keys ?packages ~init ~build_dir ~build_cmd ~src name main_dev
+    in
     run_configure_with_argv ~state Sys.argv c
 end

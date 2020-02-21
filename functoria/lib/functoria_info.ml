@@ -18,6 +18,8 @@
 open Astring
 module Package = Functoria_package
 module Key = Functoria_key
+module Opam = Functoria_opam
+module Install = Functoria_install
 
 type t = {
   name : string;
@@ -26,9 +28,12 @@ type t = {
   keys : Key.Set.t;
   context : Key.context;
   packages : Package.t String.Map.t;
+  opam : Opam.t;
 }
 
 let name t = t.name
+
+let opam t = t.opam
 
 let build_dir t = t.build_dir
 
@@ -50,20 +55,23 @@ let libraries t = libraries (packages t)
 
 let package_names t = List.map Package.name (packages t)
 
-let pins t =
+let pins packages =
   List.fold_left
     (fun acc p ->
       match Package.pin p with
       | None -> acc
       | Some u -> (Package.name p, u) :: acc)
-    [] (packages t)
+    [] packages
 
 let keys t = Key.Set.elements t.keys
 
 let context t = t.context
 
-let create ~packages ~keys ~context ~name ~build_dir =
+let v ~packages ~keys ~context ~build_dir ~build_cmd ~src name =
   let keys = Key.Set.of_list keys in
+  let opam =
+    Opam.v ~depends:packages ~pins:(pins packages) ~build:build_cmd ~src name
+  in
   let packages =
     List.fold_left
       (fun m p ->
@@ -76,7 +84,7 @@ let create ~packages ~keys ~context ~name ~build_dir =
             | None -> m ))
       String.Map.empty packages
   in
-  { name; build_dir; keys; packages; context; output = None }
+  { name; build_dir; keys; packages; context; output = None; opam }
 
 let pp_packages ?(surround = "") ?sep ppf t =
   Fmt.pf ppf "%a" (Fmt.iter ?sep List.iter (Package.pp ~surround)) (packages t)
@@ -91,20 +99,3 @@ let pp verbose ppf ({ name; build_dir; keys; context; output; _ } as t) =
   if verbose then show "Libraries " list (libraries t);
   if verbose then
     show "Packages  " (pp_packages ?surround:None ~sep:(Fmt.unit ",@ ")) t
-
-let pp_opam ?name ppf t =
-  let name = match name with None -> t.name | Some x -> x in
-  Fmt.pf ppf "opam-version: \"2.0\"@.";
-  Fmt.pf ppf "name: \"%s\"@." name;
-  Fmt.pf ppf "depends: [ @[<hv>%a@]@ ]@."
-    (pp_packages ~surround:"\"" ~sep:(Fmt.unit "@ "))
-    t;
-  match pins t with
-  | [] -> ()
-  | pin_depends ->
-      let pp_pin ppf (package, url) =
-        Fmt.pf ppf "[\"%s.dev\" %S]" package url
-      in
-      Fmt.pf ppf "pin-depends: [ @[<hv>%a@]@ ]@."
-        Fmt.(list ~sep:(unit "@ ") pp_pin)
-        pin_depends

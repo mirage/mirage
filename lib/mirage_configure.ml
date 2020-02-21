@@ -4,6 +4,7 @@ open Mirage_impl_misc
 module Key = Mirage_key
 module Info = Functoria.Info
 module Codegen = Functoria_app.Codegen
+module Opam = Functoria_opam
 open Mirage_configure_xen
 open Mirage_configure_solo5
 
@@ -28,97 +29,6 @@ let clean_myocamlbuild () =
   | _ -> R.ok ()
 
 let opam_path ~name = Fpath.(v name + "opam")
-
-let artifact ~name = function
-  | #Mirage_key.mode_solo5 as tgt ->
-      let ext = snd (Mirage_configure_solo5.solo5_pkg tgt) in
-      let file = Fpath.v (name ^ ext) in
-      (file, file)
-  | #Mirage_key.mode_unix ->
-      (Fpath.((v "_build" / "main") + "native"), Fpath.v name)
-  | #Mirage_key.mode_xen ->
-      let file = Fpath.(v name + "xen") in
-      (file, file)
-
-let additional_artifacts ~name =
-  let libvirt = Mirage_configure_libvirt.filename ~name in
-  function
-  | `Xen -> Fpath.[ v name + "xl"; v name + "xl.in"; v name + "xe"; libvirt ]
-  | `Virtio -> [ libvirt ]
-  | _ -> []
-
-let find_git () =
-  let is_git p = Bos.OS.Dir.exists Fpath.(p / ".git") in
-  let app_opt p d = match p with None -> d | Some p -> Fpath.(d // p) in
-  let rec find p path =
-    if Fpath.is_root p then Error (`Msg "no git repo found, reached root")
-    else
-      is_git p >>= fun has_git ->
-      if has_git then Ok path
-      else find (Fpath.parent p) (Some (app_opt path (Fpath.base p)))
-  in
-  Bos.OS.Dir.current () >>= fun cwd ->
-  find cwd None >>= fun subdir ->
-  let git_branch = Bos.Cmd.(v "git" % "rev-parse" % "--abbrev-ref" % "HEAD") in
-  Bos.OS.Cmd.(run_out git_branch |> out_string) >>= fun (branch, _) ->
-  let git_remote = Bos.Cmd.(v "git" % "remote" % "get-url" % "origin") in
-  Bos.OS.Cmd.(run_out git_remote |> out_string) >>| fun (git_url, _) ->
-  (subdir, branch, git_url)
-
-let configure_opam ~name info =
-  let open Codegen in
-  let subdir, git_info =
-    match find_git () with
-    | Error _ -> (None, None)
-    | Ok (subdir, branch, git_url) -> (subdir, Some (branch, git_url))
-  in
-  let file = opam_path ~name in
-  with_output file
-    (fun oc () ->
-      let fmt = Format.formatter_of_out_channel oc in
-      append fmt "# %s" (generated_header ());
-      Info.pp_opam ~name fmt info;
-      append fmt {|maintainer: "dummy"|};
-      append fmt {|authors: "dummy"|};
-      append fmt {|homepage: "dummy"|};
-      append fmt {|bug-reports: "dummy"|};
-      Format.fprintf fmt {|build: [ "sh" "-exc" "|};
-      ( match subdir with
-      | None -> ()
-      | Some p -> Format.fprintf fmt "cd %a && " Fpath.pp p );
-      append fmt {|mirage %s && mirage build" ]|}
-        (String.concat ~sep:" " (List.tl (Array.to_list Sys.argv)));
-      append fmt {|synopsis: "This is a dummy"|};
-      let target = Key.(get (Info.context info) target)
-      and name = Info.name info in
-      let src, dst = artifact ~name target in
-      let src' = match subdir with None -> src | Some p -> Fpath.(p // src) in
-      append fmt {|install: [|};
-      append fmt {|  [ "cp" "%a" "%%{bin}%%/%a" ]|} Fpath.pp src' Fpath.pp dst;
-      ( match additional_artifacts ~name target with
-      | [] -> ()
-      | xs ->
-          let xs' =
-            match subdir with
-            | None -> xs
-            | Some d -> List.map (fun a -> Fpath.(d // a)) xs
-          in
-          append fmt {|  [ "cp" %a "%%{etc}%%" ]|}
-            Fmt.(list ~sep:(unit " ") (quote Fpath.pp))
-            xs' );
-      append fmt {|]|};
-      ( match git_info with
-      | None -> ()
-      | Some (branch, origin) ->
-          (* TODO is there a library for git urls anywhere? *)
-          let public =
-            match Astring.String.cut ~sep:"github.com:" origin with
-            | Some (_, post) -> "git+https://github.com/" ^ post
-            | _ -> origin
-          in
-          append fmt {|url { src: "%s#%s" }|} public branch );
-      R.ok ())
-    "opam file"
 
 let opam_name ~name ~target =
   String.concat ~sep:"-" [ "mirage"; "unikernel"; name; target ]
@@ -157,6 +67,15 @@ let configure_makefile ~no_depext ~opam_name =
         opam_name opam_name opam_name depext;
       R.ok ())
     "Makefile"
+
+let configure_opam ~name info =
+  let file = opam_path ~name in
+  with_output file
+    (fun oc () ->
+      let fmt = Format.formatter_of_out_channel oc in
+      Opam.pp fmt (Info.opam info);
+      R.ok ())
+    "opam file"
 
 let configure i =
   let name = Info.name i in

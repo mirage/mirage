@@ -19,6 +19,8 @@
 
 module Package = Functoria_package
 module Key = Functoria_key
+module Opam = Functoria_opam
+module Install = Functoria_install
 
 type t
 (** The type for information about the final application. *)
@@ -44,23 +46,24 @@ val package_names : t -> string list
 val packages : t -> Package.t list
 (** [packages t] are the opam package dependencies by the project. *)
 
+val opam : t -> Opam.t
+(** [opam t] is [t]'opam file. *)
+
 val keys : t -> Key.t list
 (** [keys t] are the keys declared by the project. *)
 
 val context : t -> Key.context
 (** [parsed t] is a value representing the command-line argument being parsed. *)
 
-val create :
+val v :
   packages:Package.t list ->
   keys:Key.t list ->
   context:Key.context ->
-  name:string ->
   build_dir:Fpath.t ->
+  build_cmd:string list ->
+  src:[ `Auto | `None | `Some of string ] ->
+  string ->
   t
 (** [create context n r] contains information about the application being built. *)
 
 val pp : bool -> t Fmt.t
-
-val pp_opam : ?name:string -> t Fmt.t
-(** [opam t] generates an opam file including all dependencies. If set, [name]
-    will be used as package name, otherwise use {!name}. *)

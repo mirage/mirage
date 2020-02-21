@@ -1,5 +1,6 @@
 open Rresult
 module Key = Functoria_key
+module Install = Functoria_install
 
 let warn_error =
   let doc = "Enable -warn-error when compiling OCaml sources." in
@@ -13,7 +14,10 @@ let vote =
   let key = Key.Arg.(opt ~stage:`Configure string "cat" doc) in
   Key.create "vote" key
 
-let output i = match Functoria.Info.output i with None -> "main" | Some o -> o
+let output i =
+  match Functoria.Info.output i with
+  | None -> Functoria.Info.name i
+  | Some o -> o
 
 let run cmd =
   match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string with
@@ -36,9 +40,11 @@ let root () = R.get_ok @@ (Bos.OS.Dir.current () >>= root)
 
 let dune_file i = Fpath.(Functoria.Info.build_dir i / "dune.build")
 
+let file_of_key k = Key.(name @@ abstract k)
+
 let write_key i k f =
   let context = Functoria.Info.context i in
-  let file = Key.(name @@ abstract k) in
+  let file = file_of_key k in
   let contents = f (Key.get context k) in
   R.get_ok @@ Bos.OS.File.write Fpath.(v file) contents
 
@@ -80,6 +86,7 @@ module C = struct
       (Functoria.Info.build_dir i)
       (fun () ->
         let root, prefix = split_root () in
+        assert (prefix = Functoria.Info.build_dir i);
         let exe = Fpath.((prefix / output i) + "exe") in
         write_key i vote (fun x -> x);
         write_key i warn_error string_of_bool;
@@ -103,11 +110,20 @@ module C = struct
         Bos.OS.File.delete file)
       (Ok ()) keys
 
+  let install i =
+    let _root, prefix = split_root () in
+    let exe = Fpath.(prefix / "main.exe") in
+    let src = Fpath.(v "_build" / "default" // exe) in
+    let dst = Fpath.v (output i) in
+    let vote = Fpath.(prefix / file_of_key vote) in
+    let warn_error = Fpath.(prefix / file_of_key warn_error) in
+    Install.v ~bin:[ (src, dst) ] ~etc:[ vote; warn_error ] ()
+
   let create jobs =
     let packages = Functoria.[ package "fmt" ] in
     let extra_deps = List.map Functoria.abstract jobs in
     Functoria.impl ~keys ~packages ~configure ~connect ~clean ~build ~extra_deps
-      "F0" Functoria.job
+      ~install "F0" Functoria.job
 end
 
 include Functoria_app.Make (C)

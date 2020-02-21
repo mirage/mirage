@@ -154,6 +154,7 @@ val main :
       before calling [<name>.connect]. *)
 
 module Info = Functoria_info
+module Install = Functoria_install
 
 module Device = Functoria_device
 (** Signature for functoria devices. A [device] is a module implementation which
@@ -170,6 +171,8 @@ val of_device : 'a device -> 'a impl
 val impl :
   ?packages:package list ->
   ?packages_v:package list Functoria_key.value ->
+  ?install:(Info.t -> Install.t) ->
+  ?install_v:(Info.t -> Install.t Functoria_key.value) ->
   ?keys:Functoria_key.t list ->
   ?extra_deps:Functoria_impl.abstract list ->
   ?connect:(Info.t -> string -> string list -> string) ->

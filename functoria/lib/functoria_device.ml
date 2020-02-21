@@ -19,6 +19,7 @@ module Type = Functoria_type
 module Key = Functoria_key
 module Package = Functoria_package
 module Info = Functoria_info
+module Install = Functoria_install
 open Rresult
 open Astring
 
@@ -36,6 +37,7 @@ type ('a, 'impl) t = {
   module_type : 'a Type.t;
   keys : abstract_key list;
   packages : package list value;
+  install : info -> Install.t value;
   connect : info -> string -> string list -> string;
   configure : info -> (unit, R.msg) result;
   build : info -> (unit, R.msg) result;
@@ -52,7 +54,8 @@ let pp : type a b. b Fmt.t -> (a, b) t Fmt.t =
       field "module_name" (fun t -> t.module_name) string;
       field "module_type" (fun t -> t.module_type) Type.pp;
       field "keys" (fun t -> t.keys) (list Key.pp);
-      field "packages" (fun t -> t.packages) Key.pp_deps;
+      field "install" (fun _ -> "<dyn>") Fmt.string;
+      field "packages" (fun _ -> "<dyn>") Fmt.string;
       field "extra_deps" (fun t -> t.extra_deps) (list pp_impl);
     ]
   in
@@ -69,12 +72,16 @@ let niet _ = Ok ()
 
 type 'a code = string
 
-let merge_packages packages packages_v =
-  match (packages, packages_v) with
-  | None, None -> Key.pure []
-  | Some p, None -> Key.pure p
-  | None, Some p -> p
-  | Some a, Some b -> Key.(pure List.append $ pure a $ b)
+let merge empty union a b =
+  match (a, b) with
+  | None, None -> Key.pure empty
+  | Some a, None -> Key.pure a
+  | None, Some b -> b
+  | Some a, Some b -> Key.(pure union $ pure a $ b)
+
+let merge_packages = merge [] List.append
+
+let merge_install = merge Install.empty Install.union
 
 let count =
   let i = ref 0 in
@@ -82,11 +89,15 @@ let count =
     incr i;
     !i
 
-let v ?packages ?packages_v ?(keys = []) ?(extra_deps = [])
+let v ?packages ?packages_v ?install ?install_v ?(keys = []) ?(extra_deps = [])
     ?(connect = default_connect) ?(configure = niet) ?(build = niet)
     ?(clean = niet) module_name module_type =
   let id = count () in
   let packages = merge_packages packages packages_v in
+  let install i =
+    let aux = function None -> None | Some f -> Some (f i) in
+    merge_install (aux install) (aux install_v)
+  in
   {
     module_type;
     id;
@@ -94,6 +105,7 @@ let v ?packages ?packages_v ?(keys = []) ?(extra_deps = [])
     keys;
     connect;
     packages;
+    install;
     clean;
     configure;
     build;
@@ -107,6 +119,8 @@ let module_name t = t.module_name
 let module_type t = t.module_type
 
 let packages t = t.packages
+
+let install t = t.install
 
 let connect t = t.connect
 

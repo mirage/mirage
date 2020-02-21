@@ -32,7 +32,7 @@ type 'a configure_args = { result : 'a; output : string option }
 (** A value of type [configure_args] is the result of parsing the arguments of a
     [configure] subcommand. *)
 
-type query_kind = [ `Packages ]
+type query_kind = [ `Packages | `Opam | `Install ]
 
 type 'a query_args = { kind : query_kind; result : 'a }
 

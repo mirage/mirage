@@ -22,6 +22,9 @@ module Key = Functoria_key
 module Package = Functoria_package
 module Device = Functoria.Device
 module Impl = Functoria.Impl
+module Opam = Functoria_opam
+module Install = Functoria_install
+module Info = Functoria_info
 
 type t = Graph.t
 
@@ -38,7 +41,7 @@ let all_keys =
   | If cond -> Key.deps cond
   | App -> Key.Set.empty
 
-module M = struct
+module Packages = struct
   type t = Package.t list Key.value
 
   let union x y = Key.(pure List.append $ x $ y)
@@ -48,9 +51,23 @@ end
 
 let packages =
   let open Graph in
-  Graph.collect (module M) @@ function
+  Graph.collect (module Packages) @@ function
   | Dev c -> Device.packages c
-  | If _ | App -> M.empty
+  | If _ | App -> Packages.empty
+
+module Installs = struct
+  type t = Install.t Key.value
+
+  let union x y = Key.(pure Install.union $ x $ y)
+
+  let empty = Key.pure Install.empty
+end
+
+let install i =
+  let open Graph in
+  Graph.collect (module Installs) @@ function
+  | Dev c -> Device.install c i
+  | If _ | App -> Installs.empty
 
 (* [module_expresion tbl c args] returns the module expression of
    the functor [c] applies to [args]. *)

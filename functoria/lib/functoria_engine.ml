@@ -148,6 +148,7 @@ let connect ?(init = []) info t =
         | [] -> assert false
         | ds -> List.map Graph.var_name ds @ acc)
       [] init
+    |> List.rev
   in
   emit_run init_names main_name
 

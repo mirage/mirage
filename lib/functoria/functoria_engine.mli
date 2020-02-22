@@ -22,6 +22,7 @@ module Key = Functoria_key
 module Package = Functoria_package
 module Install = Functoria_install
 module Info = Functoria_info
+module Impl = Functoria_impl
 
 type t = Functoria_graph.t
 (** The type for key graphs. *)
@@ -45,7 +46,7 @@ val configure : Info.t -> t -> (unit, R.msg) result
     implementations appearing in [t], in topological order. Use the build
     information [i]. *)
 
-val connect : ?init:'a Functoria.impl list -> Info.t -> t -> unit
+val connect : ?init:'a Impl.t list -> Info.t -> t -> unit
 (** [connect ?init i t] generates the [connect] functions in [main.ml], for each
     of the implementations appearing [t], in topological order. Use build
     information [i]. *)

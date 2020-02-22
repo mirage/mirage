@@ -1,7 +1,7 @@
 open Rresult
 open Astring
+open Functoria
 open Mirage_impl_misc
-module Codegen = Functoria_app.Codegen
 module Log = Mirage_impl_misc.Log
 
 let solo5_manifest_path = Fpath.v "_build/manifest.json"

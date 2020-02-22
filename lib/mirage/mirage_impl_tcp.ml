@@ -1,10 +1,10 @@
-module Key = Mirage_key
 open Functoria
 open Mirage_impl_ip
 open Mirage_impl_mclock
 open Mirage_impl_misc
 open Mirage_impl_random
 open Mirage_impl_time
+module Key = Mirage_key
 
 type 'a tcp = TCP
 

@@ -1,8 +1,7 @@
 open Rresult
 open Astring
+open Functoria
 open Mirage_impl_misc
-module Info = Functoria.Info
-module Codegen = Functoria_app.Codegen
 module Log = Mirage_impl_misc.Log
 
 (* We generate an example .xl with common defaults, and a generic

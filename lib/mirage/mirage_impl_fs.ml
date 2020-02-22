@@ -1,9 +1,8 @@
-module Codegen = Functoria_app.Codegen
-module Key = Mirage_key
 open Functoria
 open Mirage_impl_block
 open Mirage_impl_misc
 open Rresult
+module Key = Mirage_key
 
 type t = FS
 
@@ -23,7 +22,7 @@ let fat_conf =
 let fat block = fat_conf $ block
 
 let fat_shell_script fmt ~block_file ~root ~dir ~regexp =
-  let open Functoria_app.Codegen in
+  let open Codegen in
   append fmt
     {|#!/bin/sh
 

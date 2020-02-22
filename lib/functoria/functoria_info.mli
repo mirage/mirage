@@ -21,6 +21,7 @@ module Package = Functoria_package
 module Key = Functoria_key
 module Opam = Functoria_opam
 module Install = Functoria_install
+module Type = Functoria_type
 
 type t
 (** The type for information about the final application. *)
@@ -67,3 +68,20 @@ val v :
 (** [create context n r] contains information about the application being built. *)
 
 val pp : bool -> t Fmt.t
+
+(** {1 Devices} *)
+
+val t : t Type.t
+
+val app_info :
+  (packages:Package.t list ->
+  connect:(t -> string -> string list -> string) ->
+  clean:(t -> (unit, [> Rresult.R.msg ]) Bos.OS.result) ->
+  build:(t -> (unit, [> Rresult.R.msg ]) Result.result) ->
+  string ->
+  t Type.t ->
+  'd) ->
+  ?opam_deps:(string * string) list ->
+  ?gen_modname:string ->
+  unit ->
+  'd

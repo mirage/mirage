@@ -3,8 +3,8 @@ open Astring
 open Mirage_impl_misc
 module Key = Mirage_key
 module Info = Functoria.Info
-module Codegen = Functoria_app.Codegen
-module Opam = Functoria_opam
+module Codegen = Functoria.Codegen
+module Opam = Functoria.Opam
 open Mirage_configure_xen
 open Mirage_configure_solo5
 

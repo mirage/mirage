@@ -15,7 +15,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-module Codegen = Functoria_misc.Codegen
+module Codegen = Functoria_codegen
 module Key = Functoria_key
 module Info = Functoria_info
 module Device = Functoria_device

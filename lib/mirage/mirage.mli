@@ -27,7 +27,7 @@ module Key : module type of struct
   include Mirage_key
 end
 
-include Functoria_app.DSL
+include Functoria.DSL
 
 (** {2 General mirage devices} *)
 
@@ -540,6 +540,9 @@ val no_argv : Functoria.argv impl
 (** [no_argv] Disable command line parsing and set argv to [|""|]. *)
 
 (** {2 Other devices} *)
+
+val job : job typ
+(** [job] is the combinator for representing main tasks. *)
 
 val noop : job impl
 (** [noop] is a job that does nothing, has no dependency and returns [()] *)

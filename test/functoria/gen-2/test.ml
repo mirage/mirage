@@ -1,8 +1,5 @@
 open Rresult
-module Codegen = Functoria_misc.Codegen
-module Graph = Functoria_graph
-module Key = Functoria_key
-module Engine = Functoria_engine
+open Functoria
 
 (* yiikes *)
 let () =

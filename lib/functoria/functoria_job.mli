@@ -1,6 +1,6 @@
 (*
- * Copyright (c) 2013 Thomas Gazagnaire <thomas@gazagnaire.org>
- * Copyright (c) 2013 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2015 Gabriel Radanne <drupyog@zoho.com>
+ * Copyright (c) 2015-2020 Thomas Gazagnaire <thomas@gazagnaire.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -15,43 +15,18 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Utility module. *)
+(** The representation of main tasks. *)
 
-(** {2 Misc} *)
+type t
+(** Type for job values. *)
 
-open Rresult
+val t : t Functoria_type.t
+(** [job] is the signature for user's application main module. *)
 
-val err_cmdliner : ?usage:bool -> ('a, string) result -> 'a Cmdliner.Term.ret
+val noop : t Functoria_impl.t
+(** [noop] is an implementation of {!Functoria.job} that holds no state, does
+    nothing and has no dependency. *)
 
-module type Monoid = sig
-  type t
-
-  val empty : t
-
-  val union : t -> t -> t
-end
-
-module Name : sig
-  val ocamlify : string -> string
-end
-
-(** Universal map *)
-module Univ : sig
-  type 'a key
-
-  val new_key : string -> 'a key
-
-  type t
-
-  val empty : t
-
-  val add : 'a key -> 'a -> t -> t
-
-  val mem : 'a key -> t -> bool
-
-  val find : 'a key -> t -> 'a option
-
-  val merge : default:t -> t -> t
-
-  val dump : t Fmt.t
-end
+val keys : Functoria_argv.t Functoria_impl.t -> t Functoria_impl.t
+(** [keys a] is an implementation of {!Functoria.job} that holds the parsed
+    command-line arguments. *)

@@ -1,4 +1,3 @@
-module Key = Mirage_key
 open Functoria
 open Mirage_impl_arpv4
 open Mirage_impl_ethernet
@@ -8,6 +7,7 @@ open Mirage_impl_network
 open Mirage_impl_qubesdb
 open Mirage_impl_random
 open Mirage_impl_time
+module Key = Mirage_key
 
 type v4
 

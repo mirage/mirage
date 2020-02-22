@@ -1,6 +1,5 @@
 open Rresult
-module Key = Functoria_key
-module Install = Functoria_install
+open Functoria
 
 let warn_error =
   let doc = "Enable -warn-error when compiling OCaml sources." in
@@ -14,10 +13,7 @@ let vote =
   let key = Key.Arg.(opt ~stage:`Configure string "cat" doc) in
   Key.create "vote" key
 
-let output i =
-  match Functoria.Info.output i with
-  | None -> Functoria.Info.name i
-  | Some o -> o
+let output i = match Info.output i with None -> Info.name i | Some o -> o
 
 let run cmd =
   match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string with
@@ -126,4 +122,4 @@ module C = struct
       ~install "F0" Functoria.job
 end
 
-include Functoria_app.Make (C)
+include App.Make (C)

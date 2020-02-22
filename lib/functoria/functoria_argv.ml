@@ -1,6 +1,6 @@
 (*
- * Copyright (c) 2013 Thomas Gazagnaire <thomas@gazagnaire.org>
- * Copyright (c) 2013 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2015 Gabriel Radanne <drupyog@zoho.com>
+ * Copyright (c) 2015-2020 Thomas Gazagnaire <thomas@gazagnaire.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -15,43 +15,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Utility module. *)
+module Type = Functoria_type
+module Impl = Functoria_impl
 
-(** {2 Misc} *)
+type t = ARGV
 
-open Rresult
+let argv = Type.v ARGV
 
-val err_cmdliner : ?usage:bool -> ('a, string) result -> 'a Cmdliner.Term.ret
-
-module type Monoid = sig
-  type t
-
-  val empty : t
-
-  val union : t -> t -> t
-end
-
-module Name : sig
-  val ocamlify : string -> string
-end
-
-(** Universal map *)
-module Univ : sig
-  type 'a key
-
-  val new_key : string -> 'a key
-
-  type t
-
-  val empty : t
-
-  val add : 'a key -> 'a -> t -> t
-
-  val mem : 'a key -> t -> bool
-
-  val find : 'a key -> t -> 'a option
-
-  val merge : default:t -> t -> t
-
-  val dump : t Fmt.t
-end
+let sys_argv =
+  let connect _ _ _ = "return Sys.argv" in
+  Impl.v ~connect "Sys" argv

@@ -15,16 +15,16 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Functoria_misc
 open Rresult
 module Graph = Functoria_graph
 module Key = Functoria_key
 module Package = Functoria_package
-module Device = Functoria.Device
-module Impl = Functoria.Impl
+module Device = Functoria_device
+module Impl = Functoria_impl
 module Opam = Functoria_opam
 module Install = Functoria_install
 module Info = Functoria_info
+module Codegen = Functoria_codegen
 
 type t = Graph.t
 
@@ -77,7 +77,7 @@ let module_expression fmt (c, args) =
     args
 
 let find_all_devices info g i =
-  let ctx = Functoria.Info.context info in
+  let ctx = Info.context info in
   let id = Impl.with_left_most_device ctx i { f = Device.id } in
   let p = function Graph.Dev d -> Device.id d = id | App | If _ -> false in
   Graph.find_all g p

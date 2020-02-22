@@ -1,5 +1,4 @@
 open Functoria
-module Graph = Functoria_graph
 
 let zero = Device.v "z" Functoria.job
 
@@ -49,9 +48,9 @@ let i1 = of_device d1
 
 let i2 = of_device d2
 
-let if1 = if_impl (Functoria_key.pure true) i1 i2
+let if1 = if_impl (Key.pure true) i1 i2
 
-let if2 = if_impl (Functoria_key.pure true) i2 i1
+let if2 = if_impl (Key.pure true) i2 i1
 
 let normalise_lines str =
   let open Astring in
@@ -63,7 +62,7 @@ let normalise_lines str =
   in
   String.concat ~sep:"\n" lines
 
-let graph_str g = normalise_lines (Fmt.to_to_string Functoria_graph.pp_dot g)
+let graph_str g = normalise_lines (Fmt.to_to_string Graph.pp_dot g)
 
 let digraph i =
   let j = i + 1 and k = i + 2 in
@@ -88,9 +87,9 @@ Foo.Bar
 
 let test_graph () =
   let id = id () in
-  let t1 = Functoria_graph.create if1 in
+  let t1 = Graph.create if1 in
   Alcotest.(check string) "t1.dot" (digraph (id + 1)) (graph_str t1);
-  let t2 = Functoria_graph.create if2 in
+  let t2 = Graph.create if2 in
   Alcotest.(check string) "t2.dot" (digraph (id + 4)) (graph_str t2);
   let module M = struct
     type t = (string * string list) list
@@ -100,17 +99,14 @@ let test_graph () =
     let union = List.append
   end in
   let packages t =
-    let ctx = Functoria_key.empty_context in
-    Functoria_graph.collect
+    let ctx = Key.empty_context in
+    Graph.collect
       (module M)
       (function
         | If _ | App -> []
-        | Functoria_graph.Dev d ->
-            let pkgs = Functoria_key.(eval ctx (Device.packages d)) in
-            List.map
-              (fun pkg ->
-                (Functoria_package.name pkg, Functoria_package.libraries pkg))
-              pkgs)
+        | Graph.Dev d ->
+            let pkgs = Key.(eval ctx (Device.packages d)) in
+            List.map (fun pkg -> (Package.name pkg, Package.libraries pkg)) pkgs)
       (Graph.eval ~context:ctx t)
   in
   let label = Alcotest.(list (pair string (list string))) in

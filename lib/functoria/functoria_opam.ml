@@ -1,4 +1,4 @@
-open Functoria_misc
+module Codegen = Functoria_codegen
 module Key = Functoria_key
 module Package = Functoria_package
 module Install = Functoria_install

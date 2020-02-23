@@ -1,8 +1,5 @@
 # Functoria - A DSL to organize functor applications
 
-[![Build Status](https://travis-ci.org/mirage/functoria.svg?branch=master)](https://travis-ci.org/mirage/functoria)
-[![docs](https://img.shields.io/badge/doc-online-blue.svg)](https://mirage.github.io/functoria/index.html)
-
 ## What is this for?
 
 Functoria is a DSL to describe a set of modules and functors, their types and how to apply them in order to produce a complete application.

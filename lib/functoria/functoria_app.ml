@@ -17,14 +17,16 @@
 
 open Rresult
 open Astring
-open Functoria
-include Functoria_misc
+open Functoria_DSL
 module Graph = Functoria_graph
 module Key = Functoria_key
 module Cli = Functoria_cli
 module Engine = Functoria_engine
 module Opam = Functoria_opam
 module Install = Functoria_install
+module Info = Functoria_info
+module Codegen = Functoria_codegen
+module Name = Functoria_misc.Name
 
 let src = Logs.Src.create "functoria" ~doc:"functoria library"
 
@@ -199,14 +201,10 @@ module type S = sig
   val create : job impl list -> job impl
 end
 
-module type DSL = module type of struct
-  include Functoria
-end
-
 module Make (P : S) = struct
   type state = { build_dir : Fpath.t option; config_file : Fpath.t }
 
-  let default_init = [ keys sys_argv ]
+  let default_init = [ Functoria_job.keys Functoria_argv.sys_argv ]
 
   let init_global_state argv =
     ignore (Cmdliner.Term.eval_peek_opts ~argv Cli.setup_log);
@@ -308,7 +306,9 @@ module Make (P : S) = struct
           let pkgs =
             List.fold_left
               (fun acc pkg ->
-                let pkgs = String.Set.of_list (Package.libraries pkg) in
+                let pkgs =
+                  String.Set.of_list (Functoria_package.libraries pkg)
+                in
                 String.Set.union pkgs acc)
               String.Set.empty pkgs
             |> String.Set.elements

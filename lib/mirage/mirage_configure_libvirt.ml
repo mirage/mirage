@@ -1,6 +1,6 @@
 open Rresult
 open Mirage_impl_misc
-module Codegen = Functoria_app.Codegen
+module Codegen = Functoria.Codegen
 
 let filename ~name = Fpath.(v (name ^ "_libvirt") + "xml")
 

@@ -16,10 +16,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+open Functoria
+module Type = Functoria.Type
+module Impl = Functoria.Impl
+module Info = Functoria.Info
 module Key = Mirage_key
-module Codegen = Functoria_app.Codegen
 module Log = Mirage_impl_misc.Log
-include Functoria
+include Functoria.DSL
 
 (** {2 OCamlfind predicates} *)
 
@@ -278,6 +281,8 @@ let mprof_trace = Mirage_impl_tracing.mprof_trace
 (* fix compilation on ocaml<4.08 *)
 (* type info = Functoria.info *)
 
+let job = Functoria.job
+
 let noop = Functoria.noop
 
 let info = Functoria.info
@@ -367,7 +372,7 @@ module Project = struct
       ~extra_deps "Mirage_runtime" job
 end
 
-include Functoria_app.Make (Project)
+include App.Make (Project)
 
 (** Custom registration *)
 

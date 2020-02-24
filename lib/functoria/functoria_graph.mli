@@ -16,7 +16,7 @@
 
 (** Implementation Graphs. *)
 
-open Functoria
+open Functoria_DSL
 
 type t
 

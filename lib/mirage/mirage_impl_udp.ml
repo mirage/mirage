@@ -1,9 +1,9 @@
-module Key = Mirage_key
 open Rresult
 open Functoria
 open Mirage_impl_ip
 open Mirage_impl_misc
 open Mirage_impl_random
+module Key = Mirage_key
 
 type 'a udp = UDP
 

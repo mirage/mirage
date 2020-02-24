@@ -25,8 +25,10 @@
 open Astring
 open Graph
 open Functoria_misc
-open Functoria
+open Functoria_DSL
 module Key = Functoria_key
+module Device = Functoria_device
+module Impl = Functoria_impl
 
 (* {2 Utility} *)
 
@@ -79,10 +81,12 @@ end
 module G = Persistent.Digraph.AbstractLabeled (V_) (E_)
 module Tbl = Hashtbl.Make (G.V)
 
+let pp_device ppf t = Device.pp Impl.pp_abstract ppf t
+
 let pp_label ppf = function
   | If _ -> Fmt.string ppf "if"
   | App -> Fmt.string ppf "app"
-  | Dev d -> Fmt.pf ppf "dev %a" Functoria.pp_device d
+  | Dev d -> Fmt.pf ppf "dev %a" pp_device d
 
 let pp_vertex ppf v = Fmt.pf ppf "%d:%a" (G.V.hash v) pp_label (G.V.label v)
 

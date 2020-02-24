@@ -21,7 +21,7 @@
 
 (** [S] is the signature that application builders have to provide. *)
 module type S = sig
-  open Functoria
+  open Functoria_DSL
 
   val prelude : string
   (** Prelude printed at the beginning of [main.ml].
@@ -50,7 +50,7 @@ module type S = sig
 end
 
 module Make (P : S) : sig
-  open Functoria
+  open Functoria_DSL
 
   (** Configuration builder: stage 1 *)
 
@@ -79,37 +79,10 @@ module Make (P : S) : sig
     job impl list ->
     unit
   (** [register name jobs] registers the application named by [name] which will
-      execute the given [jobs]. Same optional arguments as {!Functoria.foreign}.
+      execute the given [jobs]. Same optional arguments as
+      {!Functoria_DSL.main}.
 
       [init] is the list of job to execute before anything else (such as
       command-line argument parsing, log reporter setup, etc.). The jobs are
       always executed in the sequence specified by the caller. *)
-end
-
-(** The signature of Functoria-like DSLs. *)
-module type DSL = module type of struct
-  include Functoria
-end
-
-(** {1 Misc} *)
-
-(** Code generation helpers. *)
-module Codegen : sig
-  val generated_header : ?argv:string array -> unit -> string
-
-  val append :
-    Format.formatter ->
-    ('a, Format.formatter, unit, unit, unit, unit) format6 ->
-    'a
-
-  val newline : Format.formatter -> unit
-
-  val set_main_ml : string -> unit
-  (** Define the current main file. *)
-
-  val append_main : ('a, Format.formatter, unit, unit, unit, unit) format6 -> 'a
-  (** Add some string to [main.ml]. *)
-
-  val newline_main : unit -> unit
-  (** Add a newline to [main.ml]. *)
 end

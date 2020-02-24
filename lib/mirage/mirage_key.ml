@@ -14,7 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-module Key = Functoria_key
+open Functoria
+module Key = Key
 module Alias = Key.Alias
 open Astring
 
@@ -33,8 +34,7 @@ module Arg = struct
     and serialize ppf t =
       Fmt.pf ppf "(Ipaddr.%s.of_string_exn %S)" m (to_string t)
     and pp ppf t = Fmt.string ppf (to_string t) in
-    Functoria_key.Arg.conv ~conv:(parser, pp) ~serialize
-      ~runtime_conv:(from_run d)
+    Key.Arg.conv ~conv:(parser, pp) ~serialize ~runtime_conv:(from_run d)
 
   module type S = sig
     type t
@@ -64,7 +64,7 @@ module Arg = struct
       | Ok n -> `Ok n
     in
     let runtime_conv = "Mirage_runtime.Arg.ipv4" in
-    Functoria_key.Arg.conv ~conv:(parse, print) ~serialize ~runtime_conv
+    Key.Arg.conv ~conv:(parse, print) ~serialize ~runtime_conv
 
   let ipv6 = of_module "ipv6" "V6" (module Ipaddr.V6)
 

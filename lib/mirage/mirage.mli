@@ -27,7 +27,7 @@ module Key : module type of struct
   include Mirage_key
 end
 
-include Functoria_app.DSL
+include Functoria.DSL
 
 (** {2 General mirage devices} *)
 
@@ -541,6 +541,9 @@ val no_argv : Functoria.argv impl
 
 (** {2 Other devices} *)
 
+val job : job typ
+(** [job] is the combinator for representing main tasks. *)
+
 val noop : job impl
 (** [noop] is a job that does nothing, has no dependency and returns [()] *)
 
@@ -577,6 +580,10 @@ val register :
     {!default_reporter}. To disable logging, use {!no_reporter}.
     @param argv Configure command-line argument parsing. The default parser is
     {!default_argv}. To disable command-line parsing, use {!no_argv}. *)
+
+module Type = Functoria.Type
+module Impl = Functoria.Impl
+module Info = Functoria.Info
 
 (**/**)
 

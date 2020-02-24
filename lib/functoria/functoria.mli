@@ -1,5 +1,6 @@
 (*
  * Copyright (c) 2015 Gabriel Radanne <drupyog@zoho.com>
+ * Copyright (c) 2013-2020 Thomas Gazagnaire <thomas@gazagnaire.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -29,55 +30,9 @@
     which will, once evaluated, produced the final portable and flexible
     application. *)
 
-open Rresult
+module type DSL = module type of Functoria_DSL
 
-(** {1:combinators Combinators} *)
-
-type 'a typ = 'a Functoria_type.t
-(** The type for values representing module types. *)
-
-val typ : 'a -> 'a typ
-(** [type t] is a value representing the module type [t]. *)
-
-val ( @-> ) : 'a typ -> 'b typ -> ('a -> 'b) typ
-(** Construct a functor type from a type and an existing functor type. This
-    corresponds to prepending a parameter to the list of functor parameters. For
-    example:
-
-    {[ kv_ro @-> ip @-> kv_ro ]}
-
-    This describes a functor type that accepts two arguments -- a [kv_ro] and an
-    [ip] device -- and returns a [kv_ro]. *)
-
-type 'a impl = 'a Functoria_impl.t
-(** The type for values representing module implementations. *)
-
-val ( $ ) : ('a -> 'b) impl -> 'a impl -> 'b impl
-(** [m $ a] applies the functor [m] to the module [a]. *)
-
-val abstract : _ impl -> Functoria_impl.abstract
-(** [abstract t] is [t] but with its type variable abstracted. Useful for
-    dependencies. *)
-
-(** {1:keys Keys} *)
-
-type abstract_key = Functoria_key.t
-(** The type for command-line keys. See {!Functoria_key.t}. *)
-
-type context = Functoria_key.context
-(** The type for keys' parsing context. See {!Functoria_key.context}. *)
-
-type 'a value = 'a Functoria_key.value
-(** The type for values parsed from the command-line. See
-    {!Functoria_key.value}. *)
-
-val if_impl : bool value -> 'a impl -> 'a impl -> 'a impl
-(** [if_impl v impl1 impl2] is [impl1] if [v] is resolved to true and [impl2]
-    otherwise. *)
-
-val match_impl : 'b value -> default:'a impl -> ('b * 'a impl) list -> 'a impl
-(** [match_impl v cases ~default] chooses the implementation amongst [cases] by
-    matching the [v]'s value. [default] is chosen if no value matches. *)
+include DSL
 
 (** The signature for run-time and configure-time command-line keys. *)
 module type KEY =
@@ -92,102 +47,12 @@ module type KEY =
      and type 'a Alias.t = 'a Functoria_key.Alias.t
      and type context = Functoria_key.context
 
-(** {1:pkg Package dependencies}
-
-    For specifying opam package dependencies, the type {!package} is used. It
-    consists of the opam package name, the ocamlfind names, and optional lower
-    and upper bounds. The version constraints are merged with other modules. *)
-
 module Package = Functoria_package
-
-type package = Package.t
-(** The type for packages. *)
-
-val package :
-  ?build:bool ->
-  ?sublibs:string list ->
-  ?libs:string list ->
-  ?min:string ->
-  ?max:string ->
-  ?pin:string ->
-  string ->
-  package
-(** Same as {!Package.v} *)
-
-(** {1:app Application Builder}
-
-    Values of type {!impl} are tied to concrete module implementation with the
-    {!device} and {!foreign} construct. Module implementations of type {!job}
-    can then be {{!Functoria_app.Make.register} registered} into an application
-    builder. The builder is in charge if parsing the command-line arguments and
-    of generating code for the final application. See {!Functoria_app} for
-    details. *)
-
-val foreign :
-  ?packages:package list ->
-  ?packages_v:package list Functoria_key.value ->
-  ?keys:abstract_key list ->
-  ?deps:Functoria_impl.abstract list ->
-  string ->
-  'a typ ->
-  'a impl
-(** Alias for {!main}, where [?extra_deps] has been renamed to [?deps]. *)
-
-val main :
-  ?packages:package list ->
-  ?packages_v:package list Functoria_key.value ->
-  ?keys:abstract_key list ->
-  ?extra_deps:Functoria_impl.abstract list ->
-  string ->
-  'a typ ->
-  'a impl
-(** [foreign name typ] is the functor [name], having the module type [typ]. The
-    connect code will call [<name>.start].
-
-    - If [packages] or [packages_v] is set, then the given packages are
-      installed before compiling the current application.
-    - If [keys] is set, use the given {{!Functoria_key.key} keys} to parse at
-      configure and runtime the command-line arguments before calling
-      [<name>.connect].
-    - If [extra_deps] is set, the given list of {{!abstract_impl} abstract}
-      implementations is added as data-dependencies: they will be initialized
-      before calling [<name>.connect]. *)
-
 module Info = Functoria_info
 module Install = Functoria_install
-
 module Device = Functoria_device
-(** Signature for functoria devices. A [device] is a module implementation which
-    contains a runtime state which can be set either at configuration time (by
-    the application builder) or at runtime, using command-line arguments. *)
-
-type 'a device = ('a, Functoria_impl.abstract) Device.t
-
-val pp_device : 'a device Fmt.t
-
-val of_device : 'a device -> 'a impl
-(** [of_device t] is the implementation device [t]. *)
-
-val impl :
-  ?packages:package list ->
-  ?packages_v:package list Functoria_key.value ->
-  ?install:(Info.t -> Install.t) ->
-  ?install_v:(Info.t -> Install.t Functoria_key.value) ->
-  ?keys:Functoria_key.t list ->
-  ?extra_deps:Functoria_impl.abstract list ->
-  ?connect:(Info.t -> string -> string list -> string) ->
-  ?configure:(Info.t -> (unit, R.msg) result) ->
-  ?build:(Info.t -> (unit, R.msg) result) ->
-  ?clean:(Info.t -> (unit, R.msg) result) ->
-  string ->
-  'a typ ->
-  'a impl
-(** [impl ...] is [of_device @@ Device.v ...] *)
 
 (** {1 Useful module implementations} *)
-
-type job
-(** Type for job values. *)
 
 val job : job typ
 (** [job] is the signature for user's application main module. *)
@@ -196,7 +61,7 @@ val noop : job impl
 (** [noop] is an implementation of {!Functoria.job} that holds no state, does
     nothing and has no dependency. *)
 
-type argv
+type argv = Functoria_argv.t
 (** The type for command-line arguments, similar to the usual [Sys.argv]. *)
 
 val argv : argv typ
@@ -210,9 +75,6 @@ val keys : argv impl -> job impl
 (** [keys a] is an implementation of {!Functoria.job} that holds the parsed
     command-line arguments. *)
 
-type info
-(** The type for application about the application being built. *)
-
 val info : info typ
 (** [info] is a value representing {!info} module types. *)
 
@@ -224,3 +86,11 @@ val app_info :
 
 module Type = Functoria_type
 module Impl = Functoria_impl
+module Key = Functoria_key
+module Codegen = Functoria_codegen
+module Opam = Functoria_opam
+module App = Functoria_app
+module Graph = Functoria_graph
+module Engine = Functoria_engine
+module DSL = Functoria_DSL
+module Cli = Functoria_cli

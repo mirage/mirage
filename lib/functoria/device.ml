@@ -15,11 +15,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-module Type = Functoria_type
-module Key = Functoria_key
-module Package = Functoria_package
-module Info = Functoria_info
-module Install = Functoria_install
 open Rresult
 open Astring
 

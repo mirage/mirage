@@ -15,21 +15,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-module Key = Functoria_key
-module Package = Functoria_package
-module Info = Functoria_info
-module Type = Functoria_type
-module Impl = Functoria_impl
-module Device = Functoria_device
-module Install = Functoria_install
+type 'a value = 'a Key.value
 
-type 'a value = 'a Functoria_key.value
+type package = Package.t
 
-type package = Functoria_package.t
+type 'a typ = 'a Type.t
 
-type 'a typ = 'a Functoria_type.t
-
-type 'a impl = 'a Functoria_impl.t
+type 'a impl = 'a Impl.t
 
 type 'a device = ('a, Impl.abstract) Device.t
 
@@ -62,10 +54,10 @@ let main ?packages ?packages_v ?keys ?extra_deps module_name ty =
 let foreign ?packages ?packages_v ?keys ?deps module_name ty =
   main ?packages ?packages_v ?keys ?extra_deps:deps module_name ty
 
-type context = Functoria_key.context
+type context = Key.context
 
-type abstract_key = Functoria_key.t
+type abstract_key = Key.t
 
-type job = Functoria_job.t
+type job = Job.t
 
-type info = Functoria_info.t
+type info = Info.t

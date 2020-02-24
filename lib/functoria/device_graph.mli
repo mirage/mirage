@@ -16,7 +16,7 @@
 
 (** Implementation Graphs. *)
 
-open Functoria_DSL
+open DSL
 
 type t
 
@@ -79,7 +79,7 @@ val explode :
     possible components. It also checks that the local invariants are respected. *)
 
 val collect :
-  (module Functoria_misc.Monoid with type t = 'ty) -> (label -> 'ty) -> t -> 'ty
+  (module Misc.Monoid with type t = 'ty) -> (label -> 'ty) -> t -> 'ty
 (** [collect (module M) f g] collects the content of [f v] for each vertex [v]
     in [g]. *)
 

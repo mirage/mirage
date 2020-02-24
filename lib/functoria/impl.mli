@@ -15,11 +15,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-module Key = Functoria_key
-module Device = Functoria_device
-module Package = Functoria_package
-module Info = Functoria_info
-module Type = Functoria_type
 open Rresult
 
 type 'a t

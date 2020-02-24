@@ -15,13 +15,18 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-module Type = Functoria_type
-module Impl = Functoria_impl
+(** The representation of main tasks. *)
 
-type t = ARGV
+type t
+(** Type for job values. *)
 
-let argv = Type.v ARGV
+val t : t Type.t
+(** [job] is the signature for user's application main module. *)
 
-let sys_argv =
-  let connect _ _ _ = "return Sys.argv" in
-  Impl.v ~connect "Sys" argv
+val noop : t Impl.t
+(** [noop] is an implementation of {!Functoria.job} that holds no state, does
+    nothing and has no dependency. *)
+
+val keys : Argv.t Impl.t -> t Impl.t
+(** [keys a] is an implementation of {!Functoria.job} that holds the parsed
+    command-line arguments. *)

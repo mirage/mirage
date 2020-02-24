@@ -34,7 +34,7 @@
 
 open Rresult
 
-type 'a typ = 'a Functoria_type.t
+type 'a typ = 'a Type.t
 (** The type for values representing module types. *)
 
 val typ : 'a -> 'a typ
@@ -50,27 +50,26 @@ val ( @-> ) : 'a typ -> 'b typ -> ('a -> 'b) typ
     This describes a functor type that accepts two arguments -- a [kv_ro] and an
     [ip] device -- and returns a [kv_ro]. *)
 
-type 'a impl = 'a Functoria_impl.t
+type 'a impl = 'a Impl.t
 (** The type for values representing module implementations. *)
 
 val ( $ ) : ('a -> 'b) impl -> 'a impl -> 'b impl
 (** [m $ a] applies the functor [m] to the module [a]. *)
 
-val abstract : _ impl -> Functoria_impl.abstract
+val abstract : _ impl -> Impl.abstract
 (** [abstract t] is [t] but with its type variable abstracted. Useful for
     dependencies. *)
 
 (** {1:keys Keys} *)
 
-type abstract_key = Functoria_key.t
-(** The type for command-line keys. See {!Functoria_key.t}. *)
+type abstract_key = Key.t
+(** The type for command-line keys. See {!Key.t}. *)
 
-type context = Functoria_key.context
-(** The type for keys' parsing context. See {!Functoria_key.context}. *)
+type context = Key.context
+(** The type for keys' parsing context. See {!Key.context}. *)
 
-type 'a value = 'a Functoria_key.value
-(** The type for values parsed from the command-line. See
-    {!Functoria_key.value}. *)
+type 'a value = 'a Key.value
+(** The type for values parsed from the command-line. See {!Key.value}. *)
 
 val if_impl : bool value -> 'a impl -> 'a impl -> 'a impl
 (** [if_impl v impl1 impl2] is [impl1] if [v] is resolved to true and [impl2]
@@ -86,7 +85,7 @@ val match_impl : 'b value -> default:'a impl -> ('b * 'a impl) list -> 'a impl
     consists of the opam package name, the ocamlfind names, and optional lower
     and upper bounds. The version constraints are merged with other modules. *)
 
-type package = Functoria_package.t
+type package = Package.t
 (** The type for opam packages. *)
 
 val package :
@@ -104,16 +103,15 @@ val package :
 
     Values of type {!impl} are tied to concrete module implementation with the
     {!device} and {!foreign} construct. Module implementations of type {!job}
-    can then be {{!Functoria_app.Make.register} registered} into an application
-    builder. The builder is in charge if parsing the command-line arguments and
-    of generating code for the final application. See {!Functoria_app} for
-    details. *)
+    can then be {{!App.Make.register} registered} into an application builder.
+    The builder is in charge if parsing the command-line arguments and of
+    generating code for the final application. See {!App} for details. *)
 
 val foreign :
   ?packages:package list ->
-  ?packages_v:package list Functoria_key.value ->
+  ?packages_v:package list Key.value ->
   ?keys:abstract_key list ->
-  ?deps:Functoria_impl.abstract list ->
+  ?deps:Impl.abstract list ->
   string ->
   'a typ ->
   'a impl
@@ -121,9 +119,9 @@ val foreign :
 
 val main :
   ?packages:package list ->
-  ?packages_v:package list Functoria_key.value ->
+  ?packages_v:package list Key.value ->
   ?keys:abstract_key list ->
-  ?extra_deps:Functoria_impl.abstract list ->
+  ?extra_deps:Impl.abstract list ->
   string ->
   'a typ ->
   'a impl
@@ -132,31 +130,30 @@ val main :
 
     - If [packages] or [packages_v] is set, then the given packages are
       installed before compiling the current application.
-    - If [keys] is set, use the given {{!Functoria_key.key} keys} to parse at
-      configure and runtime the command-line arguments before calling
-      [<name>.connect].
+    - If [keys] is set, use the given {{!Key.key} keys} to parse at configure
+      and runtime the command-line arguments before calling [<name>.connect].
     - If [extra_deps] is set, the given list of {{!abstract_impl} abstract}
       implementations is added as data-dependencies: they will be initialized
       before calling [<name>.connect]. *)
 
 (** {1 Devices} *)
 
-type 'a device = ('a, Functoria_impl.abstract) Functoria_device.t
+type 'a device = ('a, Impl.abstract) Device.t
 
 val of_device : 'a device -> 'a impl
 (** [of_device t] is the implementation device [t]. *)
 
 val impl :
   ?packages:package list ->
-  ?packages_v:package list Functoria_key.value ->
-  ?install:(Functoria_info.t -> Functoria_install.t) ->
-  ?install_v:(Functoria_info.t -> Functoria_install.t Functoria_key.value) ->
-  ?keys:Functoria_key.t list ->
-  ?extra_deps:Functoria_impl.abstract list ->
-  ?connect:(Functoria_info.t -> string -> string list -> string) ->
-  ?configure:(Functoria_info.t -> (unit, R.msg) result) ->
-  ?build:(Functoria_info.t -> (unit, R.msg) result) ->
-  ?clean:(Functoria_info.t -> (unit, R.msg) result) ->
+  ?packages_v:package list Key.value ->
+  ?install:(Info.t -> Install.t) ->
+  ?install_v:(Info.t -> Install.t Key.value) ->
+  ?keys:Key.t list ->
+  ?extra_deps:Impl.abstract list ->
+  ?connect:(Info.t -> string -> string list -> string) ->
+  ?configure:(Info.t -> (unit, R.msg) result) ->
+  ?build:(Info.t -> (unit, R.msg) result) ->
+  ?clean:(Info.t -> (unit, R.msg) result) ->
   string ->
   'a typ ->
   'a impl
@@ -164,6 +161,6 @@ val impl :
 
 (** {1 Jobs} *)
 
-type job = Functoria_job.t
+type job = Job.t
 
-type info = Functoria_info.t
+type info = Info.t

@@ -17,16 +17,8 @@
 
 open Rresult
 open Astring
-open Functoria_DSL
-module Graph = Functoria_graph
-module Key = Functoria_key
-module Cli = Functoria_cli
-module Engine = Functoria_engine
-module Opam = Functoria_opam
-module Install = Functoria_install
-module Info = Functoria_info
-module Codegen = Functoria_codegen
-module Name = Functoria_misc.Name
+open DSL
+module Name = Misc.Name
 
 let src = Logs.Src.create "functoria" ~doc:"functoria library"
 
@@ -49,7 +41,7 @@ module Config = struct
     packages : package list Key.value;
     keys : Key.Set.t;
     init : job impl list;
-    jobs : Graph.t;
+    jobs : Device_graph.t;
     src : [ `Auto | `None | `Some of string ];
   }
 
@@ -67,14 +59,14 @@ module Config = struct
   let v ?(keys = []) ?(packages = []) ?(init = []) ~build_dir ~build_cmd ~src
       name main_dev =
     let name = Name.ocamlify name in
-    let jobs = Graph.create main_dev in
+    let jobs = Device_graph.create main_dev in
     let packages = Key.pure @@ packages in
     let keys = Key.Set.(union (of_list keys) (get_if_context jobs)) in
     { packages; keys; name; build_dir; init; jobs; build_cmd; src }
 
   let eval ~partial context
       { name = n; build_dir; build_cmd; packages; keys; jobs; init; src } =
-    let e = Graph.eval ~partial ~context jobs in
+    let e = Device_graph.eval ~partial ~context jobs in
     let packages = Key.(pure List.append $ packages $ Engine.packages e) in
     let keys = Key.Set.elements (Key.Set.union keys @@ Engine.all_keys e) in
     Key.(
@@ -86,15 +78,15 @@ module Config = struct
 
   (* Extract all the keys directly. Useful to pre-resolve the keys
      provided by the specialized DSL. *)
-  let extract_keys impl = Engine.all_keys @@ Graph.create impl
+  let extract_keys impl = Engine.all_keys @@ Device_graph.create impl
 
   let keys t = t.keys
 
-  let gen_pp pp fmt jobs = pp fmt @@ Graph.simplify jobs
+  let gen_pp pp fmt jobs = pp fmt @@ Device_graph.simplify jobs
 
-  let pp = gen_pp Graph.pp
+  let pp = gen_pp Device_graph.pp
 
-  let pp_dot = gen_pp Graph.pp_dot
+  let pp_dot = gen_pp Device_graph.pp_dot
 end
 
 (** Cached configuration in [.mirage.config]. Currently, we cache Sys.argv
@@ -204,7 +196,7 @@ end
 module Make (P : S) = struct
   type state = { build_dir : Fpath.t option; config_file : Fpath.t }
 
-  let default_init = [ Functoria_job.keys Functoria_argv.sys_argv ]
+  let default_init = [ Job.keys Argv.sys_argv ]
 
   let init_global_state argv =
     ignore (Cmdliner.Term.eval_peek_opts ~argv Cli.setup_log);
@@ -306,9 +298,7 @@ module Make (P : S) = struct
           let pkgs =
             List.fold_left
               (fun acc pkg ->
-                let pkgs =
-                  String.Set.of_list (Functoria_package.libraries pkg)
-                in
+                let pkgs = String.Set.of_list (Package.libraries pkg) in
                 String.Set.union pkgs acc)
               String.Set.empty pkgs
             |> String.Set.elements
@@ -595,17 +585,17 @@ module Make (P : S) = struct
       (fun () -> configure_main ~argv i jobs)
       "configure"
 
-  let query i (t : Functoria_cli.query_kind) jobs =
+  let query i (t : Cli.query_kind) jobs =
     match t with
     | `Packages ->
-        let pkgs = Functoria_info.packages i in
-        List.iter (Fmt.pr "%a\n" (Functoria_package.pp ~surround:"\"")) pkgs
+        let pkgs = Info.packages i in
+        List.iter (Fmt.pr "%a\n" (Package.pp ~surround:"\"")) pkgs
     | `Opam ->
-        let opam = Functoria_info.opam i in
-        Fmt.pr "%a%!" Functoria_opam.pp opam
+        let opam = Info.opam i in
+        Fmt.pr "%a%!" Opam.pp opam
     | `Install ->
         let install = eval_install i jobs in
-        Fmt.pr "%a%!" Functoria_install.pp install
+        Fmt.pr "%a%!" Install.pp install
 
   let build ~state i jobs =
     Log.info (fun m -> m "Building: %a" Fpath.pp state.config_file);

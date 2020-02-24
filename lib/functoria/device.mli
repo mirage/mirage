@@ -20,11 +20,6 @@
     the application builder) or at runtime, using command-line arguments. *)
 
 open Rresult
-module Type = Functoria_type
-module Package = Functoria_package
-module Key = Functoria_key
-module Info = Functoria_info
-module Install = Functoria_install
 
 type ('a, 'b) t
 (** The type for devices whose runtime state is of type ['a] and having extra

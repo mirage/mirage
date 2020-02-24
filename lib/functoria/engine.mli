@@ -18,13 +18,8 @@
 (** Functoria engine. *)
 
 open Rresult
-module Key = Functoria_key
-module Package = Functoria_package
-module Install = Functoria_install
-module Info = Functoria_info
-module Impl = Functoria_impl
 
-type t = Functoria_graph.t
+type t = Device_graph.t
 (** The type for key graphs. *)
 
 val if_keys : t -> Key.Set.t

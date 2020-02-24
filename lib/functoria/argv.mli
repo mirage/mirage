@@ -20,9 +20,9 @@
 type t
 (** The type for command-line arguments, similar to the usual [Sys.argv]. *)
 
-val argv : t Functoria_type.t
+val argv : t Type.t
 (** [argv] is a value representing {!argv} module types. *)
 
-val sys_argv : t Functoria_impl.t
+val sys_argv : t Impl.t
 (** [sys_argv] is a device providing command-line arguments by using
     {!Sys.argv}. *)

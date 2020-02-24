@@ -1,6 +1,3 @@
-module Package = Functoria_package
-module Install = Functoria_install
-
 type t
 
 val v :

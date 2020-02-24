@@ -21,7 +21,7 @@
 
 (** [S] is the signature that application builders have to provide. *)
 module type S = sig
-  open Functoria_DSL
+  open DSL
 
   val prelude : string
   (** Prelude printed at the beginning of [main.ml].
@@ -50,7 +50,7 @@ module type S = sig
 end
 
 module Make (P : S) : sig
-  open Functoria_DSL
+  open DSL
 
   (** Configuration builder: stage 1 *)
 
@@ -79,8 +79,7 @@ module Make (P : S) : sig
     job impl list ->
     unit
   (** [register name jobs] registers the application named by [name] which will
-      execute the given [jobs]. Same optional arguments as
-      {!Functoria_DSL.main}.
+      execute the given [jobs]. Same optional arguments as {!DSL.main}.
 
       [init] is the list of job to execute before anything else (such as
       command-line argument parsing, log reporter setup, etc.). The jobs are

@@ -1,6 +1,5 @@
 open Functoria
 open Mirage_impl_misc
-open Mirage_impl_random
 open Mirage_impl_stackv4
 
 type conduit_connector = Conduit_connector
@@ -29,6 +28,5 @@ let tls_conduit_connector = impl @@ object
         package ~min:"0.10.0" ~max:"0.11.0" ~sublibs:["mirage"] "tls" ;
         pkg
       ]
-    method! deps = [ abstract nocrypto ]
     method! connect _ _ _ = "Lwt.return Conduit_mirage.with_tls"
   end

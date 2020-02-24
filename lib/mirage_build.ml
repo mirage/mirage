@@ -6,17 +6,6 @@ open Mirage_link
 module Key = Mirage_key
 module Info = Functoria.Info
 
-let check_entropy libs =
-  query_ocamlfind ~recursive:true libs >>= fun ps ->
-  if List.mem "nocrypto" ps && not (Mirage_impl_random.is_entropy_enabled ()) then
-    R.error_msg
-      {___|The nocrypto library is loaded but entropy is not enabled! \
-       Please enable the entropy by adding a dependency to the nocrypto \
-       device. You can do so by adding ~deps:[abstract nocrypto] \
-       to the arguments of Mirage.foreign.|___}
-  else
-    R.ok ()
-
 let compile ignore_dirs libs warn_error target =
   let tags =
     [ Fmt.strf "predicate(%s)" (backend_predicate target);
@@ -75,7 +64,6 @@ let build i =
   let target = Key.(get ctx target) in
   let libs = Info.libraries i in
   let target_debug = Key.(get ctx target_debug) in
-  check_entropy libs >>= fun () ->
   compile ignore_dirs libs warn_error target >>= fun () ->
   (match target with
     | #Mirage_key.mode_solo5 ->

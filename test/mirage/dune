@@ -1,0 +1,4 @@
+(test
+ (name test)
+ (package mirage)
+ (libraries mirage alcotest))

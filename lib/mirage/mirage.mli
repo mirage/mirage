@@ -581,6 +581,10 @@ val register :
     @param argv Configure command-line argument parsing. The default parser is
     {!default_argv}. To disable command-line parsing, use {!no_argv}. *)
 
+module Type = Functoria.Type
+module Impl = Functoria.Impl
+module Info = Functoria.Info
+
 (**/**)
 
 val run : unit -> unit

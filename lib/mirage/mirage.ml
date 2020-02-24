@@ -17,6 +17,9 @@
  *)
 
 open Functoria
+module Type = Functoria.Type
+module Impl = Functoria.Impl
+module Info = Functoria.Info
 module Key = Mirage_key
 module Log = Mirage_impl_misc.Log
 include Functoria.DSL

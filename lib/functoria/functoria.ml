@@ -15,55 +15,55 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-module Key = Functoria_key
-module Package = Functoria_package
-module Info = Functoria_info
-module Type = Functoria_type
-module Impl = Functoria_impl
-module Device = Functoria_device
-module Install = Functoria_install
-module Codegen = Functoria_codegen
-module Opam = Functoria_opam
-module App = Functoria_app
-module Graph = Functoria_graph
-module Engine = Functoria_engine
-module DSL = Functoria_DSL
-module Cli = Functoria_cli
+module Key = Key
+module Package = Package
+module Info = Info
+module Type = Type
+module Impl = Impl
+module Device = Device
+module Install = Install
+module Codegen = Codegen
+module Opam = Opam
+module App = App
+module Graph = Device_graph
+module Engine = Engine
+module DSL = DSL
+module Cli = Cli
 
-module type DSL = module type of Functoria_DSL
+module type DSL = module type of DSL
 
 module type KEY =
-  module type of Functoria_key
-    with type 'a Arg.converter = 'a Functoria_key.Arg.converter
-     and type 'a Arg.t = 'a Functoria_key.Arg.t
-     and type Arg.info = Functoria_key.Arg.info
-     and type 'a value = 'a Functoria_key.value
-     and type 'a key = 'a Functoria_key.key
-     and type t = Functoria_key.t
-     and type Set.t = Functoria_key.Set.t
-     and type 'a Alias.t = 'a Functoria_key.Alias.t
-     and type context = Functoria_key.context
+  module type of Key
+    with type 'a Arg.converter = 'a Key.Arg.converter
+     and type 'a Arg.t = 'a Key.Arg.t
+     and type Arg.info = Key.Arg.info
+     and type 'a value = 'a Key.value
+     and type 'a key = 'a Key.key
+     and type t = Key.t
+     and type Set.t = Key.Set.t
+     and type 'a Alias.t = 'a Key.Alias.t
+     and type context = Key.context
 
 (** Devices *)
 
-include Functoria_DSL
+include DSL
 
-let job = Functoria_job.t
+let job = Job.t
 
-let noop = Functoria_job.noop
+let noop = Job.noop
 
-let info = Functoria_info.t
+let info = Info.t
 
-let keys = Functoria_job.keys
+let keys = Job.keys
 
-type argv = Functoria_argv.t
+type argv = Argv.t
 
-let sys_argv = Functoria_argv.sys_argv
+let sys_argv = Argv.sys_argv
 
-let argv = Functoria_argv.argv
+let argv = Argv.argv
 
 let app_info =
   let v ~packages ~connect ~clean ~build s t =
     Impl.v ~packages ~connect ~clean ~build s t
   in
-  Functoria_info.app_info v
+  Info.app_info v

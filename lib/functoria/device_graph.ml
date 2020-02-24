@@ -24,11 +24,7 @@
 
 open Astring
 open Graph
-open Functoria_misc
-open Functoria_DSL
-module Key = Functoria_key
-module Device = Functoria_device
-module Impl = Functoria_impl
+open DSL
 
 (* {2 Utility} *)
 
@@ -95,13 +91,13 @@ let nice_name d =
   |> String.cuts ~sep:"."
   |> String.concat ~sep:"_"
   |> String.Ascii.lowercase
-  |> Name.ocamlify
+  |> Misc.Name.ocamlify
 
 let impl_name v =
   match G.V.label v with
   | If _ | App -> assert false
   | Dev d -> (
-      match Functoria_type.is_functor (Device.module_type d) with
+      match Type.is_functor (Device.module_type d) with
       | false -> Device.module_name d
       | true ->
           let id = G.V.hash v in
@@ -209,7 +205,8 @@ let is_impl v = match G.V.label v with Dev _ -> true | App | If _ -> false
 (* {2 Graph destruction/extraction} *)
 
 let collect :
-    type ty. (module Monoid with type t = ty) -> (label -> ty) -> G.t -> ty =
+    type ty. (module Misc.Monoid with type t = ty) -> (label -> ty) -> G.t -> ty
+    =
  fun (module M) f g ->
   G.fold_vertex (fun v s -> M.union s @@ f (G.V.label v)) g M.empty
 
@@ -248,7 +245,7 @@ let device v = match G.V.label v with Dev v -> Some (D v) | _ -> None
 
 let fold f g z =
   if Dfs.has_cycle g then
-    invalid_arg "Functoria_graph.iter: A graph should not have cycles.";
+    invalid_arg "Device_graph.iter: A graph should not have cycles.";
   (* We iter in *reversed* topological order. *)
   let l = Topo.fold (fun x l -> x :: l) g [] in
   List.fold_left (fun z l -> f l z) z l
@@ -262,8 +259,7 @@ let find_root g =
   match l with
   | [ x ] -> x
   | _ ->
-      invalid_arg
-        "Functoria_graph.find_root: A graph should have only one root."
+      invalid_arg "Device_graph.find_root: A graph should have only one root."
 
 (* {2 Graph manipulation} *)
 

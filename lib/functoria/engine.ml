@@ -16,27 +16,18 @@
  *)
 
 open Rresult
-module Graph = Functoria_graph
-module Key = Functoria_key
-module Package = Functoria_package
-module Device = Functoria_device
-module Impl = Functoria_impl
-module Opam = Functoria_opam
-module Install = Functoria_install
-module Info = Functoria_info
-module Codegen = Functoria_codegen
 
-type t = Graph.t
+type t = Device_graph.t
 
 let if_keys =
-  let open Graph in
-  Graph.collect (module Key.Set) @@ function
+  let open Device_graph in
+  Device_graph.collect (module Key.Set) @@ function
   | If cond -> Key.deps cond
   | App | Dev _ -> Key.Set.empty
 
 let all_keys =
-  let open Graph in
-  Graph.collect (module Key.Set) @@ function
+  let open Device_graph in
+  Device_graph.collect (module Key.Set) @@ function
   | Dev c -> Key.Set.of_list (Device.keys c)
   | If cond -> Key.deps cond
   | App -> Key.Set.empty
@@ -50,8 +41,8 @@ module Packages = struct
 end
 
 let packages =
-  let open Graph in
-  Graph.collect (module Packages) @@ function
+  let open Device_graph in
+  Device_graph.collect (module Packages) @@ function
   | Dev c -> Device.packages c
   | If _ | App -> Packages.empty
 
@@ -64,8 +55,8 @@ module Installs = struct
 end
 
 let install i =
-  let open Graph in
-  Graph.collect (module Installs) @@ function
+  let open Device_graph in
+  Device_graph.collect (module Installs) @@ function
   | Dev c -> Device.install c i
   | If _ | App -> Installs.empty
 
@@ -73,38 +64,41 @@ let install i =
    the functor [c] applies to [args]. *)
 let module_expression fmt (c, args) =
   Fmt.pf fmt "%s%a" (Device.module_name c)
-    Fmt.(list (parens @@ of_to_string @@ Graph.impl_name))
+    Fmt.(list (parens @@ of_to_string @@ Device_graph.impl_name))
     args
 
 let find_all_devices info g i =
   let ctx = Info.context info in
   let id = Impl.with_left_most_device ctx i { f = Device.id } in
-  let p = function Graph.Dev d -> Device.id d = id | App | If _ -> false in
-  Graph.find_all g p
+  let p = function
+    | Device_graph.Dev d -> Device.id d = id
+    | App | If _ -> false
+  in
+  Device_graph.find_all g p
 
 let build info t =
   let f v =
-    match Graph.explode t v with
+    match Device_graph.explode t v with
     | `App _ | `If _ -> assert false
-    | `Dev (Graph.D c, _, _) -> Device.build c info
+    | `Dev (Device_graph.D c, _, _) -> Device.build c info
   in
   let f v res = res >>= fun () -> f v in
-  Graph.fold f t @@ R.ok ()
+  Device_graph.fold f t @@ R.ok ()
 
 let configure info t =
   let f v =
-    match Graph.explode t v with
+    match Device_graph.explode t v with
     | `App _ | `If _ -> assert false
-    | `Dev (Graph.D c, `Args args, `Deps _) ->
+    | `Dev (Device_graph.D c, `Args args, `Deps _) ->
         Device.configure c info >>| fun () ->
         if args = [] then ()
         else (
-          Codegen.append_main "@[<2>module %s =@ %a@]" (Graph.impl_name v)
-            module_expression (c, args);
+          Codegen.append_main "@[<2>module %s =@ %a@]"
+            (Device_graph.impl_name v) module_expression (c, args);
           Codegen.newline_main () )
   in
   let f v res = res >>= fun () -> f v in
-  Graph.fold f t @@ R.ok ()
+  Device_graph.fold f t @@ R.ok ()
 
 let meta_init fmt (connect_name, result_name) =
   Fmt.pf fmt "let _%s =@[@ Lazy.force %s @]in@ " result_name connect_name
@@ -130,23 +124,23 @@ let emit_run init main =
 
 let connect ?(init = []) info t =
   let f v =
-    match Graph.explode t v with
+    match Device_graph.explode t v with
     | `App _ | `If _ -> assert false
-    | `Dev (Graph.D c, `Args args, `Deps deps) ->
-        let var_name = Graph.var_name v in
-        let impl_name = Graph.impl_name v in
-        let arg_names = List.map Graph.var_name (args @ deps) in
+    | `Dev (Device_graph.D c, `Args args, `Deps deps) ->
+        let var_name = Device_graph.var_name v in
+        let impl_name = Device_graph.impl_name v in
+        let arg_names = List.map Device_graph.var_name (args @ deps) in
         Codegen.append_main "%a" emit_connect
           (var_name, arg_names, Device.connect c info impl_name)
   in
-  Graph.fold (fun v () -> f v) t ();
-  let main_name = Graph.var_name (Graph.find_root t) in
+  Device_graph.fold (fun v () -> f v) t ();
+  let main_name = Device_graph.var_name (Device_graph.find_root t) in
   let init_names =
     List.fold_left
       (fun acc i ->
         match find_all_devices info t i with
         | [] -> assert false
-        | ds -> List.map Graph.var_name ds @ acc)
+        | ds -> List.map Device_graph.var_name ds @ acc)
       [] init
     |> List.rev
   in
@@ -154,9 +148,9 @@ let connect ?(init = []) info t =
 
 let clean i g =
   let f v =
-    match Graph.explode g v with
+    match Device_graph.explode g v with
     | `App _ | `If _ -> assert false
-    | `Dev (Graph.D c, _, _) -> Device.clean c i
+    | `Dev (Device_graph.D c, _, _) -> Device.clean c i
   in
   let f v res = res >>= fun () -> f v in
-  Graph.fold f g @@ R.ok ()
+  Device_graph.fold f g @@ R.ok ()

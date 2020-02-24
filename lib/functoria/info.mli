@@ -17,12 +17,6 @@
 
 (** Information about the final application. *)
 
-module Package = Functoria_package
-module Key = Functoria_key
-module Opam = Functoria_opam
-module Install = Functoria_install
-module Type = Functoria_type
-
 type t
 (** The type for information about the final application. *)
 

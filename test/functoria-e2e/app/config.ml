@@ -1,5 +1,4 @@
 open F0
-module Key = Functoria_key
 
 let main = Functoria.(main "App" job)
 

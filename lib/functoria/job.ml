@@ -21,12 +21,6 @@ module Log = (val Logs.src_log src : Logs.LOG)
 
 open Rresult
 open Astring
-module Type = Functoria_type
-module Impl = Functoria_impl
-module Key = Functoria_key
-module Info = Functoria_info
-module Codegen = Functoria_codegen
-module Package = Functoria_package
 
 type t = JOB
 
@@ -64,7 +58,7 @@ module Keys = struct
   let clean ~file _ = Bos.OS.Path.delete file
 end
 
-let keys (argv : Functoria_argv.t Impl.t) =
+let keys (argv : Argv.t Impl.t) =
   let packages = [ Package.v "functoria-runtime" ] in
   let extra_deps = [ Impl.abstract argv ] in
   let module_name = Key.module_name in

@@ -1,8 +1,3 @@
-module Codegen = Functoria_codegen
-module Key = Functoria_key
-module Package = Functoria_package
-module Install = Functoria_install
-
 let find_git () =
   let open Rresult in
   let is_git p = Bos.OS.Dir.exists Fpath.(p / ".git") in
@@ -55,7 +50,7 @@ let v ?(build = []) ?(depends = []) ?(pins = []) ~src name =
 
 let pp_packages ppf packages =
   Fmt.pf ppf "\n  %a\n"
-    Fmt.(list ~sep:(unit "\n  ") (Functoria_package.pp ~surround:"\""))
+    Fmt.(list ~sep:(unit "\n  ") (Package.pp ~surround:"\""))
     packages
 
 let pp_pins ppf = function

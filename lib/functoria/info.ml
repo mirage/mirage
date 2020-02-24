@@ -16,11 +16,6 @@
  *)
 
 open Astring
-module Package = Functoria_package
-module Key = Functoria_key
-module Opam = Functoria_opam
-module Install = Functoria_install
-module Type = Functoria_type
 
 type t = {
   name : string;

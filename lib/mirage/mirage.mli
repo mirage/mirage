@@ -585,6 +585,16 @@ module Type = Functoria.Type
 module Impl = Functoria.Impl
 module Info = Functoria.Info
 
+module FS : sig
+  val fat_shell_script :
+    Format.formatter ->
+    block_file:string ->
+    root:Fpath.t ->
+    dir:Fpath.t ->
+    regexp:string ->
+    unit
+end
+
 (**/**)
 
 val run : unit -> unit

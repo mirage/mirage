@@ -388,3 +388,5 @@ let register ?(argv = default_argv) ?tracing ?(reporter = default_reporter ())
   let reporter = if reporter == no_reporter then None else Some reporter in
   let init = argv ++ reporter ++ tracing in
   register ?keys ?packages ?init name jobs
+
+module FS = Mirage_impl_fs

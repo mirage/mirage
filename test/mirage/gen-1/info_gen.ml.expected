@@ -1,0 +1,9 @@
+let info = Mirage_runtime.{
+  name = "foo";
+  packages = [
+    ]
+  ;
+  libraries = [
+    "mirage-bootvar-unix";
+    "mirage-runtime"]
+  }

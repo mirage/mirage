@@ -27,7 +27,7 @@ let test_device context device =
   Engine.connect info ~init:[ i1; i2 ] t;
   Engine.build info t
 
-let opam_deps =
+let opam_list =
   [
     ("base-bigarray", "base");
     ("base-threads", "base");
@@ -58,7 +58,7 @@ let test () =
       main ~keys:[ Key.abstract key ] "App.Make" sigs
       $ i1
       $ i2
-      $ app_info ~opam_deps ())
+      $ app_info ~opam_list ())
   in
   test_device context keys
 

@@ -27,6 +27,10 @@ val noop : t Impl.t
 (** [noop] is an implementation of {!Functoria.job} that holds no state, does
     nothing and has no dependency. *)
 
-val keys : Argv.t Impl.t -> t Impl.t
+val keys :
+  ?runtime_package:string ->
+  ?runtime_modname:string ->
+  Argv.t Impl.t ->
+  t Impl.t
 (** [keys a] is an implementation of {!Functoria.job} that holds the parsed
     command-line arguments. *)

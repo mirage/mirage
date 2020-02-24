@@ -258,6 +258,10 @@ let cohttp_server = Mirage_impl_http.cohttp_server
 
 let httpaf_server = Mirage_impl_http.httpaf_server
 
+type argv = Functoria.argv
+
+let argv = Functoria.argv
+
 let default_argv = Mirage_impl_argv.default_argv
 
 let no_argv = Mirage_impl_argv.no_argv
@@ -287,7 +291,12 @@ let noop = Functoria.noop
 
 let info = Functoria.info
 
-let app_info = Functoria.app_info ()
+let app_info_partial =
+  Functoria.app_info ~runtime_package:"mirage-runtime" ~modname:"Mirage_runtime"
+
+let app_info = app_info_partial ()
+
+let app_info_with_opam_deps opam_list = app_info_partial ~opam_list ()
 
 open Mirage_configure
 open Mirage_build
@@ -376,6 +385,10 @@ include App.Make (Project)
 
 (** Custom registration *)
 
+let keys argv =
+  Functoria.keys ~runtime_package:"mirage-runtime"
+    ~runtime_modname:"Mirage_runtime" argv
+
 let ( ++ ) acc x =
   match (acc, x) with
   | _, None -> acc
@@ -383,10 +396,10 @@ let ( ++ ) acc x =
   | Some acc, Some x -> Some (acc @ [ x ])
 
 let register ?(argv = default_argv) ?tracing ?(reporter = default_reporter ())
-    ?keys ?packages name jobs =
-  let argv = Some [ Functoria.keys argv ] in
+    ?keys:extra_keys ?packages name jobs =
+  let argv = Some [ keys argv ] in
   let reporter = if reporter == no_reporter then None else Some reporter in
   let init = argv ++ reporter ++ tracing in
-  register ?keys ?packages ?init name jobs
+  register ?keys:extra_keys ?packages ?init name jobs
 
 module FS = Mirage_impl_fs

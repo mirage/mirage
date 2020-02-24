@@ -71,18 +71,29 @@ val sys_argv : argv impl
 (** [sys_argv] is a device providing command-line arguments by using
     {!Sys.argv}. *)
 
-val keys : argv impl -> job impl
+val keys :
+  ?runtime_package:string -> ?runtime_modname:string -> argv impl -> job impl
 (** [keys a] is an implementation of {!Functoria.job} that holds the parsed
-    command-line arguments. *)
+    command-line arguments. By default [runtime_package] is
+    ["functoria-runtime"] and [runtime_modname] is ["Functoria_runtime"]. *)
 
 val info : info typ
 (** [info] is a value representing {!info} module types. *)
 
 val app_info :
-  ?opam_deps:(string * string) list -> ?gen_modname:string -> unit -> info impl
+  ?runtime_package:string ->
+  ?opam_list:(string * string) list ->
+  ?gen_modname:string ->
+  ?modname:string ->
+  unit ->
+  info impl
 (** [app_info] is the module implementation whose state contains all the
-    information available at configure-time. The value is stored into a
-    generated module name [gen_modname]: if not set, it is [Info_gen]. *)
+    information available at configure-time.
+
+    - The value is stored into a generated module name [gen_modname]: if not
+      set, it is [Info_gen].
+    - [modname] is the name of the runtime module defining values of type
+      [info]. By default it's [Functoria_runtime]. *)
 
 module Type = Type
 module Impl = Impl

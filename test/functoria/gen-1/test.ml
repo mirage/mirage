@@ -23,7 +23,7 @@ let test_device context device =
   Engine.connect info t;
   Engine.build info t
 
-let opam_deps =
+let opam_list =
   [
     ("base-bigarray", "base");
     ("base-threads", "base");
@@ -46,7 +46,7 @@ let test () =
   let context = Key.empty_context in
   let sigs = Functoria.(job @-> info @-> job) in
   let keys =
-    Functoria.(main "App.Make" sigs $ keys sys_argv $ app_info ~opam_deps ())
+    Functoria.(main "App.Make" sigs $ keys sys_argv $ app_info ~opam_list ())
   in
   test_device context keys
 

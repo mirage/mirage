@@ -58,18 +58,17 @@ module Keys = struct
   let clean ~file _ = Bos.OS.Path.delete file
 end
 
-let keys (argv : Argv.t Impl.t) =
-  let packages = [ Package.v "functoria-runtime" ] in
+let keys ?(runtime_package = "functoria-runtime")
+    ?(runtime_modname = "Functoria_runtime") (argv : Argv.t Impl.t) =
+  let packages = [ Package.v runtime_package ] in
   let extra_deps = [ Impl.abstract argv ] in
-  let module_name = Key.module_name in
-  let file = Fpath.(v (String.Ascii.lowercase module_name) + "ml") in
+  let key_gen = Key.module_name in
+  let file = Fpath.(v (String.Ascii.lowercase key_gen) + "ml") in
   let configure = Keys.configure ~file and clean = Keys.clean ~file in
   let connect info impl_name = function
     | [ argv ] ->
-        Fmt.strf
-          "return (Functoria_runtime.with_argv (List.map fst %s.runtime_keys) \
-           %S %s)"
-          impl_name (Info.name info) argv
+        Fmt.strf "return (%s.with_argv (List.map fst %s.runtime_keys) %S %s)"
+          runtime_modname impl_name (Info.name info) argv
     | _ -> failwith "The keys connect should receive exactly one argument."
   in
-  Impl.v ~configure ~clean ~packages ~extra_deps ~connect module_name t
+  Impl.v ~configure ~clean ~packages ~extra_deps ~connect key_gen t

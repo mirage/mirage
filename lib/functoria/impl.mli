@@ -73,29 +73,6 @@ val main :
 (** [main ... name ty] is [v ... ~connect name ty] where [connect] is
     [<name>.start <args>] *)
 
-(** {1 Useful module implementations} *)
-
-val noop : Type.job t
-(** [noop] is an implementation of {!Functoria.job} that holds no state, does
-    nothing and has no dependency. *)
-
-val sys_argv : Type.argv t
-(** [sys_argv] is a device providing command-line arguments by using
-    {!Sys.argv}. *)
-
-val keys : Type.argv t -> Type.job t
-(** [keys a] is an implementation of {!Functoria.job} that holds the parsed
-    command-line arguments. *)
-
-val app_info :
-  ?opam_deps:(string * string) list ->
-  ?gen_modname:string ->
-  unit ->
-  Type.info t
-(** [app_info] is the module implementation whose state contains all the
-    information available at configure-time. The value is stored into a
-    generated module name [gen_modname]: if not set, it is [Info_gen]. *)
-
 module Tbl : Hashtbl.S with type key = abstract
 (** Hashtbl of implementations. *)
 

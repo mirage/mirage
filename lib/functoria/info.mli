@@ -75,7 +75,9 @@ val app_info :
   string ->
   t Type.t ->
   'd) ->
-  ?opam_deps:(string * string) list ->
+  ?runtime_package:string ->
+  ?opam_list:(string * string) list ->
   ?gen_modname:string ->
+  ?modname:string ->
   unit ->
   'd

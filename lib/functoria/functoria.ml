@@ -54,7 +54,8 @@ let noop = Job.noop
 
 let info = Info.t
 
-let keys = Job.keys
+let keys ?runtime_package ?runtime_modname x =
+  Job.keys ?runtime_package ?runtime_modname x
 
 type argv = Argv.t
 

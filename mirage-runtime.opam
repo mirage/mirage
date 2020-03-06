@@ -24,6 +24,7 @@ depends: [
   "fmt"
   "logs"
   "lwt" {>= "4.0.0"}
+  "alcotest" {with-test}
 ]
 synopsis: "The base MirageOS runtime library, part of every MirageOS unikernel"
 description: """

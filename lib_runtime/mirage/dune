@@ -1,5 +1,4 @@
 (library
  (name mirage_runtime)
  (public_name mirage-runtime)
- (wrapped false)
  (libraries functoria-runtime lwt ipaddr logs fmt))

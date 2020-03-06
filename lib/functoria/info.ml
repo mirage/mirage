@@ -121,11 +121,10 @@ let pp_packages fmt l =
       iter ~sep:(unit ";@ ") List.iter @@ fun fmt (n, v) -> pf fmt "%S, %S" n v)
     l
 
-let pp_dump_pkgs fmt (name, pkg, libs) =
+let pp_dump_pkgs modname fmt (name, pkg, libs) =
   Fmt.pf fmt
-    "Functoria_runtime.{@ name = %S;@ @[<v 2>packages = %a@]@ ;@ @[<v \
-     2>libraries = %a@]@ }"
-    name pp_packages (String.Map.bindings pkg) pp_libraries
+    "%s.{@ name = %S;@ @[<v 2>packages = %a@]@ ;@ @[<v 2>libraries = %a@]@ }"
+    modname name pp_packages (String.Map.bindings pkg) pp_libraries
     (String.Set.elements libs)
 
 (* this used to call 'opam list --rec ..', but that leads to
@@ -168,22 +167,23 @@ let default_opam_deps pkgs =
   let deps = String.Set.fold String.Map.remove roots deps in
   Ok deps
 
-let app_info v ?opam_deps ?(gen_modname = "Info_gen") () =
+let app_info v ?(runtime_package = "functoria-runtime") ?opam_list
+    ?(gen_modname = "Info_gen") ?(modname = "Functoria_runtime") () =
   let file = Fpath.(v (String.Ascii.lowercase gen_modname) + "ml") in
   let module_name = gen_modname in
-  let packages = [ Package.v "functoria-runtime" ] in
   let connect _ impl_name _ = Fmt.strf "return %s.info" impl_name in
   let clean _ = Bos.OS.Path.delete file in
   let build i =
     Log.info (fun m -> m "Generating: %a" Fpath.pp file);
-    let opam_deps =
-      match opam_deps with
+    let packages =
+      match opam_list with
       | None -> default_opam_deps (package_names i)
       | Some pkgs -> Ok (String.Map.of_list pkgs)
     in
-    opam_deps >>= fun opam ->
+    packages >>= fun opam ->
     let ocl = String.Set.of_list (libraries i) in
-    Bos.OS.File.writef file "@[<v 2>let info = %a@]" pp_dump_pkgs
+    Bos.OS.File.writef file "@[<v 2>let info = %a@]" (pp_dump_pkgs modname)
       (name i, opam, ocl)
   in
+  let packages = [ Package.v runtime_package ] in
   v ~packages ~connect ~clean ~build module_name t

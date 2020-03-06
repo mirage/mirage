@@ -18,7 +18,7 @@ module Log = Mirage_impl_misc.Log
 let detected_bridge_name =
   (* Best-effort guess of a bridge name stem to use. Note this
      inspects the build host and will probably be wrong if the
-     deployment host is different.  *)
+     deployment host is different. *)
   match
     List.fold_left
       (fun sofar x ->

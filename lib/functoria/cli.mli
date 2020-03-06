@@ -1,5 +1,7 @@
 (*
- * Copyright (c) 2013 Thomas Gazagnaire <thomas@gazagnaire.org>
+ * Copyright (c) 2013-2020 Thomas Gazagnaire <thomas@gazagnaire.org>
+ * Copyright (c) 2013-2020 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2015-2020 Gabriel Radanne <drupyog@zoho.com>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above

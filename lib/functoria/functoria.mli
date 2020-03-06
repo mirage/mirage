@@ -15,20 +15,99 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** The Functoria DSL.
+(** {1 The Functoria DSL} *)
 
-    The Functoria DSL allows users to describe how to create portable and
-    flexible applications. It allows to pass application parameters easily using
-    command-line arguments either at configure-time or at runtime.
+(** Functoria is a DSL to describe a set of modules and functors, their types
+    and how to apply them in order to produce a complete application.
 
-    Users of the Functoria DSL composes their application by defining a list of
-    {{!foreign} module} implementations, specify the command-line {!keys} that
-    are required and {{!combinators} combine} all of them together using
-    {{:http://dx.doi.org/10.1017/S0956796807006326} applicative} operators.
+    The main use case is mirage. See the {!Mirage} documentation for details.
 
-    The DSL expression is then compiled into an {{!app} application builder},
-    which will, once evaluated, produced the final portable and flexible
-    application. *)
+    Functoria is a DSL to write configuration files for functor-heavy
+    applications. Such configuration files (imaginatively called [config.ml])
+    usually contains three parts: one for defining toplevel modules, one for
+    defining configuration kyes and one for defining applications using these
+    modules and keys.
+
+    {2 Defining toplevel modules}
+
+    To define toplevel modules, use the {!main} function. Among its various
+    arguments, it takes the module name and its signature. The type is assembled
+    with the {!Type} combinators, like the [@->] operator, which represents a
+    functor arrow.
+
+    {[ let main = main "Unikernel.Main" (m @-> job) ]}
+
+    This declares that the functor [Unikernel.Main] takes a module of type [m]
+    and returns a module of type {!DSL.job}. [job] has a specific meaning for
+    functoria: it is a module which defines at least a function [start], which
+    should have one argument per functor argument and should return [unit].
+
+    It is up to the user to ensure that the declaration matches the
+    implementation, or be rewarded by a compiler error later on. If the
+    declaration is correct, everything that follows will be.
+
+    {2 Defining configuration keys}
+
+    A configuration key is composed of:
+
+    - {i name} : The name of the value in the program.
+    - {i description} : How it should be displayed/serialized.
+    - {i stage} : Is the key available only at runtime, at configure time or
+      both?
+    - {i documentation} : It is not optional so you should really write it.
+
+    Consider a multilingual application: we want to pass the default language as
+    a parameter. We will use a simple string, so we can use the predefined
+    description {!Key.Desc.string}. We want to be able to define it both at
+    configure and run time, so we use the stage [Both]. This gives us the
+    following code:
+
+    {[
+      let lang_key =
+        let doc =
+          Key.Arg.info ~doc:"The default language for the application."
+            [ "l"; "lang" ]
+        in
+        Key.create "language" @@ Key.Arg.(opt ~stage:`Both string "en" doc)
+    ]}
+
+    Here, we defined both a long option ["--lang"] and a short one ["-l"] (the
+    format is similar to the one used by
+    {{:http://erratique.ch/software/cmdliner} Cmdliner}. In the application
+    code, the value is retrieved with [Key_gen.language ()].
+
+    The option is also documented in the ["--help"] option for both the
+    [configure] subcommand (at configure time) and [./app.exe] (at startup
+    time).
+
+    {v
+      -l VAL, --lang=VAL (absent=en) The default language for the application.
+    v}
+
+    {2 Defining applications}
+
+    To register a new application, use [register]:
+
+    {[ let () = register "app" [ main $ impl ] ]}
+
+    This function (which should only be called once) takes as argument the name
+    of the application and a list of jobs. The jobs are defined using the
+    {!Impl} DSL; for instance the operator [$] is used to apply the functor
+    [main] (aka [Unikernel.Main]) to the default console.
+
+    Once an application is registered, it can be configured and built using
+    command-line arguments.
+
+    Configuration keys we can use be used to switch implementation at configure
+    time. This is done by using the {!Key} DSL, for instance to check whether
+    [lang_key] is instanciated with a given string:
+
+    {[ let lang_is "s" = Key.(pure (( = ) s) $ value lang_key) ]}
+
+    Then by using the {!if_impl} combinator to choose between two
+    implementations depending on the value of the key:
+
+    {[ let impl = if_impl (is "fi") finnish_impl not_finnish_implementation ]} *)
 
 module type DSL = module type of DSL
 

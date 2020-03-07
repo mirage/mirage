@@ -51,10 +51,10 @@ let link info name target _target_debug =
       Bos.OS.Cmd.(run_out uname_cmd |> out_string) >>= fun (machine, _) ->
       if String.is_prefix ~affix:"arm" machine then (
         (* On ARM:
-         - we must convert the ELF image to an ARM boot executable zImage,
-           while on x86 we leave it as it is.
-         - we need to link libgcc.a (otherwise we get undefined references to:
-           __aeabi_dcmpge, __aeabi_dadd, ...) *)
+           - we must convert the ELF image to an ARM boot executable zImage,
+             while on x86 we leave it as it is.
+           - we need to link libgcc.a (otherwise we get undefined references to:
+             __aeabi_dcmpge, __aeabi_dadd, ...) *)
         let libgcc_cmd = Bos.Cmd.(v "gcc" % "-print-libgcc-file-name") in
         Bos.OS.Cmd.(run_out libgcc_cmd |> out_string) >>= fun (libgcc, _) ->
         let elf = name ^ ".elf" in

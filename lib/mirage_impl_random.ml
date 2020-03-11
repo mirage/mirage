@@ -9,6 +9,7 @@ let random_conf = object
   method ty = random
   method name = "random"
   method module_name = "Mirage_crypto_rng"
+  method! keys = [ Mirage_key.(abstract prng) ]
   method! packages =
     Mirage_key.(if_ is_unix)
       [ package ~sublibs:["unix"] "mirage-crypto-rng" ]
@@ -18,7 +19,7 @@ let random_conf = object
     | #Mirage_key.mode_unix ->
       "Lwt.return (Mirage_crypto_rng_unix.initialize ())"
     | _ ->
-      (* here we could use the boot argument to select the RNG! *)
+      (* here we could use the boot argument (--prng) to select the RNG! *)
       "Mirage_crypto_entropy.initialize (module Mirage_crypto_rng.Fortuna)"
 end
 

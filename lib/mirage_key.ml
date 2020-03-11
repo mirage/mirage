@@ -276,8 +276,8 @@ let prng =
     Fmt.strf
       "This boot parameter is deprecated. A Fortuna PRNG \
        (https://en.wikipedia.org/wiki/Fortuna_(PRNG)) will always be used. \
-       The mirage-entropy (https://github.com/mirage/mirage-entropy) opam \
-       package feeds entropy to Fortuna."
+       The mirage-crypto-entropy (https://github.com/mirage/mirage-crypto) \
+       opam package feeds entropy to Fortuna."
   in
   create_simple ~doc ~stage:`Configure ~default:`Stdlib conv "prng"
 

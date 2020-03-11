@@ -128,7 +128,8 @@ val nocrypto_random: random impl
 (** Passthrough to the Fortuna PRNG implemented in nocrypto. *)
 
 val default_random: random impl
-(** Default PRNG device to be used in unikernels. It is a Fortuna PRNG. *)
+(** Default PRNG device to be used in unikernels. It uses getrandom/getentropy
+    on Unix, and a Fortuna PRNG on other targets. *)
 
 
 

@@ -11,3 +11,4 @@ doc:
 
 test:
 	dune runtest
+	INSIDE_FUNCTORIA_TESTS=1 dune exec -- test/functoria-e2e/test.exe

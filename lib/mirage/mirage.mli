@@ -595,6 +595,7 @@ val register :
 module Type = Functoria.Type
 module Impl = Functoria.Impl
 module Info = Functoria.Info
+module Action = Functoria.Action
 
 module FS : sig
   val fat_shell_script :
@@ -604,6 +605,10 @@ module FS : sig
     dir:Fpath.t ->
     regexp:string ->
     unit
+end
+
+module Configure : sig
+  val configure : Info.t -> unit Action.t
 end
 
 (**/**)

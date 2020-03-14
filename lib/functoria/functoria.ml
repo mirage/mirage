@@ -30,6 +30,7 @@ module Graph = Device_graph
 module Engine = Engine
 module DSL = DSL
 module Cli = Cli
+module Action = Action
 
 module type DSL = module type of DSL
 

@@ -26,6 +26,8 @@ val build_dir : Fpath.t option Cmdliner.Term.t
 
 val output : string option Cmdliner.Term.t
 
+val dry_run : bool Cmdliner.Term.t
+
 val read_full_eval : string array -> bool option
 (** [read_full_eval argv] reads the --eval option from [argv]; the return value
     is [None] if option is absent in [argv]. *)
@@ -36,7 +38,7 @@ type 'a configure_args = { result : 'a; output : string option }
 
 type query_kind = [ `Packages | `Opam | `Install ]
 
-type 'a query_args = { kind : query_kind; result : 'a }
+type 'a query_args = { result : 'a; kind : query_kind }
 
 type 'a describe_args = {
   result : 'a;

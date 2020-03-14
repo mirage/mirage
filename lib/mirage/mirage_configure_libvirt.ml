@@ -1,14 +1,11 @@
-open Rresult
-open Mirage_impl_misc
+open Functoria
 module Codegen = Functoria.Codegen
 
 let filename ~name = Fpath.(v (name ^ "_libvirt") + "xml")
 
 let configure_main ~root ~name =
   let open Codegen in
-  with_output (filename ~name)
-    (fun oc () ->
-      let fmt = Format.formatter_of_out_channel oc in
+  Action.with_output ~path:(filename ~name) ~purpose:"libvirt.xml" (fun fmt ->
       append fmt "<!-- %s -->" (generated_header ());
       append fmt "<domain type='xen'>";
       append fmt "    <name>%s</name>" name;
@@ -55,15 +52,11 @@ let configure_main ~root ~name =
       append fmt "            <target type='xen' port='0'/>";
       append fmt "        </console>";
       append fmt "    </devices>";
-      append fmt "</domain>";
-      R.ok ())
-    "libvirt.xml"
+      append fmt "</domain>")
 
 let configure_virtio ~root ~name =
   let open Codegen in
-  with_output (filename ~name)
-    (fun oc () ->
-      let fmt = Format.formatter_of_out_channel oc in
+  Action.with_output ~path:(filename ~name) ~purpose:"libvirt.xml" (fun fmt ->
       append fmt "<!-- %s -->" (generated_header ());
       append fmt "<domain type='kvm'>";
       append fmt "    <name>%s</name>" name;
@@ -112,8 +105,6 @@ let configure_virtio ~root ~name =
       append fmt "        </console>";
       append fmt "        <memballoon model='none'/>";
       append fmt "    </devices>";
-      append fmt "</domain>";
-      R.ok ())
-    "libvirt.xml"
+      append fmt "</domain>")
 
-let clean ~name = Bos.OS.File.delete (filename ~name)
+let clean ~name = Action.rm (filename ~name)

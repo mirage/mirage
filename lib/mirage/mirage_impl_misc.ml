@@ -1,5 +1,6 @@
-open Rresult
+open Functoria
 open Astring
+open Action.Infix
 
 let src = Logs.Src.create "mirage" ~doc:"mirage cli tool"
 
@@ -17,11 +18,6 @@ let connect_err name number =
   Fmt.strf "The %s connect expects exactly %d argument%s" name number
     (if number = 1 then "" else "s")
 
-let with_output ?mode f k err =
-  match Bos.OS.File.with_oc ?mode f k () with
-  | Ok b -> b
-  | Error _ -> Rresult.R.error_msg ("couldn't open output channel for " ^ err)
-
 let pp_key fmt k = Mirage_key.serialize_call fmt (Mirage_key.abstract k)
 
 let query_ocamlfind ?(recursive = false) ?(format = "%p") ?predicates libs =
@@ -35,19 +31,17 @@ let query_ocamlfind ?(recursive = false) ?(format = "%p") ?predicates libs =
     Cmd.(
       v "ocamlfind" % q %% flag %% format %% of_list predicate %% of_list libs)
   in
-  let open Rresult in
-  OS.Cmd.run_out cmd |> OS.Cmd.out_lines >>| fst
+  Action.run_cmd_out cmd >|= fun out -> String.cuts ~sep:"\n" ~empty:false out
 
 let opam_prefix =
   let cmd = Bos.Cmd.(v "opam" % "config" % "var" % "prefix") in
-  lazy (Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>| fst)
+  lazy (Action.run_cmd_out cmd)
 
 (* Invoke pkg-config and return output if successful. *)
 let pkg_config pkgs args =
   let var = "PKG_CONFIG_PATH" in
-  let pkg_config_fallback =
-    match Bos.OS.Env.var var with Some path -> ":" ^ path | None -> ""
-  in
+  (Action.get_var var >|= function Some path -> ":" ^ path | None -> "")
+  >>= fun pkg_config_fallback ->
   Lazy.force opam_prefix >>= fun prefix ->
   (* the order here matters (at least for ancient 0.26, distributed with
        ubuntu 14.04 versions): use share before lib! *)
@@ -55,10 +49,9 @@ let pkg_config pkgs args =
     Fmt.strf "%s/share/pkgconfig:%s/lib/pkgconfig%s" prefix prefix
       pkg_config_fallback
   in
-  Bos.OS.Env.set_var var (Some value) >>= fun () ->
+  Action.set_var var (Some value) >>= fun () ->
   let cmd = Bos.Cmd.(v "pkg-config" % pkgs %% of_list args) in
-  Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>| fun (data, _) ->
-  String.cuts ~sep:" " ~empty:false data
+  Action.run_cmd_out cmd >|= fun data -> String.cuts ~sep:" " ~empty:false data
 
 (* Implement something similar to the @name/file extended names of findlib. *)
 let rec expand_name ~lib param =
@@ -92,7 +85,7 @@ let extra_c_artifacts target pkgs =
             else acc)
       [] data
   in
-  R.ok r
+  Action.ok r
 
 let terminal () =
   let dumb = try Sys.getenv "TERM" = "dumb" with Not_found -> true in
@@ -101,6 +94,3 @@ let terminal () =
     with Unix.Unix_error _ -> false
   in
   (not dumb) && isatty
-
-let rec rr_iter f l =
-  match l with [] -> R.ok () | x :: l -> f x >>= fun () -> rr_iter f l

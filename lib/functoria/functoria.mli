@@ -185,3 +185,4 @@ module Graph = Device_graph
 module Engine = Engine
 module DSL = DSL
 module Cli = Cli
+module Action = Action

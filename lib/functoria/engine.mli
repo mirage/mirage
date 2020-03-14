@@ -18,8 +18,6 @@
 
 (** Functoria engine. *)
 
-open Rresult
-
 type t = Device_graph.t
 (** The type for key graphs. *)
 
@@ -37,7 +35,7 @@ val install : Info.t -> t -> Install.t Key.value
 
 (** {2 Triggering Hooks} *)
 
-val configure : Info.t -> t -> (unit, R.msg) result
+val configure : Info.t -> t -> unit Action.t
 (** [configure i t] calls all the configuration hooks for each of the
     implementations appearing in [t], in topological order. Use the build
     information [i]. *)
@@ -47,10 +45,10 @@ val connect : ?init:'a Impl.t list -> Info.t -> t -> unit
     of the implementations appearing [t], in topological order. Use build
     information [i]. *)
 
-val build : Info.t -> t -> (unit, R.msg) result
+val build : Info.t -> t -> unit Action.t
 (** [build i t] calls the build hooks for each of the implementations appearing
     in [t], in topological order. Use the build information [i]. *)
 
-val clean : Info.t -> t -> (unit, R.msg) result
+val clean : Info.t -> t -> unit Action.t
 (** [clean i t] calls the clean hooks for each of the implementations appearing
     in [t], in topological order. Use the build information [i]. *)

@@ -1,7 +1,5 @@
-open Rresult
 open Astring
 open Functoria
-open Mirage_impl_misc
 module Log = Mirage_impl_misc.Log
 
 (* We generate an example .xl with common defaults, and a generic
@@ -76,12 +74,10 @@ let configure_main_xl ?substitutions ~ext i =
   let substitutions =
     match substitutions with Some x -> x | None -> defaults i
   in
-  let file = Fpath.(v (Info.name i) + ext) in
+  let path = Fpath.(v (Info.name i) + ext) in
   let open Codegen in
-  with_output file
-    (fun oc () ->
+  Action.with_output ~path ~purpose:"xl file" (fun fmt ->
       let open Mirage_impl_block in
-      let fmt = Format.formatter_of_out_channel oc in
       append fmt "# %s" (generated_header ());
       newline fmt;
       append fmt "name = '%s'" (lookup substitutions Name);
@@ -124,18 +120,16 @@ let configure_main_xl ?substitutions ~ext i =
       append fmt "#     vif.default.script=\"vif-openvswitch\"";
       append fmt
         "# or add \"script=vif-openvswitch,\" before the \"bridge=\" below:";
-      append fmt "vif = [ %s ]" (String.concat ~sep:", " networks);
-      R.ok ())
-    "xl file"
+      append fmt "vif = [ %s ]" (String.concat ~sep:", " networks))
 
-let clean_main_xl ~name ~ext = Bos.OS.File.delete Fpath.(v name + ext)
+let clean_main_xl ~name ~ext = Action.rm Fpath.(v name + ext)
 
 let configure_main_xe ~root ~name =
   let open Codegen in
-  let file = Fpath.(v name + "xe") in
-  with_output ~mode:0o755 file
-    (fun oc () ->
-      let fmt = Format.formatter_of_out_channel oc in
+  Action.with_output ~mode:0o755
+    ~path:Fpath.(v name + "xe")
+    ~purpose:"xe file"
+    (fun fmt ->
       let open Mirage_impl_block in
       append fmt "#!/bin/sh";
       append fmt "# %s" (generated_header ());
@@ -192,8 +186,6 @@ let configure_main_xe ~root ~name =
           append fmt "xe vbd-param-set uuid=$VBD other-config:owner=true")
         (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []);
       append fmt "echo Starting VM";
-      append fmt "xe vm-start uuid=$VM";
-      R.ok ())
-    "xe file"
+      append fmt "xe vm-start uuid=$VM")
 
-let clean_main_xe ~name = Bos.OS.File.delete Fpath.(v name + "xe")
+let clean_main_xe ~name = Action.rm Fpath.(v name + "xe")

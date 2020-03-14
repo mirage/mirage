@@ -12,9 +12,9 @@ let default_qubesdb =
   let packages = [ pkg ] in
   let configure i =
     match get_target i with
-    | `Qubes | `Xen -> Ok ()
+    | `Qubes | `Xen -> Action.ok ()
     | _ ->
-        failwith
+        Action.error
           "Qubes DB invoked for an unsupported target; qubes and xen are \
            supported"
   in

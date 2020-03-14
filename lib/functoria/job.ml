@@ -20,7 +20,6 @@ let src = Logs.Src.create "functoria" ~doc:"functoria library"
 
 module Log = (val Logs.src_log src : Logs.LOG)
 
-open Rresult
 open Astring
 
 type t = JOB
@@ -31,15 +30,9 @@ let t = Type.v JOB
 let noop = Impl.v "Unit" t
 
 module Keys = struct
-  let with_output f k =
-    Bos.OS.File.with_oc f k ()
-    >>= R.reword_error_msg (fun _ ->
-            `Msg (Fmt.strf "couldn't open output channel %a" Fpath.pp f))
-
   let configure ~file i =
     Log.info (fun m -> m "Generating: %a" Fpath.pp file);
-    with_output file (fun oc () ->
-        let fmt = Format.formatter_of_out_channel oc in
+    Action.with_output ~path:file ~purpose:"key_gen file" (fun fmt ->
         Codegen.append fmt "(* %s *)" (Codegen.generated_header ());
         Codegen.newline fmt;
         let keys = Key.Set.of_list @@ Info.keys i in
@@ -53,10 +46,9 @@ module Keys = struct
           runvars
           Fmt.Dump.(list pp_names)
           runvars;
-        Codegen.newline fmt;
-        Ok ())
+        Codegen.newline fmt)
 
-  let clean ~file _ = Bos.OS.Path.delete file
+  let clean ~file _ = Action.rm file
 end
 
 let keys ?(runtime_package = "functoria-runtime")

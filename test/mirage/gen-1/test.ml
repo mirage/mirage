@@ -1,6 +1,6 @@
 module Init = struct
-  open Rresult
   open Functoria
+  open Action.Infix
 
   (* yiikes *)
   let () =
@@ -37,4 +37,7 @@ let test () =
   in
   Init.test_device context job
 
-let () = match test () with Ok () -> () | Error (`Msg e) -> failwith e
+let () =
+  match Functoria.Action.run (test ()) with
+  | Ok () -> ()
+  | Error (`Msg e) -> failwith e

@@ -1,5 +1,5 @@
-open Rresult
 open Functoria
+open Action.Infix
 
 (* yiikes *)
 let () =
@@ -50,4 +50,5 @@ let test () =
   in
   test_device context keys
 
-let () = match test () with Ok () -> () | Error (`Msg e) -> failwith e
+let () =
+  match Action.run (test ()) with Ok () -> () | Error (`Msg e) -> failwith e

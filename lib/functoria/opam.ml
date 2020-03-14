@@ -16,24 +16,29 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+open Action.Infix
+
 let find_git () =
-  let open Rresult in
-  let is_git p = Bos.OS.Dir.exists Fpath.(p / ".git") in
+  let is_git p = Action.is_dir Fpath.(p / ".git") in
   let app_opt p d = match p with None -> d | Some p -> Fpath.(d // p) in
   let rec find p path =
-    if Fpath.is_root p then Error (`Msg "no git repo found, reached root")
+    if Fpath.is_root p then Action.ok None
     else
       is_git p >>= fun has_git ->
-      if has_git then Ok path
+      if has_git then Action.ok (Some path)
       else find (Fpath.parent p) (Some (app_opt path (Fpath.base p)))
   in
-  Bos.OS.Dir.current () >>= fun cwd ->
-  find cwd None >>= fun subdir ->
-  let git_branch = Bos.Cmd.(v "git" % "rev-parse" % "--abbrev-ref" % "HEAD") in
-  Bos.OS.Cmd.(run_out git_branch |> out_string) >>= fun (branch, _) ->
-  let git_remote = Bos.Cmd.(v "git" % "remote" % "get-url" % "origin") in
-  Bos.OS.Cmd.(run_out git_remote |> out_string) >>| fun (git_url, _) ->
-  (subdir, branch, git_url)
+  Action.pwd () >>= fun cwd ->
+  find cwd None >>= function
+  | None -> Action.ok None
+  | Some subdir ->
+      let git_branch =
+        Bos.Cmd.(v "git" % "rev-parse" % "--abbrev-ref" % "HEAD")
+      in
+      Action.(run_cmd_out git_branch) >>= fun branch ->
+      let git_remote = Bos.Cmd.(v "git" % "remote" % "get-url" % "origin") in
+      Action.(run_cmd_out git_remote) >|= fun git_url ->
+      Some (subdir, branch, git_url)
 
 type t = {
   name : string;
@@ -45,9 +50,9 @@ type t = {
 
 let guess_src () =
   let git_info =
-    match find_git () with
-    | Error _ -> None
-    | Ok (_, branch, git_url) -> Some (branch, git_url)
+    match Action.run @@ find_git () with
+    | Error _ | Ok None -> None
+    | Ok (Some (_, branch, git_url)) -> Some (branch, git_url)
   in
   match git_info with
   | None -> None

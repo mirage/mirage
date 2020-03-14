@@ -25,7 +25,7 @@ let tls_conduit_connector = impl @@ object
     method module_name = "Conduit_mirage"
     method! packages =
       Mirage_key.pure [
-        package ~min:"0.10.0" ~max:"0.11.0" ~sublibs:["mirage"] "tls" ;
+        package ~min:"0.11.0" ~max:"0.12.0" "tls-mirage" ;
         pkg
       ]
     method! connect _ _ _ = "Lwt.return Conduit_mirage.with_tls"

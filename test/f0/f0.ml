@@ -1,5 +1,6 @@
 open Rresult
 open Functoria
+module Key = Key
 
 let warn_error =
   let doc = "Enable -warn-error when compiling OCaml sources." in
@@ -13,7 +14,7 @@ let vote =
   let key = Key.Arg.(opt ~stage:`Configure string "cat" doc) in
   Key.create "vote" key
 
-let output i = match Info.output i with None -> Info.name i | Some o -> o
+let output i = match Info.output i with None -> "main" | Some o -> o
 
 let run cmd =
   match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string with
@@ -28,9 +29,9 @@ let run cmd =
           failwith err )
 
 let rec root path =
-  Bos.OS.File.exists Fpath.(path / "functoria-runtime.opam") >>= function
-  | true -> Ok path
-  | false -> root (Fpath.parent path)
+  let build = Fpath.(basename (parent path)) = "_build" in
+  Bos.OS.File.exists Fpath.(path / "functoria-runtime.opam") >>= fun opam ->
+  match build || opam with true -> Ok path | false -> root (Fpath.parent path)
 
 let root () = R.get_ok @@ (Bos.OS.Dir.current () >>= root)
 
@@ -71,7 +72,8 @@ module C = struct
       Fmt.strf
         "(executable\n\
         \   (name      %s)\n\
-        \   (modules (:standard \\ config))\n\
+        \   (modules   (:standard \\ config))\n\
+        \   (promote   (until-clean))\n\
         \   (libraries cmdliner fmt functoria-runtime))\n"
         (output i)
     in
@@ -82,18 +84,15 @@ module C = struct
       (Functoria.Info.build_dir i)
       (fun () ->
         let root, prefix = split_root () in
-        assert (prefix = Functoria.Info.build_dir i);
+        let x = Fpath.(root // prefix / "") in
+        let y = Fpath.(Functoria.Info.build_dir i / "") in
+        assert (x = y);
         let exe = Fpath.((prefix / output i) + "exe") in
         write_key i vote (fun x -> x);
         write_key i warn_error string_of_bool;
-        ( run
-        @@ Bos.Cmd.(
-             v "dune" % "build" % "--root" % Fpath.to_string root % p exe) );
         run
         @@ Bos.Cmd.(
-             v "mv"
-             % p Fpath.(root / "_build" / "default" // exe)
-             % (output i ^ ".exe")))
+             v "dune" % "build" % "--root" % Fpath.to_string root % p exe))
       ()
 
   let clean i =
@@ -108,9 +107,9 @@ module C = struct
 
   let install i =
     let _root, prefix = split_root () in
-    let exe = Fpath.(prefix / "main.exe") in
-    let src = Fpath.(v "_build" / "default" // exe) in
-    let dst = Fpath.v (output i) in
+    let src = Fpath.((prefix / output i) + "exe") in
+    let dst = match Info.output i with None -> Info.name i | Some o -> o in
+    let dst = Fpath.v dst in
     let vote = Fpath.(prefix / file_of_key vote) in
     let warn_error = Fpath.(prefix / file_of_key warn_error) in
     Install.v ~bin:[ (src, dst) ] ~etc:[ vote; warn_error ] ()

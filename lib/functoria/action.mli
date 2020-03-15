@@ -62,7 +62,7 @@ val mkdir : Fpath.t -> bool t
 val rmdir : Fpath.t -> unit t
 (** Remove a directory. (see [Bos.OS.Dir.delete]) *)
 
-val with_dir : Fpath.t -> (unit -> unit t) -> unit t
+val with_dir : Fpath.t -> (unit -> 'a t) -> 'a t
 (** [with_dir d f] runs [f] with [d] as current working directory. (See
     [Bos.OS.Dir.with_current]). *)
 

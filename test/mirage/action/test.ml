@@ -22,8 +22,8 @@ let info context =
 let test target =
   print_banner target;
   let context = context_singleton Key.target target in
-  let vfs = Action.vfs () in
-  Action.dry_run_trace ~vfs @@ Configure.configure @@ info context;
+  let env = Action.env ~files:(`Files []) () in
+  Action.dry_run_trace ~env @@ Configure.configure @@ info context;
   print_newline ()
 
 let () = List.iter test [ "unix"; "xen"; "virtio" ]

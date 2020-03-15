@@ -119,26 +119,26 @@ val with_output :
 val run : 'a t -> ('a, Rresult.R.msg) result
 (** Run the command through [Bos]. *)
 
-type vfs
-(** The type for virtual filesystems. *)
+type env
+(** The type for virtual environments. *)
 
-val eq_vfs : vfs -> vfs -> bool
-(** [eq_vfs] is the equality function for virtual filesystems. *)
+val eq_env : env -> env -> bool
+(** [eq_env] is the equality function for virtual filesystems. *)
 
-val pp_vfs : vfs Fmt.t
-(** [pp_vfs] is the pretty-printer for virtual filesystems. *)
+val pp_env : env Fmt.t
+(** [pp_env] is the pretty-printer for virtual filesystems. *)
 
 type files = [ `Passtrough of Fpath.t | `Files of (Fpath.t * string) list ]
 
-val vfs :
+val env :
   ?commands:(Bos.Cmd.t * string) list ->
   ?env:(string * string) list ->
   ?pwd:Fpath.t ->
   ?files:files ->
   unit ->
-  vfs
+  env
 
-val dry_run : vfs:vfs -> 'a t -> ('a, Rresult.R.msg) result * vfs * string list
+val dry_run : ?env:env -> 'a t -> ('a, Rresult.R.msg) result * env * string list
 (** Emulate the action. This will not do IO on the actual files. Some
     approximation is done to determine the result of actions. [files] is a list
     of paths that are supposed to exist at the beginning. Returns:
@@ -147,5 +147,5 @@ val dry_run : vfs:vfs -> 'a t -> ('a, Rresult.R.msg) result * vfs * string list
     - the list of files after execution
     - a trace (list of log messages) *)
 
-val dry_run_trace : vfs:vfs -> 'a t -> unit
+val dry_run_trace : ?env:env -> 'a t -> unit
 (** Only output the trace part of [dry_run]. *)

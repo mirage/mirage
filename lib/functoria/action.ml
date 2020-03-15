@@ -389,109 +389,109 @@ end
 
 let error_msg = Rresult.R.error_msgf
 
-type vfs = Env.t
+type env = Env.t
 
-let vfs = Env.v
+let env = Env.v
 
-let eq_vfs = Env.eq
+let eq_env = Env.eq
 
-let pp_vfs = Env.pp
+let pp_env = Env.pp
 
-let rec interpret_dry : type r. vfs:Env.t -> r command -> r or_err * _ * _ =
- fun ~vfs -> function
+let rec interpret_dry : type r. env:Env.t -> r command -> r or_err * _ * _ =
+ fun ~env -> function
   | Mkdir path -> (
       let log s = Fmt.str "Mkdir %a (%s)" Fpath.pp path s in
-      match Env.mkdir vfs path with
+      match Env.mkdir env path with
       | Some (fs, true) -> (Ok true, fs, log "created")
       | Some (fs, false) -> (Ok false, fs, log "already exists")
       | None ->
           ( error_msg "a file named '%a' already exists" Fpath.pp path,
-            vfs,
+            env,
             log "error" ) )
   | Rmdir path ->
       let log s = Fmt.str "Rmdir %a (%s)" Fpath.pp path s in
-      if Env.is_dir vfs path || Env.is_file vfs path then
-        (Ok (), Env.rmdir vfs path, log "removed")
-      else (Ok (), vfs, log "no-op")
+      if Env.is_dir env path || Env.is_file env path then
+        (Ok (), Env.rmdir env path, log "removed")
+      else (Ok (), env, log "no-op")
   | Ls path -> (
       let logs fmt = Fmt.kstr (Fmt.str "Ls %a (%s)" Fpath.pp path) fmt in
-      match Env.ls vfs path with
+      match Env.ls env path with
       | None ->
           ( error_msg "%a: no such file or directory" Fpath.pp path,
-            vfs,
+            env,
             logs "error" )
-      | Some (([] | [ _ ]) as e) -> (Ok e, vfs, logs "%d entry" (List.length e))
-      | Some es -> (Ok es, vfs, logs "%d entries" (List.length es)) )
+      | Some (([] | [ _ ]) as e) -> (Ok e, env, logs "%d entry" (List.length e))
+      | Some es -> (Ok es, env, logs "%d entries" (List.length es)) )
   | Rm path -> (
       let log s = Fmt.str "Rm %a (%s)" Fpath.pp path s in
-      match Env.rm vfs path with
-      | Some (vfs, b) -> (Ok (), vfs, log (if b then "removed" else "no-op"))
-      | None -> (error_msg "%a is a directory" Fpath.pp path, vfs, log "error")
+      match Env.rm env path with
+      | Some (env, b) -> (Ok (), env, log (if b then "removed" else "no-op"))
+      | None -> (error_msg "%a is a directory" Fpath.pp path, env, log "error")
       )
   | Is_file path ->
-      let r = Env.is_file vfs path in
-      (Ok r, vfs, Fmt.str "Is_file? %a -> %b" Fpath.pp path r)
+      let r = Env.is_file env path in
+      (Ok r, env, Fmt.str "Is_file? %a -> %b" Fpath.pp path r)
   | Is_dir path ->
-      let r = Env.is_dir vfs path in
-      (Ok r, vfs, Fmt.str "Is_dir? %a -> %b" Fpath.pp path r)
+      let r = Env.is_dir env path in
+      (Ok r, env, Fmt.str "Is_dir? %a -> %b" Fpath.pp path r)
   | Size_of path ->
-      let r = Env.size_of vfs path in
+      let r = Env.size_of env path in
       ( Ok r,
-        vfs,
+        env,
         Fmt.str "Size_of %a -> %a" Fpath.pp path
           Fmt.(option ~none:(unit "error") int)
           r )
   | Run_cmd cmd -> (
       let log x = Fmt.str "Run_cmd %a (%s)" Bos.Cmd.pp cmd x in
-      match Env.exec vfs cmd with
-      | None -> (error_msg "'%a' not found" Bos.Cmd.pp cmd, vfs, log "error")
-      | Some _ -> (Ok (), vfs, log "ok") )
+      match Env.exec env cmd with
+      | None -> (error_msg "'%a' not found" Bos.Cmd.pp cmd, env, log "error")
+      | Some _ -> (Ok (), env, log "ok") )
   | Run_cmd_out cmd -> (
       let log x = Fmt.str "Run_cmd_out %a %s" Bos.Cmd.pp cmd x in
-      match Env.exec vfs cmd with
-      | None -> (error_msg "'%a' not found" Bos.Cmd.pp cmd, vfs, log "(error)")
-      | Some o -> (Ok o, vfs, log ("-> " ^ o)) )
+      match Env.exec env cmd with
+      | None -> (error_msg "'%a' not found" Bos.Cmd.pp cmd, env, log "(error)")
+      | Some o -> (Ok o, env, log ("-> " ^ o)) )
   | Write_file (path, s) ->
       ( Ok (),
-        Env.write vfs path s,
+        Env.write env path s,
         Fmt.str "Write to %a (%d bytes)" Fpath.pp path (String.length s) )
   | Read_file path -> (
-      match Env.read vfs path with
+      match Env.read env path with
       | None ->
           ( error_msg "read_file: file does not exist",
-            vfs,
+            env,
             Fmt.str "Read: %a" Fpath.pp path )
       | Some r ->
           ( Ok r,
-            vfs,
+            env,
             Fmt.str "Read %a (%d bytes)" Fpath.pp path (String.length r) ) )
   | Tmp_file (_, pat) ->
-      let r = Env.tmp_file vfs pat in
-      (Ok r, vfs, Fmt.str "Tmp_file -> %a" Fpath.pp r)
+      let r = Env.tmp_file env pat in
+      (Ok r, env, Fmt.str "Tmp_file -> %a" Fpath.pp r)
   | Set_var (c, v) ->
-      let vfs = Env.set_var vfs c v in
+      let env = Env.set_var env c v in
       ( Ok (),
-        vfs,
+        env,
         Fmt.str "Set_var %s %a" c Fmt.(option ~none:(unit "<unset>") string) v
       )
   | Get_var c ->
-      let v = Env.get_var vfs c in
+      let v = Env.get_var env c in
       ( Ok v,
-        vfs,
+        env,
         Fmt.str "Get_var %s -> %a" c
           Fmt.(option ~none:(unit "<not set>") string)
           v )
   | With_dir (dir, f) ->
-      let old = Env.pwd vfs in
-      let vfs = Env.chdir vfs dir in
-      let r, vfs, logs = dry_run ~vfs (f ()) in
-      let vfs = Env.chdir vfs old in
+      let old = Env.pwd env in
+      let env = Env.chdir env dir in
+      let r, env, logs = dry_run ~env (f ()) in
+      let env = Env.chdir env old in
       ( r,
-        vfs,
+        env,
         Fmt.str "With_dir %a %a" Fpath.pp dir (Fmt.Dump.list Fmt.string) logs )
   | Pwd ->
-      let r = Env.pwd vfs in
-      (Ok r, vfs, Fmt.str "Pwd -> %a" Fpath.pp r)
+      let r = Env.pwd env in
+      (Ok r, env, Fmt.str "Pwd -> %a" Fpath.pp r)
   | With_output (mode, path, purpose, k) ->
       let buf = Buffer.create 0 in
       let fmt = Format.formatter_of_buffer buf in
@@ -503,28 +503,30 @@ let rec interpret_dry : type r. vfs:Env.t -> r command -> r or_err * _ * _ =
       Fmt.pf fmt "%!";
       let f = Buffer.contents buf in
       ( Ok r,
-        Env.write vfs path f,
+        Env.write env path f,
         Fmt.str "Write to %a (mode: %a, purpose: %s)" Fpath.pp path pp_mode mode
           purpose )
 
-and dry_run : type r. vfs:Env.t -> r t -> r or_err * _ * _ =
- fun ~vfs t ->
-  let rec go t ~vfs log =
+and dry_run : type r. env:Env.t -> r t -> r or_err * _ * _ =
+ fun ~env t ->
+  let rec go t ~env log =
     match t with
-    | Done r -> (Ok r, vfs, log)
-    | Fail e -> (Error (`Msg e), vfs, log)
+    | Done r -> (Ok r, env, log)
+    | Fail e -> (Error (`Msg e), env, log)
     | Run (cmd, k) -> (
-        let r, new_vfs, log_line = interpret_dry ~vfs cmd in
+        let r, new_env, log_line = interpret_dry ~env cmd in
         let new_log = log_line :: log in
         match r with
-        | Ok x -> go (k x) ~vfs:new_vfs new_log
-        | Error _ as e -> (e, new_vfs, new_log) )
+        | Ok x -> go (k x) ~env:new_env new_log
+        | Error _ as e -> (e, new_env, new_log) )
   in
-  let r, f, l = go t ~vfs [] in
+  let r, f, l = go t ~env [] in
   (r, f, List.rev l)
 
-let dry_run_trace ~vfs t =
-  let _, _, lines = dry_run ~vfs t in
+let dry_run ?(env = env ()) t = dry_run ~env t
+
+let dry_run_trace ?env t =
+  let _, _, lines = dry_run ?env t in
   List.iter print_endline lines
 
 module Infix = struct

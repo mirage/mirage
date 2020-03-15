@@ -74,8 +74,8 @@ module C = struct
   let build i =
     Action.with_dir (Functoria.Info.build_dir i) (fun () ->
         split_root () >>= fun (root, prefix) ->
-        let x = Fpath.(root // prefix / "") in
-        let y = Fpath.(Functoria.Info.build_dir i / "") in
+        let x = Fpath.(normalize @@ (root // prefix / "")) in
+        let y = Fpath.(normalize @@ (Functoria.Info.build_dir i / "")) in
         assert (x = y);
         let exe = Fpath.((prefix / output i) + "exe") in
         write_key i vote (fun x -> x) >>= fun () ->

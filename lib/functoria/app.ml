@@ -622,8 +622,8 @@ module Make (P : S) = struct
   let action_run ~state a =
     if not state.dry_run then Action.run a
     else
-      let vfs = Action.vfs ~files:(`Passtrough (Fpath.v ".")) () in
-      let r, _, lines = Action.dry_run ~vfs a in
+      let env = Action.env ~files:(`Passtrough (Fpath.v ".")) () in
+      let r, _, lines = Action.dry_run ~env a in
       List.iter
         (fun line ->
           Fmt.epr "%a %s\n%!" Fmt.(styled (`Fg `Cyan) string) "*" line)

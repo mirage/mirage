@@ -1,5 +1,4 @@
 open Functoria
-open Mirage_impl_misc
 
 type random = RANDOM
 
@@ -14,7 +13,7 @@ let default_random =
   in
   let keys = [ Mirage_key.(abstract prng) ] in
   let connect i _ _ =
-    match get_target i with
+    match Mirage_impl_misc.get_target i with
     | #Mirage_key.mode_unix ->
       "Lwt.return (Mirage_crypto_rng_unix.initialize ())"
     | _ ->

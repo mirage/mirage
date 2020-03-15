@@ -274,11 +274,10 @@ let prng =
   let conv = Arg.conv ~conv ~serialize ~runtime_conv:"prng" in
   let doc =
     Fmt.strf
-      "Use the $(i,stdlib), a lagged-Fibonacci PRNG \
-       (not cryptographically secure), or $(i,fortuna), a Fortuna PRNG \
-       (https://en.wikipedia.org/wiki/Fortuna_(PRNG)). \
-       The selected PRNG is seeded by mirage-entropy \
-       (https://github.com/mirage/mirage-entropy)."
+      "This boot parameter is deprecated. A Fortuna PRNG \
+       (https://en.wikipedia.org/wiki/Fortuna_(PRNG)) will always be used. \
+       The mirage-crypto-entropy (https://github.com/mirage/mirage-crypto) \
+       opam package feeds entropy to Fortuna."
   in
   create_simple ~doc ~stage:`Configure ~default:`Stdlib conv "prng"
 

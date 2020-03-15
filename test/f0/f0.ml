@@ -21,11 +21,13 @@ let rec root path =
   Action.is_file Fpath.(path / "functoria-runtime.opam") >>= fun opam ->
   match build || opam with
   | true -> Action.ok path
-  | false -> root (Fpath.parent path)
+  | false ->
+      let parent = Fpath.parent path in
+      if Fpath.is_root parent then Action.ok path else root parent
 
 let root () = Action.pwd () >>= root
 
-let dune_file i = Fpath.(Functoria.Info.build_dir i / "dune.build")
+let dune_build = Fpath.(v "dune.build")
 
 let file_of_key k = Key.(name @@ abstract k)
 
@@ -69,23 +71,18 @@ module C = struct
         \   (libraries cmdliner fmt functoria-runtime))\n"
         (output i)
     in
-    Action.write_file (dune_file i) dune
+    Action.write_file dune_build dune
 
   let build i =
-    Action.with_dir (Functoria.Info.build_dir i) (fun () ->
-        split_root () >>= fun (root, prefix) ->
-        let x = Fpath.(normalize @@ (root // prefix / "")) in
-        let y = Fpath.(normalize @@ (Functoria.Info.build_dir i / "")) in
-        assert (x = y);
-        let exe = Fpath.((prefix / output i) + "exe") in
-        write_key i vote (fun x -> x) >>= fun () ->
-        write_key i warn_error string_of_bool >>= fun () ->
-        Action.run_cmd
-        @@ Bos.Cmd.(
-             v "dune" % "build" % "--root" % Fpath.to_string root % p exe))
+    split_root () >>= fun (root, prefix) ->
+    let exe = Fpath.((prefix / output i) + "exe") in
+    write_key i vote (fun x -> x) >>= fun () ->
+    write_key i warn_error string_of_bool >>= fun () ->
+    Action.run_cmd
+    @@ Bos.Cmd.(v "dune" % "build" % "--root" % Fpath.to_string root % p exe)
 
   let clean i =
-    Action.rm (dune_file i) >>= fun () ->
+    Action.rm dune_build >>= fun () ->
     Action.rm Fpath.(v @@ output i ^ ".exe") >>= fun () ->
     Action.List.iter
       ~f:(fun key ->

@@ -56,13 +56,13 @@ type random = Mirage_impl_random.random
 
 let random = Mirage_impl_random.random
 
-let stdlib_random = Mirage_impl_random.stdlib_random
+let stdlib_random = Mirage_impl_random.default_random
 
 let default_random = Mirage_impl_random.default_random
 
 let nocrypto = Mirage_impl_random.nocrypto
 
-let nocrypto_random = Mirage_impl_random.nocrypto_random
+let nocrypto_random = Mirage_impl_random.default_random
 
 type console = Mirage_impl_console.console
 

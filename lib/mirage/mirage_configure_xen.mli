@@ -1,4 +1,4 @@
-open Rresult
+open Functoria
 
 module Substitutions : sig
   type v =
@@ -19,10 +19,10 @@ val configure_main_xl :
   ?substitutions:Substitutions.t ->
   ext:string ->
   Functoria.Info.t ->
-  (unit, [> R.msg ]) result
+  unit Action.t
 
-val clean_main_xl : name:string -> ext:string -> (unit, [> R.msg ]) result
+val clean_main_xl : name:string -> ext:string -> unit Action.t
 
-val configure_main_xe : root:string -> name:string -> (unit, [> R.msg ]) result
+val configure_main_xe : root:string -> name:string -> unit Action.t
 
-val clean_main_xe : name:string -> (unit, [> R.msg ]) result
+val clean_main_xe : name:string -> unit Action.t

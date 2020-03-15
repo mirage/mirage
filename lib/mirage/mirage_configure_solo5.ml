@@ -1,12 +1,12 @@
-open Rresult
 open Astring
 open Functoria
 open Mirage_impl_misc
+open Action.Infix
 module Log = Mirage_impl_misc.Log
 
 let solo5_manifest_path = Fpath.v "_build/manifest.json"
 
-let clean_manifest () = Bos.OS.File.delete solo5_manifest_path
+let clean_manifest () = Action.rm solo5_manifest_path
 
 let generate_manifest_json () =
   Log.info (fun m -> m "generating manifest");
@@ -25,10 +25,8 @@ let generate_manifest_json () =
   let devices = List.map to_string (networks @ blocks) in
   let s = String.concat ~sep:", " devices in
   let open Codegen in
-  let file = solo5_manifest_path in
-  with_output file
-    (fun oc () ->
-      let fmt = Format.formatter_of_out_channel oc in
+  Action.with_output ~path:solo5_manifest_path
+    ~purpose:"Solo5 application manifest file" (fun fmt ->
       append fmt
         {json|{
   "type": "solo5.manifest",
@@ -36,9 +34,7 @@ let generate_manifest_json () =
   "devices": [ %s ]
 }
 |json}
-        s;
-      R.ok ())
-    "Solo5 application manifest file"
+        s)
 
 let generate_manifest_c () =
   let json = solo5_manifest_path in
@@ -46,9 +42,9 @@ let generate_manifest_c () =
   let cmd =
     Bos.Cmd.(v "solo5-elftool" % "gen-manifest" % Fpath.to_string json % c)
   in
-  Bos.OS.Dir.create Fpath.(v "_build") >>= fun _created ->
+  Action.mkdir Fpath.(v "_build") >>= fun _created ->
   Log.info (fun m -> m "executing %a" Bos.Cmd.pp cmd);
-  Bos.OS.Cmd.run cmd
+  Action.run_cmd cmd
 
 let solo5_pkg = function
   | `Virtio -> ("solo5-bindings-virtio", ".virtio")
@@ -67,4 +63,4 @@ let compile_manifest target =
   cflags pkg >>= fun cflags ->
   let cmd = Bos.Cmd.(v "cc" %% of_list cflags % "-c" % c % "-o" % obj) in
   Log.info (fun m -> m "executing %a" Bos.Cmd.pp cmd);
-  Bos.OS.Cmd.run cmd
+  Action.run_cmd cmd

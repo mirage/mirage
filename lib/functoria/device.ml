@@ -16,7 +16,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Rresult
+open Action.Infix
 open Astring
 
 type abstract_key = Key.t
@@ -35,9 +35,9 @@ type ('a, 'impl) t = {
   packages : package list value;
   install : info -> Install.t value;
   connect : info -> string -> string list -> string;
-  configure : info -> (unit, R.msg) result;
-  build : info -> (unit, R.msg) result;
-  clean : info -> (unit, R.msg) result;
+  configure : info -> unit Action.t;
+  build : info -> unit Action.t;
+  clean : info -> unit Action.t;
   extra_deps : 'impl list;
 }
 
@@ -64,7 +64,7 @@ let hash x = x.id
 let default_connect _ _ l =
   Printf.sprintf "return (%s)" (String.concat ~sep:", " l)
 
-let niet _ = Ok ()
+let niet _ = Action.ok ()
 
 type 'a code = string
 
@@ -133,7 +133,7 @@ let extra_deps t = t.extra_deps
 let start impl_name args =
   Fmt.strf "@[%s.start@ %a@]" impl_name Fmt.(list ~sep:sp string) args
 
-let exec_hook i = function None -> Ok () | Some h -> h i
+let exec_hook i = function None -> Action.ok () | Some h -> h i
 
 let extend ?packages ?packages_v ?pre_configure ?post_configure ?pre_build
     ?post_build ?pre_clean ?post_clean t =

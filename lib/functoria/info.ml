@@ -99,7 +99,7 @@ let pp verbose ppf ({ name; build_dir; keys; context; output; _ } as t) =
 
 (* Device *)
 
-open Rresult
+open Action.Infix
 
 let src = Logs.Src.create "functoria" ~doc:"functoria library"
 
@@ -154,7 +154,8 @@ let default_opam_deps pkgs =
       % "--columns"
       % "name,version")
   in
-  Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_lines >>= fun (deps, _) ->
+  Action.run_cmd_out cmd >>= fun deps ->
+  let deps = String.cuts ~empty:false ~sep:"\n" deps in
   let deps =
     List.fold_left
       (fun acc s ->
@@ -166,24 +167,25 @@ let default_opam_deps pkgs =
   let deps = String.Map.of_list deps in
   let roots = String.Set.of_list pkgs in
   let deps = String.Set.fold String.Map.remove roots deps in
-  Ok deps
+  Action.ok deps
 
 let app_info v ?(runtime_package = "functoria-runtime") ?opam_list
     ?(gen_modname = "Info_gen") ?(modname = "Functoria_runtime") () =
   let file = Fpath.(v (String.Ascii.lowercase gen_modname) + "ml") in
   let module_name = gen_modname in
   let connect _ impl_name _ = Fmt.strf "return %s.info" impl_name in
-  let clean _ = Bos.OS.Path.delete file in
+  let clean _ = Action.rm file in
   let build i =
     Log.info (fun m -> m "Generating: %a" Fpath.pp file);
     let packages =
       match opam_list with
       | None -> default_opam_deps (package_names i)
-      | Some pkgs -> Ok (String.Map.of_list pkgs)
+      | Some pkgs -> Action.ok (String.Map.of_list pkgs)
     in
     packages >>= fun opam ->
     let ocl = String.Set.of_list (libraries i) in
-    Bos.OS.File.writef file "@[<v 2>let info = %a@]" (pp_dump_pkgs modname)
+    Fmt.kstr (Action.write_file file) "@[<v 2>let info = %a@]"
+      (pp_dump_pkgs modname)
       (name i, opam, ocl)
   in
   let packages = [ Package.v runtime_package ] in

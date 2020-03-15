@@ -16,8 +16,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Rresult
-
 type 'a t
 (** The type for values representing module implementations of type ['a]. *)
 
@@ -55,9 +53,9 @@ val v :
   ?keys:Key.t list ->
   ?extra_deps:abstract list ->
   ?connect:(Info.t -> string -> string list -> string) ->
-  ?configure:(Info.t -> (unit, R.msg) result) ->
-  ?build:(Info.t -> (unit, R.msg) result) ->
-  ?clean:(Info.t -> (unit, R.msg) result) ->
+  ?configure:(Info.t -> unit Action.t) ->
+  ?build:(Info.t -> unit Action.t) ->
+  ?clean:(Info.t -> unit Action.t) ->
   string ->
   'a Type.t ->
   'a t

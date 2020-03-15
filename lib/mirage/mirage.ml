@@ -403,3 +403,5 @@ let register ?(argv = default_argv) ?tracing ?(reporter = default_reporter ())
   register ?keys:extra_keys ?packages ?init name jobs
 
 module FS = Mirage_impl_fs
+module Configure = Mirage_configure
+module Action = Functoria.Action

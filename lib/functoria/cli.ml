@@ -56,6 +56,13 @@ let build_dir =
     const (function None -> None | Some f -> Some (Fpath.v f))
     $ Arg.(value & opt (some string) None & doc))
 
+let dry_run =
+  let doc =
+    Arg.info ~docs:configuration_section
+      ~doc:"Display I/O actions instead of executing them." [ "dry-run" ]
+  in
+  Arg.(value & flag doc)
+
 (** * Argument specifications *)
 
 (** Argument specification for --eval *)
@@ -119,7 +126,7 @@ type 'a describe_args = {
 
 type 'a configure_args = { result : 'a; output : string option }
 
-type 'a query_args = { kind : query_kind; result : 'a }
+type 'a query_args = { result : 'a; kind : query_kind }
 
 type 'a action =
   | Configure of 'a configure_args
@@ -132,26 +139,39 @@ type 'a action =
 (*
  * Pretty-printing
  *)
-let pp_configure pp_a ppf (c : 'a configure_args) =
-  Fmt.pf ppf "@[result:%a@;output:%a@]" pp_a c.result
-    Fmt.(option string)
-    c.output
+
+let pp_configure pp_a =
+  let open Fmt.Dump in
+  record
+    [
+      field "result" (fun (t : 'a configure_args) -> t.result) pp_a;
+      field "output" (fun t -> t.output) (option string);
+    ]
 
 let pp_kind ppf (q : query_kind) =
   let rec aux = function
     | [] -> invalid_arg "missing query kind!"
-    | (a, b) :: t -> if b = q then Fmt.string ppf a else aux t
+    | (a, b) :: t -> if b = q then Fmt.Dump.string ppf a else aux t
   in
   aux query_kinds
 
-let pp_query pp_a ppf (q : 'a query_args) =
-  Fmt.pf ppf "@[kind:%a@;result:%a@]" pp_kind q.kind pp_a q.result
+let pp_query pp_a =
+  let open Fmt.Dump in
+  record
+    [
+      field "result" (fun (t : 'a query_args) -> t.result) pp_a;
+      field "kind" (fun t -> t.kind) pp_kind;
+    ]
 
-let pp_describe pp_a ppf (d : 'a describe_args) =
-  Fmt.pf ppf "@[result:%a@;dotcmd:%s@;dot:%a@;output:%a@]" pp_a d.result
-    d.dotcmd Fmt.bool d.dot
-    Fmt.(option string)
-    d.output
+let pp_describe pp_a =
+  let open Fmt.Dump in
+  record
+    [
+      field "result" (fun (t : 'a describe_args) -> t.result) pp_a;
+      field "dotcmd" (fun t -> t.dotcmd) string;
+      field "dot" (fun t -> t.dot) Fmt.bool;
+      field "output" (fun (t : 'a describe_args) -> t.output) (option string);
+    ]
 
 let pp_action pp_a ppf = function
   | Configure c -> Fmt.pf ppf "@[configure:@ @[<2>%a@]@]" (pp_configure pp_a) c
@@ -162,11 +182,13 @@ let pp_action pp_a ppf = function
   | Help -> Fmt.string ppf "help"
 
 let setup =
-  Term.(const (fun () _ _ -> ()) $ setup_log $ config_file $ build_dir)
+  Term.(
+    const (fun () _ _ _ -> ()) $ setup_log $ config_file $ build_dir $ dry_run)
 
 (*
  * Subcommand specifications
  *)
+
 module Subcommands = struct
   (** The 'configure' subcommand *)
   let configure result =
@@ -202,8 +224,8 @@ module Subcommands = struct
   (** The 'describe' subcommand *)
   let describe result =
     ( Term.(
-        const (fun _ _ info output dotcmd dot ->
-            Describe { result = info; dotcmd; dot; output })
+        const (fun _ _ result output dotcmd dot ->
+            Describe { result; dotcmd; dot; output })
         $ setup
         $ full_eval
         $ result
@@ -240,13 +262,13 @@ module Subcommands = struct
   (** The 'build' subcommand *)
   let build result =
     let doc = "Build a $(mname) application." in
-    ( Term.(const (fun _ info -> Build info) $ setup $ result),
+    ( Term.(const (fun _ result -> Build result) $ setup $ result),
       Term.info "build" ~doc ~man:[ `S "DESCRIPTION"; `P doc ] )
 
   (** The 'clean' subcommand *)
-  let clean info_ =
+  let clean result =
     let doc = "Clean the files produced by $(mname) for a given application." in
-    ( Term.(const (fun _ info -> Clean info) $ setup $ info_),
+    ( Term.(const (fun _ result -> Clean result) $ setup $ result),
       Term.info "clean" ~doc ~man:[ `S "DESCRIPTION"; `P doc ] )
 
   (** The 'help' subcommand *)

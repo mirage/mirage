@@ -20,8 +20,8 @@ let resolver_unix_system =
   in
   let configure i =
     match get_target i with
-    | `Unix | `MacOSX -> Ok ()
-    | _ -> failwith "Unix resolver not supported on non-UNIX targets."
+    | `Unix | `MacOSX -> Action.ok ()
+    | _ -> Action.error "Unix resolver not supported on non-UNIX targets."
   in
   let connect _ _modname _ = "Lwt.return Resolver_lwt_unix.system" in
   impl ~packages_v ~configure ~connect "Resolver_lwt" resolver

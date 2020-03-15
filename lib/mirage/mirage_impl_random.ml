@@ -24,7 +24,7 @@ let nocrypto =
       package ~min:"0.5.0" ~max:"0.6.0" "mirage-entropy";
     ]
   in
-  let build _ = Ok (enable_entropy ()) in
+  let build _ = Action.ok (enable_entropy ()) in
   let connect _ _ _ = "Nocrypto_entropy_mirage.initialize ()" in
   impl ~packages ~build ~connect "Nocrypto_entropy" job
 

@@ -130,8 +130,8 @@ let pp_target fmt m = snd target_conv fmt m
 
 let default_unix =
   lazy
-    ( match Bos.OS.Cmd.(run_out Bos.Cmd.(v "uname" % "-s") |> out_string) with
-    | Ok ("Darwin", _) -> `MacOSX
+    ( match Action.run @@ Action.run_cmd_out Bos.Cmd.(v "uname" % "-s") with
+    | Ok "Darwin" -> `MacOSX
     | _ -> `Unix )
 
 let target =

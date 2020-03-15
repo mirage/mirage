@@ -1,7 +1,7 @@
 open Functoria
 open Mirage_impl_block
 open Mirage_impl_misc
-open Rresult
+open Action.Infix
 module Key = Mirage_key
 
 type t = FS
@@ -57,21 +57,17 @@ let fat_block ?(dir = ".") ?(regexp = "*") () =
   let file = Fmt.strf "make-%s-image.sh" name in
   let pre_build i =
     let root = Info.build_dir i in
-    let dir = Fpath.of_string dir |> R.error_msg_to_invalid_arg in
+    let dir = Fpath.of_string dir |> Rresult.R.error_msg_to_invalid_arg in
     Log.info (fun m -> m "Generating block generator script: %s" file);
-    with_output ~mode:0o755 (Fpath.v file)
-      (fun oc () ->
-        let fmt = Format.formatter_of_out_channel oc in
-        fat_shell_script fmt ~block_file ~root ~dir ~regexp;
-        R.ok ())
-      "fat shell script"
+    Action.with_output ~mode:0o755 ~path:(Fpath.v file)
+      ~purpose:"fat shell script" (fun fmt ->
+        fat_shell_script fmt ~block_file ~root ~dir ~regexp)
     >>= fun () ->
     Log.info (fun m -> m "Executing block generator script: ./%s" file);
-    Bos.OS.Cmd.run (Bos.Cmd.v ("./" ^ file))
+    Action.run_cmd (Bos.Cmd.v ("./" ^ file))
   in
   let pre_clean _ =
-    Bos.OS.File.delete (Fpath.v file) >>= fun () ->
-    Bos.OS.File.delete (Fpath.v block_file)
+    Action.rm (Fpath.v file) >>= fun () -> Action.rm (Fpath.v block_file)
   in
   let packages = [ fat_pkg ] in
   let block = Mirage_impl_block.block_conf block_file in

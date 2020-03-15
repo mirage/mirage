@@ -1,4 +1,5 @@
-open Rresult
+open Functoria
+open Action.Infix
 open Astring
 open Mirage_impl_misc
 open Mirage_link
@@ -9,12 +10,12 @@ let check_entropy libs =
   query_ocamlfind ~recursive:true libs >>= fun ps ->
   if List.mem "nocrypto" ps && not (Mirage_impl_random.is_entropy_enabled ())
   then
-    R.error_msg
+    Action.error
       {___|The nocrypto library is loaded but entropy is not enabled! \
        Please enable the entropy by adding a dependency to the nocrypto \
        device. You can do so by adding ~deps:[abstract nocrypto] \
        to the arguments of Mirage.foreign.|___}
-  else R.ok ()
+  else Action.ok ()
 
 let compile ignore_dirs libs warn_error target =
   let tags =
@@ -74,7 +75,7 @@ let compile ignore_dirs libs warn_error target =
       % result)
   in
   Log.info (fun m -> m "executing %a" Bos.Cmd.pp cmd);
-  Bos.OS.Cmd.run cmd
+  Action.run_cmd cmd
 
 let ignore_dirs = [ "_build-solo5-hvt"; "_build-ukvm" ]
 
@@ -91,7 +92,7 @@ let build i =
   | #Mirage_key.mode_solo5 ->
       Mirage_configure_solo5.generate_manifest_c () >>= fun () ->
       Mirage_configure_solo5.compile_manifest target
-  | _ -> R.ok () )
+  | _ -> Action.ok () )
   >>= fun () ->
-  link i name target target_debug >>| fun out ->
+  link i name target target_debug >|= fun out ->
   Log.info (fun m -> m "Build succeeded: %s" out)

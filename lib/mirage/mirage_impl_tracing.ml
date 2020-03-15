@@ -1,6 +1,6 @@
 open Functoria
 open Mirage_impl_misc
-open Rresult
+open Action.Infix
 module Key = Mirage_key
 
 type tracing = job
@@ -26,12 +26,12 @@ let mprof_trace ~size () =
         ]
   in
   let build _ =
-    match query_ocamlfind [ "lwt.tracing" ] with
-    | Error _ | Ok [] ->
-        R.error_msg
+    query_ocamlfind [ "lwt.tracing" ] >>= function
+    | [] ->
+        Action.error
           "lwt.tracing module not found. Hint:opam pin add lwt \
            https://github.com/mirage/lwt.git#tracing"
-    | Ok _ -> R.ok ()
+    | _ -> Action.ok ()
   in
   let connect i _ _ =
     match get_target i with

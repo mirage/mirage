@@ -1,5 +1,5 @@
 open Functoria
-open Rresult
+open Action.Infix
 open Astring
 module Key = Mirage_key
 
@@ -19,15 +19,15 @@ let crunch dirname =
   let build _i =
     let dir = Fpath.(v dirname) in
     let file = Fpath.(v (String.Ascii.lowercase name) + "ml") in
-    Bos.OS.Path.exists dir >>= function
+    Action.is_dir dir >>= function
     | true ->
         Mirage_impl_misc.Log.info (fun m -> m "Generating: %a" Fpath.pp file);
-        Bos.OS.Cmd.run Bos.Cmd.(v "ocaml-crunch" % "-o" % p file % p dir)
-    | false -> R.error_msg (Fmt.strf "The directory %s does not exist." dirname)
+        Action.run_cmd Bos.Cmd.(v "ocaml-crunch" % "-o" % p file % p dir)
+    | false -> Action.errorf "The directory %s does not exist." dirname
   in
   let clean _i =
-    Bos.OS.File.delete Fpath.(v name + "ml") >>= fun () ->
-    Bos.OS.File.delete Fpath.(v name + "mli")
+    Action.rm Fpath.(v name + "ml") >>= fun () ->
+    Action.rm Fpath.(v name + "mli")
   in
   impl ~packages ~connect ~build ~clean name ro
 

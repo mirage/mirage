@@ -71,8 +71,8 @@ val t : t Type.t
 val app_info :
   (packages:Package.t list ->
   connect:(t -> string -> string list -> string) ->
-  clean:(t -> (unit, [> Rresult.R.msg ]) Bos.OS.result) ->
-  build:(t -> (unit, [> Rresult.R.msg ]) Result.result) ->
+  clean:(t -> unit Action.t) ->
+  build:(t -> unit Action.t) ->
   string ->
   t Type.t ->
   'd) ->

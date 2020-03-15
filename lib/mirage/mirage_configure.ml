@@ -1,12 +1,13 @@
-open Rresult
 open Astring
 open Mirage_impl_misc
 module Key = Mirage_key
 module Info = Functoria.Info
 module Codegen = Functoria.Codegen
 module Opam = Functoria.Opam
+module Action = Functoria.Action
 open Mirage_configure_xen
 open Mirage_configure_solo5
+open Action.Infix
 
 let myocamlbuild_path = Fpath.(v "myocamlbuild.ml")
 
@@ -18,15 +19,15 @@ let myocamlbuild_path = Fpath.(v "myocamlbuild.ml")
  * ( https://github.com/ocaml/ocamlbuild/blob/0eb62b72b5abd520484210125b18073338a634bc/src/options.ml#L375-L387 )
  * so we create an empty myocamlbuild.ml . *)
 let configure_myocamlbuild () =
-  Bos.OS.File.exists myocamlbuild_path >>= function
-  | true -> R.ok ()
-  | false -> Bos.OS.File.write myocamlbuild_path ""
+  Action.is_file myocamlbuild_path >>= function
+  | true -> Action.ok ()
+  | false -> Action.write_file myocamlbuild_path ""
 
 (* we made it, so we should clean it up *)
 let clean_myocamlbuild () =
-  match Bos.OS.Path.stat myocamlbuild_path with
-  | Ok stat when stat.Unix.st_size = 0 -> Bos.OS.File.delete myocamlbuild_path
-  | _ -> R.ok ()
+  Action.size_of myocamlbuild_path >>= function
+  | Some 0 -> Action.rm myocamlbuild_path
+  | _ -> Action.ok ()
 
 let opam_path ~name = Fpath.(v name + "opam")
 
@@ -38,14 +39,11 @@ let unikernel_opam_name ~name target =
   opam_name ~name ~target
 
 let clean_opam ~name target =
-  Bos.OS.File.delete (opam_path ~name:(unikernel_opam_name ~name target))
+  Action.rm (opam_path ~name:(unikernel_opam_name ~name target))
 
 let configure_makefile ~no_depext ~opam_name =
   let open Codegen in
-  let file = Fpath.(v "Makefile") in
-  with_output file
-    (fun oc () ->
-      let fmt = Format.formatter_of_out_channel oc in
+  Action.with_output ~path:(Fpath.v "Makefile") ~purpose:"Makefile" (fun fmt ->
       append fmt "# %s" (generated_header ());
       newline fmt;
       append fmt "-include Makefile.user";
@@ -64,18 +62,11 @@ let configure_makefile ~no_depext ~opam_name =
          \tmirage build\n\n\
          clean::\n\
          \tmirage clean\n"
-        opam_name opam_name opam_name depext;
-      R.ok ())
-    "Makefile"
+        opam_name opam_name opam_name depext)
 
 let configure_opam ~name info =
-  let file = opam_path ~name in
-  with_output file
-    (fun oc () ->
-      let fmt = Format.formatter_of_out_channel oc in
-      Opam.pp fmt (Info.opam info);
-      R.ok ())
-    "opam file"
+  Action.with_output ~path:(opam_path ~name) ~purpose:"opam file" (fun fmt ->
+      Opam.pp fmt (Info.opam info))
 
 let configure i =
   let name = Info.name i in
@@ -88,7 +79,7 @@ let configure i =
   if target_debug && target <> `Hvt then
     Log.warn (fun m -> m "-g not supported for target: %a" Key.pp_target target);
   configure_myocamlbuild () >>= fun () ->
-  rr_iter (clean_opam ~name)
+  Action.List.iter ~f:(clean_opam ~name)
     [ `Unix; `MacOSX; `Xen; `Qubes; `Hvt; `Spt; `Virtio; `Muen; `Genode ]
   >>= fun () ->
   configure_opam ~name:opam_name i >>= fun () ->
@@ -96,7 +87,7 @@ let configure i =
   configure_makefile ~no_depext ~opam_name >>= fun () ->
   ( match target with
   | #Mirage_key.mode_solo5 -> generate_manifest_json ()
-  | _ -> R.ok () )
+  | _ -> Action.ok () )
   >>= fun () ->
   match target with
   | `Xen ->
@@ -105,4 +96,4 @@ let configure i =
       configure_main_xe ~root ~name >>= fun () ->
       Mirage_configure_libvirt.configure_main ~root ~name
   | `Virtio -> Mirage_configure_libvirt.configure_virtio ~root ~name
-  | _ -> R.ok ()
+  | _ -> Action.ok ()

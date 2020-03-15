@@ -1,3 +1,3 @@
-open Rresult
+open Functoria
 
-val clean : Functoria.Info.t -> (unit, [> R.msg ]) result
+val clean : Info.t -> unit Action.t

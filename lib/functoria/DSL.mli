@@ -33,8 +33,6 @@
 
 (** {1:combinators Combinators} *)
 
-open Rresult
-
 type 'a typ = 'a Type.t
 (** The type for values representing module types. *)
 
@@ -152,9 +150,9 @@ val impl :
   ?keys:Key.t list ->
   ?extra_deps:Impl.abstract list ->
   ?connect:(Info.t -> string -> string list -> string) ->
-  ?configure:(Info.t -> (unit, R.msg) result) ->
-  ?build:(Info.t -> (unit, R.msg) result) ->
-  ?clean:(Info.t -> (unit, R.msg) result) ->
+  ?configure:(Info.t -> unit Action.t) ->
+  ?build:(Info.t -> unit Action.t) ->
+  ?clean:(Info.t -> unit Action.t) ->
   string ->
   'a typ ->
   'a impl

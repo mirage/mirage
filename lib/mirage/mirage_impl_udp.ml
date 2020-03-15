@@ -1,4 +1,3 @@
-open Rresult
 open Functoria
 open Mirage_impl_ip
 open Mirage_impl_misc
@@ -33,8 +32,8 @@ let udpv4_socket_conf ipv4_key =
   let packages_v = right_tcpip_library ~sublibs:[ "udpv4-socket" ] "tcpip" in
   let configure i =
     match get_target i with
-    | `Unix | `MacOSX -> R.ok ()
-    | _ -> R.error_msg "UDPv4 socket not supported on non-UNIX targets."
+    | `Unix | `MacOSX -> Action.ok ()
+    | _ -> Action.error "UDPv4 socket not supported on non-UNIX targets."
   in
   let connect _ modname _ = Fmt.strf "%s.connect %a" modname pp_key ipv4_key in
   impl ~keys ~packages_v ~configure ~connect "Udpv4_socket" udpv4

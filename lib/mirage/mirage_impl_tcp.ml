@@ -37,8 +37,8 @@ let tcpv4_socket_conf ipv4_key =
   let packages_v = right_tcpip_library ~sublibs:[ "tcpv4-socket" ] "tcpip" in
   let configure i =
     match get_target i with
-    | `Unix | `MacOSX -> Ok ()
-    | _ -> failwith "TCPv4 socket not supported on non-UNIX targets."
+    | `Unix | `MacOSX -> Action.ok ()
+    | _ -> Action.error "TCPv4 socket not supported on non-UNIX targets."
   in
   let connect _ modname _ = Fmt.strf "%s.connect %a" modname pp_key ipv4_key in
   impl ~packages_v ~configure ~keys ~connect "Tcpv4_socket" tcpv4

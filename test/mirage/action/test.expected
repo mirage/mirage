@@ -1,0 +1,57 @@
+unix
+====
+
+Is_file? myocamlbuild.ml -> false
+Write to myocamlbuild.ml (0 bytes)
+Rm mirage-unikernel-NAME-unix.opam (no-op)
+Rm mirage-unikernel-NAME-macosx.opam (no-op)
+Rm mirage-unikernel-NAME-xen.opam (no-op)
+Rm mirage-unikernel-NAME-qubes.opam (no-op)
+Rm mirage-unikernel-NAME-hvt.opam (no-op)
+Rm mirage-unikernel-NAME-spt.opam (no-op)
+Rm mirage-unikernel-NAME-virtio.opam (no-op)
+Rm mirage-unikernel-NAME-muen.opam (no-op)
+Rm mirage-unikernel-NAME-genode.opam (no-op)
+Write to mirage-unikernel-NAME-unix.opam (mode: default, purpose: opam file)
+Write to Makefile (mode: default, purpose: Makefile)
+
+xen
+===
+
+Is_file? myocamlbuild.ml -> false
+Write to myocamlbuild.ml (0 bytes)
+Rm mirage-unikernel-NAME-unix.opam (no-op)
+Rm mirage-unikernel-NAME-macosx.opam (no-op)
+Rm mirage-unikernel-NAME-xen.opam (no-op)
+Rm mirage-unikernel-NAME-qubes.opam (no-op)
+Rm mirage-unikernel-NAME-hvt.opam (no-op)
+Rm mirage-unikernel-NAME-spt.opam (no-op)
+Rm mirage-unikernel-NAME-virtio.opam (no-op)
+Rm mirage-unikernel-NAME-muen.opam (no-op)
+Rm mirage-unikernel-NAME-genode.opam (no-op)
+Write to mirage-unikernel-NAME-xen.opam (mode: default, purpose: opam file)
+Write to Makefile (mode: default, purpose: Makefile)
+Write to NAME.xl (mode: default, purpose: xl file)
+Write to NAME.xl.in (mode: default, purpose: xl file)
+Write to NAME.xe (mode: 0755, purpose: xe file)
+Write to NAME_libvirt.xml (mode: default, purpose: libvirt.xml)
+
+virtio
+======
+
+Is_file? myocamlbuild.ml -> false
+Write to myocamlbuild.ml (0 bytes)
+Rm mirage-unikernel-NAME-unix.opam (no-op)
+Rm mirage-unikernel-NAME-macosx.opam (no-op)
+Rm mirage-unikernel-NAME-xen.opam (no-op)
+Rm mirage-unikernel-NAME-qubes.opam (no-op)
+Rm mirage-unikernel-NAME-hvt.opam (no-op)
+Rm mirage-unikernel-NAME-spt.opam (no-op)
+Rm mirage-unikernel-NAME-virtio.opam (no-op)
+Rm mirage-unikernel-NAME-muen.opam (no-op)
+Rm mirage-unikernel-NAME-genode.opam (no-op)
+Write to mirage-unikernel-NAME-virtio.opam (mode: default, purpose: opam file)
+Write to Makefile (mode: default, purpose: Makefile)
+Write to _build/manifest.json (mode: default, purpose: Solo5 application manifest file)
+Write to NAME_libvirt.xml (mode: default, purpose: libvirt.xml)
+

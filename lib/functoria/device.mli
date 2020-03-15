@@ -20,8 +20,6 @@
     contains a runtime state which can be set either at configuration time (by
     the application builder) or at runtime, using command-line arguments. *)
 
-open Rresult
-
 type ('a, 'b) t
 (** The type for devices whose runtime state is of type ['a] and having extra
     data-dependencies of type ['b]. *)
@@ -67,18 +65,18 @@ val connect : ('a, 'b) t -> Info.t -> string -> string list -> 'a code
     [args], in the context of the project information [info]. The freshly
     created state will be made available in [var_name t] *)
 
-val configure : ('a, 'b) t -> Info.t -> (unit, R.msg) result
+val configure : ('a, 'b) t -> Info.t -> unit Action.t
 (** [configure t info] runs [t]'s configuration hooks. During the configuration
     phase, [packages t] might not yet be installed yet. The code might involve
     generating more OCaml code, running shell scripts, etc. *)
 
-val build : ('a, 'b) t -> Info.t -> (unit, R.msg) result
+val build : ('a, 'b) t -> Info.t -> unit Action.t
 (** [build t info] runs the build hooks for [t] the device. During the build
     phase, you can rely on every [packages t] to be installed. The code might
     involve generating more OCaml code (crunching directories), running shell
     scripts, etc. *)
 
-val clean : ('a, 'b) t -> Info.t -> (unit, R.msg) result
+val clean : ('a, 'b) t -> Info.t -> unit Action.t
 (** [clean t info] runs [t]'s clean-up hooks. *)
 
 val keys : ('a, 'b) t -> Key.t list
@@ -98,9 +96,9 @@ val v :
   ?keys:Key.t list ->
   ?extra_deps:'b list ->
   ?connect:(Info.t -> string -> string list -> 'a code) ->
-  ?configure:(Info.t -> (unit, R.msg) result) ->
-  ?build:(Info.t -> (unit, R.msg) result) ->
-  ?clean:(Info.t -> (unit, R.msg) result) ->
+  ?configure:(Info.t -> unit Action.t) ->
+  ?build:(Info.t -> unit Action.t) ->
+  ?clean:(Info.t -> unit Action.t) ->
   string ->
   'a Type.t ->
   ('a, 'b) t
@@ -108,11 +106,11 @@ val v :
 val extend :
   ?packages:Package.t list ->
   ?packages_v:Package.t list Key.value ->
-  ?pre_configure:(Info.t -> (unit, R.msg) result) ->
-  ?post_configure:(Info.t -> (unit, R.msg) result) ->
-  ?pre_build:(Info.t -> (unit, R.msg) result) ->
-  ?post_build:(Info.t -> (unit, R.msg) result) ->
-  ?pre_clean:(Info.t -> (unit, R.msg) result) ->
-  ?post_clean:(Info.t -> (unit, R.msg) result) ->
+  ?pre_configure:(Info.t -> unit Action.t) ->
+  ?post_configure:(Info.t -> unit Action.t) ->
+  ?pre_build:(Info.t -> unit Action.t) ->
+  ?post_build:(Info.t -> unit Action.t) ->
+  ?pre_clean:(Info.t -> unit Action.t) ->
+  ?post_clean:(Info.t -> unit Action.t) ->
   ('a, 'b) t ->
   ('a, 'b) t

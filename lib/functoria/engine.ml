@@ -16,7 +16,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Rresult
+open Action.Infix
 
 type t = Device_graph.t
 
@@ -84,14 +84,14 @@ let build info t =
     | `Dev (Device_graph.D c, _, _) -> Device.build c info
   in
   let f v res = res >>= fun () -> f v in
-  Device_graph.fold f t @@ R.ok ()
+  Device_graph.fold f t @@ Action.ok ()
 
 let configure info t =
   let f v =
     match Device_graph.explode t v with
     | `App _ | `If _ -> assert false
     | `Dev (Device_graph.D c, `Args args, `Deps _) ->
-        Device.configure c info >>| fun () ->
+        Device.configure c info >|= fun () ->
         if args = [] then ()
         else (
           Codegen.append_main "@[<2>module %s =@ %a@]"
@@ -99,7 +99,7 @@ let configure info t =
           Codegen.newline_main () )
   in
   let f v res = res >>= fun () -> f v in
-  Device_graph.fold f t @@ R.ok ()
+  Device_graph.fold f t @@ Action.ok ()
 
 let meta_init fmt (connect_name, result_name) =
   Fmt.pf fmt "let _%s =@[@ Lazy.force %s @]in@ " result_name connect_name
@@ -154,4 +154,4 @@ let clean i g =
     | `Dev (Device_graph.D c, _, _) -> Device.clean c i
   in
   let f v res = res >>= fun () -> f v in
-  Device_graph.fold f g @@ R.ok ()
+  Device_graph.fold f g @@ Action.ok ()

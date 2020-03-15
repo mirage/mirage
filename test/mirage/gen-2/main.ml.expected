@@ -1,0 +1,151 @@
+let (>>=) x f = f x
+let return x = x
+let run x = x
+
+module Ethernet_make__59 = Ethernet.Make(Netif)
+
+module Arp_make__62 = Arp.Make(Ethernet_make__59)(OS.Time)
+
+module Static_ipv4_make__67 = Static_ipv4.Make(Mirage_crypto_rng)(Mclock)
+  (Ethernet_make__59)(Arp_make__62)
+
+module Icmpv4_make__69 = Icmpv4.Make(Static_ipv4_make__67)
+
+module Udp_make__72 = Udp.Make(Static_ipv4_make__67)(Mirage_crypto_rng)
+
+module Tcp_flow_make__77 = Tcp.Flow.Make(Static_ipv4_make__67)(OS.Time)
+  (Mclock)(Mirage_crypto_rng)
+
+module Tcpip_stack_direct_make__78 = Tcpip_stack_direct.Make(OS.Time)
+  (Mirage_crypto_rng)(Netif)(Ethernet_make__59)(Arp_make__62)
+  (Static_ipv4_make__67)(Icmpv4_make__69)(Udp_make__72)(Tcp_flow_make__77)
+
+module Conduit_mirage_with_tcp__79 =
+  Conduit_mirage.With_tcp(Tcpip_stack_direct_make__78)
+
+module App_make__81 = App.Make(Conduit_mirage)(Mirage_crypto_rng)
+
+let netif__9 = lazy (
+  Netif.connect (Key_gen.interface ())
+  )
+
+let os_time__5 = lazy (
+  return ()
+  )
+
+let ethernet_make__59 = lazy (
+  let __netif__9 = Lazy.force netif__9 in
+  __netif__9 >>= fun _netif__9 ->
+  Ethernet_make__59.connect _netif__9
+  )
+
+let mirage_crypto_rng__7 = lazy (
+  Lwt.return (Mirage_crypto_rng_unix.initialize ())
+  )
+
+let mclock__34 = lazy (
+  return ()
+  )
+
+let arp_make__62 = lazy (
+  let __ethernet_make__59 = Lazy.force ethernet_make__59 in
+  let __os_time__5 = Lazy.force os_time__5 in
+  __ethernet_make__59 >>= fun _ethernet_make__59 ->
+  __os_time__5 >>= fun _os_time__5 ->
+  Arp_make__62.connect _ethernet_make__59
+  )
+
+let static_ipv4_make__67 = lazy (
+  let __mirage_crypto_rng__7 = Lazy.force mirage_crypto_rng__7 in
+  let __mclock__34 = Lazy.force mclock__34 in
+  let __ethernet_make__59 = Lazy.force ethernet_make__59 in
+  let __arp_make__62 = Lazy.force arp_make__62 in
+  __mirage_crypto_rng__7 >>= fun _mirage_crypto_rng__7 ->
+  __mclock__34 >>= fun _mclock__34 ->
+  __ethernet_make__59 >>= fun _ethernet_make__59 ->
+  __arp_make__62 >>= fun _arp_make__62 ->
+  Static_ipv4_make__67.connect ~ip:(Key_gen.ipv4 ())
+                            ?gateway:(Key_gen.ipv4_gateway ())
+                            _ethernet_make__59 _arp_make__62
+  )
+
+let icmpv4_make__69 = lazy (
+  let __static_ipv4_make__67 = Lazy.force static_ipv4_make__67 in
+  __static_ipv4_make__67 >>= fun _static_ipv4_make__67 ->
+  Icmpv4_make__69.connect _static_ipv4_make__67
+  )
+
+let udp_make__72 = lazy (
+  let __static_ipv4_make__67 = Lazy.force static_ipv4_make__67 in
+  let __mirage_crypto_rng__7 = Lazy.force mirage_crypto_rng__7 in
+  __static_ipv4_make__67 >>= fun _static_ipv4_make__67 ->
+  __mirage_crypto_rng__7 >>= fun _mirage_crypto_rng__7 ->
+  Udp_make__72.connect _static_ipv4_make__67
+  )
+
+let tcp_flow_make__77 = lazy (
+  let __static_ipv4_make__67 = Lazy.force static_ipv4_make__67 in
+  let __os_time__5 = Lazy.force os_time__5 in
+  let __mclock__34 = Lazy.force mclock__34 in
+  let __mirage_crypto_rng__7 = Lazy.force mirage_crypto_rng__7 in
+  __static_ipv4_make__67 >>= fun _static_ipv4_make__67 ->
+  __os_time__5 >>= fun _os_time__5 ->
+  __mclock__34 >>= fun _mclock__34 ->
+  __mirage_crypto_rng__7 >>= fun _mirage_crypto_rng__7 ->
+  Tcp_flow_make__77.connect _static_ipv4_make__67
+  )
+
+let tcpip_stack_direct_make__78 = lazy (
+  let __os_time__5 = Lazy.force os_time__5 in
+  let __mirage_crypto_rng__7 = Lazy.force mirage_crypto_rng__7 in
+  let __netif__9 = Lazy.force netif__9 in
+  let __ethernet_make__59 = Lazy.force ethernet_make__59 in
+  let __arp_make__62 = Lazy.force arp_make__62 in
+  let __static_ipv4_make__67 = Lazy.force static_ipv4_make__67 in
+  let __icmpv4_make__69 = Lazy.force icmpv4_make__69 in
+  let __udp_make__72 = Lazy.force udp_make__72 in
+  let __tcp_flow_make__77 = Lazy.force tcp_flow_make__77 in
+  __os_time__5 >>= fun _os_time__5 ->
+  __mirage_crypto_rng__7 >>= fun _mirage_crypto_rng__7 ->
+  __netif__9 >>= fun _netif__9 ->
+  __ethernet_make__59 >>= fun _ethernet_make__59 ->
+  __arp_make__62 >>= fun _arp_make__62 ->
+  __static_ipv4_make__67 >>= fun _static_ipv4_make__67 ->
+  __icmpv4_make__69 >>= fun _icmpv4_make__69 ->
+  __udp_make__72 >>= fun _udp_make__72 ->
+  __tcp_flow_make__77 >>= fun _tcp_flow_make__77 ->
+  Tcpip_stack_direct_make__78.connect _netif__9 _ethernet_make__59 _arp_make__62 _static_ipv4_make__67 _icmpv4_make__69 _udp_make__72 _tcp_flow_make__77
+  )
+
+let conduit_mirage__2 = lazy (
+  Lwt.return Conduit_mirage.with_tls
+  )
+
+let conduit_mirage_with_tcp__79 = lazy (
+  let __tcpip_stack_direct_make__78 = Lazy.force tcpip_stack_direct_make__78 in
+  __tcpip_stack_direct_make__78 >>= fun _tcpip_stack_direct_make__78 ->
+  Lwt.return (Conduit_mirage_with_tcp__79.connect _tcpip_stack_direct_make__78)
+
+  )
+
+let conduit_mirage__53 = lazy (
+  let __conduit_mirage_with_tcp__79 = Lazy.force conduit_mirage_with_tcp__79 in
+  let __conduit_mirage__2 = Lazy.force conduit_mirage__2 in
+  __conduit_mirage_with_tcp__79 >>= fun _conduit_mirage_with_tcp__79 ->
+  __conduit_mirage__2 >>= fun _conduit_mirage__2 ->
+  Lwt.return Conduit_mirage.empty >>= _conduit_mirage__2 >>=
+fun t -> Lwt.return t
+  )
+
+let app_make__81 = lazy (
+  let __conduit_mirage__53 = Lazy.force conduit_mirage__53 in
+  let __mirage_crypto_rng__7 = Lazy.force mirage_crypto_rng__7 in
+  __conduit_mirage__53 >>= fun _conduit_mirage__53 ->
+  __mirage_crypto_rng__7 >>= fun _mirage_crypto_rng__7 ->
+  App_make__81.start _conduit_mirage__53 _mirage_crypto_rng__7
+  )
+
+let () =
+  let t =
+  Lazy.force app_make__81
+  in run t

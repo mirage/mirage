@@ -18,8 +18,6 @@ let tcp_conduit_connector =
     (stackv4 @-> conduit_connector)
 
 let tls_conduit_connector =
-  let packages =
-    [ package ~min:"0.11.0" ~max:"0.12.0" "tls-mirage"; pkg ]
-  in
+  let packages = [ package ~min:"0.11.0" ~max:"0.12.0" "tls-mirage"; pkg ] in
   let connect _ _ _ = "Lwt.return Conduit_mirage.with_tls" in
   impl ~packages ~connect "Conduit_mirage" conduit_connector

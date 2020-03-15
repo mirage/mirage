@@ -114,11 +114,11 @@ val random : random typ
 (** Implementations of the [Mirage_types.RANDOM] signature. *)
 
 val stdlib_random : random impl
-[@@ocaml.deprecated "Mirage will always use a Fortuna PRNG."]
+  [@@ocaml.deprecated "Mirage will always use a Fortuna PRNG."]
 (** Passthrough to the OCaml Random generator. *)
 
 val nocrypto_random : random impl
-[@@ocaml.deprecated "Mirage will always use a Fortuna PRNG."]
+  [@@ocaml.deprecated "Mirage will always use a Fortuna PRNG."]
 (** Passthrough to the Fortuna PRNG implemented in nocrypto. *)
 
 val default_random : random impl
@@ -505,7 +505,7 @@ val syslog_tls :
 (** {2 Entropy} *)
 
 val nocrypto : job impl
-[@@ocaml.deprecated "nocrypto is deprecated and not needed anymore."]
+  [@@ocaml.deprecated "nocrypto is deprecated and not needed anymore."]
 (** Device that initializes the entropy. *)
 
 (** {2 Conduit configuration} *)

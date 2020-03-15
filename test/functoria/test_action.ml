@@ -66,6 +66,27 @@ let mk_test ~env ~expected name a ty =
   let got = Action.dry_run ~env a in
   Alcotest.check (testable ty) name expected got
 
+let test_seq () =
+  let test msg seq = mk_test msg (Action.seq seq) Alcotest.unit in
+  let test_file b x = Alcotest.(check bool) "file exists" b x in
+  test "simple sequence" ~env:![]
+    ~expected:
+      ( Ok (),
+        ![],
+        [
+          "Write to path (0 bytes)";
+          "Is_file? path -> true";
+          "Rm path (removed)";
+          "Is_file? path -> false";
+        ] )
+    Action.
+      [
+        write_file path "";
+        is_file path >|= test_file true;
+        rm path;
+        is_file path >|= test_file false;
+      ]
+
 let test_rm () =
   let test msg ~path = mk_test msg (Action.rm path) Alcotest.unit in
 
@@ -332,6 +353,7 @@ let suite =
     (fun (n, f) -> (n, `Quick, f))
     [
       ("bind", test_bind);
+      ("seq", test_seq);
       ("rm", test_rm);
       ("mkdir", test_mkdir);
       ("rmdir", test_rmdir);

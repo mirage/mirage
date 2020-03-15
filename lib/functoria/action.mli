@@ -39,6 +39,9 @@ val map : f:('a -> 'b) -> 'a t -> 'b t
 val bind : f:('a -> 'b t) -> 'a t -> 'b t
 (** Monad instance. *)
 
+val seq : unit t list -> unit t
+(** [seq t] runs the elements of [t] in sequence. *)
+
 module List : sig
   val iter : f:('a -> unit t) -> 'a list -> unit t
 

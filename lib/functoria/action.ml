@@ -68,6 +68,8 @@ let rec bind ~f = function
 
 let map ~f x = bind x ~f:(fun y -> ok (f y))
 
+let rec seq = function [] -> ok () | h :: t -> bind ~f:(fun () -> seq t) h
+
 let wrap x = Run (x, ok)
 
 let ( ! ) = Fpath.normalize

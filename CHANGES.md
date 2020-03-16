@@ -1,3 +1,8 @@
+### v3.7.5 (2020-03-15)
+
+* use mirage-crypto (and mirage-crypto-entropy) instead of nocrypto, also
+  tls-mirage and up-to-date conduit
+
 ### v3.7.4 (2019-12-20)
 
 * use `git rev-parse --abbrev-ref HEAD` instead of `git branch --show-current`

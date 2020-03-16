@@ -1,6 +1,5 @@
 open Functoria
 open Mirage_impl_conduit_connector
-open Mirage_impl_random
 
 type conduit = Conduit
 
@@ -8,7 +7,7 @@ let conduit = Type.v Conduit
 
 let conduit_with_connectors connectors =
   let packages = [ pkg ] in
-  let extra_deps = abstract nocrypto :: List.map abstract connectors in
+  let extra_deps = List.map abstract connectors in
   let connect _ _ = function
     (* There is always at least the nocrypto device *)
     | _nocrypto :: connectors ->

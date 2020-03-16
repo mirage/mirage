@@ -314,6 +314,7 @@ module Make (P : S) = struct
 
 %a(executable
   (name config)
+  (flags (:standard -warn-error -A))
   (modules %s)
   (libraries %s))
 |}

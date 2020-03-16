@@ -1,0 +1,16 @@
+(executable
+ (name test)
+ (modules test)
+ (libraries fmt mirage))
+
+(rule
+ (targets main.ml)
+ (action
+  (run ./test.exe)))
+
+(rule
+ (alias runtest)
+ (package functoria)
+ (action
+  (progn
+   (diff main.ml.expected main.ml))))

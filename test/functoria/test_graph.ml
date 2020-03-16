@@ -113,9 +113,31 @@ let test_graph () =
   Alcotest.(check label) "t1" [ ("a", [ "a" ]) ] (packages t1);
   Alcotest.(check label) "t2" [ ("b", [ "b" ]) ] (packages t2)
 
+let package = Alcotest.testable Package.pp Package.equal
+
+let test_conflicts () =
+  let pkg1 = Package.v "a" in
+  let pkg2 = Package.v ~conflicts:[ "a" ] "b" in
+  let pkg3 = Package.v "c" in
+  let a = Impl.v "Foo" ~packages:[ pkg1 ] job in
+  let b = Impl.v "Foo" ~packages:[ pkg2; pkg3 ] job in
+  let f = Impl.v "F" (job @-> job @-> job) in
+  let t = Impl.(f $ a $ b) in
+  let context = Key.empty_context in
+  let info =
+    Functoria.Info.v ~packages:[] ~context ~keys:[]
+      ~build_dir:Fpath.(v ".")
+      ~build_cmd:[ "build"; "me" ] ~src:`None "foo"
+  in
+  let t = Graph.create t in
+  let t = Graph.normalize t in
+  let cs = Engine.check_conflicts info t in
+  Alcotest.(check (list (pair package string))) "conflicts" [ (pkg2, "a") ] cs
+
 let suite =
   [
     ("var_name", `Quick, test_var_name);
     ("impl_name", `Quick, test_impl_name);
-    ("test_graph", `Quick, test_graph);
+    ("graph", `Quick, test_graph);
+    ("conflicts", `Quick, test_conflicts);
   ]

@@ -94,6 +94,7 @@ val package :
   ?min:string ->
   ?max:string ->
   ?pin:string ->
+  ?conflicts:string list ->
   string ->
   package
 (** Same as {!Package.v} *)

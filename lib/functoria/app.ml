@@ -539,7 +539,20 @@ module Make (P : S) = struct
     let file = Info.name i ^ ".install" in
     Action.rm Fpath.(v file)
 
+  let check_conflicts i (_, jobs) =
+    match Engine.check_conflicts i jobs with
+    | [] -> Action.ok ()
+    | conflicts ->
+        let pp_conflict ppf (pkg, n) =
+          Fmt.pf ppf "conflict between %a and %s" (Package.pp ~surround:"") pkg
+            n
+        in
+        Action.errorf "conflicts: %a\n"
+          Fmt.(list ~sep:(unit "\n") pp_conflict)
+          conflicts
+
   let configure ~state ~argv i jobs =
+    check_conflicts i jobs >>= fun () ->
     get_relative_source_dir ~state >>= fun source_dir ->
     Log.debug (fun l -> l "source-dir=%a" Fpath.pp source_dir);
     Log.info (fun m -> m "Configuration: %a" Fpath.pp state.config_file);

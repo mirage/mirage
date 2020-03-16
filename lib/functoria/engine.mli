@@ -52,3 +52,7 @@ val build : Info.t -> t -> unit Action.t
 val clean : Info.t -> t -> unit Action.t
 (** [clean i t] calls the clean hooks for each of the implementations appearing
     in [t], in topological order. Use the build information [i]. *)
+
+val check_conflicts : Info.t -> t -> (Package.t * string) list
+(** [check_conflicts i t] is the list of package in conflicts in [t], under the
+    build information [i]. *)

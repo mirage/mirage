@@ -28,18 +28,24 @@ val v :
   ?min:string ->
   ?max:string ->
   ?pin:string ->
+  ?conflicts:string list ->
   string ->
   t
-(** [v ~build ~sublibs ~libs ~min ~max ~pin opam] is a [package]. [Build]
-    indicates a build-time dependency only, defaults to [false]. The library
-    name is by default the same as [opam], you can specify [~sublibs] to add
-    additional sublibraries (e.g. [~sublibs:\["mirage"\] "foo"] will result in
-    the library names [\["foo"; "foo.mirage"\]]. In case the library name is
-    disjoint (or empty), use [~libs]. Specifying both [~libs] and [~sublibs]
-    leads to an invalid argument. Version constraints are given as [min]
-    (inclusive) and [max] (exclusive). If [pin] is provided, a
-    {{:https://opam.ocaml.org/doc/Manual.html#opamfield-pin-depends}
-    pin-depends} is generated. *)
+(** [v ~build ~sublibs ~libs ~min ~max ~pin opam] is a [package].
+
+    - [Build] indicates a build-time dependency only, defaults to [false].
+    - The library name is by default the same as [opam], you can specify
+      [~sublibs] to add additional sublibraries (e.g.
+      [~sublibs:\["mirage"\] "foo"] will result in the library names
+      [\["foo"; "foo.mirage"\]].
+    - In case the library name is disjoint (or empty), use [~libs]. Specifying
+      both [~libs] and [~sublibs] leads to an invalid argument.
+    - Version constraints are given as [min] (inclusive) and [max] (exclusive).
+      \-If [pin] is provided, a
+      {{:https://opam.ocaml.org/doc/Manual.html#opamfield-pin-depends}
+      pin-depends} is generated.
+    - Conflicts are package names which should not be linked with (they might
+      still be co-installable in the same opam switch). *)
 
 val name : t -> string
 (** [name t] is [t]'s opam name. *)
@@ -61,9 +67,15 @@ val max_versions : t -> string list
 val min_versions : t -> string list
 (** [min_versions] is the set minimum versions of [t] which are required. *)
 
+val conflicts : t -> string list
+(** [conflicts t] are [t]'s conflicts. *)
+
 val merge : t -> t -> t option
 (** [merge x y] is merges the information of [x] and [y]. The result is [None]
     if [opam x != opam y]. *)
 
 val pp : ?surround:string -> t Fmt.t
 (** [pp] is the pretty-printer for packages. *)
+
+val equal : t -> t -> bool
+(** [equal] is the equality function for packages. *)

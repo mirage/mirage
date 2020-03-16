@@ -25,11 +25,23 @@ type t = {
   libs : String.Set.t;
   min : String.Set.t;
   max : String.Set.t;
+  conflicts : String.Set.t;
 }
 
 let name t = t.name
 
 let pin t = t.pin
+
+let equal a b =
+  a.name = b.name
+  && a.pin = b.pin
+  && a.build = b.build
+  && String.Set.equal a.libs b.libs
+  && String.Set.equal a.min b.min
+  && String.Set.equal a.max b.max
+  && String.Set.equal a.conflicts b.conflicts
+
+let conflicts t = String.Set.elements t.conflicts
 
 let build_dependency t = t.build
 
@@ -52,15 +64,16 @@ let merge a b =
       | None, Some a | Some a, None -> Some a
       | Some a, Some b when String.equal a b -> Some a
       | _ -> invalid_arg ("conflicting pin depends for " ^ name)
-    and build = a.build || b.build in
+    and build = a.build || b.build
+    and conflicts = String.Set.union a.conflicts b.conflicts in
     match pin with
-    | None -> Some { name; build; libs; min; max; pin }
+    | None -> Some { name; build; libs; min; max; pin; conflicts }
     | Some _ ->
         (* pin wins over min and max *)
         let empty = String.Set.empty in
-        Some { name; build; libs; min = empty; max = empty; pin }
+        Some { name; build; libs; min = empty; max = empty; pin; conflicts }
 
-let v ?(build = false) ?sublibs ?libs ?min ?max ?pin name =
+let v ?(build = false) ?sublibs ?libs ?min ?max ?pin ?(conflicts = []) name =
   let libs =
     match (sublibs, libs) with
     | None, None -> [ name ]
@@ -76,7 +89,8 @@ let v ?(build = false) ?sublibs ?libs ?min ?max ?pin name =
     | Some m -> String.Set.singleton m
   in
   let min = to_set min and max = to_set max in
-  { name; build; libs; min; max; pin }
+  let conflicts = String.Set.of_list conflicts in
+  { name; build; libs; min; max; pin; conflicts }
 
 let exts_to_string ppf (min, max, build) =
   let bui = if build then "build & " else "" in

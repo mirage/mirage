@@ -16,6 +16,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+open Astring
 open Action.Infix
 
 type t = Device_graph.t
@@ -46,6 +47,17 @@ let packages =
   Device_graph.collect (module Packages) @@ function
   | Dev c -> Device.packages c
   | If _ | App -> Packages.empty
+
+let check_conflicts i g =
+  let packages = Key.eval (Info.context i) (packages g) in
+  let package_names = packages |> List.map Package.name |> String.Set.of_list in
+  List.fold_left
+    (fun acc pkg ->
+      List.fold_left
+        (fun acc c ->
+          if String.Set.mem c package_names then (pkg, c) :: acc else acc)
+        acc (Package.conflicts pkg))
+    [] packages
 
 module Installs = struct
   type t = Install.t Key.value

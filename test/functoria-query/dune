@@ -24,6 +24,20 @@
    (run ./config.exe query install))))
 
 (rule
+ (target files-configure)
+ (action
+  (with-stdout-to
+   %{target}
+   (run ./config.exe query files-configure))))
+
+(rule
+ (target files-build)
+ (action
+  (with-stdout-to
+   %{target}
+   (run ./config.exe query files-build))))
+
+(rule
  (alias runtest)
  (package functoria)
  (action
@@ -40,3 +54,15 @@
  (package functoria)
  (action
   (diff install.expected install)))
+
+(rule
+ (alias runtest)
+ (package functoria)
+ (action
+  (diff files-configure.expected files-configure)))
+
+(rule
+ (alias runtest)
+ (package functoria)
+ (action
+  (diff files-build.expected files-build)))

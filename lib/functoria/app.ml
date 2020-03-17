@@ -217,23 +217,20 @@ module Make (P : S) = struct
     | None -> Fmt.failwith "relativize: root=%a %a" Fpath.pp root Fpath.pp p
 
   let get_relative_source_dir ~state =
+    get_project_root () >>= fun root ->
     let dir = Fpath.parent state.config_file in
-    get_project_root () >>= fun root -> relativize ~root dir
+    relativize ~root dir
 
   let get_build_dir ~state =
     let dir =
       match state.build_dir with
       | None -> get_relative_source_dir ~state
-      | Some p -> Action.ok p
+      | Some p -> get_project_root () >>= fun root -> relativize ~root p
     in
     dir >>= fun dir ->
-    Action.mkdir dir >>= fun _ ->
-    get_project_root () >>= fun root ->
-    let dir = if Fpath.is_abs dir then dir else Fpath.(root // dir) in
-    relativize ~root dir >>= fun rel ->
-    match Fpath.segs rel with
+    match Fpath.segs dir with
     | ".." :: _ -> Action.error "--build-dir should be a sub-directory."
-    | _ -> Action.ok dir
+    | _ -> Action.mkdir dir >|= fun _ -> dir
 
   let get_build_cmd ~state =
     let build_dir =
@@ -510,7 +507,7 @@ module Make (P : S) = struct
     Codegen.newline_main ();
     Codegen.append_main "let _ = Printexc.record_backtrace true";
     Codegen.newline_main ();
-    Cache.save ~argv (Info.build_dir i) >>= fun () ->
+    Cache.save ~argv (Fpath.v ".") >>= fun () ->
     Engine.configure i jobs >|= fun () ->
     Engine.connect i ~init jobs;
     Codegen.newline_main ()
@@ -564,6 +561,14 @@ module Make (P : S) = struct
     | `Install ->
         let install = eval_install i jobs in
         Fmt.pr "%a%!" Install.pp install
+    | `Files stage ->
+        let actions =
+          match stage with
+          | `Configure -> Engine.configure i (snd jobs)
+          | `Build -> Engine.build i (snd jobs)
+        in
+        let files = Fpath.Set.elements (Action.files_of actions) in
+        Fmt.pr "%a\n%!" Fmt.(list ~sep:(unit " ") Fpath.pp) files
 
   let build ~state i jobs =
     Log.info (fun m -> m "Building: %a" Fpath.pp state.config_file);

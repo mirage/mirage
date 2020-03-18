@@ -29,7 +29,7 @@ let list_files dir =
              | Some d -> Fpath.to_string d)
            l
 
-let root = Fpath.(v "test" / "functoria-e2e" / "app")
+let root = Fpath.(v "test" / "functoria" / "e2e" / "app")
 
 let config_ml = Fpath.(root / "config.ml")
 

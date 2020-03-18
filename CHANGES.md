@@ -1,7 +1,11 @@
+### v3.7.6 (2020-03-18)
+
+* fix conduit with 3.7.5 changes (#1086, @hannesm)
+
 ### v3.7.5 (2020-03-15)
 
 * use mirage-crypto (and mirage-crypto-entropy) instead of nocrypto, also
-  tls-mirage and up-to-date conduit
+  tls-mirage and up-to-date conduit (#1068, @hannesm)
 
 ### v3.7.4 (2019-12-20)
 

@@ -133,7 +133,8 @@ let conduit_mirage__53 = lazy (
   let __conduit_mirage__2 = Lazy.force conduit_mirage__2 in
   __conduit_mirage_with_tcp__79 >>= fun _conduit_mirage_with_tcp__79 ->
   __conduit_mirage__2 >>= fun _conduit_mirage__2 ->
-  Lwt.return Conduit_mirage.empty >>= _conduit_mirage__2 >>=
+  Lwt.return Conduit_mirage.empty >>= _conduit_mirage_with_tcp__79 >>=
+_conduit_mirage__2 >>=
 fun t -> Lwt.return t
   )
 

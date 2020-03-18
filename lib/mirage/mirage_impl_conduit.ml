@@ -8,14 +8,11 @@ let conduit = Type.v Conduit
 let conduit_with_connectors connectors =
   let packages = [ pkg ] in
   let extra_deps = List.map abstract connectors in
-  let connect _ _ = function
-    (* There is always at least the nocrypto device *)
-    | _nocrypto :: connectors ->
-        let pp_connector = Fmt.fmt "%s >>=@ " in
-        let pp_connectors = Fmt.list ~sep:Fmt.nop pp_connector in
-        Fmt.strf "Lwt.return Conduit_mirage.empty >>=@ %afun t -> Lwt.return t"
-          pp_connectors connectors
-    | [] -> failwith "The conduit with connectors expects at least one argument"
+  let connect _ _ connectors =
+    let pp_connector = Fmt.fmt "%s >>=@ " in
+    let pp_connectors = Fmt.list ~sep:Fmt.nop pp_connector in
+    Fmt.strf "Lwt.return Conduit_mirage.empty >>=@ %afun t -> Lwt.return t"
+      pp_connectors connectors
   in
   impl ~packages ~extra_deps ~connect "Conduit_mirage" conduit
 

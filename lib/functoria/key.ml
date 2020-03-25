@@ -220,7 +220,11 @@ module Set = struct
       else set
     else add k set
 
-  let pp = Fmt.iter ~sep:(Fmt.unit ",@ ") iter
+  let pp_gen = Fmt.iter ~sep:(Fmt.unit ",@ ") iter
+
+  let pp_elt fmt (Any k) = Fmt.string fmt k.name
+
+  let pp = pp_gen pp_elt
 end
 
 type t = Set.elt = Any : 'a key -> t
@@ -330,9 +334,9 @@ let default v = eval Context.empty v
 
 let dump_context = Context.dump
 
-let pp fmt k = Fmt.string fmt (name k)
+let pp = Set.pp_elt
 
-let pp_deps fmt v = Set.pp pp fmt v.deps
+let pp_deps fmt v = Set.pp fmt v.deps
 
 let pps p =
   let pp' fmt k v =
@@ -349,7 +353,7 @@ let pps p =
     | Arg.Flag, v -> pp' fmt k v
     (* Warning 4 and GADT don't interact well. *)
   in
-  fun ppf s -> Set.(pp f ppf @@ s)
+  fun ppf s -> Set.(pp_gen f ppf @@ s)
 
 (* {2 Automatic documentation} *)
 
@@ -358,9 +362,9 @@ let info_alias setters =
   match setters with
   | [] -> ""
   | [ _ ] ->
-      Fmt.strf "Will automatically set %a." (Set.pp f) (Alias.keys setters)
+      Fmt.strf "Will automatically set %a." (Set.pp_gen f) (Alias.keys setters)
   | _ ->
-      Fmt.strf "Will automatically set the following keys: %a." (Set.pp f)
+      Fmt.strf "Will automatically set the following keys: %a." (Set.pp_gen f)
         (Alias.keys setters)
 
 let info_arg (type a) (arg : a Arg.kind) =

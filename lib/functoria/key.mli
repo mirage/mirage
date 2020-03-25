@@ -269,7 +269,12 @@ val eval : context -> 'a value -> 'a
     necessary. *)
 
 val get : context -> 'a key -> 'a
-(** [get c k] is [k]'s value in [c]'s context. *)
+(** [get c k] is [k]'s value in [c]'s context. If [k] is not present in [c], it
+    is [k]'s default value.*)
+
+val find : context -> 'a key -> 'a option
+(** [find c k] is [k]'s value in [c]'s context or [None] if [k] is not present
+    in [c]. *)
 
 val pps : context -> Set.t Fmt.t
 (** [pps c fmt ks] prints the keys [ks] using the context [c] to get their

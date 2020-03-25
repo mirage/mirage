@@ -16,35 +16,37 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Rresult
-open Astring
+type 'a key = { name : string; put : 'a -> exn; get : exn -> 'a }
 
-let err_cmdliner ?(usage = false) = function
-  | Ok x -> `Ok x
-  | Error s -> `Error (usage, s)
+let new_key (type a) name =
+  let module M = struct
+    exception E of a
+  end in
+  let put a = M.E a in
+  let get = function
+    | M.E a -> a
+    | _ -> raise @@ Invalid_argument ("duplicate key: " ^ name)
+  in
+  { name; put; get }
 
-module type Monoid = sig
-  type t
+module Map = Map.Make (String)
 
-  val empty : t
+type t = exn Map.t
 
-  val union : t -> t -> t
-end
+let empty = Map.empty
 
-(* {Misc informations} *)
+let add k v (t : t) : t = Map.add k.name (k.put v) t
 
-module Name = struct
-  let ocamlify s =
-    let b = Buffer.create (String.length s) in
-    String.iter
-      (function
-        | ('a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_') as c ->
-            Buffer.add_char b c
-        | '-' | '.' -> Buffer.add_char b '_'
-        | _ -> ())
-      s;
-    let s' = Buffer.contents b in
-    if String.length s' = 0 || ('0' <= s'.[0] && s'.[0] <= '9') then
-      raise (Invalid_argument s);
-    s'
-end
+let mem k (t : t) = Map.mem k.name t
+
+let find k (t : t) =
+  if Map.mem k.name t then Some (k.get @@ Map.find k.name t) else None
+
+let dump : t Fmt.t =
+  let pp_elt ppf (k, v) = Fmt.pf ppf "[%s: %a]" k Fmt.exn v in
+  let map_iter f = Map.iter (fun k v -> f (k, v)) in
+  Fmt.box ~indent:2 @@ Fmt.(iter ~sep:(unit "@ ")) map_iter pp_elt
+
+let merge ~default m =
+  let aux _ _ v = Some v in
+  Map.union aux default m

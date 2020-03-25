@@ -585,7 +585,10 @@ module Make (P : S) = struct
     (* 3. Parse the command-line and handle the result. *)
     let configure =
       Config'.eval ~with_required:true ~partial:false base_context config
-    and describe =
+    in
+    let query = configure in
+
+    let describe =
       let context = Key.merge_context ~default:cached_context base_context in
       let partial =
         match full_eval with
@@ -594,17 +597,16 @@ module Make (P : S) = struct
         | None -> cache = None
       in
       Config'.eval ~with_required:false ~partial context config
-    and query =
-      Config'.eval ~with_required:true ~partial:false base_context config
-    and build =
+    in
+
+    let build =
       Config'.eval_cached ~partial:false cache cached_context config
       |> set_term_output cache
       |> run_term ~state
-    and clean =
-      Config'.eval_cached ~partial:false cache cached_context config
-      |> set_term_output cache
-      |> run_term ~state
-    and help =
+    in
+    let clean = build in
+
+    let help =
       let context = Key.merge_context ~default:cached_context base_context in
       let info = Config.eval ~partial:false context config in
       let keys = Key.deps info in

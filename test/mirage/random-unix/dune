@@ -1,7 +1,7 @@
 (executable
  (name test)
  (modules test)
- (libraries fmt mirage))
+ (libraries functoria.test fmt mirage))
 
 (rule
  (targets main.ml)
@@ -10,7 +10,7 @@
 
 (rule
  (alias runtest)
- (package functoria)
+ (package mirage)
  (action
   (progn
    (diff main.ml.expected main.ml))))

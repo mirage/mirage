@@ -136,6 +136,19 @@ module Arg = struct
   let required ?(stage = `Both) conv info =
     { stage; info; kind = Required conv }
 
+  let default (type a) (t : a t) =
+    match t.kind with Opt (d, _) -> d | Flag -> false | Required _ -> None
+
+  let eq conv x y =
+    let str = Fmt.to_to_string conv.serialize in
+    str x = str y
+
+  let is_default (type a) (t : a t) (v : a) =
+    match t.kind with
+    | Opt (d, c) -> eq c d v
+    | Flag -> v = false
+    | Required _ -> v = None
+
   let make_opt_cmdliner wrap i default f desc =
     let none =
       match default with
@@ -272,14 +285,9 @@ let merge_context = Univ.merge
 
 let add_to_context t = Univ.add t.key
 
-let get (type a) ctx (t : a key) : a =
-  match (t.arg.Arg.kind, Univ.find t.key ctx) with
-  | Arg.Required _, Some (Some x) -> Some x
-  | Arg.Required _, (None | Some None) -> None
-  | Arg.Flag, Some x -> x
-  | Arg.Opt _, Some x -> x
-  | Arg.Opt (d, _), None -> d
-  | Arg.Flag, None -> false
+let find (type a) ctx (t : a key) : a option = Univ.find t.key ctx
+
+let get ctx t = match find ctx t with Some x -> x | None -> Arg.default t.arg
 
 let mem_u ctx t = Univ.mem t.key ctx
 
@@ -393,7 +401,10 @@ let parse_key t = Arg.to_cmdliner t.arg
 
 let context ?(stage = `Both) ~with_required l =
   let gather (Any k) rest =
-    let f v p = Alias.apply v k.setters (Univ.add k.key v p) in
+    let f v p =
+      let p = if Arg.is_default k.arg v then p else Univ.add k.key v p in
+      Alias.apply v k.setters p
+    in
     Cmdliner.Term.(parse_key ~with_required k f $ rest)
   in
   Set.fold gather (filter_stage stage l) (Cmdliner.Term.pure empty_context)

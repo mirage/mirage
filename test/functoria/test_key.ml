@@ -49,18 +49,26 @@ exception Error
 
 let test_get () =
   let context =
-    eval (Key.context ~with_required:true) keys [ "-a"; "-c"; "foo" ]
+    eval (Key.context ~with_required:false) keys [ "-a"; "-c"; "foo" ]
   in
-  Alcotest.(check bool) "mem a" true (Key.get context key_a);
-  Alcotest.(check int) "mem b" 0 (Key.get context key_b);
-  Alcotest.(check (option string)) "mem c" (Some "foo") (Key.get context key_c);
+  Alcotest.(check bool) "get a" true (Key.get context key_a);
+  Alcotest.(check int) "get b" 0 (Key.get context key_b);
+  Alcotest.(check (option string)) "get c" (Some "foo") (Key.get context key_c);
 
   let context = eval (Key.context ~with_required:false) keys [ "-a" ] in
-  Alcotest.(check (option string)) "mem c" None (Key.get context key_c);
+  Alcotest.(check (option string))
+    "get c with_required:false" None (Key.get context key_c);
 
-  Alcotest.check_raises "exn with_required" Error (fun () ->
+  Alcotest.check_raises "get c with_required:true" Error (fun () ->
       try ignore (eval (Key.context ~with_required:true) keys [ "-a" ])
       with _ -> raise Error)
+
+let test_find () =
+  let context = eval (Key.context ~with_required:false) keys [] in
+  Alcotest.(check (option bool)) "find a" None (Key.find context key_a);
+  Alcotest.(check (option int)) "find b" None (Key.find context key_b);
+  Alcotest.(check (option (option string)))
+    "find c" None (Key.find context key_c)
 
 let test_merge () =
   let cache = (key_a, true) && (key_c, Some "foo") in
@@ -74,4 +82,9 @@ let test_merge () =
 let suite =
   List.map
     (fun (n, f) -> (n, `Quick, f))
-    [ ("eval", test_eval); ("get", test_get); ("merge", test_merge) ]
+    [
+      ("eval", test_eval);
+      ("get", test_get);
+      ("find", test_find);
+      ("merge", test_merge);
+    ]

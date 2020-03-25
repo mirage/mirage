@@ -81,8 +81,6 @@ module Config = struct
   let pp_dot = gen_pp Device_graph.pp_dot
 end
 
-let cache root = Fpath.(normalize @@ ((root / ".mirage") + "config"))
-
 module type S = sig
   val prelude : string
 
@@ -103,6 +101,8 @@ module Make (P : S) = struct
     config_file : Fpath.t;
     dry_run : bool;
   }
+
+  let cache root = Fpath.(normalize @@ (root / ("." ^ P.name ^ ".config")))
 
   let default_init = [ Job.keys Argv.sys_argv ]
 

@@ -81,87 +81,6 @@ module Config = struct
   let pp_dot = gen_pp Device_graph.pp_dot
 end
 
-(** Cached configuration in [.mirage.config]. Currently, we cache Sys.argv
-    directly *)
-module Cache : sig
-  open Cmdliner
-
-  val save : argv:string array -> Fpath.t -> unit Action.t
-
-  val clean : Fpath.t -> unit Action.t
-
-  val get_context : Fpath.t -> context Term.t -> context option Action.t
-
-  val get_output : Fpath.t -> string option Action.t
-
-  val require : context option -> context Term.ret
-
-  val merge : cache:context option -> context -> context
-
-  val present : context option -> bool
-end = struct
-  let filename root = Fpath.(normalize @@ ((root / ".mirage") + "config"))
-
-  let save ~argv root =
-    let file = filename root in
-    Log.info (fun m -> m "Preserving arguments in %a" Fpath.pp file);
-    let args = List.tl (Array.to_list argv) in
-    (* Only keep args *)
-    let args = List.map String.Ascii.escape args in
-    let args = String.concat ~sep:"\n" args in
-    Action.write_file file args
-
-  let clean root = Action.rm (filename root)
-
-  let read root =
-    Log.info (fun l -> l "reading cache");
-    Action.is_file (filename root) >>= function
-    | false -> Action.ok None
-    | true ->
-        Action.read_file (filename root) >|= fun args ->
-        let contents = Array.of_list @@ String.cuts ~sep:"\n" args in
-        let contents =
-          Array.map
-            (fun x ->
-              match String.Ascii.unescape x with
-              | Some s -> s
-              | None -> failwith "cannot parse cached context")
-            contents
-        in
-        Some contents
-
-  let get_context root context_args =
-    read root >>= function
-    | None -> Action.ok None
-    | Some argv -> (
-        match Cmdliner.Term.eval_peek_opts ~argv context_args with
-        | _, `Ok c -> Action.ok (Some c)
-        | _ ->
-            let msg =
-              "Invalid cached configuration. Please run configure again."
-            in
-            Action.error msg )
-
-  let get_output root =
-    get_context root Cli.output >|= function
-    | Some None -> None
-    | Some x -> x
-    | None -> None
-
-  let require cache : _ Cmdliner.Term.ret =
-    match cache with
-    | None ->
-        `Error (false, "Configuration is not available. Please run configure.")
-    | Some x -> `Ok x
-
-  let merge ~cache context =
-    match cache with
-    | None -> context
-    | Some default -> Key.merge_context ~default context
-
-  let present cache = match cache with None -> false | Some _ -> true
-end
-
 module type S = sig
   val prelude : string
 
@@ -182,6 +101,8 @@ module Make (P : S) = struct
     config_file : Fpath.t;
     dry_run : bool;
   }
+
+  let cache root = Fpath.(normalize @@ (root / ("." ^ P.name ^ ".config")))
 
   let default_init = [ Job.keys Argv.sys_argv ]
 
@@ -448,18 +369,15 @@ module Make (P : S) = struct
       let verbose = Logs.level () >= level in
       f "@[<v>%a@]" (Info.pp verbose) info
 
-    let eval_cached ~partial cached_context t =
-      let f c =
+    let eval_cached ~partial cache cached_context t =
+      let f c _ =
         let info = Config.eval ~partial c t in
         let keys = Key.deps info in
-        let term = Key.context ~stage:`Configure ~with_required:false keys in
-        Cache.get_context t.Config.build_dir term >|= function
-        | Some c -> Key.eval c info c
-        | None ->
-            let c = Key.empty_context in
-            Key.eval c info c
+        let context = Key.context ~stage:`Configure ~with_required:false keys in
+        Context_cache.eval cache context >|= fun c -> Key.eval c info c
       in
-      Cmdliner.Term.(pure f $ ret @@ pure @@ Cache.require cached_context)
+      Cmdliner.Term.(
+        pure f $ pure cached_context $ ret (pure (Context_cache.require cache)))
 
     let eval ~partial ~with_required context t =
       let info = Config.eval ~partial context t in
@@ -470,9 +388,9 @@ module Make (P : S) = struct
       Cmdliner.Term.(pure f $ context)
   end
 
-  let set_term_output config (term : 'a Action.t Cmdliner.Term.t) =
+  let set_term_output cache (term : 'a Action.t Cmdliner.Term.t) =
     let f term =
-      Cache.get_output config.Config.build_dir >>= function
+      Context_cache.eval_output cache >>= function
       | Some o -> term >|= fun (r, i) -> (r, Info.with_output i o)
       | _ -> term
     in
@@ -507,7 +425,7 @@ module Make (P : S) = struct
     Codegen.newline_main ();
     Codegen.append_main "let _ = Printexc.record_backtrace true";
     Codegen.newline_main ();
-    Cache.save ~argv (Fpath.v ".") >>= fun () ->
+    Context_cache.write (cache (Fpath.v ".")) argv >>= fun () ->
     Engine.configure i jobs >|= fun () ->
     Engine.connect i ~init jobs;
     Codegen.newline_main ()
@@ -582,7 +500,7 @@ module Make (P : S) = struct
       | true -> Action.rm file
     in
     clean_file Fpath.(v "dune-project") >>= fun () ->
-    Cache.clean (Info.build_dir i) >>= fun () ->
+    Action.rm (cache (Info.build_dir i)) >>= fun () ->
     ( match Sys.getenv "INSIDE_FUNCTORIA_TESTS" with
     | "1" -> Action.ok ()
     | exception Not_found -> Action.rmdir Fpath.(v "_build")
@@ -647,14 +565,14 @@ module Make (P : S) = struct
   let run_configure_with_argv argv config ~state =
     (*   whether to fully evaluate the graph *)
     let full_eval = Cli.read_full_eval argv in
-    (* Consider only the 'if' keys. *)
-    let if_term =
+    (* Consider only the non-required keys. *)
+    let non_required_term =
       let if_keys = Config.keys config in
       Key.context ~stage:`Configure ~with_required:false if_keys
     in
 
-    let context =
-      match Cmdliner.Term.eval_peek_opts ~argv if_term with
+    let base_context =
+      match Cmdliner.Term.eval_peek_opts ~argv non_required_term with
       | _, `Ok context -> context
       | _ -> Key.empty_context
     in
@@ -662,30 +580,34 @@ module Make (P : S) = struct
     (* this is a trim-down version of the cached context, with only
         the values corresponding to 'if' keys. This is useful to
         start reducing the config into something consistent. *)
-    Cache.get_context config.build_dir if_term >>= fun cached_context ->
+    Context_cache.read (cache config.build_dir) >>= fun cache ->
+    Context_cache.eval cache non_required_term >>= fun cached_context ->
     (* 3. Parse the command-line and handle the result. *)
     let configure =
-      Config'.eval ~with_required:true ~partial:false context config
-    and describe =
-      let context = Cache.merge ~cache:cached_context context in
+      Config'.eval ~with_required:true ~partial:false base_context config
+    in
+    let query = configure in
+
+    let describe =
+      let context = Key.merge_context ~default:cached_context base_context in
       let partial =
         match full_eval with
         | Some true -> false
         | Some false -> true
-        | None -> not (Cache.present cached_context)
+        | None -> cache = None
       in
       Config'.eval ~with_required:false ~partial context config
-    and query = Config'.eval ~with_required:true ~partial:false context config
-    and build =
-      Config'.eval_cached ~partial:false cached_context config
-      |> set_term_output config
+    in
+
+    let build =
+      Config'.eval_cached ~partial:false cache cached_context config
+      |> set_term_output cache
       |> run_term ~state
-    and clean =
-      Config'.eval_cached ~partial:false cached_context config
-      |> set_term_output config
-      |> run_term ~state
-    and help =
-      let context = Cache.merge ~cache:cached_context context in
+    in
+    let clean = build in
+
+    let help =
+      let context = Key.merge_context ~default:cached_context base_context in
       let info = Config.eval ~partial:false context config in
       let keys = Key.deps info in
       Key.context ~stage:`Configure ~with_required:false keys

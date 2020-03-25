@@ -1,3 +1,5 @@
+(* Geneated by functoria_test *)
+
 let (>>=) x f = f x
 let return x = x
 let run x = x

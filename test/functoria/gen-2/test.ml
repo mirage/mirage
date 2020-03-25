@@ -1,31 +1,4 @@
 open Functoria
-open Action.Infix
-
-(* yiikes *)
-let () =
-  Codegen.set_main_ml "main.ml";
-  Codegen.append_main "let (>>=) x f = f x";
-  Codegen.append_main "let return x = x";
-  Codegen.append_main "let run x = x";
-  Codegen.newline_main ()
-
-let i1 = Functoria.(keys sys_argv)
-
-let i2 = Functoria.noop
-
-let test_device context device =
-  let t = Graph.create device in
-  let t = Graph.normalize t in
-  let keys = Key.Set.elements (Engine.all_keys t) in
-  let packages = Key.eval context (Engine.packages t) in
-  let info =
-    Functoria.Info.v ~packages ~context ~keys
-      ~build_dir:Fpath.(v ".")
-      ~build_cmd:[ "build"; "me" ] ~src:`None "foo"
-  in
-  Engine.configure info t >>= fun () ->
-  Engine.connect info ~init:[ i1; i2 ] t;
-  Engine.build info t
 
 let opam_list =
   [
@@ -51,16 +24,17 @@ let key =
   Key.(create "hello" Arg.(opt string "Hello World!" doc))
 
 let test () =
+  let i1 = keys sys_argv in
+  let i2 = noop in
   let context = Key.empty_context in
-  let sigs = Functoria.(job @-> job @-> info @-> job) in
-  let keys =
-    Functoria.(
-      main ~keys:[ Key.abstract key ] "App.Make" sigs
-      $ i1
-      $ i2
-      $ app_info ~opam_list ())
+  let sigs = job @-> job @-> info @-> job in
+  let job =
+    main ~keys:[ Key.abstract key ] "App.Make" sigs
+    $ i1
+    $ i2
+    $ app_info ~opam_list ()
   in
-  test_device context keys
+  Functoria_test.run ~init:[ i1; i2 ] context job
 
 let () =
   match Action.run (test ()) with Ok () -> () | Error (`Msg e) -> failwith e

@@ -1,27 +1,4 @@
 open Functoria
-open Action.Infix
-
-(* yiikes *)
-let () =
-  Codegen.set_main_ml "main.ml";
-  Codegen.append_main "let (>>=) x f = f x";
-  Codegen.append_main "let return x = x";
-  Codegen.append_main "let run x = x";
-  Codegen.newline_main ()
-
-let test_device context device =
-  let t = Graph.create device in
-  let t = Graph.normalize t in
-  let keys = Key.Set.elements (Engine.all_keys t) in
-  let packages = Key.eval context (Engine.packages t) in
-  let info =
-    Functoria.Info.v ~packages ~context ~keys
-      ~build_dir:Fpath.(v ".")
-      ~build_cmd:[ "build"; "me" ] ~src:`None "foo"
-  in
-  Engine.configure info t >>= fun () ->
-  Engine.connect info t;
-  Engine.build info t
 
 let opam_list =
   [
@@ -44,11 +21,9 @@ let opam_list =
 
 let test () =
   let context = Key.empty_context in
-  let sigs = Functoria.(job @-> info @-> job) in
-  let keys =
-    Functoria.(main "App.Make" sigs $ keys sys_argv $ app_info ~opam_list ())
-  in
-  test_device context keys
+  let sigs = job @-> info @-> job in
+  let job = main "App.Make" sigs $ keys sys_argv $ app_info ~opam_list () in
+  Functoria_test.run context job
 
 let () =
   match Action.run (test ()) with Ok () -> () | Error (`Msg e) -> failwith e

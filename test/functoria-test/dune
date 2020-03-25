@@ -1,0 +1,4 @@
+(library
+ (name functoria_test)
+ (public_name functoria.test)
+ (libraries functoria))

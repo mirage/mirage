@@ -108,10 +108,7 @@ module Arg = struct
 
   (** {1 Arguments} *)
 
-  type 'a kind =
-    | Opt : 'a * 'a converter -> 'a kind
-    | Required : 'a converter -> 'a option kind
-    | Flag : bool kind
+  type 'a kind = Opt : 'a * 'a converter -> 'a kind | Flag : bool kind
 
   type stage = [ `Configure | `Run | `Both ]
 
@@ -119,7 +116,6 @@ module Arg = struct
 
   let pp_kind : type a. a kind -> a Fmt.t = function
     | Opt (_, c) -> pp_conv c
-    | Required c -> pp_conv (some c)
     | Flag -> Fmt.bool
 
   type 'a t = { stage : stage; info : info; kind : 'a kind }
@@ -133,9 +129,6 @@ module Arg = struct
 
   let flag ?(stage = `Both) info = { stage; info; kind = Flag }
 
-  let required ?(stage = `Both) conv info =
-    { stage; info; kind = Required conv }
-
   let make_opt_cmdliner wrap i default f desc =
     let none =
       match default with
@@ -146,22 +139,17 @@ module Arg = struct
     Cmdliner.Term.(app @@ pure f_desc)
       Cmdliner.Arg.(wrap @@ opt (some ?none @@ converter desc) None i)
 
-  let to_cmdliner ~with_required (type a) (t : a t) (f : a -> _) =
+  let to_cmdliner (type a) (t : a t) (f : a -> _) =
     let i = cmdliner_of_info t.info in
     match t.kind with
     | Flag -> Cmdliner.Term.(app @@ pure f) Cmdliner.Arg.(value @@ flag i)
     | Opt (default, desc) ->
         make_opt_cmdliner Cmdliner.Arg.value i (Some default) f desc
-    | Required desc when with_required && t.stage = `Configure ->
-        make_opt_cmdliner Cmdliner.Arg.required i None f (some (some desc))
-    | Required desc -> make_opt_cmdliner Cmdliner.Arg.value i None f (some desc)
 
   let serialize_value (type a) (v : a) ppf (t : a t) =
     match t.kind with
     | Flag -> (serialize bool) ppf v
     | Opt (_, c) -> (serialize c) ppf v
-    | Required c -> (
-        match v with Some v -> (serialize c) ppf v | None -> assert false )
 
   (* This is only called by serialize_ro, hence a configure time
            key, so the value is known. *)
@@ -173,10 +161,6 @@ module Arg = struct
     | Opt (_, c) ->
         Fmt.pf ppf "Functoria_runtime.Arg.opt %s %a %a" (runtime_conv c)
           (serialize c) v serialize_info t.info
-    | Required c ->
-        Fmt.pf ppf "Functoria_runtime.Arg.key ?default:(%a) %s %a"
-          (serialize @@ some c)
-          v (runtime_conv c) serialize_info t.info
 end
 
 type 'a key = {
@@ -274,8 +258,6 @@ let add_to_context t = Univ.add t.key
 
 let get (type a) ctx (t : a key) : a =
   match (t.arg.Arg.kind, Univ.find t.key ctx) with
-  | Arg.Required _, Some (Some x) -> Some x
-  | Arg.Required _, (None | Some None) -> None
   | Arg.Flag, Some x -> x
   | Arg.Opt _, Some x -> x
   | Arg.Opt (d, _), None -> d
@@ -335,11 +317,8 @@ let pps p =
   in
   let f fmt (Any k) =
     match (k.arg.Arg.kind, get p k) with
-    | Arg.Required _, None -> Fmt.(styled `Bold string) fmt k.name
     | Arg.Opt _, v -> pp' fmt k v
-    | Arg.Required _, v -> pp' fmt k v
     | Arg.Flag, v -> pp' fmt k v
-    (* Warning 4 and GADT don't interact well. *)
   in
   fun ppf s -> Set.(pp f ppf @@ s)
 
@@ -356,10 +335,7 @@ let info_alias setters =
         (Alias.keys setters)
 
 let info_arg (type a) (arg : a Arg.kind) =
-  match arg with
-  | Arg.Required _ -> "This key is required."
-  | Arg.Flag -> ""
-  | Arg.Opt _ -> ""
+  match arg with Arg.Flag -> "" | Arg.Opt _ -> ""
 
 let add_extra_info setters arg =
   match arg.Arg.info.doc with
@@ -391,10 +367,10 @@ let create name arg =
 
 let parse_key t = Arg.to_cmdliner t.arg
 
-let context ?(stage = `Both) ~with_required l =
+let context ?(stage = `Both) l =
   let gather (Any k) rest =
     let f v p = Alias.apply v k.setters (Univ.add k.key v p) in
-    Cmdliner.Term.(parse_key ~with_required k f $ rest)
+    Cmdliner.Term.(parse_key k f $ rest)
   in
   Set.fold gather (filter_stage stage l) (Cmdliner.Term.pure empty_context)
 

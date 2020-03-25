@@ -2,9 +2,7 @@ open Mirage
 
 let context_singleton key value =
   let info = Cmdliner.Term.info "" in
-  let term =
-    Key.context ~with_required:false (Key.Set.singleton @@ Key.abstract key)
-  in
+  let term = Key.context (Key.Set.singleton @@ Key.abstract key) in
   let argv = [| "mirage"; "--target"; value |] in
   match Cmdliner.Term.eval ~argv (term, info) with
   | `Ok x -> x

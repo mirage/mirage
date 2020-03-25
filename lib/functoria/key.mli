@@ -106,12 +106,6 @@ module Arg : sig
       Cmdliner.Arg.opt} but for cross-stage optional command-line arguments. If
       not set, [stage] is [`Both]. *)
 
-  val required : ?stage:stage -> 'a converter -> info -> 'a option t
-  (** [required conv i] is similar to
-      {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#VALrequired}
-      Cmdliner.Arg.required} but for cross-stage required command-line
-      arguments. If not set, [stage] is [`Both]. *)
-
   val flag : ?stage:stage -> info -> bool t
   (** [flag i] is similar to
       {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#VALflag}
@@ -251,12 +245,10 @@ val merge_context : default:context -> context -> context
 val add_to_context : 'a key -> 'a -> context -> context
 (** Add a binding to a context. *)
 
-val context :
-  ?stage:Arg.stage -> with_required:bool -> Set.t -> context Cmdliner.Term.t
-(** [context ~with_required ks] is a [Cmdliner]
+val context : ?stage:Arg.stage -> Set.t -> context Cmdliner.Term.t
+(** [context ks] is a [Cmdliner]
     {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Term.html#TYPt} term}
-    that evaluates into a parsing context for command-line arguments. If
-    [with_required] is false, it will only produce optional keys. *)
+    that evaluates into a parsing context for command-line arguments. *)
 
 val mem : context -> 'a value -> bool
 (** [mem c v] is [true] iff all the dependencies of [v] have been evaluated. *)

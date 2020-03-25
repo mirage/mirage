@@ -397,9 +397,7 @@ module Make (P : S) = struct
   let handle_parse_args_no_config ?help_ppf ?err_ppf (`Msg error) argv =
     let open Cmdliner in
     let base_keys = Config.extract_keys (P.create []) in
-    let base_context =
-      Key.context base_keys ~with_required:false ~stage:`Configure
-    in
+    let base_context = Key.context base_keys ~stage:`Configure in
     let niet = Term.pure (Action.ok ()) in
     let result =
       Cli.parse_args ?help_ppf ?err_ppf ~name:P.name ~version:P.version
@@ -452,7 +450,7 @@ module Make (P : S) = struct
       let f c =
         let info = Config.eval ~partial c t in
         let keys = Key.deps info in
-        let term = Key.context ~stage:`Configure ~with_required:false keys in
+        let term = Key.context ~stage:`Configure keys in
         Cache.get_context t.Config.build_dir term >|= function
         | Some c -> Key.eval c info c
         | None ->
@@ -461,11 +459,9 @@ module Make (P : S) = struct
       in
       Cmdliner.Term.(pure f $ ret @@ pure @@ Cache.require cached_context)
 
-    let eval ~partial ~with_required context t =
+    let eval ~partial context t =
       let info = Config.eval ~partial context t in
-      let context =
-        Key.context ~with_required ~stage:`Configure (Key.deps info)
-      in
+      let context = Key.context ~stage:`Configure (Key.deps info) in
       let f map = Key.eval map info map in
       Cmdliner.Term.(pure f $ context)
   end
@@ -650,7 +646,7 @@ module Make (P : S) = struct
     (* Consider only the 'if' keys. *)
     let if_term =
       let if_keys = Config.keys config in
-      Key.context ~stage:`Configure ~with_required:false if_keys
+      Key.context ~stage:`Configure if_keys
     in
 
     let context =
@@ -664,9 +660,9 @@ module Make (P : S) = struct
         start reducing the config into something consistent. *)
     Cache.get_context config.build_dir if_term >>= fun cached_context ->
     (* 3. Parse the command-line and handle the result. *)
-    let configure =
-      Config'.eval ~with_required:true ~partial:false context config
-    and describe =
+    let configure = Config'.eval ~partial:false context config in
+    let query = configure in
+    let describe =
       let context = Cache.merge ~cache:cached_context context in
       let partial =
         match full_eval with
@@ -674,21 +670,19 @@ module Make (P : S) = struct
         | Some false -> true
         | None -> not (Cache.present cached_context)
       in
-      Config'.eval ~with_required:false ~partial context config
-    and query = Config'.eval ~with_required:true ~partial:false context config
-    and build =
+      Config'.eval ~partial context config
+    in
+    let build =
       Config'.eval_cached ~partial:false cached_context config
       |> set_term_output config
       |> run_term ~state
-    and clean =
-      Config'.eval_cached ~partial:false cached_context config
-      |> set_term_output config
-      |> run_term ~state
-    and help =
+    in
+    let clean = build in
+    let help =
       let context = Cache.merge ~cache:cached_context context in
       let info = Config.eval ~partial:false context config in
       let keys = Key.deps info in
-      Key.context ~stage:`Configure ~with_required:false keys
+      Key.context ~stage:`Configure keys
     in
     handle_parse_args_result argv ~state
       (Cli.parse_args ~name:P.name ~version:P.version ~configure ~query

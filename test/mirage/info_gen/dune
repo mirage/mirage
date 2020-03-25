@@ -1,7 +1,7 @@
 (executable
  (name test)
  (modules test)
- (libraries fmt mirage))
+ (libraries functoria.test fmt mirage))
 
 (rule
  (targets key_gen.ml info_gen.ml main.ml)
@@ -10,9 +10,18 @@
 
 (rule
  (alias runtest)
- (package functoria)
+ (package mirage)
  (action
-  (progn
-   (diff key_gen.ml.expected key_gen.ml)
-   (diff info_gen.ml.expected info_gen.ml)
-   (diff main.ml.expected main.ml))))
+  (diff key_gen.ml.expected key_gen.ml)))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff info_gen.ml.expected info_gen.ml)))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff main.ml.expected main.ml)))

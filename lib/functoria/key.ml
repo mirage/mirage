@@ -195,7 +195,7 @@ end
 type 'a key = {
   name : string;
   arg : 'a Arg.t;
-  key : 'a Univ.key;
+  key : 'a Context.key;
   setters : 'a setter list;
 }
 
@@ -246,7 +246,7 @@ module Alias = struct
   let apply_one v map (Setter (k, f)) =
     match f v with
     | None -> map
-    | Some v -> if Univ.mem k.key map then map else Univ.add k.key v map
+    | Some v -> if Context.mem k.key map then map else Context.add k.key v map
 
   let apply v l map = List.fold_left (apply_one v) map l
 
@@ -277,19 +277,19 @@ let filter_stage stage s =
 
 (* Key Map *)
 
-type context = Univ.t
+type context = Context.t
 
-let empty_context = Univ.empty
+let empty_context = Context.empty
 
-let merge_context = Univ.merge
+let merge_context = Context.merge
 
-let add_to_context t = Univ.add t.key
+let add_to_context t = Context.add t.key
 
-let find (type a) ctx (t : a key) : a option = Univ.find t.key ctx
+let find (type a) ctx (t : a key) : a option = Context.find t.key ctx
 
 let get ctx t = match find ctx t with Some x -> x | None -> Arg.default t.arg
 
-let mem_u ctx t = Univ.mem t.key ctx
+let mem_u ctx t = Context.mem t.key ctx
 
 (* {2 Values} *)
 
@@ -324,11 +324,11 @@ let mem p v = Set.for_all (fun (Any x) -> mem_u p x) v.deps
 
 let peek p v = if mem p v then Some (eval p v) else None
 
-let default v = eval Univ.empty v
+let default v = eval Context.empty v
 
 (* {2 Pretty printing} *)
 
-let dump_context = Univ.dump
+let dump_context = Context.dump
 
 let pp fmt k = Fmt.string fmt (name k)
 
@@ -382,7 +382,7 @@ let add_extra_info setters arg =
 
 (* Unexposed smart constructor. *)
 let make ~setters ~arg ~name =
-  let key = Univ.new_key name in
+  let key = Context.new_key name in
   let arg = add_extra_info setters arg in
   { setters; arg; name; key }
 
@@ -402,7 +402,7 @@ let parse_key t = Arg.to_cmdliner t.arg
 let context ?(stage = `Both) ~with_required l =
   let gather (Any k) rest =
     let f v p =
-      let p = if Arg.is_default k.arg v then p else Univ.add k.key v p in
+      let p = if Arg.is_default k.arg v then p else Context.add k.key v p in
       Alias.apply v k.setters p
     in
     Cmdliner.Term.(parse_key ~with_required k f $ rest)

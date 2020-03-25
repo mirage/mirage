@@ -16,35 +16,35 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Rresult
-open Astring
+(** Universal map of keys *)
 
-let err_cmdliner ?(usage = false) = function
-  | Ok x -> `Ok x
-  | Error s -> `Error (usage, s)
+type 'a key
+(** The type for keys. *)
 
-module type Monoid = sig
-  type t
+val new_key : string -> 'a key
+(** [new_key n] is a new key with name [k]. *)
 
-  val empty : t
+type t
+(** The type for context maps. *)
 
-  val union : t -> t -> t
-end
+val empty : t
+(** [empty] is the empty context. *)
 
-(* {Misc informations} *)
+val add : 'a key -> 'a -> t -> t
+(** [add k v t] is [t] augmented with the binding [(k, v)]. Any previous binding
+    of [k] is removed. *)
 
-module Name = struct
-  let ocamlify s =
-    let b = Buffer.create (String.length s) in
-    String.iter
-      (function
-        | ('a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_') as c ->
-            Buffer.add_char b c
-        | '-' | '.' -> Buffer.add_char b '_'
-        | _ -> ())
-      s;
-    let s' = Buffer.contents b in
-    if String.length s' = 0 || ('0' <= s'.[0] && s'.[0] <= '9') then
-      raise (Invalid_argument s);
-    s'
-end
+val mem : 'a key -> t -> bool
+(** [mem k t] is true iff [k] has been added to [t]. *)
+
+val find : 'a key -> t -> 'a option
+(** [find k t] is [v] is the binding [(k, v)] has been added to [t], otherwise
+    it is [None]. *)
+
+val merge : default:t -> t -> t
+(** [merge ~default t] merges [t] on top of [default]. If a key appears in both
+    [default] and [t], the value present in [t] is kept if if is not the default
+    value. *)
+
+val dump : t Fmt.t
+(** [dump] dumps the state of [t]. *)

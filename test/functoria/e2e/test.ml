@@ -134,7 +134,8 @@ let test_configure () =
   let test_config root cfg =
     F0.run_with_argv (Array.of_list cfg);
     let expected =
-      String.concat ~sep:"\n" @@ List.map String.Ascii.escape (List.tl cfg)
+      (String.concat ~sep:"\n" @@ List.map String.Ascii.escape (List.tl cfg))
+      ^ "\n"
     in
     let got = get_ok @@ Bos.OS.File.read Fpath.(v root / ".mirage.config") in
     Alcotest.(check string)

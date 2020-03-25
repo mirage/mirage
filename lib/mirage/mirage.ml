@@ -340,15 +340,7 @@ module Project = struct
     Install.v ~bin:[ bin ~name k ] ~etc:(etc ~name k) ()
 
   let create jobs =
-    let keys =
-      Key.
-        [
-          abstract target;
-          abstract warn_error;
-          abstract target_debug;
-          abstract no_depext;
-        ]
-    in
+    let keys = Key.[ v target; v warn_error; v target_debug; v no_depext ] in
     let packages_v =
       (* XXX: use %%VERSION_NUM%% here instead of hardcoding a version? *)
       let min = "3.7.0" and max = "3.8.0" in

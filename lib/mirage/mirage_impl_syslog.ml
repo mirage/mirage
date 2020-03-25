@@ -39,7 +39,7 @@ let syslog_udp_conf config =
   let port = Key.syslog_port config.port in
   let hostname = Key.syslog_hostname config.hostname in
   let packages = pkg [ "mirage" ] in
-  let keys = Key.[ abstract endpoint; abstract hostname; abstract port ] in
+  let keys = Key.[ v endpoint; v hostname; v port ] in
   let connect _i modname = function
     | [ console; pclock; stack ] ->
         Fmt.strf
@@ -63,7 +63,7 @@ let syslog_tcp_conf config =
   let port = Key.syslog_port config.port in
   let hostname = Key.syslog_hostname config.hostname in
   let packages = pkg [ "mirage" ] in
-  let keys = Key.[ abstract endpoint; abstract hostname; abstract port ] in
+  let keys = Key.[ v endpoint; v hostname; v port ] in
   let connect _i modname = function
     | [ console; pclock; stack ] ->
         Fmt.strf
@@ -87,7 +87,7 @@ let syslog_tls_conf ?keyname config =
   let port = Key.syslog_port config.port in
   let hostname = Key.syslog_hostname config.hostname in
   let packages = pkg [ "mirage"; "mirage.tls" ] in
-  let keys = Key.[ abstract endpoint; abstract hostname; abstract port ] in
+  let keys = Key.[ v endpoint; v hostname; v port ] in
   let connect _i modname = function
     | [ console; pclock; stack; kv ] ->
         Fmt.strf

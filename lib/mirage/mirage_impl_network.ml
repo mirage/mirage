@@ -8,7 +8,7 @@ let network = Type.v NETWORK
 let all_networks = ref []
 
 let network_conf (intf : string Key.key) =
-  let key = Key.abstract intf in
+  let key = Key.v intf in
   let keys = [ key ] in
   let packages_v =
     Key.match_ Key.(value target) @@ function

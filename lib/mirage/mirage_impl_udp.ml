@@ -28,7 +28,7 @@ let udp_direct_func () =
 let direct_udp ?(random = default_random) ip = udp_direct_func () $ ip $ random
 
 let udpv4_socket_conf ipv4_key =
-  let keys = [ Key.abstract ipv4_key ] in
+  let keys = [ Key.v ipv4_key ] in
   let packages_v = right_tcpip_library ~sublibs:[ "udpv4-socket" ] "tcpip" in
   let configure i =
     match get_target i with

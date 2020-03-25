@@ -257,7 +257,9 @@ module Alias = struct
   let keys l = Set.of_list @@ List.map (fun (Setter (k, _)) -> Any k) l
 end
 
-let abstract x = Any x
+let v x = Any x
+
+let abstract = v
 
 let arg k = k.arg
 

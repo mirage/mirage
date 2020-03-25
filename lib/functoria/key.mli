@@ -170,8 +170,12 @@ type t
 val name : t -> string
 (** [name t] is the string given as [t]'s name when [t] was created. *)
 
+val v : 'a key -> t
+(** [v k] is the [k] with its type hidden. *)
+
 val abstract : 'a key -> t
-(** [hide k] is the [k] with its type hidden. *)
+  [@@ocaml.deprecated "Use Functoria.Key.v."]
+(** Deprecated, use {!v}. *)
 
 val equal : t -> t -> bool
 (** [equa] is the equality function of untyped keys. *)

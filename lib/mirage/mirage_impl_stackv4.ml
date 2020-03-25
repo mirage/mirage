@@ -70,7 +70,7 @@ let qubes_ipv4_stack ?(qubesdb = default_qubesdb) ?(arp = arp ?time:None) tap =
   direct_stackv4 tap e a i
 
 let stackv4_socket_conf ips =
-  let keys = [ Key.abstract ips ] in
+  let keys = [ Key.v ips ] in
   let packages_v = right_tcpip_library ~sublibs:[ "stack-socket" ] "tcpip" in
   let extra_deps =
     [ abstract (socket_udpv4 None); abstract (socket_tcpv4 None) ]

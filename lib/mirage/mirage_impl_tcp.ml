@@ -33,7 +33,7 @@ let direct_tcp ?(clock = default_monotonic_clock) ?(random = default_random)
   tcp_direct_func () $ ip $ time $ clock $ random
 
 let tcpv4_socket_conf ipv4_key =
-  let keys = [ Key.abstract ipv4_key ] in
+  let keys = [ Key.v ipv4_key ] in
   let packages_v = right_tcpip_library ~sublibs:[ "tcpv4-socket" ] "tcpip" in
   let configure i =
     match get_target i with

@@ -40,7 +40,7 @@ val configure : Info.t -> t -> unit Action.t
     implementations appearing in [t], in topological order. Use the build
     information [i]. *)
 
-val connect : ?init:'a Impl.t list -> Info.t -> t -> unit
+val connect : ?init:'a Impl.t list -> Info.t -> t -> unit Action.t
 (** [connect ?init i t] generates the [connect] functions in [main.ml], for each
     of the implementations appearing [t], in topological order. Use build
     information [i]. *)

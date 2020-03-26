@@ -19,19 +19,3 @@
 (** Basic helpers to generate code. *)
 
 val generated_header : ?argv:string array -> unit -> string
-
-val append :
-  Format.formatter ->
-  ('a, Format.formatter, unit, unit, unit, unit) format6 ->
-  'a
-
-val newline : Format.formatter -> unit
-
-val set_main_ml : string -> unit
-(** Define the current main file. *)
-
-val append_main : ('a, Format.formatter, unit, unit, unit, unit) format6 -> 'a
-(** Add some string to [main.ml]. *)
-
-val newline_main : unit -> unit
-(** Add a newline to [main.ml]. *)

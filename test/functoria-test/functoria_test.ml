@@ -1,14 +1,15 @@
 open Functoria
 open Action.Infix
 
-let prelude () =
-  Codegen.set_main_ml "main.ml";
-  Codegen.append_main
+let prelude i =
+  Action.with_output ~path:(Info.main i) ~purpose:"init tests" @@ fun ppf ->
+  Fmt.pf ppf
     {|(* Geneated by functoria_test *)
 
 let (>>=) x f = f x
 let return x = x
 let run x = x
+
 |}
 
 let run ?(keys = []) ?init context device =
@@ -20,7 +21,6 @@ let run ?(keys = []) ?init context device =
     Functoria.Info.v ~packages ~context ~keys ~build_cmd:[ "build"; "me" ]
       ~build_dir:(Fpath.v ".") ~src:`None "foo"
   in
-  prelude ();
+  prelude info >>= fun () ->
   Engine.configure info t >>= fun () ->
-  Engine.connect ?init info t;
-  Engine.build info t
+  Engine.connect ?init info t >>= fun () -> Engine.build info t

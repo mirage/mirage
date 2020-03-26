@@ -24,16 +24,15 @@ let generate_manifest_json () =
   in
   let devices = List.map to_string (networks @ blocks) in
   let s = String.concat ~sep:", " devices in
-  let open Codegen in
   Action.with_output ~path:solo5_manifest_path
     ~purpose:"Solo5 application manifest file" (fun fmt ->
-      append fmt
-        {json|{
+      Fmt.pf fmt
+        {|{
   "type": "solo5.manifest",
   "version": 1,
   "devices": [ %s ]
 }
-|json}
+|}
         s)
 
 let generate_manifest_c () =

@@ -415,20 +415,16 @@ module Make (P : S) = struct
   let with_output i = function None -> i | Some o -> Info.with_output i o
 
   let configure_main ~argv i (init, jobs) : unit Action.t =
-    let main = match Info.output i with None -> "main" | Some f -> f in
-    let file = main ^ ".ml" in
-    Log.info (fun m -> m "Generating: %s" file);
-    Codegen.set_main_ml file;
-    Codegen.append_main "(* %s *)" (Codegen.generated_header ());
-    Codegen.newline_main ();
-    Codegen.append_main "%a" Fmt.text P.prelude;
-    Codegen.newline_main ();
-    Codegen.append_main "let _ = Printexc.record_backtrace true";
-    Codegen.newline_main ();
+    let main = Info.main i in
+    let purpose = Fmt.strf "configure: create %a" Fpath.pp main in
+    Log.info (fun m -> m "Generating: %a" Fpath.pp main);
+    Action.with_output ~path:main ~append:false ~purpose (fun ppf ->
+        Fmt.pf ppf "(* %s *)@.@." (Codegen.generated_header ());
+        Fmt.pf ppf "%a@.@." Fmt.text P.prelude;
+        Fmt.pf ppf "let _ = Printexc.record_backtrace true@.@.")
+    >>= fun () ->
     Context_cache.write (cache (Fpath.v ".")) argv >>= fun () ->
-    Engine.configure i jobs >|= fun () ->
-    Engine.connect i ~init jobs;
-    Codegen.newline_main ()
+    Engine.configure i jobs >>= fun () -> Engine.connect i ~init jobs
 
   let clean_main i jobs =
     Engine.clean i jobs >>= fun () -> Action.rm Fpath.(v "main.ml")
@@ -468,7 +464,11 @@ module Make (P : S) = struct
     (* Generate main.ml, *_gen.ml in the build dir *)
     Action.with_dir (Info.build_dir i) (fun () -> configure_main ~argv i jobs)
 
-  let query i (t : Cli.query_kind) jobs =
+  let build ~state i jobs =
+    Log.info (fun m -> m "Building: %a" Fpath.pp state.config_file);
+    Action.with_dir (Info.build_dir i) (fun () -> Engine.build i jobs)
+
+  let query ~state ~argv i (t : Cli.query_kind) jobs =
     match t with
     | `Packages ->
         let pkgs = Info.packages i in
@@ -482,15 +482,11 @@ module Make (P : S) = struct
     | `Files stage ->
         let actions =
           match stage with
-          | `Configure -> Engine.configure i (snd jobs)
-          | `Build -> Engine.build i (snd jobs)
+          | `Configure -> configure ~state ~argv i jobs
+          | `Build -> build ~state i (snd jobs)
         in
         let files = Fpath.Set.elements (Action.generated_files actions) in
         Fmt.pr "%a\n%!" Fmt.(list ~sep:(unit " ") Fpath.pp) files
-
-  let build ~state i jobs =
-    Log.info (fun m -> m "Building: %a" Fpath.pp state.config_file);
-    Action.with_dir (Info.build_dir i) (fun () -> Engine.build i jobs)
 
   let clean ~state i (_init, job) =
     Log.info (fun m -> m "Cleaning: %a" Fpath.pp state.config_file);
@@ -534,7 +530,7 @@ module Make (P : S) = struct
             build ~state info jobs >>= ok
         | Cli.Query { result = jobs, info; kind } ->
             Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
-            query info kind jobs;
+            query ~state ~argv info kind jobs;
             ok ()
         | Cli.Describe { result = jobs, info; dotcmd; dot; output } ->
             Config'.pp_info Fmt.(pf stdout) (Some Logs.Info) info;

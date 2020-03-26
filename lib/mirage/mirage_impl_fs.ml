@@ -22,8 +22,7 @@ let fat_conf =
 let fat block = fat_conf $ block
 
 let fat_shell_script fmt ~block_file ~root ~dir ~regexp =
-  let open Codegen in
-  append fmt
+  Fmt.pf fmt
     {|#!/bin/sh
 
 echo This uses the 'fat' command-line tool to build a simple FAT
@@ -42,7 +41,8 @@ cd %a
 SIZE=$(du -s . | cut -f 1)
 ${FAT} create ${IMG} ${SIZE}KiB
 ${FAT} add ${IMG} %s
-echo Created '%s'|}
+echo Created '%s'
+|}
     block_file Fpath.pp (Fpath.append root dir) regexp block_file
 
 let count =

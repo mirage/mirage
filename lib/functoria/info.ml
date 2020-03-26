@@ -30,6 +30,10 @@ type t = {
 
 let name t = t.name
 
+let main t =
+  let main = match t.output with None -> "main" | Some f -> f in
+  Fpath.v (main ^ ".ml")
+
 let opam t = t.opam
 
 let build_dir t = t.build_dir

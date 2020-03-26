@@ -32,21 +32,19 @@ let noop = Impl.v "Unit" t
 module Keys = struct
   let configure ~file i =
     Log.info (fun m -> m "Generating: %a" Fpath.pp file);
-    Action.with_output ~path:file ~purpose:"key_gen file" (fun fmt ->
-        Codegen.append fmt "(* %s *)" (Codegen.generated_header ());
-        Codegen.newline fmt;
+    Action.with_output ~path:file ~purpose:"key_gen file" (fun ppf ->
+        Fmt.pf ppf "(* %s *)@.@." (Codegen.generated_header ());
         let keys = Key.Set.of_list @@ Info.keys i in
         let pp_var k = Key.serialize (Info.context i) k in
-        Fmt.pf fmt "@[<v>%a@]@." (Fmt.iter Key.Set.iter pp_var) keys;
+        Fmt.pf ppf "@[<v>%a@]@." (Fmt.iter Key.Set.iter pp_var) keys;
         let runvars = Key.Set.elements (Key.filter_stage `Run keys) in
         let pp_runvar ppf v = Fmt.pf ppf "%s_t" (Key.ocaml_name v) in
         let pp_names ppf v = Fmt.pf ppf "%S" (Key.name v) in
-        Codegen.append fmt "let runtime_keys = List.combine %a %a"
+        Fmt.pf ppf "let runtime_keys = List.combine %a %a@."
           Fmt.Dump.(list pp_runvar)
           runvars
           Fmt.Dump.(list pp_names)
-          runvars;
-        Codegen.newline fmt)
+          runvars)
 
   let clean ~file _ = Action.rm file
 end

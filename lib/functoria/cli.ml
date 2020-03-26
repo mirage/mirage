@@ -292,7 +292,7 @@ module Subcommands = struct
     in
     let help man_format cmds topic _keys =
       match topic with
-      | None -> `Help (`Pager, None)
+      | None -> `Help (man_format, None)
       | Some topic -> (
           let parser, _ =
             Arg.enum (List.rev_map (fun s -> (s, s)) ("topics" :: cmds))

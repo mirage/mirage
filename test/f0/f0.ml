@@ -55,8 +55,6 @@ module C = struct
 
   let packages = [ Functoria.package "functoria"; Functoria.package "f0" ]
 
-  let ignore_dirs = []
-
   let keys = Key.[ v vote; v warn_error ]
 
   let connect _ _ _ = "()"

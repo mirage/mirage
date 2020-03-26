@@ -88,8 +88,6 @@ module type S = sig
 
   val packages : package list
 
-  val ignore_dirs : string list
-
   val version : string
 
   val create : job impl list -> job impl

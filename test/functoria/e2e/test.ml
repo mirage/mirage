@@ -278,9 +278,13 @@ let test_cache () =
   Alcotest.(check string) "cache is valid" str (read_file Fpath.(root / "vote"));
   clean_app ()
 
-let test_help () = test "help -vv --help=plain"
+let test_help () =
+  let help_ppf = Fmt.with_buffer (Buffer.create 10) in
+  test ~help_ppf "help -vv --help=plain"
 
-let test_default () = test "-vv"
+let test_default () =
+  let help_ppf = Fmt.with_buffer (Buffer.create 10) in
+  test ~help_ppf "-vv"
 
 let suite =
   [

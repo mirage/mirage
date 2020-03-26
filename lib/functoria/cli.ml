@@ -41,11 +41,13 @@ let query_kinds : (string * query_kind) list =
     ("files-build", `Files `Build);
   ]
 
-let setup_log =
+let maybe_setup_log ~with_setup =
   Term.(
-    const setup_log
+    const (if with_setup then setup_log else fun _ _ -> ())
     $ Fmt_cli.style_renderer ~docs:common_section ()
     $ Logs_cli.level ~docs:common_section ())
+
+let setup_log = maybe_setup_log ~with_setup:true
 
 let config_file =
   let doc =
@@ -188,9 +190,13 @@ let pp_action pp_a ppf = function
   | Clean c -> Fmt.pf ppf "@[clean:@ @[<2>%a@]@]" pp_a c
   | Help -> Fmt.string ppf "help"
 
-let setup =
+let setup ~with_setup =
   Term.(
-    const (fun () _ _ _ -> ()) $ setup_log $ config_file $ build_dir $ dry_run)
+    const (fun () _ _ _ -> ())
+    $ maybe_setup_log ~with_setup
+    $ config_file
+    $ build_dir
+    $ dry_run)
 
 (*
  * Subcommand specifications
@@ -198,10 +204,10 @@ let setup =
 
 module Subcommands = struct
   (** The 'configure' subcommand *)
-  let configure result =
+  let configure ~with_setup result =
     ( Term.(
         const (fun _ output result -> Configure { output; result })
-        $ setup
+        $ setup ~with_setup
         $ output
         $ result),
       Term.info "configure" ~doc:"Configure a $(mname) application."
@@ -213,10 +219,10 @@ module Subcommands = struct
                application.";
           ] )
 
-  let query result =
+  let query ~with_setup result =
     ( Term.(
         const (fun _ kind result -> Query { kind; result })
-        $ setup
+        $ setup ~with_setup
         $ kind
         $ result),
       Term.info "query" ~doc:"Query information about the $(mname) application."
@@ -229,11 +235,11 @@ module Subcommands = struct
           ] )
 
   (** The 'describe' subcommand *)
-  let describe result =
+  let describe ~with_setup result =
     ( Term.(
         const (fun _ _ result output dotcmd dot ->
             Describe { result; dotcmd; dot; output })
-        $ setup
+        $ setup ~with_setup
         $ full_eval
         $ result
         $ output
@@ -267,19 +273,19 @@ module Subcommands = struct
           ] )
 
   (** The 'build' subcommand *)
-  let build result =
+  let build ~with_setup result =
     let doc = "Build a $(mname) application." in
-    ( Term.(const (fun _ result -> Build result) $ setup $ result),
+    ( Term.(const (fun _ result -> Build result) $ setup ~with_setup $ result),
       Term.info "build" ~doc ~man:[ `S "DESCRIPTION"; `P doc ] )
 
   (** The 'clean' subcommand *)
-  let clean result =
+  let clean ~with_setup result =
     let doc = "Clean the files produced by $(mname) for a given application." in
-    ( Term.(const (fun _ result -> Clean result) $ setup $ result),
+    ( Term.(const (fun _ result -> Clean result) $ setup ~with_setup $ result),
       Term.info "clean" ~doc ~man:[ `S "DESCRIPTION"; `P doc ] )
 
   (** The 'help' subcommand *)
-  let help base_context =
+  let help ~with_setup base_context =
     let topic =
       let doc = Arg.info [] ~docv:"TOPIC" ~doc:"The topic to get help on." in
       Arg.(value & pos 0 (some string) None & doc)
@@ -300,7 +306,7 @@ module Subcommands = struct
     in
     ( Term.(
         const (fun _ _ () -> Help)
-        $ setup
+        $ setup ~with_setup
         $ output
         $ ret
             ( const help
@@ -316,9 +322,9 @@ module Subcommands = struct
             `P "Use `$(mname) help topics' to get the full list of help topics.";
           ] )
 
-  let default ~name ~version =
+  let default ~with_setup ~name ~version =
     let usage = `Help (`Plain, None) in
-    ( Term.(ret (pure usage) $ setup),
+    ( Term.(ret (pure usage) $ setup ~with_setup),
       Term.info name ~version ~doc:"The $(mname) application builder"
         ~man:
           [
@@ -340,15 +346,15 @@ let read_full_eval : string array -> bool option =
  fun argv ->
   match Term.eval_peek_opts ~argv full_eval with _, `Ok b -> b | _ -> None
 
-let parse_args ?help_ppf ?err_ppf ~name ~version ~configure ~query ~describe
-    ~build ~clean ~help argv =
+let parse_args ?(with_setup = true) ?help_ppf ?err_ppf ~name ~version ~configure
+    ~query ~describe ~build ~clean ~help argv =
   Cmdliner.Term.eval_choice ?help:help_ppf ?err:err_ppf ~argv ~catch:false
-    (Subcommands.default ~name ~version)
+    (Subcommands.default ~with_setup ~name ~version)
     [
-      Subcommands.configure configure;
-      Subcommands.describe describe;
-      Subcommands.query query;
-      Subcommands.build build;
-      Subcommands.clean clean;
-      Subcommands.help help;
+      Subcommands.configure ~with_setup configure;
+      Subcommands.describe ~with_setup describe;
+      Subcommands.query ~with_setup query;
+      Subcommands.build ~with_setup build;
+      Subcommands.clean ~with_setup clean;
+      Subcommands.help ~with_setup help;
     ]

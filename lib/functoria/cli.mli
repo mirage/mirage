@@ -69,6 +69,7 @@ val pp_action : 'a Fmt.t -> 'a action Fmt.t
 open Cmdliner.Term
 
 val parse_args :
+  ?with_setup:bool ->
   ?help_ppf:Format.formatter ->
   ?err_ppf:Format.formatter ->
   name:string ->

@@ -110,12 +110,14 @@ val ls : Fpath.t -> Fpath.t list t
 
 val with_output :
   ?mode:int ->
+  ?append:bool ->
   path:Fpath.t ->
   purpose:string ->
   (Format.formatter -> 'a) ->
   'a t
 (** Open a file with a given mode, and write some data to it through a function.
-    (see [Bos.OS.File.with_oc]). [purpose] is used in error messages. *)
+    (see [Bos.OS.File.with_oc]). [purpose] is used in error messages. If
+    [append] is set (by default it is not), the data is appended to [path]. *)
 
 (** {1 Interpreters} *)
 

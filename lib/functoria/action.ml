@@ -32,6 +32,7 @@ type 'a with_output = {
   path : Fpath.t;
   purpose : string;
   contents : Format.formatter -> 'a;
+  append : bool;
 }
 
 type _ command =
@@ -111,8 +112,8 @@ let read_file path = wrap @@ Read_file !path
 
 let tmp_file ?mode pat = wrap @@ Tmp_file (mode, pat)
 
-let with_output ?mode ~path ~purpose contents =
-  wrap @@ With_output { mode; path; purpose; contents }
+let with_output ?mode ?(append = false) ~path ~purpose contents =
+  wrap @@ With_output { append; mode; path; purpose; contents }
 
 let rec interpret_command : type r. r command -> r or_err = function
   | Rmdir path ->
@@ -171,16 +172,24 @@ let rec interpret_command : type r. r command -> r or_err = function
   | Tmp_file (mode, pat) ->
       Log.debug (fun l -> l "tmp-file %s" Fmt.(str pat "*"));
       Bos.OS.File.tmp ?mode pat
-  | With_output { mode; path; purpose; contents } -> (
-      let bos_k oc () =
-        let fmt = Format.formatter_of_out_channel oc in
-        Ok (contents fmt)
-      in
-      Log.debug (fun l -> l "with-output %a" Fpath.pp path);
-      match Bos.OS.File.with_oc ?mode path bos_k () with
-      | Ok b -> b
-      | Error _ ->
-          Rresult.R.error_msg ("couldn't open output channel for " ^ purpose) )
+  | With_output { mode; path; purpose; contents; append } -> (
+      try
+        let oc =
+          let path = Fpath.to_string path in
+          let mode = match mode with None -> 0o666 | Some m -> m in
+          if append then
+            open_out_gen [ Open_wronly; Open_append; Open_text ] mode path
+          else open_out path
+        in
+        let ppf = Format.formatter_of_out_channel oc in
+        let r = contents ppf in
+        Fmt.pf ppf "%!";
+        flush oc;
+        close_out oc;
+        Ok r
+      with e ->
+        Rresult.R.error_msgf "couldn't open output channel for %s: %a" purpose
+          Fmt.exn e )
 
 and run : type r. r t -> r or_err = function
   | Done r -> Ok r
@@ -536,8 +545,10 @@ let rec interpret_dry : type r. env:Env.t -> r command -> r or_err * _ * _ =
       Log.debug (fun l -> l "Pwd");
       let r = Env.pwd env in
       (Ok r, env, Fmt.str "Pwd -> %a" Fpath.pp r)
-  | With_output { mode; path; purpose; contents } ->
-      Log.debug (fun l -> l "With_output %a (%s)" Fpath.pp path purpose);
+  | With_output { mode; path; purpose; contents; append } ->
+      let pp_append ppf () = if append then Fmt.string ppf "[append]" else () in
+      Log.debug (fun l ->
+          l "With_output%a %a (%s)" pp_append () Fpath.pp path purpose);
       let buf = Buffer.create 0 in
       let fmt = Format.formatter_of_buffer buf in
       let pp_mode fmt = function

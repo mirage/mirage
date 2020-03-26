@@ -39,9 +39,6 @@ module type S = sig
   val packages : package list
   (** The packages to load when compiling the configuration file. *)
 
-  val ignore_dirs : string list
-  (** Directories to ignore when compiling the configuration file. *)
-
   val version : string
   (** Version of the custom DSL. *)
 

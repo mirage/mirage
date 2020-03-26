@@ -315,8 +315,6 @@ module Project = struct
   (* The ocamlfind packages to use when compiling config.ml *)
   let packages = [ package "mirage" ]
 
-  let ignore_dirs = Mirage_build.ignore_dirs
-
   let bin ~name = function
     | #Mirage_key.mode_solo5 as tgt ->
         let ext = snd (Mirage_configure_solo5.solo5_pkg tgt) in

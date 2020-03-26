@@ -485,7 +485,7 @@ module Make (P : S) = struct
           | `Configure -> Engine.configure i (snd jobs)
           | `Build -> Engine.build i (snd jobs)
         in
-        let files = Fpath.Set.elements (Action.files_of actions) in
+        let files = Fpath.Set.elements (Action.generated_files actions) in
         Fmt.pr "%a\n%!" Fmt.(list ~sep:(unit " ") Fpath.pp) files
 
   let build ~state i jobs =

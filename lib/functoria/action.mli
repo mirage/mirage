@@ -155,5 +155,5 @@ val dry_run : ?env:env -> 'a t -> ('a, Rresult.R.msg) result * env * string list
 val dry_run_trace : ?env:env -> 'a t -> unit
 (** Only output the trace part of [dry_run]. *)
 
-val files_of : ?env:env -> 'a t -> Fpath.Set.t
-(** [files_of t] is the set of files created by [t]. *)
+val generated_files : ?env:env -> 'a t -> Fpath.Set.t
+(** [generated_files t] is the set of files created by [t]. *)

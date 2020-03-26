@@ -585,7 +585,7 @@ let dry_run_trace ?env t =
   let _, _, lines = dry_run ?env t in
   List.iter print_endline lines
 
-let files_of ?(env = env ()) t =
+let generated_files ?(env = env ()) t =
   let _, new_env, _ = dry_run ~env t in
   Env.diff_files ~old:env new_env
 

@@ -27,6 +27,14 @@ type 'a or_err = ('a, Rresult.R.msg) result
 
 type tmp_name_pat = Bos.OS.File.tmp_name_pat
 
+type 'a with_output = {
+  mode : int option;
+  path : Fpath.t;
+  purpose : string;
+  contents : Format.formatter -> 'a;
+  append : bool;
+}
+
 type _ command =
   | Rmdir : Fpath.t -> unit command
   | Mkdir : Fpath.t -> bool command
@@ -44,9 +52,7 @@ type _ command =
   | Tmp_file : int option * tmp_name_pat -> Fpath.t command
   | Write_file : Fpath.t * string -> unit command
   | Read_file : Fpath.t -> string command
-  | With_output :
-      int option * Fpath.t * string * (Format.formatter -> 'a)
-      -> 'a command
+  | With_output : 'a with_output -> 'a command
 
 and _ t =
   | Done : 'a -> 'a t
@@ -106,8 +112,8 @@ let read_file path = wrap @@ Read_file !path
 
 let tmp_file ?mode pat = wrap @@ Tmp_file (mode, pat)
 
-let with_output ?mode ~path ~purpose k =
-  wrap @@ With_output (mode, path, purpose, k)
+let with_output ?mode ?(append = false) ~path ~purpose contents =
+  wrap @@ With_output { append; mode; path; purpose; contents }
 
 let rec interpret_command : type r. r command -> r or_err = function
   | Rmdir path ->
@@ -166,16 +172,24 @@ let rec interpret_command : type r. r command -> r or_err = function
   | Tmp_file (mode, pat) ->
       Log.debug (fun l -> l "tmp-file %s" Fmt.(str pat "*"));
       Bos.OS.File.tmp ?mode pat
-  | With_output (mode, path, purpose, k) -> (
-      let bos_k oc () =
-        let fmt = Format.formatter_of_out_channel oc in
-        Ok (k fmt)
-      in
-      Log.debug (fun l -> l "with-output %a" Fpath.pp path);
-      match Bos.OS.File.with_oc ?mode path bos_k () with
-      | Ok b -> b
-      | Error _ ->
-          Rresult.R.error_msg ("couldn't open output channel for " ^ purpose) )
+  | With_output { mode; path; purpose; contents; append } -> (
+      try
+        let oc =
+          let path = Fpath.to_string path in
+          let mode = match mode with None -> 0o666 | Some m -> m in
+          if append then
+            open_out_gen [ Open_wronly; Open_append; Open_text ] mode path
+          else open_out path
+        in
+        let ppf = Format.formatter_of_out_channel oc in
+        let r = contents ppf in
+        Fmt.pf ppf "%!";
+        flush oc;
+        close_out oc;
+        Ok r
+      with e ->
+        Rresult.R.error_msgf "couldn't open output channel for %s: %a" purpose
+          Fmt.exn e )
 
 and run : type r. r t -> r or_err = function
   | Done r -> Ok r
@@ -201,7 +215,7 @@ module Env : sig
   val ls : t -> Fpath.t -> Fpath.t list option
 
   val v :
-    ?commands:(Bos.Cmd.t * string) list ->
+    ?commands:(Bos.Cmd.t -> string option) ->
     ?env:(string * string) list ->
     ?pwd:Fpath.t ->
     ?files:files ->
@@ -236,7 +250,7 @@ end = struct
     files : string Fpath.Map.t;
     pwd : Fpath.t;
     env : string String.Map.t;
-    commands : string String.Map.t;
+    commands : Bos.Cmd.t -> string option;
   }
 
   let diff_files ~old t =
@@ -260,7 +274,9 @@ end = struct
     |> Rresult.R.join
     |> Rresult.R.error_msg_to_invalid_arg
 
-  let v ?(commands = []) ?env ?pwd ?(files = `Files []) () =
+  let default_commands _ = None
+
+  let v ?(commands = default_commands) ?env ?pwd ?(files = `Files []) () =
     let env =
       match env with Some e -> String.Map.of_list e | None -> String.Map.empty
     in
@@ -278,11 +294,6 @@ end = struct
           files
       in
       List.map (fun (f, c) -> (Fpath.normalize f, c)) files
-    in
-    let commands =
-      commands
-      |> List.map (fun (c, o) -> (Bos.Cmd.to_string c, o))
-      |> String.Map.of_list
     in
     { files = Fpath.Map.of_list files; pwd; env; commands }
 
@@ -302,7 +313,7 @@ end = struct
 
   let pwd t = t.pwd
 
-  let exec t cmd = String.Map.find (Bos.Cmd.to_string cmd) t.commands
+  let exec t cmd = t.commands cmd
 
   let mk_path t path =
     match (Fpath.to_string t.pwd, Fpath.is_rel path) with
@@ -531,15 +542,17 @@ let rec interpret_dry : type r. env:Env.t -> r command -> r or_err * _ * _ =
       Log.debug (fun l -> l "Pwd");
       let r = Env.pwd env in
       (Ok r, env, Fmt.str "Pwd -> %a" Fpath.pp r)
-  | With_output (mode, path, purpose, k) ->
-      Log.debug (fun l -> l "With_output %a (%s)" Fpath.pp path purpose);
+  | With_output { mode; path; purpose; contents; append } ->
+      let pp_append ppf () = if append then Fmt.string ppf "[append]" else () in
+      Log.debug (fun l ->
+          l "With_output%a %a (%s)" pp_append () Fpath.pp path purpose);
       let buf = Buffer.create 0 in
       let fmt = Format.formatter_of_buffer buf in
       let pp_mode fmt = function
         | None -> Format.fprintf fmt "default"
         | Some n -> Format.fprintf fmt "%#o" n
       in
-      let r = k fmt in
+      let r = contents fmt in
       Fmt.pf fmt "%!";
       let f = Buffer.contents buf in
       ( Ok r,
@@ -569,7 +582,7 @@ let dry_run_trace ?env t =
   let _, _, lines = dry_run ?env t in
   List.iter print_endline lines
 
-let files_of ?(env = env ()) t =
+let generated_files ?(env = env ()) t =
   let _, new_env, _ = dry_run ~env t in
   Env.diff_files ~old:env new_env
 

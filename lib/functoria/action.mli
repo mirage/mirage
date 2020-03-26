@@ -110,12 +110,14 @@ val ls : Fpath.t -> Fpath.t list t
 
 val with_output :
   ?mode:int ->
+  ?append:bool ->
   path:Fpath.t ->
   purpose:string ->
   (Format.formatter -> 'a) ->
   'a t
 (** Open a file with a given mode, and write some data to it through a function.
-    (see [Bos.OS.File.with_oc]). [purpose] is used in error messages. *)
+    (see [Bos.OS.File.with_oc]). [purpose] is used in error messages. If
+    [append] is set (by default it is not), the data is appended to [path]. *)
 
 (** {1 Interpreters} *)
 
@@ -134,7 +136,7 @@ val pp_env : env Fmt.t
 type files = [ `Passtrough of Fpath.t | `Files of (Fpath.t * string) list ]
 
 val env :
-  ?commands:(Bos.Cmd.t * string) list ->
+  ?commands:(Bos.Cmd.t -> string option) ->
   ?env:(string * string) list ->
   ?pwd:Fpath.t ->
   ?files:files ->
@@ -153,5 +155,5 @@ val dry_run : ?env:env -> 'a t -> ('a, Rresult.R.msg) result * env * string list
 val dry_run_trace : ?env:env -> 'a t -> unit
 (** Only output the trace part of [dry_run]. *)
 
-val files_of : ?env:env -> 'a t -> Fpath.Set.t
-(** [files_of t] is the set of files created by [t]. *)
+val generated_files : ?env:env -> 'a t -> Fpath.Set.t
+(** [generated_files t] is the set of files created by [t]. *)

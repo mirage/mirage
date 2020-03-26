@@ -33,10 +33,7 @@ let crunch dirname =
 
 let direct_kv_ro dirname =
   let packages = [ package ~min:"2.1.0" ~max:"3.0.0" "mirage-kv-unix" ] in
-  let connect i modname _names =
-    let path = Fpath.(Info.build_dir i / dirname) in
-    Fmt.strf "%s.connect \"%a\"" modname Fpath.pp path
-  in
+  let connect _ modname _names = Fmt.strf "%s.connect \"%s\"" modname dirname in
   impl ~packages ~connect "Mirage_kv_unix" ro
 
 let direct_kv_ro dirname =
@@ -59,10 +56,7 @@ let rw = Type.v RW
 
 let direct_kv_rw dirname =
   let packages = [ package ~min:"2.1.0" ~max:"3.0.0" "mirage-kv-unix" ] in
-  let connect i modname _names =
-    let path = Fpath.(Info.build_dir i / dirname) in
-    Fmt.strf "%s.connect \"%a\"" modname Fpath.pp path
-  in
+  let connect _ modname _names = Fmt.strf "%s.connect \"%s\"" modname dirname in
   impl ~packages ~connect "Mirage_kv_unix" rw
 
 let mem_kv_rw_config =

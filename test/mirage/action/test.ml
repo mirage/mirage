@@ -17,7 +17,7 @@ let print_banner s =
 
 let info context =
   Info.v ~packages:[] ~keys:[] ~context ~src:`None
-    ~build_cmd:[ "mirage"; "build" ] ~build_dir:(Fpath.v "BUILD_DIR") "NAME"
+    ~build_cmd:[ "mirage"; "build" ] "NAME"
 
 let test target =
   print_banner target;

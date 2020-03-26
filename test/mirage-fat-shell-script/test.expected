@@ -15,7 +15,7 @@ fi
 
 IMG=$(pwd)/BLOCK_FILE
 rm -f ${IMG}
-cd ROOT/DIR
+cd DIR
 SIZE=$(du -s . | cut -f 1)
 ${FAT} create ${IMG} ${SIZE}KiB
 ${FAT} add ${IMG} REGEXP

@@ -53,10 +53,9 @@ let xenstore_id_of_index number =
   else (1 lsl 28) lor (number lsl 8)
 
 let block_conf file =
-  let connect_name target root =
+  let connect_name target =
     match target with
-    | #Mirage_key.mode_unix ->
-        Fpath.(to_string (root / file)) (* open the file directly *)
+    | #Mirage_key.mode_unix -> file (* open the file directly *)
     | #Mirage_key.mode_xen ->
         let b = make_block_t file in
         xenstore_id_of_index b.number |> string_of_int
@@ -80,9 +79,7 @@ let block_conf file =
   let connect i s _ =
     match get_target i with
     | `Muen -> failwith "Block devices not supported on Muen target."
-    | _ ->
-        Fmt.strf "%s.connect %S" s
-          (connect_name (get_target i) @@ Info.build_dir i)
+    | _ -> Fmt.strf "%s.connect %S" s (connect_name (get_target i))
   in
   Device.v ~configure ~packages_v ~connect "Block" block
 

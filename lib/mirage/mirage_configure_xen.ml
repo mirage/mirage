@@ -53,18 +53,14 @@ module Substitutions = struct
   let defaults i =
     let blocks =
       List.map
-        (fun b -> (Block b, Fpath.(to_string (Info.build_dir i / b.filename))))
+        (fun b -> (Block b, b.filename))
         (Hashtbl.fold (fun _ v acc -> v :: acc) Mirage_impl_block.all_blocks [])
     and networks =
       List.mapi
         (fun i n -> (Network n, Fmt.strf "%s%d" detected_bridge_name i))
         !Mirage_impl_network.all_networks
     in
-    [
-      (Name, Info.name i);
-      (Kernel, Fpath.(to_string ((Info.build_dir i / Info.name i) + "xen")));
-      (Memory, "256");
-    ]
+    [ (Name, Info.name i); (Kernel, Info.name i ^ ".xen"); (Memory, "256") ]
     @ blocks
     @ networks
 end
@@ -126,7 +122,7 @@ let configure_main_xl ?substitutions ~ext i =
 
 let clean_main_xl ~name ~ext = Action.rm Fpath.(v name + ext)
 
-let configure_main_xe ~root ~name =
+let configure_main_xe ~name =
   let open Codegen in
   Action.with_output ~mode:0o755
     ~path:Fpath.(v name + "xe")
@@ -158,7 +154,7 @@ let configure_main_xe ~root ~name =
       append fmt "fi";
       append fmt "";
       append fmt "echo Uploading VDI containing unikernel";
-      append fmt "VDI=$(xe-unikernel-upload --path %s/%s.xen)" root name;
+      append fmt "VDI=$(xe-unikernel-upload --path %s.xen)" name;
       append fmt "echo VDI=$VDI";
       append fmt "echo Creating VM metadata";
       append fmt "VM=$(xe vm-create name-label=%s)" name;
@@ -175,14 +171,14 @@ let configure_main_xe ~root ~name =
         (fun b ->
           append fmt "echo Uploading data VDI %s" b.filename;
           append fmt "echo VDI=$VDI";
-          append fmt "SIZE=$(stat --format '%%s' %s/%s)" root b.filename;
+          append fmt "SIZE=$(stat --format '%%s' %s)" b.filename;
           append fmt "POOL=$(xe pool-list params=uuid --minimal)";
           append fmt "SR=$(xe pool-list uuid=$POOL params=default-SR --minimal)";
           append fmt
             "VDI=$(xe vdi-create type=user name-label='%s' virtual-size=$SIZE \
              sr-uuid=$SR)"
             b.filename;
-          append fmt "xe vdi-import uuid=$VDI filename=%s/%s" root b.filename;
+          append fmt "xe vdi-import uuid=$VDI filename=%s" b.filename;
           append fmt "VBD=$(xe vbd-create vm-uuid=$VM vdi-uuid=$VDI device=%d)"
             b.number;
           append fmt "xe vbd-param-set uuid=$VBD other-config:owner=true")

@@ -72,7 +72,6 @@ let configure_opam ~name info =
 
 let configure i =
   let name = Info.name i in
-  let root = Fpath.to_string (Info.build_dir i) in
   let ctx = Info.context i in
   let target = Key.(get ctx target) in
   Log.info (fun m -> m "Configuring for target: %a" Key.pp_target target);
@@ -95,7 +94,7 @@ let configure i =
   | `Xen ->
       configure_main_xl ~ext:"xl" i >>= fun () ->
       configure_main_xl ~substitutions:[] ~ext:"xl.in" i >>= fun () ->
-      configure_main_xe ~root ~name >>= fun () ->
-      Mirage_configure_libvirt.configure_main ~root ~name
-  | `Virtio -> Mirage_configure_libvirt.configure_virtio ~root ~name
+      configure_main_xe ~name >>= fun () ->
+      Mirage_configure_libvirt.configure_main ~name
+  | `Virtio -> Mirage_configure_libvirt.configure_virtio ~name
   | _ -> Action.ok ()

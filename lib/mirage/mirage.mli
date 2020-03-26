@@ -604,7 +604,6 @@ module FS : sig
   val fat_shell_script :
     Format.formatter ->
     block_file:string ->
-    root:Fpath.t ->
     dir:Fpath.t ->
     regexp:string ->
     unit

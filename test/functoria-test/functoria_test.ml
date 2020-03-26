@@ -19,7 +19,7 @@ let run ?(keys = []) ?init context device =
   let packages = Key.eval context (Engine.packages t) in
   let info =
     Functoria.Info.v ~packages ~context ~keys ~build_cmd:[ "build"; "me" ]
-      ~build_dir:(Fpath.v ".") ~src:`None "foo"
+      ~src:`None "foo"
   in
   prelude info >>= fun () ->
   Engine.configure info t >>= fun () ->

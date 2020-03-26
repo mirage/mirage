@@ -21,7 +21,7 @@ let fat_conf =
 
 let fat block = fat_conf $ block
 
-let fat_shell_script fmt ~block_file ~root ~dir ~regexp =
+let fat_shell_script fmt ~block_file ~dir ~regexp =
   Fmt.pf fmt
     {|#!/bin/sh
 
@@ -43,7 +43,7 @@ ${FAT} create ${IMG} ${SIZE}KiB
 ${FAT} add ${IMG} %s
 echo Created '%s'
 |}
-    block_file Fpath.pp (Fpath.append root dir) regexp block_file
+    block_file Fpath.pp dir regexp block_file
 
 let count =
   let i = ref 0 in
@@ -55,13 +55,12 @@ let fat_block ?(dir = ".") ?(regexp = "*") () =
   let name = "fat_block" ^ string_of_int (count ()) in
   let block_file = name ^ ".img" in
   let file = Fmt.strf "make-%s-image.sh" name in
-  let pre_build i =
-    let root = Info.build_dir i in
+  let pre_build _ =
     let dir = Fpath.of_string dir |> Rresult.R.error_msg_to_invalid_arg in
     Log.info (fun m -> m "Generating block generator script: %s" file);
     Action.with_output ~mode:0o755 ~path:(Fpath.v file)
       ~purpose:"fat shell script" (fun fmt ->
-        fat_shell_script fmt ~block_file ~root ~dir ~regexp)
+        fat_shell_script fmt ~block_file ~dir ~regexp)
     >>= fun () ->
     Log.info (fun m -> m "Executing block generator script: ./%s" file);
     Action.run_cmd (Bos.Cmd.v ("./" ^ file))

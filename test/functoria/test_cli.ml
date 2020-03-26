@@ -42,7 +42,6 @@ let test_configure () =
            context = (true, false);
            output = None;
            config_file = Fpath.v "config.ml";
-           build_dir = None;
            dry_run = false;
          }))
     result
@@ -77,7 +76,6 @@ let test_describe () =
                context = (false, true);
                output = None;
                config_file = Fpath.v "config.ml";
-               build_dir = None;
                dry_run = false;
              };
            dotcmd = "dot";
@@ -107,7 +105,6 @@ let test_build () =
            context = (true, true);
            output = None;
            config_file = Fpath.v "config.ml";
-           build_dir = None;
            dry_run = false;
          }))
     result
@@ -132,7 +129,6 @@ let test_clean () =
            context = (false, false);
            output = None;
            config_file = Fpath.v "config.ml";
-           build_dir = None;
            dry_run = false;
          }))
     result
@@ -178,7 +174,6 @@ let test_peek () =
          {
            context = ();
            output = Some "bar";
-           build_dir = None;
            config_file = Fpath.v "config.ml";
            dry_run = false;
          }))
@@ -197,7 +192,6 @@ let test_peek () =
          {
            context = ();
            output = None;
-           build_dir = None;
            config_file = Fpath.v "bar";
            dry_run = true;
          }))

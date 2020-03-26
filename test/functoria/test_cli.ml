@@ -13,6 +13,8 @@ let result_t =
   in
   Alcotest.testable pp ( = )
 
+let parse_args = Cli.parse_args ~with_setup:false ~name:"name" ~version:"0.2"
+
 let test_configure () =
   let extra_term =
     Cmdliner.(
@@ -22,9 +24,8 @@ let test_configure () =
         $ Arg.(value (flag (info [ "c"; "cde" ])))))
   in
   let result =
-    Cli.parse_args ~name:"name" ~version:"0.2" ~configure:extra_term
-      ~query:extra_term ~describe:extra_term ~build:extra_term ~clean:extra_term
-      ~help:extra_term
+    parse_args ~configure:extra_term ~query:extra_term ~describe:extra_term
+      ~build:extra_term ~clean:extra_term ~help:extra_term
       [| "name"; "configure"; "--xyz"; "--verbose" |]
   in
   Alcotest.(check result_t)
@@ -41,9 +42,8 @@ let test_describe () =
         $ Arg.(value (flag (info [ "c"; "cde" ])))))
   in
   let result =
-    Cli.parse_args ~name:"name" ~version:"0.2" ~configure:extra_term
-      ~query:extra_term ~describe:extra_term ~build:extra_term ~clean:extra_term
-      ~help:extra_term
+    parse_args ~configure:extra_term ~query:extra_term ~describe:extra_term
+      ~build:extra_term ~clean:extra_term ~help:extra_term
       [|
         "name";
         "describe";
@@ -69,9 +69,8 @@ let test_build () =
         $ Arg.(value (flag (info [ "c"; "cde" ])))))
   in
   let result =
-    Cli.parse_args ~name:"name" ~version:"0.2" ~configure:extra_term
-      ~query:extra_term ~describe:extra_term ~build:extra_term ~clean:extra_term
-      ~help:extra_term
+    parse_args ~configure:extra_term ~query:extra_term ~describe:extra_term
+      ~build:extra_term ~clean:extra_term ~help:extra_term
       [| "name"; "build"; "--cde"; "-x"; "--color=never"; "-v"; "-v" |]
   in
   Alcotest.(check result_t) "build" (`Ok (Cli.Build (true, true))) result
@@ -85,9 +84,8 @@ let test_clean () =
         $ Arg.(value (flag (info [ "c"; "cde" ])))))
   in
   let result =
-    Cli.parse_args ~name:"name" ~version:"0.2" ~configure:extra_term
-      ~query:extra_term ~describe:extra_term ~build:extra_term ~clean:extra_term
-      ~help:extra_term [| "name"; "clean" |]
+    parse_args ~configure:extra_term ~query:extra_term ~describe:extra_term
+      ~build:extra_term ~clean:extra_term ~help:extra_term [| "name"; "clean" |]
   in
   Alcotest.(check result_t) "clean" (`Ok (Cli.Clean (false, false))) result
 
@@ -99,10 +97,10 @@ let test_help () =
         $ Arg.(value (flag (info [ "x"; "xyz" ])))
         $ Arg.(value (flag (info [ "c"; "cde" ])))))
   in
+  let null = Fmt.with_buffer (Buffer.create 10) in
   let result =
-    Cli.parse_args ~name:"name" ~version:"0.2" ~configure:extra_term
-      ~query:extra_term ~describe:extra_term ~build:extra_term ~clean:extra_term
-      ~help:extra_term
+    parse_args ~help_ppf:null ~configure:extra_term ~query:extra_term
+      ~describe:extra_term ~build:extra_term ~clean:extra_term ~help:extra_term
       [| "name"; "help"; "--help"; "plain" |]
   in
   Alcotest.(check result_t) "help" `Help result
@@ -115,10 +113,11 @@ let test_default () =
         $ Arg.(value (flag (info [ "x"; "xyz" ])))
         $ Arg.(value (flag (info [ "c"; "cde" ])))))
   in
+  let null = Fmt.with_buffer (Buffer.create 10) in
   let result =
-    Cli.parse_args ~name:"name" ~version:"0.2" ~configure:extra_term
-      ~query:extra_term ~describe:extra_term ~build:extra_term ~clean:extra_term
-      ~help:extra_term [| "name" |]
+    parse_args ~help_ppf:null ~configure:extra_term ~query:extra_term
+      ~describe:extra_term ~build:extra_term ~clean:extra_term ~help:extra_term
+      [| "name" |]
   in
   Alcotest.(check result_t) "default" `Help result
 

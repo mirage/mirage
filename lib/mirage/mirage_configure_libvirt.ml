@@ -3,6 +3,8 @@ module Codegen = Functoria.Codegen
 
 let filename ~name = Fpath.(v (name ^ "_libvirt") + "xml")
 
+let append fmt s = Fmt.pf fmt (s ^^ "@.")
+
 let configure_main ~root ~name =
   let open Codegen in
   Action.with_output ~path:(filename ~name) ~purpose:"libvirt.xml" (fun fmt ->

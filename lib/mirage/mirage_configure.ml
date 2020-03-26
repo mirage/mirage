@@ -41,13 +41,15 @@ let unikernel_opam_name ~name target =
 let clean_opam ~name target =
   Action.rm (opam_path ~name:(unikernel_opam_name ~name target))
 
+let append fmt s = Fmt.pf fmt (s ^^ "@.")
+
 let configure_makefile ~no_depext ~opam_name =
   let open Codegen in
   Action.with_output ~path:(Fpath.v "Makefile") ~purpose:"Makefile" (fun fmt ->
       append fmt "# %s" (generated_header ());
-      newline fmt;
+      append fmt "";
       append fmt "-include Makefile.user";
-      newline fmt;
+      append fmt "";
       let depext = if no_depext then "" else "\n\t$(DEPEXT)" in
       append fmt
         "OPAM = opam\n\

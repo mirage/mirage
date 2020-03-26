@@ -69,6 +69,8 @@ module Substitutions = struct
     @ networks
 end
 
+let append fmt s = Fmt.pf fmt (s ^^ "@.")
+
 let configure_main_xl ?substitutions ~ext i =
   let open Substitutions in
   let substitutions =
@@ -79,13 +81,13 @@ let configure_main_xl ?substitutions ~ext i =
   Action.with_output ~path ~purpose:"xl file" (fun fmt ->
       let open Mirage_impl_block in
       append fmt "# %s" (generated_header ());
-      newline fmt;
+      append fmt "";
       append fmt "name = '%s'" (lookup substitutions Name);
       append fmt "kernel = '%s'" (lookup substitutions Kernel);
       append fmt "builder = 'linux'";
       append fmt "memory = %s" (lookup substitutions Memory);
       append fmt "on_crash = 'preserve'";
-      newline fmt;
+      append fmt "";
       let blocks =
         List.map
           (fun b ->
@@ -108,7 +110,7 @@ let configure_main_xl ?substitutions ~ext i =
           (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks [])
       in
       append fmt "disk = [ %s ]" (String.concat ~sep:", " blocks);
-      newline fmt;
+      append fmt "";
       let networks =
         List.map
           (fun n -> Fmt.strf "'bridge=%s'" (lookup substitutions (Network n)))
@@ -133,9 +135,9 @@ let configure_main_xe ~root ~name =
       let open Mirage_impl_block in
       append fmt "#!/bin/sh";
       append fmt "# %s" (generated_header ());
-      newline fmt;
+      append fmt "";
       append fmt "set -e";
-      newline fmt;
+      append fmt "";
       append fmt "# Dependency: xe";
       append fmt
         "command -v xe >/dev/null 2>&1 || { echo >&2 \"I require xe but it's \
@@ -154,7 +156,7 @@ let configure_main_xe ~root ~name =
       append fmt "  echo password=password";
       append fmt "  exit 1";
       append fmt "fi";
-      newline fmt;
+      append fmt "";
       append fmt "echo Uploading VDI containing unikernel";
       append fmt "VDI=$(xe-unikernel-upload --path %s/%s.xen)" root name;
       append fmt "echo VDI=$VDI";

@@ -1,1 +1,1 @@
-dune.build key_gen.ml
+.test.config dune.build key_gen.ml main.ml noop.install noop.opam

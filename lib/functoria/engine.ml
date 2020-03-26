@@ -77,29 +77,39 @@ let find_all_devices info g i =
   in
   Device_graph.find_all g p
 
+let iter_actions f t =
+  let f v res = res >>= fun () -> f v in
+  Device_graph.fold f t (Action.ok ())
+
 let build info t =
   let f v =
     match Device_graph.explode t v with
     | `App _ | `If _ -> assert false
     | `Dev (Device_graph.D c, _, _) -> Device.build c info
   in
-  let f v res = res >>= fun () -> f v in
-  Device_graph.fold f t @@ Action.ok ()
+  iter_actions f t
+
+let append_main i msg fmt =
+  let path = Info.main i in
+  let purpose = Fmt.strf "Append to main.ml (%s)" msg in
+  Fmt.kstr
+    (fun str ->
+      Action.with_output ~path ~append:true ~purpose (fun ppf ->
+          Fmt.pf ppf "%s@." str))
+    fmt
 
 let configure info t =
   let f v =
     match Device_graph.explode t v with
     | `App _ | `If _ -> assert false
     | `Dev (Device_graph.D c, `Args args, `Deps _) ->
-        Device.configure c info >|= fun () ->
-        if args = [] then ()
-        else (
-          Codegen.append_main "@[<2>module %s =@ %a@]"
-            (Device_graph.impl_name v) module_expression (c, args);
-          Codegen.newline_main () )
+        Device.configure c info >>= fun () ->
+        if args = [] then Action.ok ()
+        else
+          append_main info "configure" "@[<2>module %s =@ %a@]@."
+            (Device_graph.impl_name v) module_expression (c, args)
   in
-  let f v res = res >>= fun () -> f v in
-  Device_graph.fold f t @@ Action.ok ()
+  iter_actions f t
 
 let meta_init fmt (connect_name, result_name) =
   Fmt.pf fmt "let _%s =@[@ Lazy.force %s @]in@ " result_name connect_name
@@ -115,10 +125,10 @@ let emit_connect fmt (iname, names, connect_string) =
     Fmt.(list ~sep:nop bind)
     rnames (connect_string rnames)
 
-let emit_run init main =
+let emit_run info init main =
   (* "exit 1" is ok in this code, since cmdliner will print help. *)
   let force ppf name = Fmt.pf ppf "Lazy.force %s >>= fun _ ->@ " name in
-  Codegen.append_main
+  append_main info "emit_run"
     "@[<v 2>let () =@ let t =@ @[<v 2>%aLazy.force %s@]@ in run t@]"
     Fmt.(list ~sep:nop force)
     init main
@@ -131,10 +141,10 @@ let connect ?(init = []) info t =
         let var_name = Device_graph.var_name v in
         let impl_name = Device_graph.impl_name v in
         let arg_names = List.map Device_graph.var_name (args @ deps) in
-        Codegen.append_main "%a" emit_connect
+        append_main info "connect" "%a" emit_connect
           (var_name, arg_names, Device.connect c info impl_name)
   in
-  Device_graph.fold (fun v () -> f v) t ();
+  iter_actions f t >>= fun () ->
   let main_name = Device_graph.var_name (Device_graph.find_root t) in
   let init_names =
     List.fold_left
@@ -145,13 +155,12 @@ let connect ?(init = []) info t =
       [] init
     |> List.rev
   in
-  emit_run init_names main_name
+  emit_run info init_names main_name
 
-let clean i g =
+let clean i t =
   let f v =
-    match Device_graph.explode g v with
+    match Device_graph.explode t v with
     | `App _ | `If _ -> assert false
     | `Dev (Device_graph.D c, _, _) -> Device.clean c i
   in
-  let f v res = res >>= fun () -> f v in
-  Device_graph.fold f g @@ Action.ok ()
+  iter_actions f t

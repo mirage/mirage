@@ -24,6 +24,9 @@ type t
 val name : t -> string
 (** [name t] is the name of the application. *)
 
+val main : t -> Fpath.t
+(** [main t] is the name of the main application file. *)
+
 val output : t -> string option
 (** [output t] is the name of [t]'s output. Derived from {!name} if not set. *)
 

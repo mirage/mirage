@@ -136,7 +136,7 @@ val pp_env : env Fmt.t
 type files = [ `Passtrough of Fpath.t | `Files of (Fpath.t * string) list ]
 
 val env :
-  ?commands:(Bos.Cmd.t * string) list ->
+  ?commands:(Bos.Cmd.t -> string option) ->
   ?env:(string * string) list ->
   ?pwd:Fpath.t ->
   ?files:files ->

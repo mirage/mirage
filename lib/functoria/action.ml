@@ -215,7 +215,7 @@ module Env : sig
   val ls : t -> Fpath.t -> Fpath.t list option
 
   val v :
-    ?commands:(Bos.Cmd.t * string) list ->
+    ?commands:(Bos.Cmd.t -> string option) ->
     ?env:(string * string) list ->
     ?pwd:Fpath.t ->
     ?files:files ->
@@ -250,7 +250,7 @@ end = struct
     files : string Fpath.Map.t;
     pwd : Fpath.t;
     env : string String.Map.t;
-    commands : string String.Map.t;
+    commands : Bos.Cmd.t -> string option;
   }
 
   let diff_files ~old t =
@@ -274,7 +274,9 @@ end = struct
     |> Rresult.R.join
     |> Rresult.R.error_msg_to_invalid_arg
 
-  let v ?(commands = []) ?env ?pwd ?(files = `Files []) () =
+  let default_commands _ = None
+
+  let v ?(commands = default_commands) ?env ?pwd ?(files = `Files []) () =
     let env =
       match env with Some e -> String.Map.of_list e | None -> String.Map.empty
     in
@@ -292,11 +294,6 @@ end = struct
           files
       in
       List.map (fun (f, c) -> (Fpath.normalize f, c)) files
-    in
-    let commands =
-      commands
-      |> List.map (fun (c, o) -> (Bos.Cmd.to_string c, o))
-      |> String.Map.of_list
     in
     { files = Fpath.Map.of_list files; pwd; env; commands }
 
@@ -316,7 +313,7 @@ end = struct
 
   let pwd t = t.pwd
 
-  let exec t cmd = String.Map.find (Bos.Cmd.to_string cmd) t.commands
+  let exec t cmd = t.commands cmd
 
   let mk_path t path =
     match (Fpath.to_string t.pwd, Fpath.is_rel path) with

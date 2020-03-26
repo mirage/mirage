@@ -237,6 +237,10 @@ let test_get_var () =
   test "get_var (not set)" ~key:"var" ~env
     ~expected:(Ok None, env, [ "Get_var var -> <not set>" ])
 
+let none _ = None
+
+let yay _ = Some "yay"
+
 let test_run_cmd () =
   let test msg ~env ~cmd ~expected ~expected_log =
     let env = Action.env ~commands:env () in
@@ -245,14 +249,13 @@ let test_run_cmd () =
       (expected, env, expected_log)
       got
   in
-  test "run_cmd fails if the command doesn't exist" ~env:[]
+  test "run_cmd fails if the command doesn't exist" ~env:none
     ~cmd:(Bos.Cmd.v "some-command")
     ~expected:(error "'some-command' not found")
     ~expected_log:[ "Run_cmd some-command (error)" ];
 
   let cmd = Bos.Cmd.v "some-command" in
-  let env = [ (cmd, "yay") ] in
-  test "run_cmd succeeds if the command exists" ~env ~cmd ~expected:(Ok ())
+  test "run_cmd succeeds if the command exists" ~env:yay ~cmd ~expected:(Ok ())
     ~expected_log:[ "Run_cmd some-command (ok)" ]
 
 let test_run_cmd_out () =
@@ -263,17 +266,15 @@ let test_run_cmd_out () =
       (expected, env, expected_log)
       got
   in
-  test "run_cmd_out fails if the command doesn't exist" ~env:[]
+  test "run_cmd_out fails if the command doesn't exist" ~env:none
     ~cmd:(Bos.Cmd.v "some-command")
     ~expected:(error "'some-command' not found")
     ~expected_log:[ "Run_cmd_out some-command (error)" ];
 
   let cmd = Bos.Cmd.v "some-command" in
-  let output = "output" in
-  let env = [ (cmd, output) ] in
-  test "run_cmd_out succeeds if the command exists" ~env ~cmd
-    ~expected:(Ok output)
-    ~expected_log:[ "Run_cmd_out some-command -> output" ]
+  test "run_cmd_out succeeds if the command exists" ~env:yay ~cmd
+    ~expected:(Ok "yay")
+    ~expected_log:[ "Run_cmd_out some-command -> yay" ]
 
 let test_write_file () =
   let test msg ~path ~contents =

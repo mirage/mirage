@@ -76,10 +76,9 @@ let eval t term =
   eval_term t term >|= function None -> Key.empty_context | Some c -> c
 
 let eval_output t =
-  eval_term t Cli.output >|= function
-  | Some None -> None
-  | Some x -> x
-  | None -> None
+  match t with
+  | None -> Action.ok None
+  | Some argv -> Action.ok (Cli.peek_output argv)
 
 let require (t : t option) : _ Cmdliner.Term.ret =
   match t with

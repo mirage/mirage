@@ -107,22 +107,7 @@ module Make (P : S) = struct
   let default_init = [ Job.keys Argv.sys_argv ]
 
   let init_global_state argv =
-    ignore (Cmdliner.Term.eval_peek_opts ~argv Cli.setup_log);
-    let config_file =
-      match Cmdliner.Term.eval_peek_opts ~argv Cli.config_file with
-      | None, _ -> Fpath.(v "config.ml")
-      | Some f, _ -> f
-    in
-    let build_dir =
-      match Cmdliner.Term.eval_peek_opts ~argv Cli.build_dir with
-      | Some (Some d), _ -> Some d
-      | _ -> None
-    in
-    let dry_run =
-      match Cmdliner.Term.eval_peek_opts ~argv Cli.dry_run with
-      | Some v, _ -> v
-      | None, _ -> false
-    in
+    let { Cli.config_file; build_dir; dry_run; _ } = Cli.peek_args argv in
     { config_file; build_dir; dry_run }
 
   let get_project_root () = Action.pwd ()
@@ -319,11 +304,13 @@ module Make (P : S) = struct
     let open Cmdliner in
     let base_keys = Config.extract_keys (P.create []) in
     let base_context =
-      Key.context base_keys ~with_required:false ~stage:`Configure
+      Term.(
+        pure (fun _ -> Action.ok ())
+        $ Key.context base_keys ~with_required:false ~stage:`Configure)
     in
     let niet = Term.pure (Action.ok ()) in
     let result =
-      Cli.parse_args ?help_ppf ?err_ppf ~name:P.name ~version:P.version
+      Cli.eval ?help_ppf ?err_ppf ~name:P.name ~version:P.version
         ~configure:niet ~query:niet ~describe:niet ~build:niet ~clean:niet
         ~help:base_context argv
     in
@@ -332,7 +319,7 @@ module Make (P : S) = struct
     match result with
     | `Error _ -> error
     | `Version | `Help -> ok
-    | `Ok Cli.Help -> ok
+    | `Ok (Cli.Help _) -> ok
     | `Ok
         ( Cli.Configure _ | Cli.Query _ | Cli.Describe _ | Cli.Build _
         | Cli.Clean _ ) ->
@@ -520,22 +507,23 @@ module Make (P : S) = struct
     | `Version | `Help -> ok ()
     | `Ok action -> (
         match action with
-        | Cli.Help -> ok ()
-        | Cli.Configure { result = jobs, info; output } ->
+        | Cli.Help _ -> ok ()
+        | Cli.Configure { context = jobs, info; output; _ } ->
             let info = with_output info output in
             Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
             configure ~state ~argv info jobs >>= ok
-        | Cli.Build ((_, jobs), info) ->
+        | Cli.Build { context = (_, jobs), info; _ } ->
             Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
             build ~state info jobs >>= ok
-        | Cli.Query { result = jobs, info; kind } ->
+        | Cli.Query { args = { context = jobs, info; _ }; kind; _ } ->
             Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
             query ~state ~argv info kind jobs;
             ok ()
-        | Cli.Describe { result = jobs, info; dotcmd; dot; output } ->
+        | Cli.Describe
+            { args = { context = jobs, info; output; _ }; dotcmd; dot; _ } ->
             Config'.pp_info Fmt.(pf stdout) (Some Logs.Info) info;
             describe info jobs ~dotcmd ~dot ~output >>= ok
-        | Cli.Clean (jobs, info) ->
+        | Cli.Clean { context = jobs, info; _ } ->
             Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
             clean ~state info jobs >>= ok )
 
@@ -560,7 +548,7 @@ module Make (P : S) = struct
 
   let run_configure_with_argv argv config ~state =
     (*   whether to fully evaluate the graph *)
-    let full_eval = Cli.read_full_eval argv in
+    let full_eval = Cli.peek_full_eval argv in
     (* Consider only the non-required keys. *)
     let non_required_term =
       let if_keys = Config.keys config in
@@ -604,13 +592,12 @@ module Make (P : S) = struct
 
     let help =
       let context = Key.merge_context ~default:cached_context base_context in
-      let info = Config.eval ~partial:false context config in
-      let keys = Key.deps info in
-      Key.context ~stage:`Configure ~with_required:false keys
+      Config'.eval ~with_required:false ~partial:false context config
     in
+
     handle_parse_args_result argv ~state
-      (Cli.parse_args ~name:P.name ~version:P.version ~configure ~query
-         ~describe ~build ~clean ~help argv)
+      (Cli.eval ~name:P.name ~version:P.version ~configure ~query ~describe
+         ~build ~clean ~help argv)
 
   let register ?packages ?keys ?(init = default_init) ?(src = `Auto) name jobs =
     (* 1. Pre-parse the arguments set the log level, config file

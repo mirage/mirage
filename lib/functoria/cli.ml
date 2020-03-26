@@ -47,8 +47,6 @@ let maybe_setup_log ~with_setup =
     $ Fmt_cli.style_renderer ~docs:common_section ()
     $ Logs_cli.level ~docs:common_section ())
 
-let setup_log = maybe_setup_log ~with_setup:true
-
 let config_file =
   let doc =
     Arg.info ~docs:configuration_section ~docv:"FILE"
@@ -126,36 +124,61 @@ let kind =
   in
   Arg.(value & pos 0 (enum query_kinds) `Packages & doc)
 
-type 'a describe_args = {
-  result : 'a;
-  dotcmd : string;
-  dot : bool;
+type 'a args = {
+  context : 'a;
+  config_file : Fpath.t;
+  build_dir : Fpath.t option;
   output : string option;
+  dry_run : bool;
 }
 
-type 'a configure_args = { result : 'a; output : string option }
+type 'a configure_args = 'a args
 
-type 'a query_args = { result : 'a; kind : query_kind }
+type 'a build_args = 'a args
+
+type 'a clean_args = 'a args
+
+type 'a help_args = 'a args
+
+type 'a describe_args = {
+  args : 'a args;
+  dotcmd : string;
+  dot : bool;
+  eval : bool option;
+}
+
+type 'a query_args = { args : 'a args; kind : query_kind }
 
 type 'a action =
   | Configure of 'a configure_args
   | Query of 'a query_args
   | Describe of 'a describe_args
-  | Build of 'a
-  | Clean of 'a
-  | Help
+  | Build of 'a build_args
+  | Clean of 'a clean_args
+  | Help of 'a help_args
 
 (*
  * Pretty-printing
  *)
 
-let pp_configure pp_a =
+let pp_args pp_a =
   let open Fmt.Dump in
   record
     [
-      field "result" (fun (t : 'a configure_args) -> t.result) pp_a;
+      field "context" (fun (t : 'a configure_args) -> t.context) pp_a;
+      field "config_file" (fun t -> t.config_file) Fpath.pp;
+      field "build_dir" (fun t -> t.build_dir) (option Fpath.pp);
       field "output" (fun t -> t.output) (option string);
+      field "dry_run" (fun t -> t.dry_run) Fmt.bool;
     ]
+
+let pp_configure = pp_args
+
+let pp_build = pp_args
+
+let pp_clean = pp_args
+
+let pp_help = pp_args
 
 let pp_kind ppf (q : query_kind) =
   let rec aux = function
@@ -168,7 +191,7 @@ let pp_query pp_a =
   let open Fmt.Dump in
   record
     [
-      field "result" (fun (t : 'a query_args) -> t.result) pp_a;
+      field "args" (fun (t : 'a query_args) -> t.args) (pp_args pp_a);
       field "kind" (fun t -> t.kind) pp_kind;
     ]
 
@@ -176,19 +199,19 @@ let pp_describe pp_a =
   let open Fmt.Dump in
   record
     [
-      field "result" (fun (t : 'a describe_args) -> t.result) pp_a;
+      field "args" (fun (t : 'a describe_args) -> t.args) (pp_args pp_a);
       field "dotcmd" (fun t -> t.dotcmd) string;
       field "dot" (fun t -> t.dot) Fmt.bool;
-      field "output" (fun (t : 'a describe_args) -> t.output) (option string);
+      field "eval" (fun t -> t.eval) (option Fmt.bool);
     ]
 
 let pp_action pp_a ppf = function
   | Configure c -> Fmt.pf ppf "@[configure:@ @[<2>%a@]@]" (pp_configure pp_a) c
   | Query q -> Fmt.pf ppf "@[query:@ @[<2>%a@]@]" (pp_query pp_a) q
   | Describe d -> Fmt.pf ppf "@[describe:@ @[<2>%a@]@]" (pp_describe pp_a) d
-  | Build b -> Fmt.pf ppf "@[build:@ @[<2>%a@]@]" pp_a b
-  | Clean c -> Fmt.pf ppf "@[clean:@ @[<2>%a@]@]" pp_a c
-  | Help -> Fmt.string ppf "help"
+  | Build b -> Fmt.pf ppf "@[build:@ @[<2>%a@]@]" (pp_build pp_a) b
+  | Clean c -> Fmt.pf ppf "@[clean:@ @[<2>%a@]@]" (pp_clean pp_a) c
+  | Help h -> Fmt.pf ppf "@[help:@ @[<2>%a@]@]" (pp_help pp_a) h
 
 let setup ~with_setup =
   Term.(
@@ -198,18 +221,25 @@ let setup ~with_setup =
     $ build_dir
     $ dry_run)
 
+let args ~with_setup context =
+  Term.(
+    const (fun () config_file build_dir dry_run output context ->
+        { config_file; build_dir; dry_run; output; context })
+    $ setup ~with_setup
+    $ config_file
+    $ build_dir
+    $ dry_run
+    $ output
+    $ context)
+
 (*
  * Subcommand specifications
  *)
 
 module Subcommands = struct
   (** The 'configure' subcommand *)
-  let configure ~with_setup result =
-    ( Term.(
-        const (fun _ output result -> Configure { output; result })
-        $ setup ~with_setup
-        $ output
-        $ result),
+  let configure ~with_setup context =
+    ( Term.(const (fun args -> Configure args) $ args ~with_setup context),
       Term.info "configure" ~doc:"Configure a $(mname) application."
         ~man:
           [
@@ -219,12 +249,11 @@ module Subcommands = struct
                application.";
           ] )
 
-  let query ~with_setup result =
+  let query ~with_setup context =
     ( Term.(
-        const (fun _ kind result -> Query { kind; result })
-        $ setup ~with_setup
+        const (fun kind args -> Query { kind; args })
         $ kind
-        $ result),
+        $ args ~with_setup context),
       Term.info "query" ~doc:"Query information about the $(mname) application."
         ~man:
           [
@@ -235,14 +264,11 @@ module Subcommands = struct
           ] )
 
   (** The 'describe' subcommand *)
-  let describe ~with_setup result =
+  let describe ~with_setup context =
     ( Term.(
-        const (fun _ _ result output dotcmd dot ->
-            Describe { result; dotcmd; dot; output })
-        $ setup ~with_setup
+        const (fun args eval dotcmd dot -> Describe { args; eval; dotcmd; dot })
+        $ args ~with_setup context
         $ full_eval
-        $ result
-        $ output
         $ dotcmd
         $ dot),
       Term.info "describe" ~doc:"Describe a $(mname) application."
@@ -273,24 +299,24 @@ module Subcommands = struct
           ] )
 
   (** The 'build' subcommand *)
-  let build ~with_setup result =
+  let build ~with_setup context =
     let doc = "Build a $(mname) application." in
-    ( Term.(const (fun _ result -> Build result) $ setup ~with_setup $ result),
+    ( Term.(const (fun args -> Build args) $ args ~with_setup context),
       Term.info "build" ~doc ~man:[ `S "DESCRIPTION"; `P doc ] )
 
   (** The 'clean' subcommand *)
-  let clean ~with_setup result =
+  let clean ~with_setup context =
     let doc = "Clean the files produced by $(mname) for a given application." in
-    ( Term.(const (fun _ result -> Clean result) $ setup ~with_setup $ result),
+    ( Term.(const (fun args -> Clean args) $ args ~with_setup context),
       Term.info "clean" ~doc ~man:[ `S "DESCRIPTION"; `P doc ] )
 
   (** The 'help' subcommand *)
-  let help ~with_setup base_context =
+  let help ~with_setup context =
     let topic =
       let doc = Arg.info [] ~docv:"TOPIC" ~doc:"The topic to get help on." in
       Arg.(value & pos 0 (some string) None & doc)
     in
-    let help man_format cmds topic _keys =
+    let help man_format cmds topic =
       match topic with
       | None -> `Help (man_format, None)
       | Some topic -> (
@@ -305,15 +331,9 @@ module Subcommands = struct
           | `Ok t -> `Help (man_format, Some t) )
     in
     ( Term.(
-        const (fun _ _ () -> Help)
-        $ setup ~with_setup
-        $ output
-        $ ret
-            ( const help
-            $ Term.man_format
-            $ Term.choice_names
-            $ topic
-            $ base_context )),
+        const (fun args () -> Help args)
+        $ args ~with_setup context
+        $ ret (const help $ Term.man_format $ Term.choice_names $ topic)),
       Term.info "help" ~doc:"Display help about $(mname) commands."
         ~man:
           [
@@ -342,11 +362,19 @@ end
 (*
  * Functions for extracting particular flags from the command line.
  *)
-let read_full_eval : string array -> bool option =
- fun argv ->
+
+let peek_full_eval argv =
   match Term.eval_peek_opts ~argv full_eval with _, `Ok b -> b | _ -> None
 
-let parse_args ?(with_setup = true) ?help_ppf ?err_ppf ~name ~version ~configure
+let peek_output argv =
+  match Term.eval_peek_opts ~argv output with _, `Ok b -> b | _ -> None
+
+let peek_args ?(with_setup = true) argv =
+  match Term.eval_peek_opts ~argv (args ~with_setup (Term.pure ())) with
+  | _, `Ok b | Some b, _ -> b
+  | _ -> assert false
+
+let eval ?(with_setup = true) ?help_ppf ?err_ppf ~name ~version ~configure
     ~query ~describe ~build ~clean ~help argv =
   Cmdliner.Term.eval_choice ?help:help_ppf ?err:err_ppf ~argv ~catch:false
     (Subcommands.default ~with_setup ~name ~version)
@@ -358,3 +386,60 @@ let parse_args ?(with_setup = true) ?help_ppf ?err_ppf ~name ~version ~configure
       Subcommands.clean ~with_setup clean;
       Subcommands.help ~with_setup help;
     ]
+
+let choices =
+  [
+    ("configure", `Configure);
+    ("build", `Build);
+    ("clean", `Clean);
+    ("query", `Query);
+    ("describe", `Describe);
+    ("help", `Help);
+  ]
+
+let find_choices s =
+  List.find_all (fun (k, _) -> Astring.String.is_prefix ~affix:s k) choices
+
+let next_pos_arg argv i =
+  let rec aux i =
+    if i >= Array.length argv then None
+    else if argv.(i) = "" then aux (i + 1)
+    else if argv.(i).[0] = '-' then aux (i + 1)
+    else Some i
+  in
+  aux i
+
+let peek_choice argv =
+  match next_pos_arg argv 1 with
+  | None -> `Ok `Default
+  | Some i -> (
+      match find_choices argv.(i) with
+      | [] ->
+          Fmt.epr "unknown command `%s'.`" argv.(i);
+          `Error `Parse
+      | [ (_, a) ] -> `Ok a
+      | cs ->
+          Fmt.epr "command `%s' ambiguous and could be one of: %a\n%!" argv.(i)
+            Fmt.Dump.(list string)
+            (List.map fst cs);
+          `Error `Parse )
+
+let peek ?(with_setup = true) argv =
+  let niet = Term.pure () in
+  let peek t = snd (Term.eval_peek_opts ~argv ~version_opt:true (fst t)) in
+  let peek_cmd t = peek (t niet) in
+  match peek_choice argv with
+  | `Ok `Configure -> peek_cmd (Subcommands.configure ~with_setup)
+  | `Ok `Build -> peek_cmd (Subcommands.build ~with_setup)
+  | `Ok `Clean -> peek_cmd (Subcommands.clean ~with_setup)
+  | `Ok `Query -> peek_cmd (Subcommands.query ~with_setup)
+  | `Ok `Describe -> peek_cmd (Subcommands.describe ~with_setup)
+  | `Ok `Help -> peek_cmd (Subcommands.help ~with_setup)
+  | `Ok `Default ->
+      peek (Subcommands.default ~with_setup ~name:"<name>" ~version:"<version>")
+  | `Error _ as e -> e
+
+let args = function
+  | Configure x | Build x | Clean x | Help x -> x
+  | Query { args; _ } -> args
+  | Describe { args; _ } -> args

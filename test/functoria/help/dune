@@ -1,0 +1,43 @@
+(executable
+ (name config)
+ (libraries f0))
+
+(rule
+ (action
+  (with-stderr-to
+   configure-help.err
+   (with-stdout-to
+    configure-help.out
+    (run ./config.exe configure --help=plain)))))
+
+(rule
+ (action
+  (with-stderr-to
+   help-configure.err
+   (with-stdout-to
+    help-configure.out
+    (run ./config.exe help configure --man-format=plain)))))
+
+(rule
+ (alias runtest)
+ (package functoria)
+ (action
+  (diff help-configure.err.expected help-configure.err)))
+
+(rule
+ (alias runtest)
+ (package functoria)
+ (action
+  (diff help-configure.out.expected help-configure.out)))
+
+(rule
+ (alias runtest)
+ (package functoria)
+ (action
+  (diff configure-help.err.expected configure-help.err)))
+
+(rule
+ (alias runtest)
+ (package functoria)
+ (action
+  (diff configure-help.out.expected help-configure.out)))

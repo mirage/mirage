@@ -11,7 +11,7 @@ let default_random =
         [ package ~sublibs:[ "unix" ] "mirage-crypto-rng" ]
     | _ -> [ package "mirage-crypto-entropy" ]
   in
-  let keys = [ Mirage_key.(abstract prng) ] in
+  let keys = [ Mirage_key.(v prng) ] in
   let connect i _ _ =
     match Mirage_impl_misc.get_target i with
     | #Mirage_key.mode_unix ->

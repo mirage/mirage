@@ -29,7 +29,7 @@ let root () = Action.pwd () >>= root
 
 let dune_build = Fpath.(v "dune.build")
 
-let file_of_key k = Key.(name @@ abstract k)
+let file_of_key k = Key.(name @@ v k)
 
 let write_key i k f =
   let context = Functoria.Info.context i in
@@ -57,7 +57,7 @@ module C = struct
 
   let ignore_dirs = []
 
-  let keys = Key.[ abstract vote; abstract warn_error ]
+  let keys = Key.[ v vote; v warn_error ]
 
   let connect _ _ _ = "()"
 

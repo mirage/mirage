@@ -34,8 +34,7 @@ let test_eval () =
   let r = Key.eval context match_2 in
   Alcotest.(check string) "match 1" "hello" r
 
-let keys =
-  Key.Set.of_list Key.[ abstract key_a; abstract key_b; abstract key_c ]
+let keys = Key.Set.of_list Key.[ v key_a; v key_b; v key_c ]
 
 let eval f keys argv =
   let argv = Array.of_list ("" :: argv) in

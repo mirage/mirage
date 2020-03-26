@@ -28,7 +28,7 @@ let resolver_unix_system =
 
 let resolver_dns_conf ~ns ~ns_port =
   let packages = [ Mirage_impl_conduit_connector.pkg ] in
-  let keys = Key.[ abstract ns; abstract ns_port ] in
+  let keys = Key.[ v ns; v ns_port ] in
   let connect _ modname = function
     | [ _r; _t; stack ] ->
         Fmt.strf

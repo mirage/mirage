@@ -39,7 +39,7 @@ let opt_map f = function Some x -> Some (f x) | None -> None
 
 let ( @? ) x l = match x with Some s -> s :: l | None -> l
 
-let ( @?? ) x y = opt_map Key.abstract x @? y
+let ( @?? ) x y = opt_map Key.v x @? y
 
 (* convenience function for linking tcpip.unix or .xen for checksums *)
 let right_tcpip_library ?libs ~sublibs pkg =
@@ -53,7 +53,7 @@ let right_tcpip_library ?libs ~sublibs pkg =
 
 let ipv4_keyed_conf ~ip ?gateway () =
   let packages_v = right_tcpip_library ~sublibs:[ "ipv4" ] "tcpip" in
-  let keys = gateway @?? [ Key.abstract ip ] in
+  let keys = gateway @?? [ Key.v ip ] in
   let connect _ modname = function
     | [ _random; _mclock; etif; arp ] ->
         Fmt.strf "%s.connect@[@ %a@ %a@ %s@ %s@]" modname

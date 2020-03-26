@@ -17,7 +17,7 @@ let pp_level ppf = function
 let mirage_log ?ring_size ~default =
   let logs = Key.logs in
   let packages = [ package ~min:"1.2.0" ~max:"2.0.0" "mirage-logs" ] in
-  let keys = [ Key.abstract logs ] in
+  let keys = [ Key.v logs ] in
   let connect _ modname = function
     | [ _pclock ] ->
         Fmt.strf

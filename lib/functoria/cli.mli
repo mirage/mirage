@@ -16,86 +16,96 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Functions for reading various options from a command line. *)
+(** Command-line handling. *)
 
-val setup_log : unit Cmdliner.Term.t
+open Cmdliner
 
-val config_file : Fpath.t Cmdliner.Term.t
+type 'a args = {
+  context : 'a;
+  config_file : Fpath.t;
+  build_dir : Fpath.t option;
+  output : string option;
+  dry_run : bool;
+}
+(** The type for global arguments. *)
 
-val build_dir : Fpath.t option Cmdliner.Term.t
+val peek_args : ?with_setup:bool -> string array -> unit args
+(** [peek_args ?with_setup argv] parses the global arguments on the
+    command-line. If [with_setup] is set (by default it is), interprets [-v] and
+    [--color] to set-up the terminal configuration as a side-effect. *)
 
-val output : string option Cmdliner.Term.t
+type 'a configure_args = 'a args
+(** The type for arguments of the [configure] sub-command. *)
 
-val dry_run : bool Cmdliner.Term.t
+type 'a build_args = 'a args
+(** The type for arguments of the [build] sub-command. *)
 
-val read_full_eval : string array -> bool option
-(** [read_full_eval argv] reads the --eval option from [argv]; the return value
-    is [None] if option is absent in [argv]. *)
+type 'a clean_args = 'a args
+(** The type for arguments of the [clean] sub-command. *)
 
-type 'a configure_args = { result : 'a; output : string option }
-(** A value of type [configure_args] is the result of parsing the arguments of a
-    [configure] subcommand. *)
+type 'a help_args = 'a args
+(** The type for arguments of the [help] sub-command. *)
 
 type query_kind =
   [ `Packages | `Opam | `Install | `Files of [ `Configure | `Build ] ]
 
-type 'a query_args = { result : 'a; kind : query_kind }
+type 'a query_args = { args : 'a args; kind : query_kind }
+(** The type for arguments of the [query] sub-command. *)
 
 type 'a describe_args = {
-  result : 'a;
+  args : 'a args;
   dotcmd : string;
   dot : bool;
-  output : string option;
+  eval : bool option;
 }
-(** A value of type [describe_args] is the result of parsing the arguments to a
-    [describe] subcommand.
+(** The type for arguments of the [describe] sub-command. *)
 
-    The [result] field holds the result of parsing the "additional" arguments
-    whose specification is passed as the [describe] argument to {!parse_args}. *)
+val peek_full_eval : string array -> bool option
+(** [peek_full_eval argv] reads the [--eval] option from [argv]; the return
+    value is [None] if option is absent in [argv]. *)
 
+val peek_output : string array -> string option
+(** [peek_full_eval argv] reads the [--output] option from [argv]; the return
+    value is [None] if option is absent in [argv]. *)
+
+(** A value of type [action] is the result of parsing command-line arguments
+    using [parse_args]. *)
 type 'a action =
   | Configure of 'a configure_args
   | Query of 'a query_args
   | Describe of 'a describe_args
-  | Build of 'a
-  | Clean of 'a
-  | Help
-      (** A value of type [action] is the result of parsing command-line
-          arguments using [parse_args]. *)
+  | Build of 'a build_args
+  | Clean of 'a clean_args
+  | Help of 'a help_args
 
 val pp_action : 'a Fmt.t -> 'a action Fmt.t
 (** [pp_action] is the pretty-printer for actions. *)
 
-open Cmdliner.Term
+val args : 'a action -> 'a args
+(** [args a] are [a]'s global arguments. *)
 
-val parse_args :
+(** {Evalutation} *)
+
+val eval :
   ?with_setup:bool ->
   ?help_ppf:Format.formatter ->
   ?err_ppf:Format.formatter ->
   name:string ->
   version:string ->
-  configure:'a t ->
-  query:'a t ->
-  describe:'a t ->
-  build:'a t ->
-  clean:'a t ->
-  help:_ t ->
+  configure:'a Term.t ->
+  query:'a Term.t ->
+  describe:'a Term.t ->
+  build:'a Term.t ->
+  clean:'a Term.t ->
+  help:'a Term.t ->
   string array ->
-  'a action result
+  'a action Term.result
 (** Parse the functoria command line. The arguments to [~configure],
     [~describe], etc., describe extra command-line arguments that should be
-    accepted by the corresponding subcommands. The full argument specification
-    is as follows:
-
-    name configure [-v|--verbose] [--color=(auto|always|never)]
-    [extra arguments] name describe [--eval] [-v|--verbose]
-    [--color=(auto|always|never)] [-o FILE | --output=FILE]
-    [--dot-command=COMMAND] [--dot] [extra arguments] name build [-v|--verbose]
-    [--color=(auto|always|never)] [extra arguments] name clean [-v|--verbose]
-    [--color=(auto|always|never)] [extra arguments] name help [-v|--verbose]
-    [--color=(auto|always|never)] [--man-format=(groff|pager|plain)]
-    [configure|describe|build|clean|help|topics] [extra arguments] name
-    [-v|--verbose] [--color=(auto|always|never)]
+    accepted by the corresponding subcommands.
 
     There are no side effects, save for the printing of usage messages and other
     help when either the 'help' subcommand or no subcommand is specified. *)
+
+val peek : ?with_setup:bool -> string array -> unit action Term.result
+(** Same as [eval_args] but do no fail on unknown command-line arguments. *)

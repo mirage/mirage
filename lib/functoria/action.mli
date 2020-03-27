@@ -89,10 +89,11 @@ val get_var : string -> string option t
 (** [get_var v] gets the value of the variable [c] in the environment. (see
     [Bos.OS.Env.get]) *)
 
-val run_cmd : Bos.Cmd.t -> unit t
+val run_cmd :
+  ?err:Format.formatter -> ?out:Format.formatter -> Bos.Cmd.t -> unit t
 (** Run a command. (see [Bos.OS.Cmd.run]) *)
 
-val run_cmd_out : Bos.Cmd.t -> string t
+val run_cmd_out : ?err:Format.formatter -> Bos.Cmd.t -> string t
 (** Run a command and return stdout. (See [Bos.OS.Cmd.run_out]) *)
 
 val write_file : Fpath.t -> string -> unit t
@@ -136,7 +137,7 @@ val pp_env : env Fmt.t
 type files = [ `Passtrough of Fpath.t | `Files of (Fpath.t * string) list ]
 
 val env :
-  ?commands:(Bos.Cmd.t -> string option) ->
+  ?commands:(Bos.Cmd.t -> (string * string) option) ->
   ?env:(string * string) list ->
   ?pwd:Fpath.t ->
   ?files:files ->

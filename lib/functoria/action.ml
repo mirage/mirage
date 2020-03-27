@@ -35,6 +35,12 @@ type 'a with_output = {
   append : bool;
 }
 
+type cmd = {
+  cmd : Bos.Cmd.t;
+  err : Format.formatter option;
+  out : Format.formatter option;
+}
+
 type _ command =
   | Rmdir : Fpath.t -> unit command
   | Mkdir : Fpath.t -> bool command
@@ -43,8 +49,8 @@ type _ command =
   | Is_file : Fpath.t -> bool command
   | Is_dir : Fpath.t -> bool command
   | Size_of : Fpath.t -> int option command
-  | Run_cmd : Bos.Cmd.t -> unit command
-  | Run_cmd_out : Bos.Cmd.t -> string command
+  | Run_cmd : cmd -> unit command
+  | Run_cmd_out : cmd -> string command
   | Get_var : string -> string option command
   | Set_var : string * string option -> unit command
   | With_dir : Fpath.t * (unit -> 'a t) -> 'a command
@@ -102,9 +108,9 @@ let set_var c v = wrap @@ Set_var (c, v)
 
 let get_var c = wrap @@ Get_var c
 
-let run_cmd cmd = wrap @@ Run_cmd cmd
+let run_cmd ?err ?out cmd = wrap @@ Run_cmd { cmd; out; err }
 
-let run_cmd_out cmd = wrap @@ Run_cmd_out cmd
+let run_cmd_out ?err cmd = wrap @@ Run_cmd_out { cmd; out = None; err }
 
 let write_file path contents = wrap @@ Write_file (!path, contents)
 
@@ -114,6 +120,25 @@ let tmp_file ?mode pat = wrap @@ Tmp_file (mode, pat)
 
 let with_output ?mode ?(append = false) ~path ~purpose contents =
   wrap @@ With_output { append; mode; path; purpose; contents }
+
+let pfo ppf s = match ppf with None -> () | Some ppf -> Fmt.pf ppf "%s%!" s
+
+let interpret_cmd { cmd; err; out } =
+  Log.debug (fun l -> l "run %a" Bos.Cmd.pp cmd);
+  let open Rresult in
+  let err =
+    match err with
+    | None -> Ok (None, fun () -> Ok ())
+    | Some _ as err ->
+        Bos.OS.File.tmp "cmd-err-%s" >>| fun path ->
+        let flush () = Bos.OS.File.read path >>| pfo err in
+        (Some (Bos.OS.Cmd.err_file path), flush)
+  in
+  err >>= fun (err, flush_err) ->
+  Bos.OS.Cmd.run_out ?err cmd |> Bos.OS.Cmd.out_string |> Bos.OS.Cmd.success
+  >>= fun str_out ->
+  pfo out str_out;
+  flush_err () >>| fun () -> str_out
 
 let rec interpret_command : type r. r command -> r or_err = function
   | Rmdir path ->
@@ -139,12 +164,8 @@ let rec interpret_command : type r. r command -> r or_err = function
       match Bos.OS.Path.stat path with
       | Ok s -> Ok (Some s.Unix.st_size)
       | _ -> Ok None )
-  | Run_cmd path ->
-      Log.debug (fun l -> l "run %a" Bos.Cmd.pp path);
-      Bos.OS.Cmd.run path
-  | Run_cmd_out path ->
-      Log.debug (fun l -> l "run_out %a" Bos.Cmd.pp path);
-      Rresult.R.map fst (Bos.OS.Cmd.out_string (Bos.OS.Cmd.run_out path))
+  | Run_cmd cmd -> Rresult.(interpret_cmd cmd >>| fun _ -> ())
+  | Run_cmd_out cmd -> interpret_cmd cmd
   | Set_var (c, v) ->
       Log.debug (fun l ->
           l "set_var %s %a" c Fmt.(option ~none:(unit "<unset>") string) v);
@@ -215,14 +236,14 @@ module Env : sig
   val ls : t -> Fpath.t -> Fpath.t list option
 
   val v :
-    ?commands:(Bos.Cmd.t -> string option) ->
+    ?commands:(Bos.Cmd.t -> (string * string) option) ->
     ?env:(string * string) list ->
     ?pwd:Fpath.t ->
     ?files:files ->
     unit ->
     t
 
-  val exec : t -> Bos.Cmd.t -> string option
+  val exec : t -> Bos.Cmd.t -> (string * string) option
 
   val is_file : t -> Fpath.t -> bool
 
@@ -250,7 +271,7 @@ end = struct
     files : string Fpath.Map.t;
     pwd : Fpath.t;
     env : string String.Map.t;
-    commands : Bos.Cmd.t -> string option;
+    commands : Bos.Cmd.t -> (string * string) option;
   }
 
   let diff_files ~old t =
@@ -430,6 +451,16 @@ let eq_env = Env.eq
 
 let pp_env = Env.pp
 
+let interpret_dry_cmd env { cmd; err; out } : string or_err * _ * _ =
+  Log.debug (fun l -> l "Run_cmd %a" Bos.Cmd.pp cmd);
+  let log x = Fmt.str "Run_cmd %a (%s)" Bos.Cmd.pp cmd x in
+  match Env.exec env cmd with
+  | None -> (error_msg "'%a' not found" Bos.Cmd.pp cmd, env, log "error")
+  | Some (o, e) ->
+      pfo out o;
+      pfo err e;
+      (Ok o, env, Fmt.kstrf log "ok: out=%S err=%S" o e)
+
 let rec interpret_dry : type r. env:Env.t -> r command -> r or_err * _ * _ =
  fun ~env -> function
   | Mkdir path -> (
@@ -482,17 +513,10 @@ let rec interpret_dry : type r. env:Env.t -> r command -> r or_err * _ * _ =
           Fmt.(option ~none:(unit "error") int)
           r )
   | Run_cmd cmd -> (
-      Log.debug (fun l -> l "Run_cmd %a" Bos.Cmd.pp cmd);
-      let log x = Fmt.str "Run_cmd %a (%s)" Bos.Cmd.pp cmd x in
-      match Env.exec env cmd with
-      | None -> (error_msg "'%a' not found" Bos.Cmd.pp cmd, env, log "error")
-      | Some _ -> (Ok (), env, log "ok") )
-  | Run_cmd_out cmd -> (
-      Log.debug (fun l -> l "Run_cmd_out %a" Bos.Cmd.pp cmd);
-      let log x = Fmt.str "Run_cmd_out %a %s" Bos.Cmd.pp cmd x in
-      match Env.exec env cmd with
-      | None -> (error_msg "'%a' not found" Bos.Cmd.pp cmd, env, log "(error)")
-      | Some o -> (Ok o, env, log ("-> " ^ o)) )
+      match interpret_dry_cmd env cmd with
+      | Ok _, env, log -> (Ok (), env, log)
+      | (Error _, _, _) as e -> e )
+  | Run_cmd_out cmd -> interpret_dry_cmd env cmd
   | Write_file (path, s) ->
       Log.debug (fun l -> l "Write_file %a" Fpath.pp path);
       ( Ok (),

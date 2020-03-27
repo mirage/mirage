@@ -220,9 +220,10 @@ module Make (P : S) = struct
   let query ~argv ({ args; kind } : _ Cli.query_args) =
     let jobs, i = args.Cli.context in
     match kind with
+    | `Name -> Fmt.pr "%s\n%!" (Info.name i)
     | `Packages ->
         let pkgs = Info.packages i in
-        List.iter (Fmt.pr "%a\n" (Package.pp ~surround:"\"")) pkgs
+        List.iter (Fmt.pr "%a\n%!" (Package.pp ~surround:"\"")) pkgs
     | `Opam ->
         let opam = Info.opam i in
         Fmt.pr "%a%!" Opam.pp opam

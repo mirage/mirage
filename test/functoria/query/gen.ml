@@ -23,5 +23,10 @@ let gen t =
 let () =
   List.iter gen
     [
-      v "opam"; v "packages"; v "install"; v "files-configure"; v "files-build";
+      v "name";
+      v "opam";
+      v "packages";
+      v "install";
+      v "files-configure";
+      v "files-build";
     ]

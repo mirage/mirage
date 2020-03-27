@@ -53,8 +53,10 @@ let clean () =
 let test ?err_ppf ?help_ppf fmt =
   Fmt.kstrf
     (fun l ->
-      let l = String.cuts ~sep:" " l in
-      F0.run_with_argv ?err_ppf ?help_ppf (Array.of_list ("" :: l)))
+      let l = ("" :: String.cuts ~sep:" " l) @ [ "-vv" ] in
+      Logs.info (fun m ->
+          m "%a %a" Fmt.(styled `Bold string) "[TEST]" Fmt.Dump.(list string) l);
+      F0.run_with_argv ?err_ppf ?help_ppf (Array.of_list l))
     fmt
 
 (* cut a man page into sections *)
@@ -83,7 +85,7 @@ let test_configure () =
   Alcotest.(check files)
     "the usual files should be present before configure"
     [ "app.ml"; "config.ml" ] (list_files root);
-  test "configure -vv --file %a" Fpath.pp config_ml;
+  test "configure --file %a" Fpath.pp config_ml;
   Alcotest.(check files)
     "new files should be created in the source dir"
     [
@@ -166,7 +168,7 @@ let test_describe () =
 let test_build () =
   (* default build *)
   test "configure --file %a" Fpath.pp config_ml;
-  test "build -vv --file %a" Fpath.pp config_ml;
+  test "build --file %a" Fpath.pp config_ml;
   Alcotest.(check bool)
     "main.exe should be built" true
     (Sys.file_exists Fpath.(to_string (root / "main.exe")));
@@ -174,15 +176,15 @@ let test_build () =
 
   (* test --output *)
   test "configure --file %a -o toto" Fpath.pp config_ml;
-  test "build -vv --file %a" Fpath.pp config_ml;
+  test "build --file %a" Fpath.pp config_ml;
   Alcotest.(check bool)
     "toto.exe should be built" true
     (Sys.file_exists Fpath.(to_string (root / "toto.exe")));
   clean ()
 
 let test_keys () =
-  test "configure -vv --file %a" Fpath.pp config_ml;
-  test "build -vv --file %a" Fpath.pp config_ml;
+  test "configure --file %a" Fpath.pp config_ml;
+  test "build --file %a" Fpath.pp config_ml;
   Alcotest.(check string)
     "vote contains the default value: cat" "cat"
     (read_file Fpath.(root / "vote"));
@@ -196,8 +198,8 @@ let test_keys () =
   clean ()
 
 let test_clean () =
-  test "configure -vv --file %a" Fpath.pp config_ml;
-  test "clean -vv --file %a" Fpath.pp config_ml;
+  test "configure --file %a" Fpath.pp config_ml;
+  test "clean --file %a" Fpath.pp config_ml;
   Alcotest.(check files)
     "clean should remove all the files" [ "app.ml"; "config.ml" ]
     (list_files root)
@@ -211,11 +213,11 @@ let test_cache () =
 
 let test_help () =
   let help_ppf = Fmt.with_buffer (Buffer.create 10) in
-  test ~help_ppf "help -vv --help=plain"
+  test ~help_ppf "help --help=plain"
 
 let test_default () =
   let help_ppf = Fmt.with_buffer (Buffer.create 10) in
-  test ~help_ppf "-vv"
+  test ~help_ppf ""
 
 let suite =
   [

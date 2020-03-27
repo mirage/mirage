@@ -15,11 +15,7 @@ let result_t pp_a =
 
 let result_b = result_t Fmt.(Dump.pair bool bool)
 
-let result_u = result_t (fun ppf () -> Fmt.string ppf "()")
-
 let eval = Cli.eval ~with_setup:false ~name:"name" ~version:"0.2"
-
-let peek = Cli.peek ~with_setup:false
 
 let test_configure () =
   let extra_term =
@@ -165,38 +161,6 @@ let test_default () =
   in
   Alcotest.(check result_b) "default" `Help result
 
-let test_peek () =
-  let result = peek [| ""; "config"; "-x"; "--foo"; "-obar" |] in
-  Alcotest.(check result_u)
-    "peek config"
-    (`Ok
-      (Cli.Configure
-         {
-           context = ();
-           output = Some "bar";
-           config_file = Fpath.v "config.ml";
-           dry_run = false;
-         }))
-    result;
-
-  let result = peek [| ""; "c"; "-x"; "--foo"; "-obar" |] in
-  Alcotest.(check result_u) "peek ambiguous" (`Error `Parse) result;
-
-  let result =
-    peek [| ""; "build"; "-x"; "--foo"; "--dry-run"; "-y"; "-a"; "--file=bar" |]
-  in
-  Alcotest.(check result_u)
-    "peek build"
-    (`Ok
-      (Cli.Build
-         {
-           context = ();
-           output = None;
-           config_file = Fpath.v "bar";
-           dry_run = true;
-         }))
-    result
-
 let test_read_full_eval () =
   let check = Alcotest.(check @@ option bool) in
   check "test" None (Cli.peek_full_eval [| "test" |]);
@@ -232,6 +196,5 @@ let suite =
     ("clean", `Quick, test_clean);
     ("help", `Quick, test_help);
     ("default", `Quick, test_default);
-    ("peek", `Quick, test_peek);
     ("generated_header", `Quick, test_generated_header);
   ]

@@ -349,7 +349,7 @@ let peek_full_eval argv =
 let peek_output argv =
   match Term.eval_peek_opts ~argv output with _, `Ok b -> b | _ -> None
 
-let peek_args ?(with_setup = true) argv =
+let peek_args ?(with_setup = false) argv =
   match Term.eval_peek_opts ~argv (args ~with_setup (Term.pure ())) with
   | _, `Ok b | Some b, _ -> b
   | _ -> assert false
@@ -366,58 +366,6 @@ let eval ?(with_setup = true) ?help_ppf ?err_ppf ~name ~version ~configure
       Subcommands.clean ~with_setup clean;
       Subcommands.help ~with_setup help;
     ]
-
-let choices =
-  [
-    ("configure", `Configure);
-    ("build", `Build);
-    ("clean", `Clean);
-    ("query", `Query);
-    ("describe", `Describe);
-    ("help", `Help);
-  ]
-
-let find_choices s =
-  List.find_all (fun (k, _) -> Astring.String.is_prefix ~affix:s k) choices
-
-let next_pos_arg argv i =
-  let rec aux i =
-    if i >= Array.length argv then None
-    else if argv.(i) = "" then aux (i + 1)
-    else if argv.(i).[0] = '-' then aux (i + 1)
-    else Some i
-  in
-  aux i
-
-let peek_choice argv =
-  match next_pos_arg argv 1 with
-  | None -> `Ok `Default
-  | Some i -> (
-      match find_choices argv.(i) with
-      | [] ->
-          Fmt.epr "unknown command `%s'.`" argv.(i);
-          `Error `Parse
-      | [ (_, a) ] -> `Ok a
-      | cs ->
-          Fmt.epr "command `%s' ambiguous and could be one of: %a\n%!" argv.(i)
-            Fmt.Dump.(list string)
-            (List.map fst cs);
-          `Error `Parse )
-
-let peek ?(with_setup = true) argv =
-  let niet = Term.pure () in
-  let peek t = snd (Term.eval_peek_opts ~argv ~version_opt:true (fst t)) in
-  let peek_cmd t = peek (t niet) in
-  match peek_choice argv with
-  | `Ok `Configure -> peek_cmd (Subcommands.configure ~with_setup)
-  | `Ok `Build -> peek_cmd (Subcommands.build ~with_setup)
-  | `Ok `Clean -> peek_cmd (Subcommands.clean ~with_setup)
-  | `Ok `Query -> peek_cmd (Subcommands.query ~with_setup)
-  | `Ok `Describe -> peek_cmd (Subcommands.describe ~with_setup)
-  | `Ok `Help -> peek_cmd (Subcommands.help ~with_setup)
-  | `Ok `Default ->
-      peek (Subcommands.default ~with_setup ~name:"<name>" ~version:"<version>")
-  | `Error _ as e -> e
 
 let args = function
   | Configure x | Build x | Clean x | Help x -> x

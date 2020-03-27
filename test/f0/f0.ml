@@ -108,4 +108,5 @@ module C = struct
       ~install "F0" Functoria.job
 end
 
-include App.Make (C)
+include Lib.Make (C)
+module Tool = Tool.Make (C)

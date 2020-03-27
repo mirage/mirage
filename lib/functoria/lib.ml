@@ -66,10 +66,6 @@ module Config = struct
       $ packages
       $ of_deps (Set.of_list keys))
 
-  (* Extract all the keys directly. Useful to pre-resolve the keys
-     provided by the specialized DSL. *)
-  let extract_keys impl = Engine.all_keys @@ Device_graph.create impl
-
   let keys t = t.keys
 
   let gen_pp pp fmt jobs = pp fmt @@ Device_graph.simplify jobs
@@ -84,31 +80,24 @@ module type S = sig
 
   val name : string
 
-  val packages : package list
-
   val version : string
 
   val create : job impl list -> job impl
 end
 
 module Make (P : S) = struct
-  type state = { config_file : Fpath.t; dry_run : bool }
-
   let cache root = Fpath.(normalize @@ (root / ("." ^ P.name ^ ".config")))
 
   let default_init = [ Job.keys Argv.sys_argv ]
 
-  let init_global_state argv =
-    let { Cli.config_file; dry_run; _ } = Cli.peek_args argv in
-    { config_file; dry_run }
+  let build_dir args = Fpath.parent args.Cli.config_file
 
-  let build_dir ~state = Fpath.parent state.config_file
-
-  let get_build_cmd ~state =
-    [ P.name; "build"; "--config-file"; Fpath.to_string state.config_file ]
+  let get_build_cmd args =
+    [ P.name; "build"; "--config-file"; Fpath.to_string args.Cli.config_file ]
 
   let auto_generated =
-    Fmt.str ";; %s" (Codegen.generated_header ~argv:[| P.name; "config" |] ())
+    Fmt.str ";; %s"
+      (Codegen.generated_header ~argv:[| P.name ^ "." ^ P.version |] ())
 
   let can_overwrite file =
     Action.is_file file >>= function
@@ -122,153 +111,12 @@ module Make (P : S) = struct
           Action.read_file file >|= fun x ->
           String.is_infix ~affix:auto_generated x
 
-  (* STAGE 1 *)
-
-  let generate ~file ~contents =
-    can_overwrite file >>= function
-    | false -> Action.ok ()
-    | true -> Action.rm file >>= fun () -> Action.write_file file contents
-
-  (* Generate a `dune.config` file in the build directory. *)
-  let generate_dune_config ~state () =
-    let file = Fpath.v "dune.config" in
-    let pkgs =
-      match P.packages with
-      | [] -> ""
-      | pkgs ->
-          let pkgs =
-            List.fold_left
-              (fun acc pkg ->
-                let pkgs = String.Set.of_list (Package.libraries pkg) in
-                String.Set.union pkgs acc)
-              String.Set.empty pkgs
-            |> String.Set.elements
-          in
-          String.concat ~sep:" " pkgs
-    in
-    let config_file = Fpath.(basename (rem_ext state.config_file)) in
-    let contents =
-      Fmt.strf
-        {|%s
-
-(executable
-  (name config)
-  (flags (:standard -warn-error -A))
-  (modules %s)
-  (libraries %s))
-|}
-        auto_generated config_file pkgs
-    in
-    generate ~file ~contents
-
-  (* Generate a `dune.config` file in the build directory. *)
-  let generate_empty_dune_build () =
-    let file = Fpath.v "dune.build" in
-    let contents = auto_generated ^ "\n" in
-    generate ~file ~contents
-
-  (* Generate a `dune` file in the build directory. *)
-  let generate_dune () =
-    let file = Fpath.v "dune" in
-    let contents =
-      Fmt.strf "%s\n\n(include dune.config)\n\n(include dune.build)\n"
-        auto_generated
-    in
-    generate ~file ~contents
-
-  (* Generate a `dune-project` file at the project root. *)
-  let generate_dune_project () =
-    let file = Fpath.v "dune-project" in
-    let contents = Fmt.strf "(lang dune 1.1)\n%s\n" auto_generated in
-    generate ~file ~contents
-
-  (* Generate the configuration files in the the build directory *)
-  let generate_configuration_files ~state =
-    Log.info (fun m -> m "Compiling: %a" Fpath.pp state.config_file);
-    (Action.is_file state.config_file >>= function
-     | true -> Action.ok ()
-     | false ->
-         Action.errorf "configuration file %a missing" Fpath.pp
-           state.config_file)
-    >>= fun () ->
-    generate_dune_project () >>= fun () ->
-    Action.with_dir (build_dir ~state) (fun () ->
-        generate_dune_config ~state () >>= fun () ->
-        generate_empty_dune_build () >>= fun () -> generate_dune ())
-
-  (* Compile the configuration files and execute it. *)
-  let build_and_execute ~state ?help_ppf ?err_ppf argv =
-    generate_configuration_files ~state >>= fun () ->
-    let args = Bos.Cmd.of_list (List.tl (Array.to_list argv)) in
-    let command =
-      Bos.Cmd.(
-        v "dune"
-        % "exec"
-        % "--root"
-        % "."
-        % "--"
-        % p Fpath.(build_dir ~state / "config.exe")
-        %% args)
-    in
-    match (help_ppf, err_ppf) with
-    | None, None -> Action.run_cmd command
-    | _, _ -> (
-        Action.run_cmd_out command >|= fun command_result ->
-        match (command_result, help_ppf, err_ppf) with
-        | output, Some help_ppf, _ -> Format.fprintf help_ppf "%s" output
-        | _ -> () )
-
   let exit_err = function
     | Ok v -> v
     | Error (`Msg m) ->
         flush_all ();
         if m <> "" then Fmt.epr "%a\n%!" Fmt.(styled (`Fg `Red) string) m;
         exit 1
-
-  let handle_parse_args_no_config ?help_ppf ?err_ppf (`Msg error) argv =
-    let open Cmdliner in
-    let base_keys = Config.extract_keys (P.create []) in
-    let base_context =
-      Term.(
-        pure (fun _ -> Action.ok ())
-        $ Key.context base_keys ~with_required:false ~stage:`Configure)
-    in
-    let niet = Term.pure (Action.ok ()) in
-    let result =
-      Cli.eval ?help_ppf ?err_ppf ~name:P.name ~version:P.version
-        ~configure:niet ~query:niet ~describe:niet ~build:niet ~clean:niet
-        ~help:base_context argv
-    in
-    let ok = Action.ok () in
-    let error = Action.error error in
-    match result with
-    | `Error _ -> error
-    | `Version | `Help -> ok
-    | `Ok (Cli.Help _) -> ok
-    | `Ok
-        ( Cli.Configure _ | Cli.Query _ | Cli.Describe _ | Cli.Build _
-        | Cli.Clean _ ) ->
-        error
-
-  let run_with_argv ?help_ppf ?err_ppf argv =
-    (* 1. Pre-parse the arguments set the log level, config file
-       and root directory. *)
-    let state = init_global_state argv in
-
-    (* 2. Build the config from the config file. *)
-    (* There are three possible outcomes:
-         1. the config file is found and built successfully
-         2. no config file is specified
-         3. an attempt is made to access the base keys at this point.
-            when they weren't loaded *)
-    build_and_execute ~state ?help_ppf ?err_ppf argv |> Action.run |> function
-    | Ok () -> ()
-    | Error (`Msg _ as err) ->
-        handle_parse_args_no_config ?help_ppf ?err_ppf err argv
-        |> Action.run
-        |> exit_err
-
-  let run () = run_with_argv Sys.argv
 
   (* STAGE 2 *)
 
@@ -277,10 +125,6 @@ module Make (P : S) = struct
   module Log = (val Logs.src_log src : Logs.LOG)
 
   module Config' = struct
-    let pp_info (f : ('a, Format.formatter, unit) format -> 'a) level info =
-      let verbose = Logs.level () >= level in
-      f "@[<v>%a@]" (Info.pp verbose) info
-
     let eval_cached ~partial cache cached_context t =
       let f c _ =
         let info = Config.eval ~partial c t in
@@ -300,31 +144,22 @@ module Make (P : S) = struct
       Cmdliner.Term.(pure f $ context)
   end
 
-  let set_term_output cache (term : 'a Action.t Cmdliner.Term.t) =
-    let f term =
-      Context_cache.eval_output cache >>= function
-      | Some o -> term >|= fun (r, i) -> (r, Info.with_output i o)
-      | _ -> term
-    in
-    Cmdliner.Term.(pure f $ term)
-
   (* FIXME: describe init *)
-  let describe _info ~dotcmd ~dot ~output (_init, job) =
-    let f fmt = (if dot then Config.pp_dot else Config.pp) fmt job in
+  let describe (t : _ Cli.describe_args) =
+    let (_, jobs), _ = t.Cli.args.context in
+    let f fmt = (if t.dot then Config.pp_dot else Config.pp) fmt jobs in
     let with_fmt f =
-      match output with
-      | None when dot ->
+      match t.args.output with
+      | None when t.dot ->
           f Format.str_formatter;
           let data = Format.flush_str_formatter () in
           Action.tmp_file ~mode:0o644 "graph%s.dot" >>= fun tmp ->
           Action.write_file tmp data >>= fun () ->
-          Action.run_cmd Bos.Cmd.(v dotcmd % p tmp)
+          Action.run_cmd Bos.Cmd.(v t.dotcmd % p tmp)
       | None -> Action.ok (f Fmt.stdout)
       | Some s -> Action.with_output ~path:(Fpath.v s) ~purpose:"dot file" f
     in
     with_fmt f
-
-  let with_output i = function None -> i | Some o -> Info.with_output i o
 
   let configure_main ~argv i (init, jobs) : unit Action.t =
     let main = Info.main i in
@@ -363,22 +198,28 @@ module Make (P : S) = struct
     let file = Info.name i ^ ".install" in
     Action.rm Fpath.(v file)
 
-  let configure ~state ~argv i jobs =
-    Log.info (fun m -> m "Configuration: %a" Fpath.pp state.config_file);
-    Log.info (fun m ->
-        m "Output       : %a" Fmt.(option string) (Info.output i));
+  let configure ~argv args =
+    let jobs, i = args.Cli.context in
+    Log.info (fun m -> m "Configuration: %a" Fpath.pp args.Cli.config_file);
+    let () =
+      match Info.output i with
+      | None -> ()
+      | Some o -> Log.info (fun m -> m "Output       : %a" Fmt.(string) o)
+    in
     (* Generate .opam and .install at the project root *)
     configure_opam i >>= fun () ->
     configure_install i jobs >>= fun () ->
     (* Generate main.ml, *_gen.ml in the build dir *)
-    Action.with_dir (build_dir ~state) (fun () -> configure_main ~argv i jobs)
+    Action.with_dir (build_dir args) (fun () -> configure_main ~argv i jobs)
 
-  let build ~state i jobs =
-    Log.info (fun m -> m "Building: %a" Fpath.pp state.config_file);
-    Action.with_dir (build_dir ~state) (fun () -> Engine.build i jobs)
+  let build args =
+    let (_, jobs), i = args.Cli.context in
+    Log.info (fun m -> m "Building: %a" Fpath.pp args.Cli.config_file);
+    Action.with_dir (build_dir args) (fun () -> Engine.build i jobs)
 
-  let query ~state ~argv i (t : Cli.query_kind) jobs =
-    match t with
+  let query ~argv ({ args; kind } : _ Cli.query_args) =
+    let jobs, i = args.Cli.context in
+    match kind with
     | `Packages ->
         let pkgs = Info.packages i in
         List.iter (Fmt.pr "%a\n" (Package.pp ~surround:"\"")) pkgs
@@ -391,21 +232,22 @@ module Make (P : S) = struct
     | `Files stage ->
         let actions =
           match stage with
-          | `Configure -> configure ~state ~argv i jobs
-          | `Build -> build ~state i (snd jobs)
+          | `Configure -> configure ~argv args
+          | `Build -> build args
         in
         let files = Fpath.Set.elements (Action.generated_files actions) in
         Fmt.pr "%a\n%!" Fmt.(list ~sep:(unit " ") Fpath.pp) files
 
-  let clean ~state i (_init, job) =
-    Log.info (fun m -> m "Cleaning: %a" Fpath.pp state.config_file);
+  let clean args =
+    let (_, jobs), i = args.Cli.context in
+    Log.info (fun m -> m "Cleaning: %a" Fpath.pp args.Cli.config_file);
     let clean_file file =
       can_overwrite file >>= function
       | false -> Action.ok ()
       | true -> Action.rm file
     in
     clean_file Fpath.(v "dune-project") >>= fun () ->
-    Action.rm (cache (build_dir ~state)) >>= fun () ->
+    Action.rm (cache (build_dir args)) >>= fun () ->
     ( match Sys.getenv "INSIDE_FUNCTORIA_TESTS" with
     | "1" -> Action.ok ()
     | exception Not_found -> Action.rmdir Fpath.(v "_build")
@@ -413,8 +255,8 @@ module Make (P : S) = struct
     >>= fun () ->
     clean_opam i >>= fun () ->
     clean_install i >>= fun () ->
-    Action.with_dir (build_dir ~state) (fun () ->
-        clean_main i job >>= fun () ->
+    Action.with_dir (build_dir args) (fun () ->
+        clean_main i jobs >>= fun () ->
         clean_file Fpath.(v "dune") >>= fun () ->
         clean_file Fpath.(v "dune.config") >>= fun () ->
         clean_file Fpath.(v "dune.build") >>= fun () ->
@@ -424,33 +266,49 @@ module Make (P : S) = struct
 
   let exit () = Action.error ""
 
-  let handle_parse_args_result ~state argv = function
+  let with_output args =
+    match args.Cli.output with
+    | None -> args
+    | Some o ->
+        let jobs, i = args.Cli.context in
+        let i = Info.with_output i o in
+        { args with context = (jobs, i) }
+
+  let pp_info (f : ('a, Format.formatter, unit) format -> 'a) level args =
+    let verbose = Logs.level () >= level in
+    let _, i = args.Cli.context in
+    f "@[<v>%a@]" (Info.pp verbose) i
+
+  let handle_parse_args_result argv = function
     | `Error _ -> exit ()
     | `Version | `Help -> ok ()
     | `Ok action -> (
         match action with
         | Cli.Help _ -> ok ()
-        | Cli.Configure { context = jobs, info; output; _ } ->
-            let info = with_output info output in
-            Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
-            configure ~state ~argv info jobs >>= ok
-        | Cli.Build { context = (_, jobs), info; _ } ->
-            Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
-            build ~state info jobs >>= ok
-        | Cli.Query { args = { context = jobs, info; _ }; kind; _ } ->
-            Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
-            query ~state ~argv info kind jobs;
+        | Cli.Configure t ->
+            let t = with_output t in
+            Log.info (fun m -> pp_info m (Some Logs.Debug) t);
+            configure ~argv t
+        | Cli.Build t ->
+            let t = with_output t in
+            Log.info (fun m -> pp_info m (Some Logs.Debug) t);
+            build t
+        | Cli.Query t ->
+            let t = { t with args = with_output t.args } in
+            Log.info (fun m -> pp_info m (Some Logs.Debug) t.args);
+            query ~argv t;
             ok ()
-        | Cli.Describe
-            { args = { context = jobs, info; output; _ }; dotcmd; dot; _ } ->
-            Config'.pp_info Fmt.(pf stdout) (Some Logs.Info) info;
-            describe info jobs ~dotcmd ~dot ~output >>= ok
-        | Cli.Clean { context = jobs, info; _ } ->
-            Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
-            clean ~state info jobs >>= ok )
+        | Cli.Describe t ->
+            let t = { t with args = with_output t.args } in
+            pp_info Fmt.(pf stdout) (Some Logs.Info) t.args;
+            describe t
+        | Cli.Clean t ->
+            let t = with_output t in
+            Log.info (fun m -> pp_info m (Some Logs.Debug) t);
+            clean t )
 
-  let action_run ~state a =
-    if not state.dry_run then Action.run a
+  let action_run args a =
+    if not args.Cli.dry_run then Action.run a
     else
       let env = Action.env ~files:(`Passtrough (Fpath.v ".")) () in
       let r, _, lines = Action.dry_run ~env a in
@@ -465,10 +323,18 @@ module Make (P : S) = struct
       in
       r
 
-  let run_term ~state term =
-    Cmdliner.Term.(term_result ~usage:false (pure (action_run ~state) $ term))
+  let run_term argv term =
+    Cmdliner.Term.(term_result ~usage:false (pure (action_run argv) $ term))
 
-  let run_configure_with_argv argv config ~state =
+  let set_term_output cache (term : 'a Action.t Cmdliner.Term.t) =
+    let f term =
+      Context_cache.eval_output cache >>= function
+      | Some o -> term >|= fun (r, i) -> (r, Info.with_output i o)
+      | _ -> term
+    in
+    Cmdliner.Term.(pure f $ term)
+
+  let run_configure_with_argv argv args config =
     (*   whether to fully evaluate the graph *)
     let full_eval = Cli.peek_full_eval argv in
     (* Consider only the non-required keys. *)
@@ -486,7 +352,7 @@ module Make (P : S) = struct
     (* this is a trim-down version of the cached context, with only
         the values corresponding to 'if' keys. This is useful to
         start reducing the config into something consistent. *)
-    Context_cache.read (cache (build_dir ~state)) >>= fun cache ->
+    Context_cache.read (cache (build_dir args)) >>= fun cache ->
     Context_cache.eval cache non_required_term >>= fun cached_context ->
     (* 3. Parse the command-line and handle the result. *)
     let configure =
@@ -508,7 +374,7 @@ module Make (P : S) = struct
     let build =
       Config'.eval_cached ~partial:false cache cached_context config
       |> set_term_output cache
-      |> run_term ~state
+      |> run_term args
     in
     let clean = build in
 
@@ -517,19 +383,21 @@ module Make (P : S) = struct
       Config'.eval ~with_required:false ~partial:false context config
     in
 
-    handle_parse_args_result argv ~state
+    handle_parse_args_result argv
       (Cli.eval ~name:P.name ~version:P.version ~configure ~query ~describe
          ~build ~clean ~help argv)
 
   let register ?packages ?keys ?(init = default_init) ?(src = `Auto) name jobs =
     (* 1. Pre-parse the arguments set the log level, config file
        and root directory. *)
-    let state = init_global_state Sys.argv in
+    let argv = Sys.argv in
+    (* TODO: do not are parse the command-line twice *)
+    let args = Cli.peek_args argv in
     let run () =
-      let build_cmd = get_build_cmd ~state in
+      let build_cmd = get_build_cmd args in
       let main_dev = P.create (init @ jobs) in
       let c = Config.v ?keys ?packages ~init ~build_cmd ~src name main_dev in
-      run_configure_with_argv ~state Sys.argv c
+      run_configure_with_argv argv args c
     in
-    run () |> action_run ~state |> exit_err
+    run () |> action_run args |> exit_err
 end

@@ -371,7 +371,8 @@ module Project = struct
       ~extra_deps "Mirage_runtime" job
 end
 
-include App.Make (Project)
+include Lib.Make (Project)
+module Tool = Tool.Make (Project)
 
 (** Custom registration *)
 

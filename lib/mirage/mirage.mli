@@ -613,6 +613,6 @@ module Configure : sig
   val configure : Info.t -> unit Action.t
 end
 
-(**/**)
-
-val run : unit -> unit
+module Tool : sig
+  val run : unit -> unit
+end

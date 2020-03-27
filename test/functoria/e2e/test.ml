@@ -64,7 +64,7 @@ let test ?err_ppf ?help_ppf fmt =
         l
         Fmt.(styled (`Fg `Cyan) string)
         line;
-      F0.run_with_argv ?err_ppf ?help_ppf (Array.of_list ("" :: l)))
+      F0.Tool.run_with_argv ?err_ppf ?help_ppf (Array.of_list ("" :: l)))
     fmt
 
 (* cut a man page into sections *)
@@ -113,7 +113,7 @@ let test_configure () =
   (* check that configure is writting the correct .test.config
      file *)
   let test_config root cfg =
-    F0.run_with_argv (Array.of_list cfg);
+    F0.Tool.run_with_argv (Array.of_list cfg);
     let expected =
       (String.concat ~sep:"\n" @@ List.map String.Ascii.escape (List.tl cfg))
       ^ "\n"
@@ -170,7 +170,7 @@ let test_configure () =
     (List.mem_assoc "SYNOPSIS" s4)
 
 let test_describe () =
-  F0.run_with_argv
+  F0.Tool.run_with_argv
     [| ""; "describe"; "-vv"; "--file"; Fpath.to_string config_ml |]
 
 let test_build () =

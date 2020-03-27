@@ -37,7 +37,7 @@ let get_ok = function Ok x -> x | Error (`Msg e) -> Alcotest.fail e
 
 let read_file file = get_ok @@ Bos.OS.File.read file
 
-let clean_app () =
+let clean () =
   let dir = Fpath.(v "_build" / "default" // root) in
   get_ok @@ Bos.OS.Dir.delete ~recurse:true dir;
   let files = list_files root in
@@ -49,10 +49,6 @@ let clean_app () =
           if Rresult.R.get_ok @@ Bos.OS.Dir.exists Fpath.(root / f) then ()
           else get_ok @@ Bos.OS.File.delete Fpath.(root / f))
     files
-
-let clean_build () =
-  let dir = Fpath.(v "custom_build_") in
-  get_ok @@ Bos.OS.Dir.delete ~recurse:true dir
 
 let test ?err_ppf ?help_ppf fmt =
   Fmt.kstrf
@@ -81,7 +77,7 @@ let by_sections s =
 let files = Alcotest.(slist string String.compare)
 
 let test_configure () =
-  clean_app ();
+  clean ();
   (* check that configure generates the file in the right dir when
      --file is passed. *)
   Alcotest.(check files)
@@ -102,32 +98,7 @@ let test_configure () =
       "dune.build";
     ]
     (list_files root);
-  clean_app ();
-
-  (* check that configure generates the file in the right dir when
-     --build-dir is passed. *)
-  let files = Alcotest.(slist string String.compare) in
-  Alcotest.(check files)
-    "the usual files should be present before configure"
-    [ "app.ml"; "config.ml" ] (list_files root);
-  test "configure -vv --file %a --build-dir custom_build_" Fpath.pp config_ml;
-  Alcotest.(check files)
-    "nothing should be created in the source dir" [ "app.ml"; "config.ml" ]
-    (list_files root);
-  Alcotest.(check files)
-    "other files should be created in custom_build_"
-    [
-      "main.ml";
-      "key_gen.ml";
-      ".test.config";
-      ".merlin";
-      "dune";
-      "dune.config";
-      "dune.build";
-      (* FIXME: add a .mirage-ignore file to avoid this *)
-    ]
-    (list_files Fpath.(v "custom_build_"));
-  clean_build ();
+  clean ();
 
   (* check that configure is writting the correct .test.config
      file *)
@@ -144,19 +115,9 @@ let test_configure () =
       (String.Ascii.escape_string got)
   in
 
-  test_config "custom_build_"
-    [
-      "";
-      "configure";
-      "-vv";
-      "--file=" ^ Fpath.to_string config_ml;
-      "--build-dir=custom_build_";
-    ];
-  clean_build ();
-
   test_config (Fpath.to_string root)
     [ ""; "configure"; "-vv"; "--file=" ^ Fpath.to_string config_ml ];
-  clean_app ();
+  clean ();
 
   (* check that `test help configure` and `test configure --help` have
      the same output. *)
@@ -209,7 +170,7 @@ let test_build () =
   Alcotest.(check bool)
     "main.exe should be built" true
     (Sys.file_exists Fpath.(to_string (root / "main.exe")));
-  clean_app ();
+  clean ();
 
   (* test --output *)
   test "configure --file %a -o toto" Fpath.pp config_ml;
@@ -217,24 +178,7 @@ let test_build () =
   Alcotest.(check bool)
     "toto.exe should be built" true
     (Sys.file_exists Fpath.(to_string (root / "toto.exe")));
-  clean_app ();
-
-  (* test --build-dir *)
-  test "configure -vv --file %a --build-dir custom_build_" Fpath.pp config_ml;
-  test "build -vv --file %a --build-dir custom_build_" Fpath.pp config_ml;
-  Alcotest.(check bool)
-    "main.exe should be built in custom_build_" true
-    (Sys.file_exists Fpath.(to_string (v "custom_build_" / "main.exe")));
-  clean_build ();
-
-  (* test --output + --build-dir *)
-  test "configure --file %a --build-dir custom_build_ -o toto" Fpath.pp
-    config_ml;
-  test "build -vv --build-dir custom_build_ --file %a" Fpath.pp config_ml;
-  Alcotest.(check bool)
-    "toto.exe should be built in custom_build_" true
-    (Sys.file_exists Fpath.(to_string (v "custom_build_" / "toto.exe")));
-  clean_build ()
+  clean ()
 
 let test_keys () =
   test "configure -vv --file %a" Fpath.pp config_ml;
@@ -242,41 +186,28 @@ let test_keys () =
   Alcotest.(check string)
     "vote contains the default value: cat" "cat"
     (read_file Fpath.(root / "vote"));
-  clean_app ();
-
-  test "configure --file %a --build-dir custom_build_" Fpath.pp config_ml;
-  test "build --file %a --build-dir custom_build_" Fpath.pp config_ml;
-  Alcotest.(check string)
-    "vote contains the default value: cat" "cat"
-    (read_file Fpath.(v "custom_build_" / "vote"));
-  clean_build ();
+  clean ();
 
   test "configure --file %a --vote=dog" Fpath.pp config_ml;
   test "build --file %a" Fpath.pp config_ml;
   Alcotest.(check string)
     "vote contains dog" "dog"
     (read_file Fpath.(root / "vote"));
-  clean_app ()
+  clean ()
 
 let test_clean () =
   test "configure -vv --file %a" Fpath.pp config_ml;
   test "clean -vv --file %a" Fpath.pp config_ml;
   Alcotest.(check files)
     "clean should remove all the files" [ "app.ml"; "config.ml" ]
-    (list_files root);
-
-  test "configure -vv --file %a --build-dir=custom_build_" Fpath.pp config_ml;
-  test "clean -vv --file %a --build-dir custom_build_" Fpath.pp config_ml;
-  Alcotest.(check files)
-    "clean should remove all the files" []
-    (list_files (Fpath.v "custom_build_"))
+    (list_files root)
 
 let test_cache () =
   let str = "foo;;bar;;;\n\nllll;;;sdaads;;\n\t\\0" in
   test "configure --file %a --vote=%s" Fpath.pp config_ml str;
   test "build --file %a" Fpath.pp config_ml;
   Alcotest.(check string) "cache is valid" str (read_file Fpath.(root / "vote"));
-  clean_app ()
+  clean ()
 
 let test_help () =
   let help_ppf = Fmt.with_buffer (Buffer.create 10) in

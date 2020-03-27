@@ -23,7 +23,6 @@ open Cmdliner
 type 'a args = {
   context : 'a;
   config_file : Fpath.t;
-  build_dir : Fpath.t option;
   output : string option;
   dry_run : bool;
 }
@@ -84,7 +83,7 @@ val pp_action : 'a Fmt.t -> 'a action Fmt.t
 val args : 'a action -> 'a args
 (** [args a] are [a]'s global arguments. *)
 
-(** {Evalutation} *)
+(** {1 Evalutation} *)
 
 val eval :
   ?with_setup:bool ->

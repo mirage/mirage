@@ -8,9 +8,6 @@ DESCRIPTION
        The configure command initializes a fresh test application.
 
 CONFIGURE OPTIONS
-       -b DIR, --build-dir=DIR
-           The directory where the build is done.
-
        --dry-run
            Display I/O actions instead of executing them.
 

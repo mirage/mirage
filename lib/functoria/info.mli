@@ -33,9 +33,6 @@ val output : t -> string option
 val with_output : t -> string -> t
 (** [with_output t o] is similar to [t] but with the output set to [Some o]. *)
 
-val build_dir : t -> Fpath.t
-(** Directory in which the build is done. *)
-
 val libraries : t -> string list
 (** [libraries t] are the direct OCamlfind dependencies. *)
 
@@ -58,7 +55,6 @@ val v :
   packages:Package.t list ->
   keys:Key.t list ->
   context:Key.context ->
-  build_dir:Fpath.t ->
   build_cmd:string list ->
   src:[ `Auto | `None | `Some of string ] ->
   string ->

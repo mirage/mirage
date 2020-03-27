@@ -21,8 +21,8 @@ let print_banner s =
   print_newline ()
 
 let test_output_fat =
-  Mirage.FS.fat_shell_script ~block_file:"BLOCK_FILE" ~root:(Fpath.v "ROOT")
-    ~dir:(Fpath.v "DIR") ~regexp:"REGEXP"
+  Mirage.FS.fat_shell_script ~block_file:"BLOCK_FILE" ~dir:(Fpath.v "DIR")
+    ~regexp:"REGEXP"
 
 let () =
   let tests = [ ("output_fat", test_output_fat) ] in

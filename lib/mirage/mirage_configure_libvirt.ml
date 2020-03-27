@@ -5,7 +5,7 @@ let filename ~name = Fpath.(v (name ^ "_libvirt") + "xml")
 
 let append fmt s = Fmt.pf fmt (s ^^ "@.")
 
-let configure_main ~root ~name =
+let configure_main ~name =
   let open Codegen in
   Action.with_output ~path:(filename ~name) ~purpose:"libvirt.xml" (fun fmt ->
       append fmt "<!-- %s -->" (generated_header ());
@@ -16,7 +16,7 @@ let configure_main ~root ~name =
       append fmt "    <vcpu placement='static'>1</vcpu>";
       append fmt "    <os>";
       append fmt "        <type arch='armv7l' machine='xenpv'>linux</type>";
-      append fmt "        <kernel>%s/%s.xen</kernel>" root name;
+      append fmt "        <kernel>%s.xen</kernel>" name;
       append fmt "        <cmdline> </cmdline>";
       (* the libxl driver currently needs an empty cmdline to be able to
            start the domain on arm - due to this?
@@ -56,7 +56,7 @@ let configure_main ~root ~name =
       append fmt "    </devices>";
       append fmt "</domain>")
 
-let configure_virtio ~root ~name =
+let configure_virtio ~name =
   let open Codegen in
   Action.with_output ~path:(filename ~name) ~purpose:"libvirt.xml" (fun fmt ->
       append fmt "<!-- %s -->" (generated_header ());
@@ -67,7 +67,7 @@ let configure_virtio ~root ~name =
       append fmt "    <vcpu placement='static'>1</vcpu>";
       append fmt "    <os>";
       append fmt "        <type arch='x86_64' machine='pc'>hvm</type>";
-      append fmt "        <kernel>%s/%s.virtio</kernel>" root name;
+      append fmt "        <kernel>%s.virtio</kernel>" name;
       append fmt "        <!-- Command line arguments can be given if required:";
       append fmt "        <cmdline>-l *:debug</cmdline>";
       append fmt "        -->";

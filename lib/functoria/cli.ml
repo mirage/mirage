@@ -41,7 +41,7 @@ let query_kinds : (string * query_kind) list =
     ("files-build", `Files `Build);
   ]
 
-let maybe_setup_log ~with_setup =
+let setup ~with_setup =
   Term.(
     const (if with_setup then setup_log else fun _ _ -> ())
     $ Fmt_cli.style_renderer ~docs:common_section ()
@@ -53,15 +53,6 @@ let config_file =
       ~doc:"The configuration file to use." [ "f"; "file" ]
   in
   Term.(const Fpath.v $ Arg.(value & opt string "config.ml" & doc))
-
-let build_dir =
-  let doc =
-    Arg.info ~docs:configuration_section ~docv:"DIR"
-      ~doc:"The directory where the build is done." [ "b"; "build-dir" ]
-  in
-  Term.(
-    const (function None -> None | Some f -> Some (Fpath.v f))
-    $ Arg.(value & opt (some string) None & doc))
 
 let dry_run =
   let doc =
@@ -127,7 +118,6 @@ let kind =
 type 'a args = {
   context : 'a;
   config_file : Fpath.t;
-  build_dir : Fpath.t option;
   output : string option;
   dry_run : bool;
 }
@@ -167,7 +157,6 @@ let pp_args pp_a =
     [
       field "context" (fun (t : 'a configure_args) -> t.context) pp_a;
       field "config_file" (fun t -> t.config_file) Fpath.pp;
-      field "build_dir" (fun t -> t.build_dir) (option Fpath.pp);
       field "output" (fun t -> t.output) (option string);
       field "dry_run" (fun t -> t.dry_run) Fmt.bool;
     ]
@@ -213,21 +202,12 @@ let pp_action pp_a ppf = function
   | Clean c -> Fmt.pf ppf "@[clean:@ @[<2>%a@]@]" (pp_clean pp_a) c
   | Help h -> Fmt.pf ppf "@[help:@ @[<2>%a@]@]" (pp_help pp_a) h
 
-let setup ~with_setup =
-  Term.(
-    const (fun () _ _ _ -> ())
-    $ maybe_setup_log ~with_setup
-    $ config_file
-    $ build_dir
-    $ dry_run)
-
 let args ~with_setup context =
   Term.(
-    const (fun () config_file build_dir dry_run output context ->
-        { config_file; build_dir; dry_run; output; context })
+    const (fun () config_file dry_run output context ->
+        { config_file; dry_run; output; context })
     $ setup ~with_setup
     $ config_file
-    $ build_dir
     $ dry_run
     $ output
     $ context)

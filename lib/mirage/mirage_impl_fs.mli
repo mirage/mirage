@@ -15,9 +15,4 @@ val generic_kv_ro :
   Mirage_impl_kv.ro Functoria.impl
 
 val fat_shell_script :
-  Format.formatter ->
-  block_file:string ->
-  root:Fpath.t ->
-  dir:Fpath.t ->
-  regexp:string ->
-  unit
+  Format.formatter -> block_file:string -> dir:Fpath.t -> regexp:string -> unit

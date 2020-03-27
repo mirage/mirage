@@ -21,7 +21,6 @@ open Astring
 type t = {
   name : string;
   output : string option;
-  build_dir : Fpath.t;
   keys : Key.Set.t;
   context : Key.context;
   packages : Package.t String.Map.t;
@@ -35,8 +34,6 @@ let main t =
   Fpath.v (main ^ ".ml")
 
 let opam t = t.opam
-
-let build_dir t = t.build_dir
 
 let output t = t.output
 
@@ -68,7 +65,7 @@ let keys t = Key.Set.elements t.keys
 
 let context t = t.context
 
-let v ~packages ~keys ~context ~build_dir ~build_cmd ~src name =
+let v ~packages ~keys ~context ~build_cmd ~src name =
   let keys = Key.Set.of_list keys in
   let opam =
     Opam.v ~depends:packages ~pins:(pins packages) ~build:build_cmd ~src name
@@ -85,16 +82,15 @@ let v ~packages ~keys ~context ~build_dir ~build_cmd ~src name =
             | None -> m ))
       String.Map.empty packages
   in
-  { name; build_dir; keys; packages; context; output = None; opam }
+  { name; keys; packages; context; output = None; opam }
 
 let pp_packages ?(surround = "") ?sep ppf t =
   Fmt.pf ppf "%a" (Fmt.iter ?sep List.iter (Package.pp ~surround)) (packages t)
 
-let pp verbose ppf ({ name; build_dir; keys; context; output; _ } as t) =
+let pp verbose ppf ({ name; keys; context; output; _ } as t) =
   let show name = Fmt.pf ppf "@[<2>%s@ %a@]@," name in
   let list = Fmt.iter ~sep:(Fmt.unit ",@ ") List.iter Fmt.string in
   show "Name      " Fmt.string name;
-  show "Build-dir " Fpath.pp build_dir;
   show "Keys      " (Key.pps context) keys;
   show "Output    " Fmt.(option string) output;
   if verbose then show "Libraries " list (libraries t);
@@ -111,9 +107,8 @@ module Log = (val Logs.src_log src : Logs.LOG)
 
 let t =
   let i =
-    v ~packages:[] ~keys:[] ~context:Key.empty_context ~build_cmd:[]
-      ~build_dir:Fpath.(v "dummy")
-      ~src:`None "dummy"
+    v ~packages:[] ~keys:[] ~context:Key.empty_context ~build_cmd:[] ~src:`None
+      "dummy"
   in
   Type.v i
 

@@ -29,7 +29,6 @@ module Config = struct
   type t = {
     name : string;
     build_cmd : string list;
-    build_dir : Fpath.t;
     packages : package list Key.value;
     keys : Key.Set.t;
     init : job impl list;
@@ -48,23 +47,22 @@ module Config = struct
     in
     Key.Set.fold f all_keys skeys
 
-  let v ?(keys = []) ?(packages = []) ?(init = []) ~build_dir ~build_cmd ~src
-      name main_dev =
+  let v ?(keys = []) ?(packages = []) ?(init = []) ~build_cmd ~src name main_dev
+      =
     let name = Name.ocamlify name in
     let jobs = Device_graph.create main_dev in
     let packages = Key.pure @@ packages in
     let keys = Key.Set.(union (of_list keys) (get_if_context jobs)) in
-    { packages; keys; name; build_dir; init; jobs; build_cmd; src }
+    { packages; keys; name; init; jobs; build_cmd; src }
 
   let eval ~partial context
-      { name = n; build_dir; build_cmd; packages; keys; jobs; init; src } =
+      { name = n; build_cmd; packages; keys; jobs; init; src } =
     let e = Device_graph.eval ~partial ~context jobs in
     let packages = Key.(pure List.append $ packages $ Engine.packages e) in
     let keys = Key.Set.elements (Key.Set.union keys @@ Engine.all_keys e) in
     Key.(
       pure (fun packages _ context ->
-          ( (init, e),
-            Info.v ~packages ~keys ~context ~build_dir ~build_cmd ~src n ))
+          ((init, e), Info.v ~packages ~keys ~context ~build_cmd ~src n))
       $ packages
       $ of_deps (Set.of_list keys))
 
@@ -94,59 +92,20 @@ module type S = sig
 end
 
 module Make (P : S) = struct
-  type state = {
-    build_dir : Fpath.t option;
-    config_file : Fpath.t;
-    dry_run : bool;
-  }
+  type state = { config_file : Fpath.t; dry_run : bool }
 
   let cache root = Fpath.(normalize @@ (root / ("." ^ P.name ^ ".config")))
 
   let default_init = [ Job.keys Argv.sys_argv ]
 
   let init_global_state argv =
-    let { Cli.config_file; build_dir; dry_run; _ } = Cli.peek_args argv in
-    { config_file; build_dir; dry_run }
+    let { Cli.config_file; dry_run; _ } = Cli.peek_args argv in
+    { config_file; dry_run }
 
-  let get_project_root () = Action.pwd ()
-
-  let relativize ~root p =
-    let p =
-      if Fpath.is_abs p then Action.ok p
-      else get_project_root () >|= fun root -> Fpath.(root // p)
-    in
-    p >|= fun p ->
-    match Fpath.relativize ~root p with
-    | Some p -> p
-    | None -> Fmt.failwith "relativize: root=%a %a" Fpath.pp root Fpath.pp p
-
-  let get_relative_source_dir ~state =
-    get_project_root () >>= fun root ->
-    let dir = Fpath.parent state.config_file in
-    relativize ~root dir
-
-  let get_build_dir ~state =
-    let dir =
-      match state.build_dir with
-      | None -> get_relative_source_dir ~state
-      | Some p -> get_project_root () >>= fun root -> relativize ~root p
-    in
-    dir >>= fun dir ->
-    match Fpath.segs dir with
-    | ".." :: _ -> Action.error "--build-dir should be a sub-directory."
-    | _ -> Action.mkdir dir >|= fun _ -> dir
+  let build_dir ~state = Fpath.parent state.config_file
 
   let get_build_cmd ~state =
-    let build_dir =
-      match state.build_dir with
-      | None -> []
-      | Some d -> [ "--build-dir"; Fpath.to_string d ]
-    in
-    P.name
-    :: "build"
-    :: "--config-file"
-    :: Fpath.to_string state.config_file
-    :: build_dir
+    [ P.name; "build"; "--config-file"; Fpath.to_string state.config_file ]
 
   let auto_generated =
     Fmt.str ";; %s" (Codegen.generated_header ~argv:[| P.name; "config" |] ())
@@ -170,18 +129,8 @@ module Make (P : S) = struct
     | false -> Action.ok ()
     | true -> Action.rm file >>= fun () -> Action.write_file file contents
 
-  let list_files dir =
-    Action.ls dir >|= fun files ->
-    List.filter
-      (fun src ->
-        match Fpath.basename src with
-        | "_build" | "main.ml" | "key_gen.ml" -> false
-        | s when Filename.extension s = ".exe" -> false
-        | _ -> true)
-      files
-
   (* Generate a `dune.config` file in the build directory. *)
-  let generate_dune_config ~state ~project_root ~source_dir () =
+  let generate_dune_config ~state () =
     let file = Fpath.v "dune.config" in
     let pkgs =
       match P.packages with
@@ -197,31 +146,18 @@ module Make (P : S) = struct
           in
           String.concat ~sep:" " pkgs
     in
-    let copy_rule file =
-      match state.build_dir with
-      | None -> Action.ok ""
-      | Some root ->
-          let root = Fpath.(project_root // root) in
-          relativize ~root file >|= fun src ->
-          let file = Fpath.basename file in
-          Fmt.strf "(rule (copy %a %s))\n\n" Fpath.pp src file
-    in
-    list_files Fpath.(project_root // source_dir) >>= fun files ->
-    Action.List.map ~f:copy_rule files >>= fun copy_rules ->
     let config_file = Fpath.(basename (rem_ext state.config_file)) in
     let contents =
       Fmt.strf
         {|%s
 
-%a(executable
+(executable
   (name config)
   (flags (:standard -warn-error -A))
   (modules %s)
   (libraries %s))
 |}
-        auto_generated
-        Fmt.(list ~sep:(unit "") string)
-        copy_rules config_file pkgs
+        auto_generated config_file pkgs
     in
     generate ~file ~contents
 
@@ -241,46 +177,37 @@ module Make (P : S) = struct
     generate ~file ~contents
 
   (* Generate a `dune-project` file at the project root. *)
-  let generate_dune_project ~project_root =
-    let file = Fpath.(project_root / "dune-project") in
+  let generate_dune_project () =
+    let file = Fpath.v "dune-project" in
     let contents = Fmt.strf "(lang dune 1.1)\n%s\n" auto_generated in
     generate ~file ~contents
 
   (* Generate the configuration files in the the build directory *)
-  let generate_configuration_files ~state ~project_root ~source_dir ~build_dir
-      ~config_file =
-    Log.info (fun m -> m "Compiling: %a" Fpath.pp config_file);
-    Log.info (fun m -> m "Project root: %a" Fpath.pp project_root);
-    Log.info (fun m -> m "Build dir: %a" Fpath.pp build_dir);
-    (Action.is_file config_file >>= function
+  let generate_configuration_files ~state =
+    Log.info (fun m -> m "Compiling: %a" Fpath.pp state.config_file);
+    (Action.is_file state.config_file >>= function
      | true -> Action.ok ()
      | false ->
-         Action.errorf "configuration file %a missing" Fpath.pp config_file)
+         Action.errorf "configuration file %a missing" Fpath.pp
+           state.config_file)
     >>= fun () ->
-    generate_dune_project ~project_root >>= fun () ->
-    Action.with_dir build_dir (fun () ->
-        generate_dune_config ~state ~project_root ~source_dir () >>= fun () ->
+    generate_dune_project () >>= fun () ->
+    Action.with_dir (build_dir ~state) (fun () ->
+        generate_dune_config ~state () >>= fun () ->
         generate_empty_dune_build () >>= fun () -> generate_dune ())
 
   (* Compile the configuration files and execute it. *)
   let build_and_execute ~state ?help_ppf ?err_ppf argv =
-    let config_file = state.config_file in
-    get_build_dir ~state >>= fun build_dir ->
-    get_project_root () >>= fun project_root ->
-    get_relative_source_dir ~state >>= fun source_dir ->
-    generate_configuration_files ~state ~project_root ~source_dir ~build_dir
-      ~config_file
-    >>= fun () ->
+    generate_configuration_files ~state >>= fun () ->
     let args = Bos.Cmd.of_list (List.tl (Array.to_list argv)) in
-    relativize ~root:project_root build_dir >>= fun target_dir ->
     let command =
       Bos.Cmd.(
         v "dune"
         % "exec"
         % "--root"
-        % p project_root
+        % "."
         % "--"
-        % p Fpath.(target_dir / "config.exe")
+        % p Fpath.(build_dir ~state / "config.exe")
         %% args)
     in
     match (help_ppf, err_ppf) with
@@ -437,21 +364,18 @@ module Make (P : S) = struct
     Action.rm Fpath.(v file)
 
   let configure ~state ~argv i jobs =
-    get_relative_source_dir ~state >>= fun source_dir ->
-    Log.debug (fun l -> l "source-dir=%a" Fpath.pp source_dir);
     Log.info (fun m -> m "Configuration: %a" Fpath.pp state.config_file);
     Log.info (fun m ->
         m "Output       : %a" Fmt.(option string) (Info.output i));
-    Log.info (fun m -> m "Build-dir    : %a" Fpath.pp (Info.build_dir i));
     (* Generate .opam and .install at the project root *)
     configure_opam i >>= fun () ->
     configure_install i jobs >>= fun () ->
     (* Generate main.ml, *_gen.ml in the build dir *)
-    Action.with_dir (Info.build_dir i) (fun () -> configure_main ~argv i jobs)
+    Action.with_dir (build_dir ~state) (fun () -> configure_main ~argv i jobs)
 
   let build ~state i jobs =
     Log.info (fun m -> m "Building: %a" Fpath.pp state.config_file);
-    Action.with_dir (Info.build_dir i) (fun () -> Engine.build i jobs)
+    Action.with_dir (build_dir ~state) (fun () -> Engine.build i jobs)
 
   let query ~state ~argv i (t : Cli.query_kind) jobs =
     match t with
@@ -481,7 +405,7 @@ module Make (P : S) = struct
       | true -> Action.rm file
     in
     clean_file Fpath.(v "dune-project") >>= fun () ->
-    Action.rm (cache (Info.build_dir i)) >>= fun () ->
+    Action.rm (cache (build_dir ~state)) >>= fun () ->
     ( match Sys.getenv "INSIDE_FUNCTORIA_TESTS" with
     | "1" -> Action.ok ()
     | exception Not_found -> Action.rmdir Fpath.(v "_build")
@@ -489,7 +413,7 @@ module Make (P : S) = struct
     >>= fun () ->
     clean_opam i >>= fun () ->
     clean_install i >>= fun () ->
-    Action.with_dir (Info.build_dir i) (fun () ->
+    Action.with_dir (build_dir ~state) (fun () ->
         clean_main i job >>= fun () ->
         clean_file Fpath.(v "dune") >>= fun () ->
         clean_file Fpath.(v "dune.config") >>= fun () ->
@@ -562,7 +486,7 @@ module Make (P : S) = struct
     (* this is a trim-down version of the cached context, with only
         the values corresponding to 'if' keys. This is useful to
         start reducing the config into something consistent. *)
-    Context_cache.read (cache config.build_dir) >>= fun cache ->
+    Context_cache.read (cache (build_dir ~state)) >>= fun cache ->
     Context_cache.eval cache non_required_term >>= fun cached_context ->
     (* 3. Parse the command-line and handle the result. *)
     let configure =
@@ -602,12 +526,9 @@ module Make (P : S) = struct
        and root directory. *)
     let state = init_global_state Sys.argv in
     let run () =
-      get_build_dir ~state >>= fun build_dir ->
       let build_cmd = get_build_cmd ~state in
       let main_dev = P.create (init @ jobs) in
-      let c =
-        Config.v ?keys ?packages ~init ~build_dir ~build_cmd ~src name main_dev
-      in
+      let c = Config.v ?keys ?packages ~init ~build_cmd ~src name main_dev in
       run_configure_with_argv ~state Sys.argv c
     in
     run () |> action_run ~state |> exit_err

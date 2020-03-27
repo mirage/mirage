@@ -1,5 +1,18 @@
 
 (rule
+ (target name)
+ (action
+  (with-stdout-to
+   %{target}
+   (run ./config.exe query name))))
+
+(rule
+ (alias runtest)
+ (package functoria)
+ (action
+  (diff name.expected name)))
+
+(rule
  (target opam)
  (action
   (with-stdout-to

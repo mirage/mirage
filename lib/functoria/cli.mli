@@ -52,7 +52,7 @@ type 'a help_args = 'a args
 (** The type for arguments of the [help] sub-command. *)
 
 type query_kind =
-  [ `Packages | `Opam | `Install | `Files of [ `Configure | `Build ] ]
+  [ `Name | `Packages | `Opam | `Install | `Files of [ `Configure | `Build ] ]
 
 type 'a query_args = { args : 'a args; kind : query_kind }
 (** The type for arguments of the [query] sub-command. *)

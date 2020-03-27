@@ -30,10 +30,11 @@ let configuration_section = "CONFIGURE OPTIONS"
 let description_section = "DESCRIBE OPTIONS"
 
 type query_kind =
-  [ `Packages | `Opam | `Install | `Files of [ `Configure | `Build ] ]
+  [ `Name | `Packages | `Opam | `Install | `Files of [ `Configure | `Build ] ]
 
 let query_kinds : (string * query_kind) list =
   [
+    ("name", `Name);
     ("packages", `Packages);
     ("opam", `Opam);
     ("install", `Install);

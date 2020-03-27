@@ -53,10 +53,18 @@ let clean () =
 let test ?err_ppf ?help_ppf fmt =
   Fmt.kstrf
     (fun l ->
-      let l = ("" :: String.cuts ~sep:" " l) @ [ "-vv" ] in
-      Logs.info (fun m ->
-          m "%a %a" Fmt.(styled `Bold string) "[TEST]" Fmt.Dump.(list string) l);
-      F0.run_with_argv ?err_ppf ?help_ppf (Array.of_list l))
+      let line = String.v ~len:80 (fun i -> if i mod 2 = 0 then '-' else '=') in
+      let l = String.cuts ~empty:false ~sep:" " l @ [ "-vv" ] in
+      Fmt.pr "@,%a@,%a %a@,%a@,%!"
+        Fmt.(styled (`Fg `Cyan) string)
+        line
+        Fmt.(styled `Bold string)
+        "[TEST]"
+        Fmt.Dump.(list string)
+        l
+        Fmt.(styled (`Fg `Cyan) string)
+        line;
+      F0.run_with_argv ?err_ppf ?help_ppf (Array.of_list ("" :: l)))
     fmt
 
 (* cut a man page into sections *)

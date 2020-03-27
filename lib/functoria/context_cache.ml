@@ -27,7 +27,7 @@ type t = string array
 
 let write file argv =
   Log.info (fun m ->
-      m "Preserving arguments in %a: %a" Fpath.pp file
+      m "Preserving arguments in %a:@ %a" Fpath.pp file
         Fmt.Dump.(array string)
         argv);
   (* Only keep args *)

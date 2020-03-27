@@ -88,14 +88,18 @@ let pp_packages ?(surround = "") ?sep ppf t =
   Fmt.pf ppf "%a" (Fmt.iter ?sep List.iter (Package.pp ~surround)) (packages t)
 
 let pp verbose ppf ({ name; keys; context; output; _ } as t) =
-  let show name = Fmt.pf ppf "@[<2>%s@ %a@]@," name in
+  let show ?(newline = true) name =
+    Fmt.pf ppf ("@[<2>%-10s@ %a@]" ^^ if newline then "@," else "") name
+  in
   let list = Fmt.iter ~sep:(Fmt.unit ",@ ") List.iter Fmt.string in
-  show "Name      " Fmt.string name;
-  show "Keys      " (Key.pps context) keys;
-  show "Output    " Fmt.(option string) output;
+  show "Name" Fmt.string name;
+  show "Keys" (Key.pps context) keys;
+  show "Output" ~newline:verbose Fmt.(option string) output;
   if verbose then show "Libraries " list (libraries t);
   if verbose then
-    show "Packages  " (pp_packages ?surround:None ~sep:(Fmt.unit ",@ ")) t
+    show "Packages" ~newline:false
+      (pp_packages ?surround:None ~sep:(Fmt.unit ",@ "))
+      t
 
 (* Device *)
 

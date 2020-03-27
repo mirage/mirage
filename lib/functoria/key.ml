@@ -355,7 +355,7 @@ let pps p =
     | Arg.Flag, v -> pp' fmt k v
     (* Warning 4 and GADT don't interact well. *)
   in
-  fun ppf s -> Set.(pp_gen f ppf @@ s)
+  Fmt.vbox @@ fun ppf s -> Set.(pp_gen f ppf @@ s)
 
 (* {2 Automatic documentation} *)
 

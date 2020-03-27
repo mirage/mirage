@@ -107,3 +107,23 @@ val eval :
 
     There are no side effects, save for the printing of usage messages and other
     help when either the 'help' subcommand or no subcommand is specified. *)
+
+(** {1 Argv Transformers} *)
+
+type choice =
+  [ `Configure
+  | `Build
+  | `Clean
+  | `Query of query_kind option
+  | `Describe
+  | `Help ]
+(** The type for sub-command choices. *)
+
+val pp_choice : choice Fmt.t
+(** [pp_choice] is a pretty-printer for choices. *)
+
+val map_choice :
+  (choice option -> choice option) -> string array -> string array
+(** [map_choice f argv] is [argv] where the sub-command have been changed by
+    applying [f]. Raise [Invalid_argument] if the sub-command names are
+    ambiguous. *)

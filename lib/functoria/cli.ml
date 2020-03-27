@@ -371,3 +371,95 @@ let args = function
   | Configure x | Build x | Clean x | Help x -> x
   | Query { args; _ } -> args
   | Describe { args; _ } -> args
+
+type choice =
+  [ `Configure
+  | `Build
+  | `Clean
+  | `Query of query_kind option
+  | `Describe
+  | `Help ]
+
+let choices =
+  [
+    ("configure", `Configure);
+    ("build", `Build);
+    ("clean", `Clean);
+    ("query", `Query);
+    ("describe", `Describe);
+    ("help", `Help);
+  ]
+
+let find_choices s =
+  List.find_all (fun (k, _) -> Astring.String.is_prefix ~affix:s k) choices
+
+let find_kind s =
+  List.find_all (fun (k, _) -> Astring.String.is_prefix ~affix:s k) query_kinds
+
+let pp_choice ppf = function
+  | `Query None -> Fmt.string ppf "query"
+  | `Query (Some k) -> Fmt.pf ppf "query[%a]" pp_kind k
+  | (`Build | `Clean | `Describe | `Help | `Configure) as c ->
+      Fmt.string ppf (fst (List.find (fun (_, x) -> x = c) choices))
+
+let argv_of_choice = function
+  | (`Configure | `Build | `Clean | `Describe | `Help) as c ->
+      [| Fmt.to_to_string pp_choice c |]
+  | `Query (Some k) -> [| "query"; Fmt.to_to_string pp_kind k |]
+  | `Query None -> [| "query" |]
+
+let next_pos_arg argv i =
+  let rec aux i =
+    if i >= Array.length argv then None
+    else if argv.(i) = "" then aux (i + 1)
+    else if argv.(i).[0] = '-' then aux (i + 1)
+    else Some i
+  in
+  aux i
+
+let remove_argv argv i =
+  let a = Array.sub argv 0 i in
+  let b = Array.sub argv (i + 1) (Array.length argv - i - 1) in
+  Array.append a b
+
+let rec find_next_kind argv i =
+  match next_pos_arg argv i with
+  | None -> (None, argv)
+  | Some i -> (
+      match find_kind argv.(i) with
+      | [] -> find_next_kind argv (i + 1)
+      | _ :: _ :: _ as cs ->
+          Fmt.invalid_arg "ambiguous sub-command: %a\n%!"
+            Fmt.Dump.(list string)
+            (List.map fst cs)
+      | [ (_, k) ] -> (Some k, remove_argv argv i) )
+
+let rec find_next_choice argv i =
+  match next_pos_arg argv i with
+  | None -> (None, argv)
+  | Some i -> (
+      match find_choices argv.(i) with
+      | [] -> find_next_choice argv (i + 1)
+      | _ :: _ :: _ as cs ->
+          Fmt.invalid_arg "ambiguous sub-command: %a\n%!"
+            Fmt.Dump.(list string)
+            (List.map fst cs)
+      | [ (_, a) ] -> (
+          match a with
+          | (`Configure | `Build | `Clean | `Describe | `Help) as c ->
+              (Some c, remove_argv argv i)
+          | `Query ->
+              let k, argv = find_next_kind argv (i + 1) in
+              (Some (`Query k), remove_argv argv i) ) )
+
+let map_choice (f : choice option -> choice option) argv =
+  let choice, argv = find_next_choice argv 1 in
+  match f choice with
+  | None -> argv
+  | Some c ->
+      Array.concat
+        [
+          [| argv.(0) |];
+          argv_of_choice c;
+          Array.sub argv 1 (Array.length argv - 1);
+        ]

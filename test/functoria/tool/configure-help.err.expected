@@ -1,0 +1,13 @@
+* Is_file? config.ml -> true
+* Is_file? dune-project -> false
+* Rm dune-project (no-op)
+* Write to dune-project (44 bytes)
+* With_dir ./ [Is_file? dune.config -> false
+               Rm dune.config (no-op)
+               Write to dune.config (141 bytes)
+               Is_file? dune.build -> false
+               Rm dune.build (no-op)
+               Write to dune.build (28 bytes)
+               Is_file? dune -> true
+               Read dune (221 bytes)]
+* Run_cmd 'dune exec --root . -- ./config.exe configure help --dry-run' (ok: out="[...]" err="")

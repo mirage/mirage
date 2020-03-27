@@ -254,12 +254,12 @@ let test_run_cmd () =
   test "run_cmd fails if the command doesn't exist" ~env:none
     ~cmd:(Bos.Cmd.v "some-command")
     ~expected:(error "'some-command' not found")
-    ~expected_log:[ "Run_cmd some-command (error)" ]
+    ~expected_log:[ "Run_cmd 'some-command' (error)" ]
     ();
 
   let cmd = Bos.Cmd.v "some-command" in
   test "run_cmd succeeds if the command exists" ~env:yay ~cmd ~expected:(Ok ())
-    ~expected_log:[ "Run_cmd some-command (ok: out=\"yay\" err=\"\")" ]
+    ~expected_log:[ "Run_cmd 'some-command' (ok: out=\"yay\" err=\"\")" ]
     ();
 
   let err_b = Buffer.create 10 in
@@ -268,7 +268,7 @@ let test_run_cmd () =
   let out = Fmt.with_buffer out_b in
   test "run_cmd succeeds if the command exists" ~env:yay_err ~cmd ~out ~err
     ~expected:(Ok ())
-    ~expected_log:[ "Run_cmd some-command (ok: out=\"yay\" err=\"err\")" ]
+    ~expected_log:[ "Run_cmd 'some-command' (ok: out=\"yay\" err=\"err\")" ]
     ();
   Alcotest.(check string) "cmd out" "yay" (Buffer.contents out_b);
   Alcotest.(check string) "cmd err" "err" (Buffer.contents err_b)
@@ -284,20 +284,20 @@ let test_run_cmd_out () =
   test "run_cmd_out fails if the command doesn't exist" ~env:none
     ~cmd:(Bos.Cmd.v "some-command")
     ~expected:(error "'some-command' not found")
-    ~expected_log:[ "Run_cmd some-command (error)" ]
+    ~expected_log:[ "Run_cmd 'some-command' (error)" ]
     ();
 
   let cmd = Bos.Cmd.v "some-command" in
   test "run_cmd_out succeeds if the command exists" ~env:yay ~cmd
     ~expected:(Ok "yay")
-    ~expected_log:[ "Run_cmd some-command (ok: out=\"yay\" err=\"\")" ]
+    ~expected_log:[ "Run_cmd 'some-command' (ok: out=\"yay\" err=\"\")" ]
     ();
 
   let err_b = Buffer.create 10 in
   let err = Fmt.with_buffer err_b in
   test "run_cmd_out succeeds if the command exists" ~env:yay_err ~cmd ~err
     ~expected:(Ok "yay")
-    ~expected_log:[ "Run_cmd some-command (ok: out=\"yay\" err=\"err\")" ]
+    ~expected_log:[ "Run_cmd 'some-command' (ok: out=\"yay\" err=\"err\")" ]
     ();
   Alcotest.(check string) "cmd_out err" "err" (Buffer.contents err_b)
 

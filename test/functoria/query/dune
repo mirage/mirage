@@ -2,67 +2,17 @@
  (name config)
  (libraries f0))
 
-(rule
- (target packages)
- (action
-  (with-stdout-to
-   %{target}
-   (run ./config.exe query packages))))
+(include dune.inc)
 
 (rule
- (target opam)
+ (deps
+  (source_tree .))
  (action
   (with-stdout-to
-   %{target}
-   (run ./config.exe query opam))))
-
-(rule
- (target install)
- (action
-  (with-stdout-to
-   %{target}
-   (run ./config.exe query install))))
-
-(rule
- (target files-configure)
- (action
-  (with-stdout-to
-   %{target}
-   (run ./config.exe query files-configure))))
-
-(rule
- (target files-build)
- (action
-  (with-stdout-to
-   %{target}
-   (run ./config.exe query files-build))))
+   dune.gen
+   (run ocaml gen.ml))))
 
 (rule
  (alias runtest)
- (package functoria)
  (action
-  (diff opam.expected opam)))
-
-(rule
- (alias runtest)
- (package functoria)
- (action
-  (diff packages.expected packages)))
-
-(rule
- (alias runtest)
- (package functoria)
- (action
-  (diff install.expected install)))
-
-(rule
- (alias runtest)
- (package functoria)
- (action
-  (diff files-configure.expected files-configure)))
-
-(rule
- (alias runtest)
- (package functoria)
- (action
-  (diff files-build.expected files-build)))
+  (diff dune.inc dune.gen)))

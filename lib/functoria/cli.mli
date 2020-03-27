@@ -29,9 +29,15 @@ type 'a args = {
 (** The type for global arguments. *)
 
 val peek_args : ?with_setup:bool -> string array -> unit args
-(** [peek_args ?with_setup argv] parses the global arguments on the
-    command-line. If [with_setup] is set (by default it is), interprets [-v] and
-    [--color] to set-up the terminal configuration as a side-effect. *)
+(** [peek_args ?with_setup argv] parses the global command-line arguments. If
+    [with_setup] is set (by default it is), interprets [-v] and [--color] to
+    set-up the terminal configuration as a side-effect. *)
+
+val peek_output : string array -> string option
+(** [peek_full_eval argv] reads the [--output] option from [argv]; the return
+    value is [None] if option is absent in [argv]. *)
+
+(** {1 Sub-commands} *)
 
 type 'a configure_args = 'a args
 (** The type for arguments of the [configure] sub-command. *)
@@ -61,10 +67,6 @@ type 'a describe_args = {
 
 val peek_full_eval : string array -> bool option
 (** [peek_full_eval argv] reads the [--eval] option from [argv]; the return
-    value is [None] if option is absent in [argv]. *)
-
-val peek_output : string array -> string option
-(** [peek_full_eval argv] reads the [--output] option from [argv]; the return
     value is [None] if option is absent in [argv]. *)
 
 (** A value of type [action] is the result of parsing command-line arguments
@@ -105,6 +107,3 @@ val eval :
 
     There are no side effects, save for the printing of usage messages and other
     help when either the 'help' subcommand or no subcommand is specified. *)
-
-val peek : ?with_setup:bool -> string array -> unit action Term.result
-(** Same as [eval_args] but do no fail on unknown command-line arguments. *)

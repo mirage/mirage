@@ -16,7 +16,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Application builder. *)
+(** Application builder. API for building libraries to link with [config.ml] *)
 
 (** {1 Builders} *)
 
@@ -36,9 +36,6 @@ module type S = sig
   val name : string
   (** Name of the custom DSL. *)
 
-  val packages : package list
-  (** The packages to load when compiling the configuration file. *)
-
   val version : string
   (** Version of the custom DSL. *)
 
@@ -51,22 +48,6 @@ module Make (P : S) : sig
   open DSL
 
   (** Configuration builder: stage 1 *)
-
-  val run : unit -> unit
-  (** Run the configuration builder. This should be called exactly once to run
-      the configuration builder: command-line arguments will be parsed, and some
-      code will be generated and compiled. *)
-
-  val run_with_argv :
-    ?help_ppf:Format.formatter ->
-    ?err_ppf:Format.formatter ->
-    string array ->
-    unit
-  (** [run_with_argv a] is the same as {!run} but parses [a] instead of the
-      process command line arguments. It also allows to set the error and help
-      channels using [help_ppf] and [err_ppf]. *)
-
-  (** Configuration module: stage 2 *)
 
   val register :
     ?packages:package list ->

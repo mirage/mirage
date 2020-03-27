@@ -9,8 +9,10 @@ val register :
   job impl list ->
   unit
 
-val run_with_argv :
-  ?help_ppf:Format.formatter ->
-  ?err_ppf:Format.formatter ->
-  string array ->
-  unit
+module Tool : sig
+  val run_with_argv :
+    ?help_ppf:Format.formatter ->
+    ?err_ppf:Format.formatter ->
+    string array ->
+    unit
+end

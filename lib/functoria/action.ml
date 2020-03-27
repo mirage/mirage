@@ -452,8 +452,8 @@ let eq_env = Env.eq
 let pp_env = Env.pp
 
 let interpret_dry_cmd env { cmd; err; out } : string or_err * _ * _ =
-  Log.debug (fun l -> l "Run_cmd %a" Bos.Cmd.pp cmd);
-  let log x = Fmt.str "Run_cmd %a (%s)" Bos.Cmd.pp cmd x in
+  Log.debug (fun l -> l "Run_cmd '%a'" Bos.Cmd.pp cmd);
+  let log x = Fmt.str "Run_cmd '%a' (%s)" Bos.Cmd.pp cmd x in
   match Env.exec env cmd with
   | None -> (error_msg "'%a' not found" Bos.Cmd.pp cmd, env, log "error")
   | Some (o, e) ->
@@ -561,7 +561,9 @@ let rec interpret_dry : type r. env:Env.t -> r command -> r or_err * _ * _ =
       let env = Env.chdir env old in
       ( r,
         env,
-        Fmt.str "With_dir %a %a" Fpath.pp dir (Fmt.Dump.list Fmt.string) logs )
+        Fmt.str "With_dir %a [%a]" Fpath.pp dir
+          Fmt.(vbox ~indent:2 (list ~sep:(unit "@,") string))
+          logs )
   | Pwd ->
       Log.debug (fun l -> l "Pwd");
       let r = Env.pwd env in

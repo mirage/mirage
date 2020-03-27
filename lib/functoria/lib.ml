@@ -111,12 +111,12 @@ module Make (P : S) = struct
           Action.read_file file >|= fun x ->
           String.is_infix ~affix:auto_generated x
 
-  let exit_err = function
+  let exit_err args = function
     | Ok v -> v
     | Error (`Msg m) ->
         flush_all ();
         if m <> "" then Fmt.epr "%a\n%!" Fmt.(styled (`Fg `Red) string) m;
-        exit 1
+        if not args.Cli.dry_run then exit 1 else Fmt.epr "(exit 1)"
 
   (* STAGE 2 *)
 
@@ -316,11 +316,6 @@ module Make (P : S) = struct
         (fun line ->
           Fmt.epr "%a %s\n%!" Fmt.(styled (`Fg `Cyan) string) "*" line)
         lines;
-      let () =
-        match r with
-        | Ok _ -> Fmt.epr "%a\n%!" Fmt.(styled (`Fg `Green) string) "[OK]"
-        | Error _ -> Fmt.epr "%a\n%!" Fmt.(styled (`Fg `Red) string) "[ERROR]"
-      in
       r
 
   let run_term argv term =
@@ -399,5 +394,5 @@ module Make (P : S) = struct
       let c = Config.v ?keys ?packages ~init ~build_cmd ~src name main_dev in
       run_configure_with_argv argv args c
     in
-    run () |> action_run args |> exit_err
+    run () |> action_run args |> exit_err args
 end

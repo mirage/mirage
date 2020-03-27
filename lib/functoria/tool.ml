@@ -145,12 +145,12 @@ module Make (P : S) = struct
         Action.run_cmd_out ?err:err_ppf command >|= fun output ->
         Fmt.pf help_ppf "%s%!" output
 
-  let exit_err = function
+  let exit_err args = function
     | Ok v -> v
     | Error (`Msg m) ->
         flush_all ();
         if m <> "" then Fmt.epr "%a\n%!" Fmt.(styled (`Fg `Red) string) m;
-        exit 1
+        if not args.Cli.dry_run then exit 1 else Fmt.epr "(exit 1)\n%!"
 
   let handle_parse_args_no_config ?help_ppf ?err_ppf (`Msg error) argv =
     let base_context =
@@ -187,7 +187,14 @@ module Make (P : S) = struct
         match !global_env with
         | Some e -> e
         | None ->
-            let e = Action.env ~files:(`Passtrough (Fpath.v ".")) () in
+            let commands cmd =
+              match Bos.Cmd.line_exec cmd with
+              | Some "dune" -> Some ("[...]", "")
+              | _ -> None
+            in
+            let e =
+              Action.env ~commands ~files:(`Passtrough (Fpath.v ".")) ()
+            in
             global_env := Some e;
             e
       in
@@ -197,11 +204,6 @@ module Make (P : S) = struct
         (fun line ->
           Fmt.epr "%a %s\n%!" Fmt.(styled (`Fg `Cyan) string) "*" line)
         lines;
-      let () =
-        match r with
-        | Ok _ -> Fmt.epr "%a\n%!" Fmt.(styled (`Fg `Green) string) "[OK]"
-        | Error _ -> Fmt.epr "%a\n%!" Fmt.(styled (`Fg `Red) string) "[ERROR]"
-      in
       r
 
   let run_with_argv ?help_ppf ?err_ppf argv =
@@ -221,7 +223,7 @@ module Make (P : S) = struct
     | Error (`Msg _ as err) ->
         handle_parse_args_no_config ?help_ppf ?err_ppf err argv
         |> action_run args
-        |> exit_err
+        |> exit_err args
 
   let run () = run_with_argv Sys.argv
 end

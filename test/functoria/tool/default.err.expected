@@ -11,4 +11,4 @@
                Is_file? dune -> true
                Read dune (221 bytes)]
 * Run_cmd 'dune build ./config.exe' (ok: out="[...]" err="")
-* Run_cmd 'dune exec --root . -- ./config.exe configure help --dry-run' (ok: out="[...]" err="")
+* Run_cmd 'dune exec --root . -- ./config.exe --dry-run' (ok: out="[...]" err="")

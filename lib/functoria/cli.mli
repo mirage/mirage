@@ -108,6 +108,14 @@ val eval :
     There are no side effects, save for the printing of usage messages and other
     help when either the 'help' subcommand or no subcommand is specified. *)
 
+type 'a result =
+  [ `Ok of 'a action | `Error of 'a args * [ `Exn | `Parse | `Term ] | `Version ]
+(** Similar to {!Cmdliner.Term.result} but help is folded into [`Ok] and errors
+    also carry global command-line parameters. *)
+
+val peek : ?with_setup:bool -> string array -> unit result
+(** [peek] is the same as {!eval} but without failing on unknown arguments. *)
+
 (** {1 Argv Transformers} *)
 
 type choice =

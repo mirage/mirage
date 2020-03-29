@@ -51,7 +51,7 @@ module C = struct
 
   let name = "test"
 
-  let version = "1.0"
+  let version = "1.0~test"
 
   let packages = [ Functoria.package "functoria"; Functoria.package "f0" ]
 

@@ -331,7 +331,8 @@ let test_tmp_file () =
     ~expected:(Ok (pathn 2), env, [ "Tmp_file -> /tmp/path-2" ])
 
 let test_ls () =
-  let test msg ~path = mk_test msg (Action.ls path) (Alcotest.list fpath) in
+  let all _ = true in
+  let test msg ~path = mk_test msg (Action.ls path all) (Alcotest.list fpath) in
 
   let env = ![] in
   test "list a non-existig path (error)" ~env ~path

@@ -173,7 +173,7 @@ let pp_help = pp_args
 let pp_kind ppf (q : query_kind) =
   let rec aux = function
     | [] -> invalid_arg "missing query kind!"
-    | (a, b) :: t -> if b = q then Fmt.Dump.string ppf a else aux t
+    | (a, b) :: t -> if b = q then Fmt.string ppf a else aux t
   in
   aux query_kinds
 
@@ -478,7 +478,7 @@ let peek ?(with_setup = false) argv : unit result =
     match Term.eval_peek_opts ~argv ~version_opt:true (fst t) with
     | _, `Version -> `Version
     | _, `Error e -> `Error (peek_args ~with_setup:false argv, e)
-    | None, `Help ->
+    | _, `Help ->
         let args = peek_args ~with_setup:false argv in
         `Ok (Help args)
     | Some v, _ | _, `Ok v -> `Ok v

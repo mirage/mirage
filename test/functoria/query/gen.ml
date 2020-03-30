@@ -18,7 +18,7 @@ let gen t =
  (action
   (diff %s.expected %s)))
 |}
-    t.cmd t.file t.file t.file
+    t.file t.cmd t.file t.file
 
 let () =
   List.iter gen
@@ -29,4 +29,6 @@ let () =
       v "install";
       v "files-configure";
       v "files-build";
+      v "Makefile";
+      { file = "Makefile.depext"; cmd = "Makefile --depext" };
     ]

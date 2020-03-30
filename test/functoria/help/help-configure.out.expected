@@ -7,6 +7,13 @@ SYNOPSIS
 DESCRIPTION
        The configure command initializes a fresh test application.
 
+DESCRIBE OPTIONS
+       --depext
+           Enable call to `opam depext' in the project Makefile.
+
+       --no-depext
+           Disable call to `opam depext' in the project Makefile.
+
 CONFIGURE OPTIONS
        --dry-run
            Display I/O actions instead of executing them.

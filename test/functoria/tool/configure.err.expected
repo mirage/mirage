@@ -17,3 +17,5 @@
 * Run_cmd 'dune exec --root . -- ./config.exe query install a b c --dry-run' (ok: out="[...]" err="")
 * Is_file? [...].install -> false
 * Write to [...].install (35 bytes)
+* Is_file? Makefile -> false
+* Write to Makefile (369 bytes)

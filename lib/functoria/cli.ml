@@ -30,7 +30,12 @@ let configuration_section = "CONFIGURE OPTIONS"
 let description_section = "DESCRIBE OPTIONS"
 
 type query_kind =
-  [ `Name | `Packages | `Opam | `Install | `Files of [ `Configure | `Build ] ]
+  [ `Name
+  | `Packages
+  | `Opam
+  | `Install
+  | `Files of [ `Configure | `Build ]
+  | `Makefile ]
 
 let query_kinds : (string * query_kind) list =
   [
@@ -40,6 +45,7 @@ let query_kinds : (string * query_kind) list =
     ("install", `Install);
     ("files-configure", `Files `Configure);
     ("files-build", `Files `Build);
+    ("Makefile", `Makefile);
   ]
 
 let setup ~with_setup =
@@ -63,6 +69,19 @@ let dry_run =
   Arg.(value & flag doc)
 
 (** * Argument specifications *)
+
+(** Argument specification for --depext *)
+let depext =
+  let depext_doc =
+    Arg.info ~docs:description_section [ "depext" ]
+      ~doc:"Enable call to `opam depext' in the project Makefile."
+  in
+  let no_depext_doc =
+    Arg.info ~docs:description_section [ "no-depext" ]
+      ~doc:"Disable call to `opam depext' in the project Makefile."
+  in
+  let eval_opts = [ (true, depext_doc); (false, no_depext_doc) ] in
+  Arg.(value & vflag false eval_opts)
 
 (** Argument specification for --eval *)
 let full_eval =
@@ -123,7 +142,7 @@ type 'a args = {
   dry_run : bool;
 }
 
-type 'a configure_args = 'a args
+type 'a configure_args = { args : 'a args; depext : bool }
 
 type 'a build_args = 'a args
 
@@ -138,7 +157,7 @@ type 'a describe_args = {
   eval : bool option;
 }
 
-type 'a query_args = { args : 'a args; kind : query_kind }
+type 'a query_args = { args : 'a args; kind : query_kind; depext : bool }
 
 type 'a action =
   | Configure of 'a configure_args
@@ -156,13 +175,19 @@ let pp_args pp_a =
   let open Fmt.Dump in
   record
     [
-      field "context" (fun (t : 'a configure_args) -> t.context) pp_a;
+      field "context" (fun (t : 'a args) -> t.context) pp_a;
       field "config_file" (fun t -> t.config_file) Fpath.pp;
       field "output" (fun t -> t.output) (option string);
       field "dry_run" (fun t -> t.dry_run) Fmt.bool;
     ]
 
-let pp_configure = pp_args
+let pp_configure pp_a =
+  let open Fmt.Dump in
+  record
+    [
+      field "args" (fun (t : 'a configure_args) -> t.args) (pp_args pp_a);
+      field "depext" (fun (t : 'a configure_args) -> t.depext) Fmt.bool;
+    ]
 
 let pp_build = pp_args
 
@@ -183,6 +208,7 @@ let pp_query pp_a =
     [
       field "args" (fun (t : 'a query_args) -> t.args) (pp_args pp_a);
       field "kind" (fun t -> t.kind) pp_kind;
+      field "depext" (fun t -> t.depext) Fmt.bool;
     ]
 
 let pp_describe pp_a =
@@ -220,7 +246,10 @@ let args ~with_setup context =
 module Subcommands = struct
   (** The 'configure' subcommand *)
   let configure ~with_setup context =
-    ( Term.(const (fun args -> Configure args) $ args ~with_setup context),
+    ( Term.(
+        const (fun args depext -> Configure { args; depext })
+        $ args ~with_setup context
+        $ depext),
       Term.info "configure" ~doc:"Configure a $(mname) application."
         ~man:
           [
@@ -232,9 +261,10 @@ module Subcommands = struct
 
   let query ~with_setup context =
     ( Term.(
-        const (fun kind args -> Query { kind; args })
+        const (fun kind args depext -> Query { kind; args; depext })
         $ kind
-        $ args ~with_setup context),
+        $ args ~with_setup context
+        $ depext),
       Term.info "query" ~doc:"Query information about the $(mname) application."
         ~man:
           [
@@ -369,7 +399,8 @@ let eval ?(with_setup = true) ?help_ppf ?err_ppf ~name ~version ~configure
     ]
 
 let args = function
-  | Configure x | Build x | Clean x | Help x -> x
+  | Configure { args; _ } -> args
+  | Build x | Clean x | Help x -> x
   | Query { args; _ } -> args
   | Describe { args; _ } -> args
 

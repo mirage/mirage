@@ -35,10 +35,14 @@ let test_configure () =
     (`Ok
       (Cli.Configure
          {
-           context = (true, false);
-           output = None;
-           config_file = Fpath.v "config.ml";
-           dry_run = false;
+           depext = false;
+           args =
+             {
+               context = (true, false);
+               output = None;
+               config_file = Fpath.v "config.ml";
+               dry_run = false;
+             };
          }))
     result
 

@@ -39,7 +39,7 @@ val peek_output : string array -> string option
 
 (** {1 Sub-commands} *)
 
-type 'a configure_args = 'a args
+type 'a configure_args = { args : 'a args; depext : bool }
 (** The type for arguments of the [configure] sub-command. *)
 
 type 'a build_args = 'a args
@@ -52,9 +52,14 @@ type 'a help_args = 'a args
 (** The type for arguments of the [help] sub-command. *)
 
 type query_kind =
-  [ `Name | `Packages | `Opam | `Install | `Files of [ `Configure | `Build ] ]
+  [ `Name
+  | `Packages
+  | `Opam
+  | `Install
+  | `Files of [ `Configure | `Build ]
+  | `Makefile ]
 
-type 'a query_args = { args : 'a args; kind : query_kind }
+type 'a query_args = { args : 'a args; kind : query_kind; depext : bool }
 (** The type for arguments of the [query] sub-command. *)
 
 type 'a describe_args = {

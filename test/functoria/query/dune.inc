@@ -76,3 +76,29 @@
  (package functoria)
  (action
   (diff files-build.expected files-build)))
+
+(rule
+ (target Makefile)
+ (action
+  (with-stdout-to
+   %{target}
+   (run ./config.exe query Makefile))))
+
+(rule
+ (alias runtest)
+ (package functoria)
+ (action
+  (diff Makefile.expected Makefile)))
+
+(rule
+ (target Makefile.depext)
+ (action
+  (with-stdout-to
+   %{target}
+   (run ./config.exe query Makefile --depext))))
+
+(rule
+ (alias runtest)
+ (package functoria)
+ (action
+  (diff Makefile.depext.expected Makefile.depext)))

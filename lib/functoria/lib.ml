@@ -175,7 +175,7 @@ module Make (P : S) = struct
     Log.info (fun m -> m "Building: %a" Fpath.pp args.Cli.config_file);
     Action.with_dir (build_dir args) (fun () -> Engine.build i jobs)
 
-  let query ({ args; kind } : _ Cli.query_args) =
+  let query ({ args; kind; depext } : _ Cli.query_args) =
     let jobs, i = args.Cli.context in
     match kind with
     | `Name -> Fmt.pr "%s\n%!" (Info.name i)
@@ -194,6 +194,9 @@ module Make (P : S) = struct
         in
         let files = Fpath.Set.elements (Action.generated_files actions) in
         Fmt.pr "%a\n%!" Fmt.(list ~sep:(unit " ") Fpath.pp) files
+    | `Makefile ->
+        let file = Makefile.v ~depext (Info.name i) in
+        Fmt.pr "%a\n%!" Makefile.pp file
 
   let clean args =
     let (_, jobs), i = args.Cli.context in
@@ -229,9 +232,9 @@ module Make (P : S) = struct
         match action with
         | Cli.Help _ -> ok ()
         | Cli.Configure t ->
-            let t = with_output t in
-            Log.info (fun m -> pp_info m (Some Logs.Debug) t);
-            configure t
+            let t = { t with args = with_output t.args } in
+            Log.info (fun m -> pp_info m (Some Logs.Debug) t.args);
+            configure t.args
         | Cli.Build t ->
             let t = with_output t in
             Log.info (fun m -> pp_info m (Some Logs.Debug) t);

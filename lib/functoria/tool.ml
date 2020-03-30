@@ -124,6 +124,11 @@ module Make (P : S) = struct
         generate_dune_config t >>= fun () ->
         generate_empty_dune_build () >>= fun () -> generate_dune ())
 
+  let generate_makefile ~depext name =
+    let file = Fpath.(v "Makefile") in
+    let contents = Fmt.to_to_string Makefile.pp (Makefile.v ~depext name) in
+    Filegen.write file contents
+
   let query_name t ?err_ppf argv = query `Name t ?err_ppf argv
 
   let generate_opam ~name t ?err_ppf argv =
@@ -209,8 +214,11 @@ module Make (P : S) = struct
     Action.ls (Fpath.v ".") (fun file ->
         Fpath.parent file = Fpath.v "."
         &&
-        match Fpath.get_ext file with
-        | ".opam" | ".install" -> true
+        let base, ext = Fpath.split_ext file in
+        let base = Fpath.basename base in
+        match (base, ext) with
+        | _, (".opam" | ".install") -> true
+        | "Makefile", "" -> true
         | _ -> false)
     >>= fun files ->
     Action.List.iter ~f:Filegen.rm files >>= fun () ->
@@ -223,11 +231,12 @@ module Make (P : S) = struct
   let error args ?help_ppf ?err_ppf argv =
     handle_parse_args args ~save_args:false ?ppf:help_ppf ?err_ppf argv
 
-  let configure args ?ppf ?err_ppf argv =
+  let configure ({ args; depext } : _ Cli.configure_args) ?ppf ?err_ppf argv =
     handle_parse_args ~save_args:true args ?ppf ?err_ppf argv >>= fun () ->
     query_name args ?err_ppf argv >>= fun name ->
     generate_opam ~name args ?err_ppf argv >>= fun () ->
-    generate_install ~name args ?err_ppf argv
+    generate_install ~name args ?err_ppf argv >>= fun () ->
+    generate_makefile ~depext name
 
   let clean args ?ppf ?err_ppf argv =
     let config = args.Cli.config_file in
@@ -248,8 +257,7 @@ module Make (P : S) = struct
     | `Ok t -> (
         let args = Cli.args t in
         match t with
-        | Configure args ->
-            run args @@ configure args ?ppf:help_ppf ?err_ppf argv
+        | Configure t -> run args @@ configure t ?ppf:help_ppf ?err_ppf argv
         | Clean args -> run args @@ clean args ?ppf:help_ppf ?err_ppf argv
         | _ ->
             run args

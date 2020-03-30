@@ -201,17 +201,13 @@ module Make (P : S) = struct
       r
 
   let clean_files () =
-    Action.ls (Fpath.v ".") >>= fun files ->
-    let files =
-      List.filter
-        (fun file ->
-          Fpath.parent file = Fpath.v "."
-          &&
-          match Fpath.get_ext file with
-          | ".opam" | ".install" -> true
-          | _ -> false)
-        files
-    in
+    Action.ls (Fpath.v ".") (fun file ->
+        Fpath.parent file = Fpath.v "."
+        &&
+        match Fpath.get_ext file with
+        | ".opam" | ".install" -> true
+        | _ -> false)
+    >>= fun files ->
     Action.List.iter ~f:Filegen.rm files >>= fun () ->
     match Sys.getenv "INSIDE_FUNCTORIA_TESTS" with
     | "1" -> Action.ok ()

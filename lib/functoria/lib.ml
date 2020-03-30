@@ -161,16 +161,6 @@ module Make (P : S) = struct
   let clean_main i jobs =
     Engine.clean i jobs >>= fun () -> Action.rm (Info.main i)
 
-  let configure_opam i =
-    let file = Info.name i ^ ".opam" in
-    let opam = Info.opam i in
-    Log.info (fun m -> m "Generating: %s" file);
-    Filegen.write Fpath.(v file) (Fmt.str "%a%!" Opam.pp opam)
-
-  let clean_opam i =
-    let file = Info.name i ^ ".opam" in
-    Action.rm Fpath.(v file)
-
   let eval_install i (_, e) = Key.eval (Info.context i) (Engine.install i e)
 
   let configure_install i jobs =
@@ -181,7 +171,7 @@ module Make (P : S) = struct
 
   let clean_install i =
     let file = Info.name i ^ ".install" in
-    Action.rm Fpath.(v file)
+    Filegen.rm Fpath.(v file)
 
   let configure ~argv args =
     let jobs, i = args.Cli.context in
@@ -192,7 +182,6 @@ module Make (P : S) = struct
       | Some o -> Log.info (fun m -> m "Output       : %a" Fmt.(string) o)
     in
     (* Generate .opam and .install at the project root *)
-    configure_opam i >>= fun () ->
     configure_install i jobs >>= fun () ->
     (* Generate main.ml, *_gen.ml in the build dir *)
     Action.with_dir (build_dir args) (fun () -> configure_main ~argv i jobs)
@@ -227,15 +216,8 @@ module Make (P : S) = struct
   let clean args =
     let (_, jobs), i = args.Cli.context in
     Log.info (fun m -> m "Cleaning: %a" Fpath.pp args.Cli.config_file);
-    Filegen.rm Fpath.(v "dune-project") >>= fun () ->
-    Action.rm (cache (build_dir args)) >>= fun () ->
-    ( match Sys.getenv "INSIDE_FUNCTORIA_TESTS" with
-    | "1" -> Action.ok ()
-    | exception Not_found -> Action.rmdir Fpath.(v "_build")
-    | _ -> Action.rmdir Fpath.(v "_build") )
-    >>= fun () ->
-    clean_opam i >>= fun () ->
     clean_install i >>= fun () ->
+    Action.rm (cache (build_dir args)) >>= fun () ->
     Action.with_dir (build_dir args) (fun () ->
         clean_main i jobs >>= fun () ->
         Filegen.rm Fpath.(v "dune") >>= fun () ->

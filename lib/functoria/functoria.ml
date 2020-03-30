@@ -23,7 +23,6 @@ module Type = Type
 module Impl = Impl
 module Device = Device
 module Install = Install
-module Codegen = Codegen
 module Opam = Opam
 module Lib = Lib
 module Tool = Tool

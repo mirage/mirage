@@ -33,7 +33,6 @@ module Keys = struct
   let configure ~file i =
     Log.info (fun m -> m "Generating: %a" Fpath.pp file);
     Action.with_output ~path:file ~purpose:"key_gen file" (fun ppf ->
-        Fmt.pf ppf "(* %s *)@.@." (Codegen.generated_header ());
         let keys = Key.Set.of_list @@ Info.keys i in
         let pp_var k = Key.serialize (Info.context i) k in
         Fmt.pf ppf "@[<v>%a@]@." (Fmt.iter Key.Set.iter pp_var) keys;

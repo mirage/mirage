@@ -35,28 +35,9 @@ module type S = sig
 end
 
 module Make (P : S) = struct
+  module Filegen = Filegen.Make (P)
+
   let build_dir t = Fpath.parent t.Cli.config_file
-
-  let auto_generated =
-    Fmt.str ";; %s"
-      (Codegen.generated_header ~argv:[| P.name ^ "." ^ P.version |] ())
-
-  let can_overwrite file =
-    Action.is_file file >>= function
-    | false -> Action.ok true
-    | true ->
-        if Fpath.basename file = "dune-project" then
-          Action.read_file file >|= fun x ->
-          let x = String.cuts ~sep:"\n" ~empty:true x in
-          match List.rev x with x :: _ -> x = auto_generated | _ -> false
-        else
-          Action.read_file file >|= fun x ->
-          String.is_infix ~affix:auto_generated x
-
-  let generate ~file ~contents =
-    can_overwrite file >>= function
-    | false -> Action.ok ()
-    | true -> Action.rm file >>= fun () -> Action.write_file file contents
 
   (* Generate a `dune.config` file in the build directory. *)
   let generate_dune_config t =
@@ -78,38 +59,30 @@ module Make (P : S) = struct
     let config_file = Fpath.(basename (rem_ext t.Cli.config_file)) in
     let contents =
       Fmt.strf
-        {|%s
-
-(executable
+        {|(executable
   (name config)
   (flags (:standard -warn-error -A))
   (modules %s)
   (libraries %s))
 |}
-        auto_generated config_file pkgs
+        config_file pkgs
     in
-    generate ~file ~contents
+    Filegen.write file contents
 
   (* Generate a `dune.config` file in the build directory. *)
-  let generate_empty_dune_build () =
-    let file = Fpath.v "dune.build" in
-    let contents = auto_generated ^ "\n" in
-    generate ~file ~contents
+  let generate_empty_dune_build () = Filegen.write (Fpath.v "dune.build") "\n"
 
   (* Generate a `dune` file in the build directory. *)
   let generate_dune () =
     let file = Fpath.v "dune" in
-    let contents =
-      Fmt.strf "%s\n\n(include dune.config)\n\n(include dune.build)\n"
-        auto_generated
-    in
-    generate ~file ~contents
+    let contents = "(include dune.config)\n\n(include dune.build)\n" in
+    Filegen.write file contents
 
   (* Generate a `dune-project` file at the project root. *)
   let generate_dune_project () =
     let file = Fpath.(v "dune-project") in
-    let contents = Fmt.strf "(lang dune 1.1)\n%s\n" auto_generated in
-    generate ~file ~contents
+    let contents = "(lang dune 1.1)\n" in
+    Filegen.write file contents
 
   (* Generate the configuration files in the the build directory *)
   let generate_configuration_files t =

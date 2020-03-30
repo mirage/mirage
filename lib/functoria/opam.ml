@@ -93,9 +93,7 @@ let pp_src ppf = function
 let pp ppf t =
   let pp_build = Fmt.list ~sep:(Fmt.unit " ") (Fmt.fmt "%S") in
   Fmt.pf ppf
-    {|# %s
-
-opam-version: "2.0"
+    {|opam-version: "2.0"
 name: "%s"
 maintainer: "dummy"
 authors: "dummy"
@@ -108,5 +106,4 @@ build: [%a]
 depends: [%a]
 %a%a
 |}
-    (Codegen.generated_header ())
     t.name pp_build t.build pp_packages t.depends pp_src t.src pp_pins t.pins

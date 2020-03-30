@@ -1,14 +1,11 @@
 open Functoria
-module Codegen = Functoria.Codegen
 
 let filename ~name = Fpath.(v (name ^ "_libvirt") + "xml")
 
 let append fmt s = Fmt.pf fmt (s ^^ "@.")
 
 let configure_main ~name =
-  let open Codegen in
   Action.with_output ~path:(filename ~name) ~purpose:"libvirt.xml" (fun fmt ->
-      append fmt "<!-- %s -->" (generated_header ());
       append fmt "<domain type='xen'>";
       append fmt "    <name>%s</name>" name;
       append fmt "    <memory unit='KiB'>262144</memory>";
@@ -57,9 +54,7 @@ let configure_main ~name =
       append fmt "</domain>")
 
 let configure_virtio ~name =
-  let open Codegen in
   Action.with_output ~path:(filename ~name) ~purpose:"libvirt.xml" (fun fmt ->
-      append fmt "<!-- %s -->" (generated_header ());
       append fmt "<domain type='kvm'>";
       append fmt "    <name>%s</name>" name;
       append fmt "    <memory unit='KiB'>262144</memory>";

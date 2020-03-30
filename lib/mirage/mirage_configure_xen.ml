@@ -73,11 +73,8 @@ let configure_main_xl ?substitutions ~ext i =
     match substitutions with Some x -> x | None -> defaults i
   in
   let path = Fpath.(v (Info.name i) + ext) in
-  let open Codegen in
   Action.with_output ~path ~purpose:"xl file" (fun fmt ->
       let open Mirage_impl_block in
-      append fmt "# %s" (generated_header ());
-      append fmt "";
       append fmt "name = '%s'" (lookup substitutions Name);
       append fmt "kernel = '%s'" (lookup substitutions Kernel);
       append fmt "builder = 'linux'";
@@ -123,15 +120,12 @@ let configure_main_xl ?substitutions ~ext i =
 let clean_main_xl ~name ~ext = Action.rm Fpath.(v name + ext)
 
 let configure_main_xe ~name =
-  let open Codegen in
   Action.with_output ~mode:0o755
     ~path:Fpath.(v name + "xe")
     ~purpose:"xe file"
     (fun fmt ->
       let open Mirage_impl_block in
       append fmt "#!/bin/sh";
-      append fmt "# %s" (generated_header ());
-      append fmt "";
       append fmt "set -e";
       append fmt "";
       append fmt "# Dependency: xe";

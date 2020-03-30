@@ -178,7 +178,6 @@ val app_info :
 module Type = Type
 module Impl = Impl
 module Key = Key
-module Codegen = Codegen
 module Opam = Opam
 module Lib = Lib
 module Tool = Tool

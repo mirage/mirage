@@ -86,6 +86,8 @@ module type S = sig
 end
 
 module Make (P : S) = struct
+  module Filegen = Filegen.Make (P)
+
   let cache root = Fpath.(normalize @@ (root / ("." ^ P.name ^ ".config")))
 
   let default_init = [ Job.keys Argv.sys_argv ]
@@ -94,22 +96,6 @@ module Make (P : S) = struct
 
   let get_build_cmd args =
     [ P.name; "build"; "--config-file"; Fpath.to_string args.Cli.config_file ]
-
-  let auto_generated =
-    Fmt.str ";; %s"
-      (Codegen.generated_header ~argv:[| P.name ^ "." ^ P.version |] ())
-
-  let can_overwrite file =
-    Action.is_file file >>= function
-    | false -> Action.ok true
-    | true ->
-        if Fpath.basename file = "dune-project" then
-          Action.read_file file >|= fun x ->
-          let x = String.cuts ~sep:"\n" ~empty:true x in
-          match List.rev x with x :: _ -> x = auto_generated | _ -> false
-        else
-          Action.read_file file >|= fun x ->
-          String.is_infix ~affix:auto_generated x
 
   let exit_err args = function
     | Ok v -> v
@@ -166,21 +152,20 @@ module Make (P : S) = struct
     let purpose = Fmt.strf "configure: create %a" Fpath.pp main in
     Log.info (fun m -> m "Generating: %a" Fpath.pp main);
     Action.with_output ~path:main ~append:false ~purpose (fun ppf ->
-        Fmt.pf ppf "(* %s *)@.@." (Codegen.generated_header ());
-        Fmt.pf ppf "%a@.@." Fmt.text P.prelude;
-        Fmt.pf ppf "let _ = Printexc.record_backtrace true@.@.")
+        Fmt.pf ppf "%a@.@.let _ = Printexc.record_backtrace true@.@." Fmt.text
+          P.prelude)
     >>= fun () ->
     Context_cache.write (cache (Fpath.v ".")) argv >>= fun () ->
     Engine.configure i jobs >>= fun () -> Engine.connect i ~init jobs
 
   let clean_main i jobs =
-    Engine.clean i jobs >>= fun () -> Action.rm Fpath.(v "main.ml")
+    Engine.clean i jobs >>= fun () -> Action.rm (Info.main i)
 
   let configure_opam i =
     let file = Info.name i ^ ".opam" in
     let opam = Info.opam i in
     Log.info (fun m -> m "Generating: %s" file);
-    Action.write_file Fpath.(v file) (Fmt.str "%a%!" Opam.pp opam)
+    Filegen.write Fpath.(v file) (Fmt.str "%a%!" Opam.pp opam)
 
   let clean_opam i =
     let file = Info.name i ^ ".opam" in
@@ -242,12 +227,7 @@ module Make (P : S) = struct
   let clean args =
     let (_, jobs), i = args.Cli.context in
     Log.info (fun m -> m "Cleaning: %a" Fpath.pp args.Cli.config_file);
-    let clean_file file =
-      can_overwrite file >>= function
-      | false -> Action.ok ()
-      | true -> Action.rm file
-    in
-    clean_file Fpath.(v "dune-project") >>= fun () ->
+    Filegen.rm Fpath.(v "dune-project") >>= fun () ->
     Action.rm (cache (build_dir args)) >>= fun () ->
     ( match Sys.getenv "INSIDE_FUNCTORIA_TESTS" with
     | "1" -> Action.ok ()
@@ -258,9 +238,9 @@ module Make (P : S) = struct
     clean_install i >>= fun () ->
     Action.with_dir (build_dir args) (fun () ->
         clean_main i jobs >>= fun () ->
-        clean_file Fpath.(v "dune") >>= fun () ->
-        clean_file Fpath.(v "dune.config") >>= fun () ->
-        clean_file Fpath.(v "dune.build") >>= fun () ->
+        Filegen.rm Fpath.(v "dune") >>= fun () ->
+        Filegen.rm Fpath.(v "dune.config") >>= fun () ->
+        Filegen.rm Fpath.(v "dune.build") >>= fun () ->
         Action.rm Fpath.(v ".merlin"))
 
   let ok () = Action.ok ()

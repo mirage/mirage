@@ -2,7 +2,6 @@ open Astring
 open Mirage_impl_misc
 module Key = Mirage_key
 module Info = Functoria.Info
-module Codegen = Functoria.Codegen
 module Opam = Functoria.Opam
 module Action = Functoria.Action
 open Mirage_configure_xen
@@ -44,10 +43,8 @@ let clean_opam ~name target =
 let append fmt s = Fmt.pf fmt (s ^^ "@.")
 
 let configure_makefile ~no_depext ~opam_name =
-  let open Codegen in
+  (* TODO: move this in functoria *)
   Action.with_output ~path:(Fpath.v "Makefile") ~purpose:"Makefile" (fun fmt ->
-      append fmt "# %s" (generated_header ());
-      append fmt "";
       append fmt "-include Makefile.user";
       append fmt "";
       let depext = if no_depext then "" else "\n\t$(DEPEXT)" in

@@ -172,12 +172,17 @@ module Make (P : S) = struct
     let error = Action.error error in
     match result with `Version | `Help | `Ok (Cli.Help _) -> ok | _ -> error
 
-  let handle_parse_args t ?ppf ?err_ppf argv =
+  let cache args =
+    Fpath.(
+      normalize @@ (parent args.Cli.config_file / ("." ^ P.name ^ ".config")))
+
+  let handle_parse_args ~save_args t ?ppf ?err_ppf argv =
     let file = t.Cli.config_file in
     Action.is_file file >>= function
     | true ->
         check_project t ?ppf ?err_ppf () >>= fun () ->
-        re_exec t ?ppf ?err_ppf argv
+        (if save_args then Context_cache.write (cache t) argv else Action.ok ())
+        >>= fun () -> re_exec t ?ppf ?err_ppf argv
     | false ->
         let msg = Fmt.str "configuration file %a missing" Fpath.pp file in
         handle_parse_args_no_config ?help_ppf:ppf ?err_ppf (`Msg msg) argv
@@ -200,7 +205,7 @@ module Make (P : S) = struct
         lines;
       r
 
-  let clean_files () =
+  let clean_files args =
     Action.ls (Fpath.v ".") (fun file ->
         Fpath.parent file = Fpath.v "."
         &&
@@ -209,16 +214,17 @@ module Make (P : S) = struct
         | _ -> false)
     >>= fun files ->
     Action.List.iter ~f:Filegen.rm files >>= fun () ->
+    Action.rm (cache args) >>= fun () ->
     Action.get_var "INSIDE_FUNCTORIA_TESTS" >>= function
     | Some "1" | Some "" -> Action.ok ()
     | None -> Action.rmdir Fpath.(v "_build")
     | _ -> Action.rmdir Fpath.(v "_build")
 
   let error args ?help_ppf ?err_ppf argv =
-    handle_parse_args args ?ppf:help_ppf ?err_ppf argv
+    handle_parse_args args ~save_args:false ?ppf:help_ppf ?err_ppf argv
 
   let configure args ?ppf ?err_ppf argv =
-    handle_parse_args args ?ppf ?err_ppf argv >>= fun () ->
+    handle_parse_args ~save_args:true args ?ppf ?err_ppf argv >>= fun () ->
     query_name args ?err_ppf argv >>= fun name ->
     generate_opam ~name args ?err_ppf argv >>= fun () ->
     generate_install ~name args ?err_ppf argv
@@ -230,7 +236,7 @@ module Make (P : S) = struct
      | true ->
          check_project args ?ppf ?err_ppf () >>= fun () ->
          re_exec args ?ppf ?err_ppf argv)
-    >>= fun () -> clean_files ()
+    >>= fun () -> clean_files args
 
   let run args action = action |> action_run args |> exit_err args
 
@@ -245,7 +251,10 @@ module Make (P : S) = struct
         | Configure args ->
             run args @@ configure args ?ppf:help_ppf ?err_ppf argv
         | Clean args -> run args @@ clean args ?ppf:help_ppf ?err_ppf argv
-        | _ -> run args @@ handle_parse_args args ?ppf:help_ppf ?err_ppf argv )
+        | _ ->
+            run args
+            @@ handle_parse_args ~save_args:false args ?ppf:help_ppf ?err_ppf
+                 argv )
 
   let run () = run_with_argv Sys.argv
 end

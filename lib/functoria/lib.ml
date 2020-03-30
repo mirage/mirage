@@ -161,18 +161,6 @@ module Make (P : S) = struct
   let clean_main i jobs =
     Engine.clean i jobs >>= fun () -> Action.rm (Info.main i)
 
-  let eval_install i (_, e) = Key.eval (Info.context i) (Engine.install i e)
-
-  let configure_install i jobs =
-    let file = Info.name i ^ ".install" in
-    let install = eval_install i jobs in
-    Log.info (fun m -> m "Generating: %s" file);
-    Action.write_file Fpath.(v file) (Fmt.str "%a%!" Install.pp install)
-
-  let clean_install i =
-    let file = Info.name i ^ ".install" in
-    Filegen.rm Fpath.(v file)
-
   let configure ~argv args =
     let jobs, i = args.Cli.context in
     Log.info (fun m -> m "Configuration: %a" Fpath.pp args.Cli.config_file);
@@ -181,9 +169,6 @@ module Make (P : S) = struct
       | None -> ()
       | Some o -> Log.info (fun m -> m "Output       : %a" Fmt.(string) o)
     in
-    (* Generate .opam and .install at the project root *)
-    configure_install i jobs >>= fun () ->
-    (* Generate main.ml, *_gen.ml in the build dir *)
     Action.with_dir (build_dir args) (fun () -> configure_main ~argv i jobs)
 
   let build args =
@@ -202,7 +187,7 @@ module Make (P : S) = struct
         let opam = Info.opam i in
         Fmt.pr "%a%!" Opam.pp opam
     | `Install ->
-        let install = eval_install i jobs in
+        let install = Key.eval (Info.context i) (Engine.install i (snd jobs)) in
         Fmt.pr "%a%!" Install.pp install
     | `Files stage ->
         let actions =
@@ -216,7 +201,6 @@ module Make (P : S) = struct
   let clean args =
     let (_, jobs), i = args.Cli.context in
     Log.info (fun m -> m "Cleaning: %a" Fpath.pp args.Cli.config_file);
-    clean_install i >>= fun () ->
     Action.rm (cache (build_dir args)) >>= fun () ->
     Action.with_dir (build_dir args) (fun () ->
         clean_main i jobs >>= fun () ->

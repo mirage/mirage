@@ -147,7 +147,7 @@ module Make (P : S) = struct
     in
     with_fmt f
 
-  let configure_main ~argv i (init, jobs) : unit Action.t =
+  let configure_main i (init, jobs) =
     let main = Info.main i in
     let purpose = Fmt.strf "configure: create %a" Fpath.pp main in
     Log.info (fun m -> m "Generating: %a" Fpath.pp main);
@@ -155,13 +155,12 @@ module Make (P : S) = struct
         Fmt.pf ppf "%a@.@.let _ = Printexc.record_backtrace true@.@." Fmt.text
           P.prelude)
     >>= fun () ->
-    Context_cache.write (cache (Fpath.v ".")) argv >>= fun () ->
     Engine.configure i jobs >>= fun () -> Engine.connect i ~init jobs
 
   let clean_main i jobs =
     Engine.clean i jobs >>= fun () -> Action.rm (Info.main i)
 
-  let configure ~argv args =
+  let configure args =
     let jobs, i = args.Cli.context in
     Log.info (fun m -> m "Configuration: %a" Fpath.pp args.Cli.config_file);
     let () =
@@ -169,14 +168,14 @@ module Make (P : S) = struct
       | None -> ()
       | Some o -> Log.info (fun m -> m "Output       : %a" Fmt.(string) o)
     in
-    Action.with_dir (build_dir args) (fun () -> configure_main ~argv i jobs)
+    Action.with_dir (build_dir args) (fun () -> configure_main i jobs)
 
   let build args =
     let (_, jobs), i = args.Cli.context in
     Log.info (fun m -> m "Building: %a" Fpath.pp args.Cli.config_file);
     Action.with_dir (build_dir args) (fun () -> Engine.build i jobs)
 
-  let query ~argv ({ args; kind } : _ Cli.query_args) =
+  let query ({ args; kind } : _ Cli.query_args) =
     let jobs, i = args.Cli.context in
     match kind with
     | `Name -> Fmt.pr "%s\n%!" (Info.name i)
@@ -191,9 +190,7 @@ module Make (P : S) = struct
         Fmt.pr "%a%!" Install.pp install
     | `Files stage ->
         let actions =
-          match stage with
-          | `Configure -> configure ~argv args
-          | `Build -> build args
+          match stage with `Configure -> configure args | `Build -> build args
         in
         let files = Fpath.Set.elements (Action.generated_files actions) in
         Fmt.pr "%a\n%!" Fmt.(list ~sep:(unit " ") Fpath.pp) files
@@ -201,7 +198,6 @@ module Make (P : S) = struct
   let clean args =
     let (_, jobs), i = args.Cli.context in
     Log.info (fun m -> m "Cleaning: %a" Fpath.pp args.Cli.config_file);
-    Action.rm (cache (build_dir args)) >>= fun () ->
     Action.with_dir (build_dir args) (fun () ->
         clean_main i jobs >>= fun () ->
         Filegen.rm Fpath.(v "dune") >>= fun () ->
@@ -226,7 +222,7 @@ module Make (P : S) = struct
     let _, i = args.Cli.context in
     f "@[<v>%a@]" (Info.pp verbose) i
 
-  let handle_parse_args_result argv = function
+  let handle_parse_args_result = function
     | `Error _ -> exit ()
     | `Version | `Help -> ok ()
     | `Ok action -> (
@@ -235,7 +231,7 @@ module Make (P : S) = struct
         | Cli.Configure t ->
             let t = with_output t in
             Log.info (fun m -> pp_info m (Some Logs.Debug) t);
-            configure ~argv t
+            configure t
         | Cli.Build t ->
             let t = with_output t in
             Log.info (fun m -> pp_info m (Some Logs.Debug) t);
@@ -243,7 +239,7 @@ module Make (P : S) = struct
         | Cli.Query t ->
             let t = { t with args = with_output t.args } in
             Log.info (fun m -> pp_info m (Some Logs.Debug) t.args);
-            query ~argv t;
+            query t;
             ok ()
         | Cli.Describe t ->
             let t = { t with args = with_output t.args } in
@@ -325,7 +321,7 @@ module Make (P : S) = struct
       Config'.eval ~with_required:false ~partial:false context config
     in
 
-    handle_parse_args_result argv
+    handle_parse_args_result
       (Cli.eval ~name:P.name ~version:P.version ~configure ~query ~describe
          ~build ~clean ~help argv)
 

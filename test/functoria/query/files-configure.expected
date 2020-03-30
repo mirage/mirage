@@ -1,1 +1,1 @@
-.test.config dune.build key_gen.ml main.ml
+dune.build key_gen.ml main.ml

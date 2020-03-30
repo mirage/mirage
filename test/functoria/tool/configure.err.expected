@@ -8,6 +8,7 @@
                Is_file? dune -> true
                Read dune (221 bytes)]
 * Run_cmd 'dune build ./config.exe' (ok: out="[...]" err="")
+* Write to .test.config (26 bytes)
 * Run_cmd 'dune exec --root . -- ./config.exe configure a b c --dry-run' (ok: out="[...]" err="")
 * Run_cmd 'dune exec --root . -- ./config.exe query name a b c --dry-run' (ok: out="[...]" err="")
 * Run_cmd 'dune exec --root . -- ./config.exe query opam a b c --dry-run' (ok: out="[...]" err="")

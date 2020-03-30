@@ -27,6 +27,8 @@ let common_section = "COMMON OPTIONS"
 
 let configuration_section = "CONFIGURE OPTIONS"
 
+let query_section = "QUERY OPTIONS"
+
 let description_section = "DESCRIBE OPTIONS"
 
 type query_kind =
@@ -71,13 +73,13 @@ let dry_run =
 (** * Argument specifications *)
 
 (** Argument specification for --depext *)
-let depext =
+let depext section =
   let depext_doc =
-    Arg.info ~docs:description_section [ "depext" ]
+    Arg.info ~docs:section [ "depext" ]
       ~doc:"Enable call to `opam depext' in the project Makefile."
   in
   let no_depext_doc =
-    Arg.info ~docs:description_section [ "no-depext" ]
+    Arg.info ~docs:section [ "no-depext" ]
       ~doc:"Disable call to `opam depext' in the project Makefile."
   in
   let eval_opts = [ (true, depext_doc); (false, no_depext_doc) ] in
@@ -129,9 +131,10 @@ let output =
   Arg.(value & opt (some string) None & doc)
 
 let kind =
+  let enums = Arg.doc_alts_enum ~quoted:true query_kinds in
   let doc =
     Arg.info ~docs:configuration_section ~docv:"INFO" []
-      ~doc:"The information to query."
+      ~doc:(Fmt.strf "The information to query. $(docv) must be %s" enums)
   in
   Arg.(value & pos 0 (enum query_kinds) `Packages & doc)
 
@@ -195,7 +198,7 @@ let pp_clean = pp_args
 
 let pp_help = pp_args
 
-let pp_kind ppf (q : query_kind) =
+let pp_query_kind ppf (q : query_kind) =
   let rec aux = function
     | [] -> invalid_arg "missing query kind!"
     | (a, b) :: t -> if b = q then Fmt.string ppf a else aux t
@@ -207,7 +210,7 @@ let pp_query pp_a =
   record
     [
       field "args" (fun (t : 'a query_args) -> t.args) (pp_args pp_a);
-      field "kind" (fun t -> t.kind) pp_kind;
+      field "kind" (fun t -> t.kind) pp_query_kind;
       field "depext" (fun t -> t.depext) Fmt.bool;
     ]
 
@@ -249,7 +252,7 @@ module Subcommands = struct
     ( Term.(
         const (fun args depext -> Configure { args; depext })
         $ args ~with_setup context
-        $ depext),
+        $ depext configuration_section),
       Term.info "configure" ~doc:"Configure a $(mname) application."
         ~man:
           [
@@ -264,7 +267,7 @@ module Subcommands = struct
         const (fun kind args depext -> Query { kind; args; depext })
         $ kind
         $ args ~with_setup context
-        $ depext),
+        $ depext query_section),
       Term.info "query" ~doc:"Query information about the $(mname) application."
         ~man:
           [
@@ -430,14 +433,14 @@ let find_kind s =
 
 let pp_choice ppf = function
   | `Query None -> Fmt.string ppf "query"
-  | `Query (Some k) -> Fmt.pf ppf "query[%a]" pp_kind k
+  | `Query (Some k) -> Fmt.pf ppf "query[%a]" pp_query_kind k
   | (`Build | `Clean | `Describe | `Help | `Configure) as c ->
       Fmt.string ppf (fst (List.find (fun (_, x) -> x = c) choices))
 
 let argv_of_choice = function
   | (`Configure | `Build | `Clean | `Describe | `Help) as c ->
       [| Fmt.to_to_string pp_choice c |]
-  | `Query (Some k) -> [| "query"; Fmt.to_to_string pp_kind k |]
+  | `Query (Some k) -> [| "query"; Fmt.to_to_string pp_query_kind k |]
   | `Query None -> [| "query" |]
 
 let next_pos_arg argv i =

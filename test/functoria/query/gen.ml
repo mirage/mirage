@@ -1,6 +1,6 @@
 type t = { cmd : string; file : string }
 
-let v x = { cmd = x; file = x }
+let v x = { cmd = "query " ^ x; file = x }
 
 let gen t =
   Format.printf
@@ -10,7 +10,7 @@ let gen t =
  (action
   (with-stdout-to
    %%{target}
-   (run ./config.exe query %s))))
+   (run ./config.exe %s))))
 
 (rule
  (alias runtest)
@@ -30,5 +30,8 @@ let () =
       v "files-configure";
       v "files-build";
       v "Makefile";
-      { file = "Makefile.depext"; cmd = "Makefile --depext" };
+      { file = "Makefile.depext"; cmd = "query Makefile --depext" };
+      { file = "help-query"; cmd = "help query --man-format=plain" };
+      { file = "query-help"; cmd = "query --help=plain" };
+      { file = "version"; cmd = "query --version" };
     ]

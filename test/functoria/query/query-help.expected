@@ -1,27 +1,32 @@
 NAME
-       test-configure - Configure a test application.
+       test-query - Query information about the test application.
 
 SYNOPSIS
-       test configure [OPTION]... 
+       test query [OPTION]... [INFO]
 
 DESCRIPTION
-       The configure command initializes a fresh test application.
+       The query command queries information about the test application.
 
-CONFIGURE OPTIONS
+QUERY OPTIONS
        --depext
            Enable call to `opam depext' in the project Makefile.
 
+       --no-depext
+           Disable call to `opam depext' in the project Makefile.
+
+CONFIGURE OPTIONS
        --dry-run
            Display I/O actions instead of executing them.
 
        -f FILE, --file=FILE (absent=config.ml)
            The configuration file to use.
 
-       --no-depext
-           Disable call to `opam depext' in the project Makefile.
-
        -o FILE, --output=FILE
            Name of the output file.
+
+       INFO (absent=packages)
+           The information to query. INFO must be one of `name', `packages',
+           `opam', `install', `files-configure', `files-build' or `Makefile'
 
 APPLICATION OPTIONS
        --hello=VAL (absent=Hello World!)

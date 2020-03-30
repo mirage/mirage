@@ -39,6 +39,38 @@ module Make (P : S) = struct
 
   let build_dir t = Fpath.parent t.Cli.config_file
 
+  let run_cmd ?ppf ?err_ppf command =
+    match ppf with
+    | None -> Action.run_cmd ?err:err_ppf command
+    | Some help_ppf ->
+        Action.run_cmd_out ?err:err_ppf command >|= fun output ->
+        Fmt.pf help_ppf "%s%!" output
+
+  (* re-exec the command by calling config.exe with the same argv as
+     the current command. *)
+  let re_exec t ?ppf ?err_ppf argv =
+    let args = Bos.Cmd.of_list (List.tl (Array.to_list argv)) in
+    let command =
+      Bos.Cmd.(
+        v "dune"
+        % "exec"
+        % "--root"
+        % "."
+        % "--"
+        % p Fpath.(build_dir t / "config.exe")
+        %% args)
+    in
+    run_cmd ?ppf ?err_ppf command
+
+  let re_exec_out t ?err_ppf argv =
+    let buf = Buffer.create 10 in
+    let ppf = Fmt.with_buffer buf in
+    re_exec t ~ppf ?err_ppf argv >|= fun () -> Buffer.contents buf
+
+  let query k t ?err_ppf argv =
+    let argv = Cli.map_choice (fun _ -> Some (`Query (Some k))) argv in
+    re_exec_out t ?err_ppf argv
+
   (* Generate a `dune.config` file in the build directory. *)
   let generate_dune_config t =
     let file = Fpath.v "dune.config" in
@@ -92,34 +124,18 @@ module Make (P : S) = struct
         generate_dune_config t >>= fun () ->
         generate_empty_dune_build () >>= fun () -> generate_dune ())
 
-  let run_cmd ?ppf ?err_ppf command =
-    match ppf with
-    | None -> Action.run_cmd ?err:err_ppf command
-    | Some help_ppf ->
-        Action.run_cmd_out ?err:err_ppf command >|= fun output ->
-        Fmt.pf help_ppf "%s%!" output
+  let generate_opam t ?err_ppf argv =
+    query `Name t ?err_ppf argv >>= fun name ->
+    query `Opam t ?err_ppf argv >>= fun contents ->
+    let file = Fpath.(v name + ".opam") in
+    Log.info (fun m -> m "Generating: %a" Fpath.pp file);
+    Filegen.write file contents
 
   (* Generated a project skeleton and try to compile config.exe. *)
   let check_project t ?ppf ?err_ppf () =
     generate_configuration_files t >>= fun () ->
     let command =
       Bos.Cmd.(v "dune" % "build" % p Fpath.(build_dir t / "config.exe"))
-    in
-    run_cmd ?ppf ?err_ppf command
-
-  (* re-exec the command by calling config.exe with the same argv as
-     the current command. *)
-  let re_exec t ?ppf ?err_ppf argv =
-    let args = Bos.Cmd.of_list (List.tl (Array.to_list argv)) in
-    let command =
-      Bos.Cmd.(
-        v "dune"
-        % "exec"
-        % "--root"
-        % "."
-        % "--"
-        % p Fpath.(build_dir t / "config.exe")
-        %% args)
     in
     run_cmd ?ppf ?err_ppf command
 
@@ -177,16 +193,50 @@ module Make (P : S) = struct
         lines;
       r
 
-  let parse args ?help_ppf ?err_ppf argv =
+  let clean_files () =
+    Action.ls (Fpath.v ".") >>= fun files ->
+    let files =
+      List.filter
+        (fun file ->
+          Fpath.parent file = Fpath.v "." && Fpath.get_ext file = ".opam")
+        files
+    in
+    Action.List.iter ~f:Filegen.rm files >>= fun () ->
+    match Sys.getenv "INSIDE_FUNCTORIA_TESTS" with
+    | "1" -> Action.ok ()
+    | exception Not_found -> Action.rmdir Fpath.(v "_build")
+    | _ -> Action.rmdir Fpath.(v "_build")
+
+  let error args ?help_ppf ?err_ppf argv =
     handle_parse_args args ?ppf:help_ppf ?err_ppf argv
-    |> action_run args
-    |> exit_err args
+
+  let configure args ?ppf ?err_ppf argv =
+    handle_parse_args args ?ppf ?err_ppf argv >>= fun () ->
+    generate_opam args ?err_ppf argv
+
+  let clean args ?ppf ?err_ppf argv =
+    let config = args.Cli.config_file in
+    (Action.is_file config >>= function
+     | false -> Action.ok ()
+     | true ->
+         check_project args ?ppf ?err_ppf () >>= fun () ->
+         re_exec args ?ppf ?err_ppf argv)
+    >>= fun () -> clean_files ()
+
+  let run args action = action |> action_run args |> exit_err args
 
   let run_with_argv ?help_ppf ?err_ppf argv =
-    match Cli.peek ~with_setup:true argv with
+    let t = Cli.peek ~with_setup:true argv in
+    match t with
     | `Version -> Fmt.pr "%s\n%!" P.version
-    | `Error (args, _) -> parse args ?help_ppf ?err_ppf argv
-    | `Ok t -> parse (Cli.args t) ?help_ppf ?err_ppf argv
+    | `Error (args, _) -> run args @@ error args ?help_ppf ?err_ppf argv
+    | `Ok t -> (
+        let args = Cli.args t in
+        match t with
+        | Configure args ->
+            run args @@ configure args ?ppf:help_ppf ?err_ppf argv
+        | Clean args -> run args @@ clean args ?ppf:help_ppf ?err_ppf argv
+        | _ -> run args @@ handle_parse_args args ?ppf:help_ppf ?err_ppf argv )
 
   let run () = run_with_argv Sys.argv
 end

@@ -9,3 +9,4 @@
                Read dune (221 bytes)]
 * Run_cmd 'dune build ./config.exe' (ok: out="[...]" err="")
 * Run_cmd 'dune exec --root . -- ./config.exe clean a b c --dry-run' (ok: out="[...]" err="")
+* Ls ./ (75 entries)

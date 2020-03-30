@@ -124,10 +124,17 @@ module Make (P : S) = struct
         generate_dune_config t >>= fun () ->
         generate_empty_dune_build () >>= fun () -> generate_dune ())
 
-  let generate_opam t ?err_ppf argv =
-    query `Name t ?err_ppf argv >>= fun name ->
+  let query_name t ?err_ppf argv = query `Name t ?err_ppf argv
+
+  let generate_opam ~name t ?err_ppf argv =
     query `Opam t ?err_ppf argv >>= fun contents ->
     let file = Fpath.(v name + ".opam") in
+    Log.info (fun m -> m "Generating: %a" Fpath.pp file);
+    Filegen.write file contents
+
+  let generate_install ~name t ?err_ppf argv =
+    query `Install t ?err_ppf argv >>= fun contents ->
+    let file = Fpath.(v name + ".install") in
     Log.info (fun m -> m "Generating: %a" Fpath.pp file);
     Filegen.write file contents
 
@@ -198,7 +205,11 @@ module Make (P : S) = struct
     let files =
       List.filter
         (fun file ->
-          Fpath.parent file = Fpath.v "." && Fpath.get_ext file = ".opam")
+          Fpath.parent file = Fpath.v "."
+          &&
+          match Fpath.get_ext file with
+          | ".opam" | ".install" -> true
+          | _ -> false)
         files
     in
     Action.List.iter ~f:Filegen.rm files >>= fun () ->
@@ -212,7 +223,9 @@ module Make (P : S) = struct
 
   let configure args ?ppf ?err_ppf argv =
     handle_parse_args args ?ppf ?err_ppf argv >>= fun () ->
-    generate_opam args ?err_ppf argv
+    query_name args ?err_ppf argv >>= fun name ->
+    generate_opam ~name args ?err_ppf argv >>= fun () ->
+    generate_install ~name args ?err_ppf argv
 
   let clean args ?ppf ?err_ppf argv =
     let config = args.Cli.config_file in

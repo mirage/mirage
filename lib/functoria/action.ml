@@ -41,10 +41,12 @@ type cmd = {
   out : Format.formatter option;
 }
 
+type ls = { root : Fpath.t; filter : Fpath.t -> bool }
+
 type _ command =
   | Rmdir : Fpath.t -> unit command
   | Mkdir : Fpath.t -> bool command
-  | Ls : Fpath.t -> Fpath.t list command
+  | Ls : ls -> Fpath.t list command
   | Rm : Fpath.t -> unit command
   | Is_file : Fpath.t -> bool command
   | Is_dir : Fpath.t -> bool command
@@ -92,7 +94,7 @@ let rmdir path = wrap @@ Rmdir !path
 
 let mkdir path = wrap @@ Mkdir !path
 
-let ls path = wrap @@ Ls !path
+let ls path filter = wrap @@ Ls { root = !path; filter }
 
 let with_dir path f = wrap @@ With_dir (!path, f)
 
@@ -147,9 +149,11 @@ let rec interpret_command : type r. r command -> r or_err = function
   | Mkdir path ->
       Log.debug (fun l -> l "mkdir %a" Fpath.pp path);
       Bos.OS.Dir.create ~path:true path
-  | Ls path ->
-      Log.debug (fun l -> l "ls %a" Fpath.pp path);
-      Bos.OS.Path.matches ~dotfiles:true Fpath.(path / "$(file)")
+  | Ls { root; filter } ->
+      let open Rresult in
+      Log.debug (fun l -> l "ls %a" Fpath.pp root);
+      Bos.OS.Path.matches ~dotfiles:true Fpath.(root / "$(file)")
+      >>| fun files -> List.filter filter files
   | Rm path ->
       Log.debug (fun l -> l "rm %a" Fpath.pp path);
       Bos.OS.File.delete ~must_exist:false path
@@ -479,16 +483,18 @@ let rec interpret_dry : type r. env:Env.t -> r command -> r or_err * _ * _ =
       if Env.is_dir env path || Env.is_file env path then
         (Ok (), Env.rmdir env path, log "removed")
       else (Ok (), env, log "no-op")
-  | Ls path -> (
-      Log.debug (fun l -> l "Ls %a" Fpath.pp path);
-      let logs fmt = Fmt.kstr (Fmt.str "Ls %a (%s)" Fpath.pp path) fmt in
-      match Env.ls env path with
+  | Ls { root; filter } -> (
+      Log.debug (fun l -> l "Ls %a" Fpath.pp root);
+      let logs fmt = Fmt.kstr (Fmt.str "Ls %a (%s)" Fpath.pp root) fmt in
+      match Env.ls env root with
       | None ->
-          ( error_msg "%a: no such file or directory" Fpath.pp path,
+          ( error_msg "%a: no such file or directory" Fpath.pp root,
             env,
             logs "error" )
-      | Some (([] | [ _ ]) as e) -> (Ok e, env, logs "%d entry" (List.length e))
-      | Some es -> (Ok es, env, logs "%d entries" (List.length es)) )
+      | Some es -> (
+          match List.filter filter es with
+          | ([] | [ _ ]) as e -> (Ok e, env, logs "%d entry" (List.length e))
+          | es -> (Ok es, env, logs "%d entries" (List.length es)) ) )
   | Rm path -> (
       Log.debug (fun l -> l "Rm %a" Fpath.pp path);
       let log s = Fmt.str "Rm %a (%s)" Fpath.pp path s in

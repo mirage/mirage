@@ -106,7 +106,7 @@ val tmp_file : ?mode:int -> Bos.OS.File.tmp_name_pat -> Fpath.t t
 (** [tmp_file pat] is a tempory file built using the pattern [pat]. (See
     [Bos.OS.File.tmp]) *)
 
-val ls : Fpath.t -> Fpath.t list t
+val ls : Fpath.t -> (Fpath.t -> bool) -> Fpath.t list t
 (** [ls dir] is the list of files in [dir]. *)
 
 val with_output :

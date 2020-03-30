@@ -42,4 +42,6 @@ let () =
       v "help-no-config-err" "help --file=empty/config.ml a b c";
       v "build-help-no-config" "build --help=plain --file=empty/config.ml a b c";
       v "version" "configure --version a b c";
+      v "ambiguous" "c a b c";
+      v "default" "";
     ]

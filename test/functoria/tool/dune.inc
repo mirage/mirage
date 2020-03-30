@@ -219,3 +219,37 @@
   (alias runtest)
   (package functoria)
   (action (diff version.err.expected version.err)))
+
+(rule
+  (target ambiguous)
+  (action
+    (with-stdout-to ambiguous
+    (with-stderr-to ambiguous.err
+      (run ./test.exe c a b c)))))
+
+(rule
+  (alias runtest)
+  (package functoria)
+  (action (diff ambiguous.expected ambiguous)))
+
+(rule
+  (alias runtest)
+  (package functoria)
+  (action (diff ambiguous.err.expected ambiguous.err)))
+
+(rule
+  (target default)
+  (action
+    (with-stdout-to default
+    (with-stderr-to default.err
+      (run ./test.exe )))))
+
+(rule
+  (alias runtest)
+  (package functoria)
+  (action (diff default.expected default)))
+
+(rule
+  (alias runtest)
+  (package functoria)
+  (action (diff default.err.expected default.err)))

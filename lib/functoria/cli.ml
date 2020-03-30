@@ -464,3 +464,33 @@ let map_choice (f : choice option -> choice option) argv =
           argv_of_choice c;
           Array.sub argv 1 (Array.length argv - 1);
         ]
+
+let peek_choice argv =
+  try match find_next_choice argv 1 with Some c, _ -> `Ok c | _ -> `Default
+  with Invalid_argument _ -> `Error `Parse
+
+type 'a result =
+  [ `Ok of 'a action | `Error of 'a args * [ `Exn | `Parse | `Term ] | `Version ]
+
+let peek ?(with_setup = false) argv : unit result =
+  let niet = Term.pure () in
+  let peek t =
+    match Term.eval_peek_opts ~argv ~version_opt:true (fst t) with
+    | _, `Version -> `Version
+    | _, `Error e -> `Error (peek_args ~with_setup:false argv, e)
+    | None, `Help ->
+        let args = peek_args ~with_setup:false argv in
+        `Ok (Help args)
+    | Some v, _ | _, `Ok v -> `Ok v
+  in
+  let peek_cmd t = peek (t niet) in
+  match peek_choice argv with
+  | `Ok `Configure -> peek_cmd (Subcommands.configure ~with_setup)
+  | `Ok `Build -> peek_cmd (Subcommands.build ~with_setup)
+  | `Ok `Clean -> peek_cmd (Subcommands.clean ~with_setup)
+  | `Ok (`Query _) -> peek_cmd (Subcommands.query ~with_setup)
+  | `Ok `Describe -> peek_cmd (Subcommands.describe ~with_setup)
+  | `Ok `Help -> peek_cmd (Subcommands.help ~with_setup)
+  | `Default ->
+      peek (Subcommands.default ~with_setup ~name:"<name>" ~version:"<version>")
+  | `Error e -> `Error (peek_args argv, e)

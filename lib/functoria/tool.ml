@@ -209,9 +209,9 @@ module Make (P : S) = struct
         | _ -> false)
     >>= fun files ->
     Action.List.iter ~f:Filegen.rm files >>= fun () ->
-    match Sys.getenv "INSIDE_FUNCTORIA_TESTS" with
-    | "1" -> Action.ok ()
-    | exception Not_found -> Action.rmdir Fpath.(v "_build")
+    Action.get_var "INSIDE_FUNCTORIA_TESTS" >>= function
+    | Some "1" | Some "" -> Action.ok ()
+    | None -> Action.rmdir Fpath.(v "_build")
     | _ -> Action.rmdir Fpath.(v "_build")
 
   let error args ?help_ppf ?err_ppf argv =

@@ -10,3 +10,5 @@
 * Run_cmd 'dune build ./config.exe' (ok: out="[...]" err="")
 * Run_cmd 'dune exec --root . -- ./config.exe clean a b c --dry-run' (ok: out="[...]" err="")
 * Ls ./ (0 entry)
+* Get_var INSIDE_FUNCTORIA_TESTS -> <not set>
+* Rmdir _build (no-op)

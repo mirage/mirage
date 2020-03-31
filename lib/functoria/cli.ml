@@ -345,8 +345,10 @@ module Subcommands = struct
           | `Ok t -> `Help (man_format, Some t) )
     in
     ( Term.(
-        const (fun args () -> Help args)
+        const (fun args _ _ () -> Help args)
         $ args ~with_setup context
+        $ depext configuration_section
+        $ full_eval
         $ ret (const help $ Term.man_format $ Term.choice_names $ topic)),
       Term.info "help" ~doc:"Display help about $(mname) commands."
         ~man:

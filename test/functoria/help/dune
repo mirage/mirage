@@ -40,4 +40,4 @@
  (alias runtest)
  (package functoria)
  (action
-  (diff configure-help.out.expected help-configure.out)))
+  (diff configure-help.out help-configure.out)))

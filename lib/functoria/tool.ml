@@ -129,7 +129,7 @@ module Make (P : S) = struct
     let contents = Fmt.to_to_string Makefile.pp (Makefile.v ~depext name) in
     Filegen.write file contents
 
-  let query_name t ?err_ppf argv = query `Name t ?err_ppf argv
+  let query_name t ?err_ppf argv = query `Name t ?err_ppf argv >|= String.trim
 
   let generate_opam ~name t ?err_ppf argv =
     query `Opam t ?err_ppf argv >>= fun contents ->

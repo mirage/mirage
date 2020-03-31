@@ -10,11 +10,11 @@
 * Run_cmd 'dune build ./config.exe' (ok: out="[...]" err="")
 * Write to .test.config (26 bytes)
 * Run_cmd 'dune exec --root . -- ./config.exe configure a b c --dry-run' (ok: out="[...]" err="")
-* Run_cmd 'dune exec --root . -- ./config.exe query name a b c --dry-run' (ok: out="[...]" err="")
-* Run_cmd 'dune exec --root . -- ./config.exe query opam a b c --dry-run' (ok: out="[...]" err="")
+* Run_cmd 'dune exec --root . -- ./config.exe query name' (ok: out="[...]" err="")
+* Run_cmd 'dune exec --root . -- ./config.exe query opam' (ok: out="[...]" err="")
 * Is_file? [...].opam -> false
 * Write to [...].opam (35 bytes)
-* Run_cmd 'dune exec --root . -- ./config.exe query install a b c --dry-run' (ok: out="[...]" err="")
+* Run_cmd 'dune exec --root . -- ./config.exe query install' (ok: out="[...]" err="")
 * Is_file? [...].install -> false
 * Write to [...].install (35 bytes)
 * Is_file? Makefile -> false

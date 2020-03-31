@@ -407,14 +407,6 @@ let args = function
   | Query { args; _ } -> args
   | Describe { args; _ } -> args
 
-type choice =
-  [ `Configure
-  | `Build
-  | `Clean
-  | `Query of query_kind option
-  | `Describe
-  | `Help ]
-
 let choices =
   [
     ("configure", `Configure);
@@ -430,18 +422,6 @@ let find_choices s =
 
 let find_kind s =
   List.find_all (fun (k, _) -> Astring.String.is_prefix ~affix:s k) query_kinds
-
-let pp_choice ppf = function
-  | `Query None -> Fmt.string ppf "query"
-  | `Query (Some k) -> Fmt.pf ppf "query[%a]" pp_query_kind k
-  | (`Build | `Clean | `Describe | `Help | `Configure) as c ->
-      Fmt.string ppf (fst (List.find (fun (_, x) -> x = c) choices))
-
-let argv_of_choice = function
-  | (`Configure | `Build | `Clean | `Describe | `Help) as c ->
-      [| Fmt.to_to_string pp_choice c |]
-  | `Query (Some k) -> [| "query"; Fmt.to_to_string pp_query_kind k |]
-  | `Query None -> [| "query" |]
 
 let next_pos_arg argv i =
   let rec aux i =
@@ -486,18 +466,6 @@ let rec find_next_choice argv i =
           | `Query ->
               let k, argv = find_next_kind argv (i + 1) in
               (Some (`Query k), remove_argv argv i) ) )
-
-let map_choice (f : choice option -> choice option) argv =
-  let choice, argv = find_next_choice argv 1 in
-  match f choice with
-  | None -> argv
-  | Some c ->
-      Array.concat
-        [
-          [| argv.(0) |];
-          argv_of_choice c;
-          Array.sub argv 1 (Array.length argv - 1);
-        ]
 
 let peek_choice argv =
   try match find_next_choice argv 1 with Some c, _ -> `Ok c | _ -> `Default

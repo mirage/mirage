@@ -427,9 +427,10 @@ let serialize ctx ppf (Any k) = Arg.serialize (get ctx k) ppf (arg k)
 
 let serialize_rw ctx fmt t =
   Format.fprintf fmt
-    "@[<2>let %s =@,\
-     Functoria_runtime.Key.create@ %a@]@,\
+    "@[<2>let %s =@ Functoria_runtime.Key.create@ %a@]@,\
+     @,\
      @[<2>let %s_t =@ Functoria_runtime.Key.term %s@]@,\
+     @,\
      @[<2>let %s () =@ Functoria_runtime.Key.get %s@]@,"
     (ocaml_name t)
     Fmt.(parens (serialize ctx))

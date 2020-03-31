@@ -150,7 +150,7 @@ module Make (P : S) = struct
   let configure_main i (init, jobs) =
     let main = Info.main i in
     let purpose = Fmt.strf "configure: create %a" Fpath.pp main in
-    Log.info (fun m -> m "Generating: %a" Fpath.pp main);
+    Log.info (fun m -> m "Generating: %a (main file)" Fpath.pp main);
     Action.with_output ~path:main ~append:false ~purpose (fun ppf ->
         Fmt.pf ppf "%a@.@.let _ = Printexc.record_backtrace true@.@." Fmt.text
           P.prelude)
@@ -184,10 +184,10 @@ module Make (P : S) = struct
         List.iter (Fmt.pr "%a\n%!" (Package.pp ~surround:"\"")) pkgs
     | `Opam ->
         let opam = Info.opam i in
-        Fmt.pr "%a%!" Opam.pp opam
+        Fmt.pr "%a\n%!" Opam.pp opam
     | `Install ->
         let install = Key.eval (Info.context i) (Engine.install i (snd jobs)) in
-        Fmt.pr "%a%!" Install.pp install
+        Fmt.pr "%a\n%!" Install.pp install
     | `Files stage ->
         let actions =
           match stage with `Configure -> configure args | `Build -> build args

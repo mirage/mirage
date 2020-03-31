@@ -38,7 +38,7 @@ let pp ppf t =
   let etcs = List.map (Fmt.to_to_string pp_etc) t.etc in
   Fmt.pf ppf "bin: [%s%s]\n" (String.concat "" bins)
     (match bins with [] -> "" | _ -> "\n");
-  Fmt.pf ppf "etc: [%s%s]\n" (String.concat "" etcs)
+  Fmt.pf ppf "etc: [%s%s]" (String.concat "" etcs)
     (match etcs with [] -> "" | _ -> "\n")
 
 let union_etc x y = Fpath.Set.(elements (union (of_list x) (of_list y)))

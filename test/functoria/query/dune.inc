@@ -102,3 +102,42 @@
  (package functoria)
  (action
   (diff Makefile.depext.expected Makefile.depext)))
+
+(rule
+ (target help-query)
+ (action
+  (with-stdout-to
+   %{target}
+   (run ./config.exe help query --man-format=plain))))
+
+(rule
+ (alias runtest)
+ (package functoria)
+ (action
+  (diff help-query.expected help-query)))
+
+(rule
+ (target query-help)
+ (action
+  (with-stdout-to
+   %{target}
+   (run ./config.exe query --help=plain))))
+
+(rule
+ (alias runtest)
+ (package functoria)
+ (action
+  (diff query-help.expected query-help)))
+
+(rule
+ (target version)
+ (action
+  (with-stdout-to
+   %{target}
+   (run ./config.exe query --version))))
+
+(rule
+ (alias runtest)
+ (package functoria)
+ (action
+  (diff version.expected version)))

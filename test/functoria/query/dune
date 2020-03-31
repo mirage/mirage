@@ -16,3 +16,12 @@
  (alias runtest)
  (action
   (diff dune.inc dune.gen)))
+
+; check that `<tool> query --help' and `<tool> help query' gives
+; similar results
+
+(rule
+ (alias runtest)
+ (package functoria)
+ (action
+  (diff query-help help-query)))

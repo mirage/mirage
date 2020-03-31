@@ -179,7 +179,7 @@ let app_info v ?(runtime_package = "functoria-runtime") ?opam_list
   let connect _ impl_name _ = Fmt.strf "return %s.info" impl_name in
   let clean _ = Action.rm file in
   let build i =
-    Log.info (fun m -> m "Generating: %a" Fpath.pp file);
+    Log.info (fun m -> m "Generating: %a (info)" Fpath.pp file);
     let packages =
       match opam_list with
       | None -> default_opam_deps (package_names i)

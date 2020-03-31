@@ -31,11 +31,11 @@ let noop = Impl.v "Unit" t
 
 module Keys = struct
   let configure ~file i =
-    Log.info (fun m -> m "Generating: %a" Fpath.pp file);
+    Log.info (fun m -> m "Generating: %a (keys)" Fpath.pp file);
     Action.with_output ~path:file ~purpose:"key_gen file" (fun ppf ->
         let keys = Key.Set.of_list @@ Info.keys i in
-        let pp_var k = Key.serialize (Info.context i) k in
-        Fmt.pf ppf "@[<v>%a@]@." (Fmt.iter Key.Set.iter pp_var) keys;
+        let pp_var = Key.serialize (Info.context i) in
+        Fmt.pf ppf "@[<v>%a@]@." Fmt.(iter Key.Set.iter pp_var) keys;
         let runvars = Key.Set.elements (Key.filter_stage `Run keys) in
         let pp_runvar ppf v = Fmt.pf ppf "%s_t" (Key.ocaml_name v) in
         let pp_names ppf v = Fmt.pf ppf "%S" (Key.name v) in

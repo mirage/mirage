@@ -104,6 +104,5 @@ synopsis: "This is a dummy"
 build: [%a]
 
 depends: [%a]
-%a%a
-|}
+%a%a|}
     t.name pp_build t.build pp_packages t.depends pp_src t.src pp_pins t.pins

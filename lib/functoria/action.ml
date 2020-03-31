@@ -126,7 +126,7 @@ let with_output ?mode ?(append = false) ~path ~purpose contents =
 let pfo ppf s = match ppf with None -> () | Some ppf -> Fmt.pf ppf "%s%!" s
 
 let interpret_cmd { cmd; err; out } =
-  Log.debug (fun l -> l "run %a" Bos.Cmd.pp cmd);
+  Log.debug (fun l -> l "RUN: %a" Bos.Cmd.pp cmd);
   let open Rresult in
   let err =
     match err with
@@ -137,7 +137,9 @@ let interpret_cmd { cmd; err; out } =
         (Some (Bos.OS.Cmd.err_file path), flush)
   in
   err >>= fun (err, flush_err) ->
-  Bos.OS.Cmd.run_out ?err cmd |> Bos.OS.Cmd.out_string |> Bos.OS.Cmd.success
+  Bos.OS.Cmd.run_out ?err cmd
+  |> Bos.OS.Cmd.out_string ~trim:false
+  |> Bos.OS.Cmd.success
   >>= fun str_out ->
   pfo out str_out;
   flush_err () >>| fun () -> str_out

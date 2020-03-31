@@ -67,9 +67,9 @@ module Make (P : S) = struct
     let ppf = Fmt.with_buffer buf in
     re_exec t ~ppf ?err_ppf argv >|= fun () -> Buffer.contents buf
 
-  let query k t ?err_ppf argv =
-    let argv = Cli.map_choice (fun _ -> Some (`Query (Some k))) argv in
-    re_exec_out t ?err_ppf argv
+  let query k t ?err_ppf _argv =
+    re_exec_out t ?err_ppf
+      [| ""; "query"; Fmt.to_to_string Cli.pp_query_kind k |]
 
   (* Generate a `dune.config` file in the build directory. *)
   let generate_dune_config t =

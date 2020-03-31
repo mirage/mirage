@@ -59,6 +59,9 @@ type query_kind =
   | `Files of [ `Configure | `Build ]
   | `Makefile ]
 
+val pp_query_kind : query_kind Fmt.t
+(** [pp_query_kind] is the pretty-printer for query kinds. *)
+
 type 'a query_args = { args : 'a args; kind : query_kind; depext : bool }
 (** The type for arguments of the [query] sub-command. *)
 
@@ -120,23 +123,3 @@ type 'a result =
 
 val peek : ?with_setup:bool -> string array -> unit result
 (** [peek] is the same as {!eval} but without failing on unknown arguments. *)
-
-(** {1 Argv Transformers} *)
-
-type choice =
-  [ `Configure
-  | `Build
-  | `Clean
-  | `Query of query_kind option
-  | `Describe
-  | `Help ]
-(** The type for sub-command choices. *)
-
-val pp_choice : choice Fmt.t
-(** [pp_choice] is a pretty-printer for choices. *)
-
-val map_choice :
-  (choice option -> choice option) -> string array -> string array
-(** [map_choice f argv] is [argv] where the sub-command have been changed by
-    applying [f]. Raise [Invalid_argument] if the sub-command names are
-    ambiguous. *)

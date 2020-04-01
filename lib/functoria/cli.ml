@@ -83,7 +83,7 @@ let depext section =
       ~doc:"Disable call to `opam depext' in the project Makefile."
   in
   let eval_opts = [ (true, depext_doc); (false, no_depext_doc) ] in
-  Arg.(value & vflag false eval_opts)
+  Arg.(value & vflag true eval_opts)
 
 (** Argument specification for --eval *)
 let full_eval =

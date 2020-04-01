@@ -11,7 +11,6 @@ DEPEXT ?= $(OPAM) pin add -k path --no-action --yes noop . && \
 all:: build
 
 depend depends::
-	$(DEPEXT)
 	$(OPAM) install -y --deps-only .
 
 build::

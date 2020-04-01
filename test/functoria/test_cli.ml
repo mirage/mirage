@@ -35,7 +35,7 @@ let test_configure () =
     (`Ok
       (Cli.Configure
          {
-           depext = false;
+           depext = true;
            args =
              {
                context = (true, false);

@@ -111,15 +111,13 @@ module Make (P : S) = struct
   module Log = (val Logs.src_log src : Logs.LOG)
 
   module Config' = struct
-    let eval_cached ~partial cache cached_context t =
-      let f c _ =
-        let info = Config.eval ~partial c t in
-        let keys = Key.deps info in
-        let context = Key.context ~stage:`Configure ~with_required:false keys in
-        Context_cache.eval cache context >|= fun c -> Key.eval c info c
-      in
-      Cmdliner.Term.(
-        pure f $ pure cached_context $ ret (pure (Context_cache.require cache)))
+    let eval_cached cache cached_context t =
+      let info = Config.eval ~partial:false cached_context t in
+      let keys = Key.deps info in
+      let context = Key.context ~stage:`Configure ~with_required:false keys in
+      let context = Context_cache.eval cache context in
+      let f map = map >|= fun map -> Key.eval map info map in
+      Cmdliner.Term.(pure f $ pure context)
 
     let eval ~partial ~with_required context t =
       let info = Config.eval ~partial context t in
@@ -299,29 +297,31 @@ module Make (P : S) = struct
     let configure =
       Config'.eval ~with_required:true ~partial:false base_context config
     in
-    let query = configure in
+
+    let merge_context =
+      Key.merge_context ~default:cached_context base_context
+    in
 
     let describe =
-      let context = Key.merge_context ~default:cached_context base_context in
       let partial =
         match full_eval with
         | Some true -> false
         | Some false -> true
         | None -> cache = None
       in
-      Config'.eval ~with_required:false ~partial context config
+      Config'.eval ~with_required:false ~partial merge_context config
     in
 
     let build =
-      Config'.eval_cached ~partial:false cache cached_context config
+      Config'.eval_cached cache merge_context config
       |> set_term_output cache
       |> run_term args
     in
     let clean = build in
+    let query = build in
 
     let help =
-      let context = Key.merge_context ~default:cached_context base_context in
-      Config'.eval ~with_required:false ~partial:false context config
+      Config'.eval ~with_required:false ~partial:false merge_context config
     in
 
     handle_parse_args_result

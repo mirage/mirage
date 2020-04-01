@@ -28,16 +28,6 @@ CONFIGURE OPTIONS
            The information to query. INFO must be one of `name', `packages',
            `opam', `install', `files-configure', `files-build' or `Makefile'
 
-APPLICATION OPTIONS
-       --hello=VAL (absent=Hello World!)
-           How to say hello. 
-
-       --vote=VOTE (absent=cat)
-           Vote. 
-
-       --warn-error=BOOL (absent=false)
-           Enable -warn-error when compiling OCaml sources. 
-
 OPTIONS
        --help[=FMT] (default=auto)
            Show this help in format FMT. The value FMT must be one of `auto',

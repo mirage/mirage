@@ -25,6 +25,10 @@ module Log = (val Logs.src_log src : Logs.LOG)
 
 type t = string array
 
+let empty = [| "" |]
+
+let is_empty t = t = empty
+
 let write file argv =
   Log.info (fun m ->
       m "Preserving arguments in %a:@ %a" Fpath.pp file
@@ -39,7 +43,7 @@ let write file argv =
 let read file =
   Log.info (fun l -> l "reading cache %a" Fpath.pp file);
   Action.is_file file >>= function
-  | false -> Action.ok None
+  | false -> Action.ok empty
   | true -> (
       Action.read_file file >>= fun args ->
       let args = String.cuts ~sep:"\n" args in
@@ -57,31 +61,20 @@ let read file =
               | None -> Fmt.failwith "%S: cannot parse" x)
             args
         in
-        Action.ok (Some args)
+        Action.ok args
       with Failure e -> Action.error e )
 
 let eval_term t term =
-  match t with
-  | None -> Action.ok None
-  | Some argv -> (
-      match Cmdliner.Term.eval_peek_opts ~argv term with
-      | Some c, _ | _, `Ok c -> Action.ok (Some c)
-      | _ ->
-          let msg =
-            "Invalid cached configuration. Please run configure again."
-          in
-          Action.error msg )
+  match Cmdliner.Term.eval_peek_opts ~argv:t term with
+  | Some c, _ | _, `Ok c -> Some c
+  | _ ->
+      Fmt.failwith "Invalid cached configuration. Please run configure again."
 
-let eval t term =
-  eval_term t term >|= function None -> Key.empty_context | Some c -> c
+let merge t term =
+  let cache =
+    match eval_term t term with None -> Key.empty_context | Some c -> c
+  in
+  let f term = Key.merge_context ~default:cache term in
+  Cmdliner.Term.(pure f $ term)
 
-let eval_output t =
-  match t with
-  | None -> Action.ok None
-  | Some argv -> Action.ok (Cli.peek_output argv)
-
-let require (t : t option) : _ Cmdliner.Term.ret =
-  match t with
-  | None ->
-      `Error (false, "Configuration is not available. Please run configure.")
-  | Some x -> `Ok x
+let peek_output t = Cli.peek_output t

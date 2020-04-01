@@ -91,6 +91,19 @@
   (diff Makefile.expected Makefile)))
 
 (rule
+ (target Makefile.no-depext)
+ (action
+  (with-stdout-to
+   %{target}
+   (run ./config.exe query Makefile --no-depext))))
+
+(rule
+ (alias runtest)
+ (package functoria)
+ (action
+  (diff Makefile.no-depext.expected Makefile.no-depext)))
+
+(rule
  (target Makefile.depext)
  (action
   (with-stdout-to

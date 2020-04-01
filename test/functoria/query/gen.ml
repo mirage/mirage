@@ -30,6 +30,7 @@ let () =
       v "files-configure";
       v "files-build";
       v "Makefile";
+      { file = "Makefile.no-depext"; cmd = "query Makefile --no-depext" };
       { file = "Makefile.depext"; cmd = "query Makefile --depext" };
       { file = "help-query"; cmd = "help query --man-format=plain" };
       { file = "query-help"; cmd = "query --help=plain" };

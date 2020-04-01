@@ -18,4 +18,4 @@
 * Is_file? [...].install -> false
 * Write to [...].install (35 bytes)
 * Is_file? Makefile -> false
-* Write to Makefile (369 bytes)
+* Write to Makefile (380 bytes)

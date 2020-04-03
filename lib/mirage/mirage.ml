@@ -387,11 +387,11 @@ let ( ++ ) acc x =
   | Some acc, Some x -> Some (acc @ [ x ])
 
 let register ?(argv = default_argv) ?tracing ?(reporter = default_reporter ())
-    ?keys:extra_keys ?packages name jobs =
+    ?keys:extra_keys ?packages ?src name jobs =
   let argv = Some [ keys argv ] in
   let reporter = if reporter == no_reporter then None else Some reporter in
   let init = argv ++ reporter ++ tracing in
-  register ?keys:extra_keys ?packages ?init name jobs
+  register ?keys:extra_keys ?packages ?init ?src name jobs
 
 module FS = Mirage_impl_fs
 module Configure = Mirage_configure

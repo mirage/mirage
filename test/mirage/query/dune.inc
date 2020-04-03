@@ -145,42 +145,6 @@
 
 (rule
  (action
-  (with-stdout-to help-query
-  (with-stderr-to help-query.err
-   (run ./config.exe help query --man-format=plain)))))
-
-(rule
- (alias runtest)
- (package mirage)
- (action
-  (diff help-query.expected help-query)))
-
-(rule
- (alias runtest)
- (package mirage)
- (action
-  (diff help-query.err.expected help-query.err)))
-
-(rule
- (action
-  (with-stdout-to query-help
-  (with-stderr-to query-help.err
-   (run ./config.exe query --help=plain)))))
-
-(rule
- (alias runtest)
- (package mirage)
- (action
-  (diff query-help.expected query-help)))
-
-(rule
- (alias runtest)
- (package mirage)
- (action
-  (diff query-help.err.expected query-help.err)))
-
-(rule
- (action
   (with-stdout-to version
   (with-stderr-to version.err
    (run ./config.exe query --version)))))

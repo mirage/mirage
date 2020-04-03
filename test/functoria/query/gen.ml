@@ -37,7 +37,5 @@ let () =
       v "Makefile";
       { file = "Makefile.no-depext"; cmd = "query Makefile --no-depext" };
       { file = "Makefile.depext"; cmd = "query Makefile --depext" };
-      { file = "help-query"; cmd = "help query --man-format=plain" };
-      { file = "query-help"; cmd = "query --help=plain" };
       { file = "version"; cmd = "query --version" };
     ]

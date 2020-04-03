@@ -46,5 +46,6 @@ let () =
       { file = "configure-o"; cmd = "configure -o foo" };
       v "build";
       v "clean";
+      v "query";
       v "describe";
     ]

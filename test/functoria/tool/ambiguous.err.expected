@@ -7,5 +7,5 @@
                Write to dune.build (32 bytes)
                Is_file? dune -> true
                Read dune (221 bytes)]
-* Run_cmd 'dune build ./config.exe' (ok: out="[...]" err="")
-* Run_cmd 'dune exec --root . -- ./config.exe c a b c --dry-run' (ok: out="[...]" err="")
+* Run_cmd 'dune build ./config.exe' (ok)
+* Run_cmd 'dune exec --root . -- ./config.exe c a b c --dry-run' (ok)

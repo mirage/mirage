@@ -259,16 +259,16 @@ let test_run_cmd () =
 
   let cmd = Bos.Cmd.v "some-command" in
   test "run_cmd succeeds if the command exists" ~env:yay ~cmd ~expected:(Ok ())
-    ~expected_log:[ "Run_cmd 'some-command' (ok: out=\"yay\" err=\"\")" ]
+    ~expected_log:[ "Run_cmd 'some-command' (ok)" ]
     ();
 
   let err_b = Buffer.create 10 in
-  let err = Fmt.with_buffer err_b in
+  let err = `Fmt (Fmt.with_buffer err_b) in
   let out_b = Buffer.create 10 in
-  let out = Fmt.with_buffer out_b in
+  let out = `Fmt (Fmt.with_buffer out_b) in
   test "run_cmd succeeds if the command exists" ~env:yay_err ~cmd ~out ~err
     ~expected:(Ok ())
-    ~expected_log:[ "Run_cmd 'some-command' (ok: out=\"yay\" err=\"err\")" ]
+    ~expected_log:[ "Run_cmd 'some-command' (ok)" ]
     ();
   Alcotest.(check string) "cmd out" "yay" (Buffer.contents out_b);
   Alcotest.(check string) "cmd err" "err" (Buffer.contents err_b)
@@ -290,14 +290,14 @@ let test_run_cmd_out () =
   let cmd = Bos.Cmd.v "some-command" in
   test "run_cmd_out succeeds if the command exists" ~env:yay ~cmd
     ~expected:(Ok "yay")
-    ~expected_log:[ "Run_cmd 'some-command' (ok: out=\"yay\" err=\"\")" ]
+    ~expected_log:[ "Run_cmd 'some-command' (ok)" ]
     ();
 
   let err_b = Buffer.create 10 in
-  let err = Fmt.with_buffer err_b in
+  let err = `Fmt (Fmt.with_buffer err_b) in
   test "run_cmd_out succeeds if the command exists" ~env:yay_err ~cmd ~err
     ~expected:(Ok "yay")
-    ~expected_log:[ "Run_cmd 'some-command' (ok: out=\"yay\" err=\"err\")" ]
+    ~expected_log:[ "Run_cmd 'some-command' (ok)" ]
     ();
   Alcotest.(check string) "cmd_out err" "err" (Buffer.contents err_b)
 

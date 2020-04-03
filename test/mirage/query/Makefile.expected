@@ -1,0 +1,22 @@
+-include Makefile.user
+
+OPAM = opam
+
+DEPEXT ?= $(OPAM) pin add -k path --no-action --yes noop . && \
+	    $(OPAM) depext --yes --update noop ;\
+	    $(OPAM) pin remove --no-action noop
+
+.PHONY: all depend depends clean build
+
+all:: build
+
+depend depends::
+	$(DEPEXT)
+	$(OPAM) install -y --deps-only .
+
+build::
+	mirage build
+
+clean::
+	mirage clean
+

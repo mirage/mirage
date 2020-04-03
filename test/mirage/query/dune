@@ -1,0 +1,28 @@
+(executable
+ (name config)
+ (libraries mirage))
+
+(include dune.inc)
+
+(rule
+ (deps
+  (source_tree .))
+ (action
+  (with-stdout-to
+   dune.gen
+   (run ocaml gen.ml))))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff dune.inc dune.gen)))
+
+; check that `<tool> query --help' and `<tool> help query' gives
+; similar results
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff query-help help-query)))

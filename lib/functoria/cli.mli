@@ -37,6 +37,9 @@ val peek_output : string array -> string option
 (** [peek_full_eval argv] reads the [--output] option from [argv]; the return
     value is [None] if option is absent in [argv]. *)
 
+val pp_args : 'a Fmt.t -> 'a args Fmt.t
+(** [pp_args] is the pretty-printer for args. *)
+
 (** {1 Sub-commands} *)
 
 type 'a configure_args = { args : 'a args; depext : bool }

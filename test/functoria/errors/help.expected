@@ -1,28 +1,34 @@
 NAME
-       test-build - Build a test application.
+       test - The test application builder
 
 SYNOPSIS
-       test build [OPTION]... 
+       test COMMAND ...
 
 DESCRIPTION
-       Build a test application.
+       The test application builder. It glues together a set of libraries and
+       configuration (e.g. network and storage) into a standalone unikernel
+       or UNIX binary.
 
-CONFIGURE OPTIONS
-       --dry-run
-           Display I/O actions instead of executing them.
+       Use test help <command> for more information on a specific command.
 
-       -f FILE, --file=FILE (absent=config.ml)
-           The configuration file to use.
+COMMANDS
+       build
+           Build a test application.
 
-       -o FILE, --output=FILE
-           Name of the output file.
+       clean
+           Clean the files produced by test for a given application.
 
-APPLICATION OPTIONS
-       --vote=VOTE (absent=cat)
-           Vote. 
+       configure
+           Configure a test application.
 
-       --warn-error=BOOL (absent=false)
-           Enable -warn-error when compiling OCaml sources. 
+       describe
+           Describe a test application.
+
+       help
+           Display help about test commands.
+
+       query
+           Query information about the test application.
 
 OPTIONS
        --help[=FMT] (default=auto)

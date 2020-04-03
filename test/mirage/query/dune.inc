@@ -160,3 +160,165 @@
  (package mirage)
  (action
   (diff version.err.expected version.err)))
+
+(rule
+ (action
+  (with-stdout-to name-hvt
+  (with-stderr-to name-hvt.err
+   (run ./config.exe query name --target=hvt)))))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff name-hvt.expected name-hvt)))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff name-hvt.err.expected name-hvt.err)))
+
+(rule
+ (action
+  (with-stdout-to opam-hvt
+  (with-stderr-to opam-hvt.err
+   (run ./config.exe query opam --target=hvt)))))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff opam-hvt.expected opam-hvt)))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff opam-hvt.err.expected opam-hvt.err)))
+
+(rule
+ (action
+  (with-stdout-to packages-hvt
+  (with-stderr-to packages-hvt.err
+   (run ./config.exe query packages --target=hvt)))))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff packages-hvt.expected packages-hvt)))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff packages-hvt.err.expected packages-hvt.err)))
+
+(rule
+ (action
+  (with-stdout-to files-configure-hvt
+  (with-stderr-to files-configure-hvt.err
+   (run ./config.exe query files-configure --target=hvt)))))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff files-configure-hvt.expected files-configure-hvt)))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff files-configure-hvt.err.expected files-configure-hvt.err)))
+
+(rule
+ (action
+  (with-stdout-to files-build-hvt
+  (with-stderr-to files-build-hvt.err
+   (run ./config.exe query files-build --target=hvt)))))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff files-build-hvt.expected files-build-hvt)))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff files-build-hvt.err.expected files-build-hvt.err)))
+
+(rule
+ (action
+  (with-stdout-to Makefile-hvt
+  (with-stderr-to Makefile-hvt.err
+   (run ./config.exe query Makefile --target=hvt)))))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff Makefile-hvt.expected Makefile-hvt)))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff Makefile-hvt.err.expected Makefile-hvt.err)))
+
+(rule
+ (action
+  (with-stdout-to Makefile.no-depext-hvt
+  (with-stderr-to Makefile.no-depext-hvt.err
+   (run ./config.exe query Makefile --no-depext --target=hvt)))))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff Makefile.no-depext-hvt.expected Makefile.no-depext-hvt)))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff Makefile.no-depext-hvt.err.expected Makefile.no-depext-hvt.err)))
+
+(rule
+ (action
+  (with-stdout-to Makefile.depext-hvt
+  (with-stderr-to Makefile.depext-hvt.err
+   (run ./config.exe query Makefile --depext --target=hvt)))))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff Makefile.depext-hvt.expected Makefile.depext-hvt)))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff Makefile.depext-hvt.err.expected Makefile.depext-hvt.err)))
+
+(rule
+ (action
+  (with-stdout-to version-hvt
+  (with-stderr-to version-hvt.err
+   (run ./config.exe query --version --target=hvt)))))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff version-hvt.expected version-hvt)))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff version-hvt.err.expected version-hvt.err)))

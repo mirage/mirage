@@ -1,0 +1,86 @@
+NAME
+       mirage-query - Query information about the mirage application.
+
+SYNOPSIS
+       mirage query [OPTION]... [INFO]
+
+DESCRIPTION
+       The query command queries information about the mirage application.
+
+UNIKERNEL PARAMETERS
+       -l LEVEL, --logs=LEVEL (absent MIRAGE_LOGS env)
+           Be more or less verbose. LEVEL must be of the form
+           *:info,foo:debug means that that the log threshold is set to info
+           for every log sources but the foo which is set to debug. 
+
+QUERY OPTIONS
+       --depext
+           Enable call to `opam depext' in the project Makefile.
+
+       --no-depext
+           Disable call to `opam depext' in the project Makefile.
+
+MIRAGE PARAMETERS
+       -g  Enables target-specific support for debugging. Supported targets:
+           hvt (compiles solo5-hvt with GDB server support). 
+
+       -t TARGET, --target=TARGET (absent=unix or MODE env)
+           Target platform to compile the unikernel for. Valid values are:
+           xen, qubes, unix, macosx, virtio, hvt, spt, muen, genode. 
+
+       --warn-error
+           Enable -warn-error when compiling OCaml sources. 
+
+CONFIGURE OPTIONS
+       --dry-run
+           Display I/O actions instead of executing them.
+
+       -f FILE, --file=FILE (absent=config.ml)
+           The configuration file to use.
+
+       -o FILE, --output=FILE
+           Name of the output file.
+
+       INFO (absent=packages)
+           The information to query. INFO must be one of `name', `packages',
+           `opam', `files-configure', `files-build', `Makefile', `dune-base',
+           `dune-configure' or `dune-build'
+
+APPLICATION OPTIONS
+       --hello=VAL (absent=Hello World!)
+           How to say hello. 
+
+OPTIONS
+       --help[=FMT] (default=auto)
+           Show this help in format FMT. The value FMT must be one of `auto',
+           `pager', `groff' or `plain'. With `auto', the format is `pager` or
+           `plain' whenever the TERM env var is `dumb' or undefined.
+
+       --version
+           Show version information.
+
+COMMON OPTIONS
+       --color=WHEN (absent=auto)
+           Colorize the output. WHEN must be one of `auto', `always' or
+           `never'.
+
+       -q, --quiet
+           Be quiet. Takes over -v and --verbosity.
+
+       -v, --verbose
+           Increase verbosity. Repeatable, but more than twice does not bring
+           more.
+
+       --verbosity=LEVEL (absent=warning)
+           Be more or less verbose. LEVEL must be one of `quiet', `error',
+           `warning', `info' or `debug'. Takes over -v.
+
+ENVIRONMENT
+       These environment variables affect the execution of query:
+
+       MIRAGE_LOGS
+           See option --logs.
+
+       MODE
+           See option --target.
+

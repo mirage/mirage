@@ -22,22 +22,24 @@
 type t
 (** The type for cache. *)
 
+val empty : t
+(** The empty cache. *)
+
+val is_empty : t -> bool
+(** [is_empty t] is empty iff [t] is {!empty}. *)
+
 val write : Fpath.t -> string array -> unit Action.t
 (** [write f argv] writes the context cache in the file [f]. *)
 
-val read : Fpath.t -> t option Action.t
+val read : Fpath.t -> t Action.t
 (** [read f] reads the context cache stored in [f]. The result is
-    [Action.ok None] if [f] does not exists and [Action.error _] if the cache
+    [Action.ok empty] if [f] does not exists and [Action.error _] if the cache
     contains garbage. *)
 
-val eval : t option -> Key.context Cmdliner.Term.t -> Key.context Action.t
+val merge : t -> Key.context Cmdliner.Term.t -> Key.context Cmdliner.Term.t
 (** [eval_context t term] is the context obtained by evaluating [term] over the
-    cached context [t]. The result is {!Key.empty_context} if the cache is not
-    present (e.g. if [t = None]).. *)
+    cached context [t]. *)
 
-val eval_output : t option -> string option Action.t
-(** [eval_output t] is the evaluation of {!Cli.output} over the cached context
+val peek_output : t -> string option
+(** [peek_output t] is the evaluation of {!Cli.output} over the cached context
     [t]. *)
-
-val require : t option -> t Cmdliner.Term.ret
-(** [require t] is [x] iff [t = Some x] otherwise it is an error. *)

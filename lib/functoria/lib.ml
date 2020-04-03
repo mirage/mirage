@@ -110,25 +110,21 @@ module Make (P : S) = struct
 
   module Log = (val Logs.src_log src : Logs.LOG)
 
-  module Config' = struct
-    let eval_cached ~partial cache cached_context t =
-      let f c _ =
-        let info = Config.eval ~partial c t in
-        let keys = Key.deps info in
-        let context = Key.context ~stage:`Configure ~with_required:false keys in
-        Context_cache.eval cache context >|= fun c -> Key.eval c info c
-      in
-      Cmdliner.Term.(
-        pure f $ pure cached_context $ ret (pure (Context_cache.require cache)))
-
-    let eval ~partial ~with_required context t =
-      let info = Config.eval ~partial context t in
-      let context =
-        Key.context ~with_required ~stage:`Configure (Key.deps info)
-      in
-      let f map = Key.eval map info map in
-      Cmdliner.Term.(pure f $ context)
-  end
+  let eval_cached ~partial ~with_required ~output ~cache context t =
+    let info = Config.eval ~partial context t in
+    let keys = Key.deps info in
+    let output =
+      match (output, Context_cache.peek_output cache) with
+      | Some _, _ -> output
+      | _, cache -> cache
+    in
+    let context = Key.context ~stage:`Configure ~with_required keys in
+    let context = Context_cache.merge cache context in
+    let f context =
+      let r, i = Key.eval context info context in
+      match output with None -> (r, i) | Some o -> (r, Info.with_output i o)
+    in
+    Cmdliner.Term.(pure f $ context)
 
   (* FIXME: describe init *)
   let describe (t : _ Cli.describe_args) =
@@ -264,65 +260,50 @@ module Make (P : S) = struct
         lines;
       r
 
-  let run_term argv term =
-    Cmdliner.Term.(term_result ~usage:false (pure (action_run argv) $ term))
-
-  let set_term_output cache (term : 'a Action.t Cmdliner.Term.t) =
-    let f term =
-      Context_cache.eval_output cache >>= function
-      | Some o -> term >|= fun (r, i) -> (r, Info.with_output i o)
-      | _ -> term
-    in
-    Cmdliner.Term.(pure f $ term)
-
   let run_configure_with_argv argv args config =
     (*   whether to fully evaluate the graph *)
     let full_eval = Cli.peek_full_eval argv in
-    (* Consider only the non-required keys. *)
-    let non_required_term =
-      let if_keys = Config.keys config in
-      Key.context ~stage:`Configure ~with_required:false if_keys
-    in
 
     let base_context =
+      (* Consider only the non-required keys. *)
+      let non_required_term =
+        let if_keys = Config.keys config in
+        Key.context ~stage:`Configure ~with_required:false if_keys
+      in
       match Cmdliner.Term.eval_peek_opts ~argv non_required_term with
       | _, `Ok context -> context
       | _ -> Key.empty_context
     in
+    let output = Cli.peek_output argv in
 
     (* this is a trim-down version of the cached context, with only
         the values corresponding to 'if' keys. This is useful to
         start reducing the config into something consistent. *)
     Context_cache.read (cache (build_dir args)) >>= fun cache ->
-    Context_cache.eval cache non_required_term >>= fun cached_context ->
     (* 3. Parse the command-line and handle the result. *)
     let configure =
-      Config'.eval ~with_required:true ~partial:false base_context config
+      eval_cached ~with_required:true ~partial:false ~output ~cache base_context
+        config
     in
-    let query = configure in
 
     let describe =
-      let context = Key.merge_context ~default:cached_context base_context in
       let partial =
         match full_eval with
         | Some true -> false
         | Some false -> true
-        | None -> cache = None
+        | None -> Context_cache.is_empty cache
       in
-      Config'.eval ~with_required:false ~partial context config
+      eval_cached ~with_required:false ~partial ~output ~cache base_context
+        config
     in
 
     let build =
-      Config'.eval_cached ~partial:false cache cached_context config
-      |> set_term_output cache
-      |> run_term args
+      eval_cached ~with_required:false ~partial:false ~output ~cache
+        base_context config
     in
     let clean = build in
-
-    let help =
-      let context = Key.merge_context ~default:cached_context base_context in
-      Config'.eval ~with_required:false ~partial:false context config
-    in
+    let query = build in
+    let help = build in
 
     handle_parse_args_result
       (Cli.eval ~name:P.name ~version:P.version ~configure ~query ~describe

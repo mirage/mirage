@@ -1,8 +1,20 @@
-type t = { cmd : string; file : string }
+type t = { cmd : string; file : string; target : [ `Unix | `Hvt ] }
 
-let v x = { cmd = "query " ^ x; file = x }
+let target_str = function `Unix -> "unix" | `Hvt -> "hvt"
+
+let v x target = { cmd = "query " ^ x; file = x; target }
 
 let gen t =
+  let file =
+    match t.target with
+    | `Unix -> t.file
+    | x -> Format.sprintf "%s-%s" t.file (target_str x)
+  in
+  let cmd =
+    match t.target with
+    | `Unix -> t.cmd
+    | x -> Format.sprintf "%s --target=%s" t.cmd (target_str x)
+  in
   Format.printf
     {|
 (rule
@@ -23,18 +35,24 @@ let gen t =
  (action
   (diff %s.err.expected %s.err)))
 |}
-    t.file t.file t.cmd t.file t.file t.file t.file
+    file file cmd file file file file
 
-let () =
+let of_target target =
   List.iter gen
     [
-      v "name";
-      v "opam";
-      v "packages";
-      v "files-configure";
-      v "files-build";
-      v "Makefile";
-      { file = "Makefile.no-depext"; cmd = "query Makefile --no-depext" };
-      { file = "Makefile.depext"; cmd = "query Makefile --depext" };
-      { file = "version"; cmd = "query --version" };
+      v "name" target;
+      v "opam" target;
+      v "packages" target;
+      v "files-configure" target;
+      v "files-build" target;
+      v "Makefile" target;
+      {
+        file = "Makefile.no-depext";
+        cmd = "query Makefile --no-depext";
+        target;
+      };
+      { file = "Makefile.depext"; cmd = "query Makefile --depext"; target };
+      { file = "version"; cmd = "query --version"; target };
     ]
+
+let () = List.iter of_target [ `Unix; `Hvt ]

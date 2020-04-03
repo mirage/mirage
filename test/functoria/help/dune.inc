@@ -128,6 +128,38 @@
   (diff clean-help help-clean)))
 
 (rule
+ (target help-query)
+ (action
+  (with-stdout-to
+   %{target}
+   (run ./config.exe help query --man-format=plain))))
+
+(rule
+ (target query-help)
+ (action
+  (with-stdout-to
+   %{target}
+   (run ./config.exe query --help=plain))))
+
+(rule
+ (alias runtest)
+ (package functoria)
+ (action
+  (diff help-query.expected help-query)))
+
+(rule
+ (alias runtest)
+ (package functoria)
+ (action
+  (diff query-help.expected query-help)))
+
+(rule
+ (alias runtest)
+ (package functoria)
+ (action
+  (diff query-help help-query)))
+
+(rule
  (target help-describe)
  (action
   (with-stdout-to

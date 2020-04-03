@@ -1,0 +1,60 @@
+NAME
+       test-configure - Configure a test application.
+
+SYNOPSIS
+       test configure [OPTION]... 
+
+DESCRIPTION
+       The configure command initializes a fresh test application.
+
+CONFIGURE OPTIONS
+       --depext
+           Enable call to `opam depext' in the project Makefile.
+
+       --dry-run
+           Display I/O actions instead of executing them.
+
+       -f FILE, --file=FILE (absent=config.ml)
+           The configuration file to use.
+
+       --no-depext
+           Disable call to `opam depext' in the project Makefile.
+
+       -o FILE, --output=FILE
+           Name of the output file.
+
+APPLICATION OPTIONS
+       --hello=VAL (absent=Hello World!)
+           How to say hello. 
+
+       --vote=VOTE (absent=cat)
+           Vote. 
+
+       --warn-error=BOOL (absent=false)
+           Enable -warn-error when compiling OCaml sources. 
+
+OPTIONS
+       --help[=FMT] (default=auto)
+           Show this help in format FMT. The value FMT must be one of `auto',
+           `pager', `groff' or `plain'. With `auto', the format is `pager` or
+           `plain' whenever the TERM env var is `dumb' or undefined.
+
+       --version
+           Show version information.
+
+COMMON OPTIONS
+       --color=WHEN (absent=auto)
+           Colorize the output. WHEN must be one of `auto', `always' or
+           `never'.
+
+       -q, --quiet
+           Be quiet. Takes over -v and --verbosity.
+
+       -v, --verbose
+           Increase verbosity. Repeatable, but more than twice does not bring
+           more.
+
+       --verbosity=LEVEL (absent=warning)
+           Be more or less verbose. LEVEL must be one of `quiet', `error',
+           `warning', `info' or `debug'. Takes over -v.
+

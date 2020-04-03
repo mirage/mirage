@@ -581,6 +581,7 @@ val register :
   ?reporter:reporter impl ->
   ?keys:Key.t list ->
   ?packages:Functoria.package list ->
+  ?src:[ `Auto | `None | `Some of string ] ->
   string ->
   job impl list ->
   unit

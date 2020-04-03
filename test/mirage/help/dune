@@ -1,6 +1,6 @@
 (executable
  (name config)
- (libraries f0))
+ (libraries mirage))
 
 (include dune.inc)
 

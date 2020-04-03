@@ -6,19 +6,24 @@ let gen t =
   Format.printf
     {|
 (rule
- (target %s)
  (action
-  (with-stdout-to
-   %%{target}
-   (run ./config.exe %s))))
+  (with-stdout-to %s
+  (with-stderr-to %s.err
+   (run ./config.exe %s)))))
 
 (rule
  (alias runtest)
  (package functoria)
  (action
   (diff %s.expected %s)))
+
+(rule
+ (alias runtest)
+ (package functoria)
+ (action
+  (diff %s.err.expected %s.err)))
 |}
-    t.file t.cmd t.file t.file
+    t.file t.file t.cmd t.file t.file t.file t.file
 
 let () =
   List.iter gen

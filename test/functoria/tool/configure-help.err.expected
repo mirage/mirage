@@ -7,15 +7,15 @@
                Write to dune.build (32 bytes)
                Is_file? dune -> true
                Read dune (221 bytes)]
-* Run_cmd 'dune build ./config.exe' (ok: out="[...]" err="")
+* Run_cmd 'dune build ./config.exe' (ok)
 * Write to .test.config (25 bytes)
-* Run_cmd 'dune exec --root . -- ./config.exe configure help --dry-run' (ok: out="[...]" err="")
-* Run_cmd 'dune exec --root . -- ./config.exe query name' (ok: out="[...]" err="")
-* Run_cmd 'dune exec --root . -- ./config.exe query opam' (ok: out="[...]" err="")
-* Is_file? [...].opam -> false
-* Write to [...].opam (35 bytes)
-* Run_cmd 'dune exec --root . -- ./config.exe query install' (ok: out="[...]" err="")
-* Is_file? [...].install -> false
-* Write to [...].install (35 bytes)
+* Run_cmd 'dune exec --root . -- ./config.exe configure help --dry-run' (ok)
+* Run_cmd 'dune exec --root . -- ./config.exe query name' (ok)
+* Run_cmd 'dune exec --root . -- ./config.exe query opam' (ok)
+* Is_file? out: dune exec --root . -- ./config.exe query name.opam -> false
+* Write to out: dune exec --root . -- ./config.exe query name.opam (81 bytes)
+* Run_cmd 'dune exec --root . -- ./config.exe query install' (ok)
+* Is_file? out: dune exec --root . -- ./config.exe query name.install -> false
+* Write to out: dune exec --root . -- ./config.exe query name.install (84 bytes)
 * Is_file? Makefile -> false
-* Write to Makefile (380 bytes)
+* Write to Makefile (515 bytes)

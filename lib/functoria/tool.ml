@@ -40,11 +40,9 @@ module Make (P : S) = struct
   let build_dir t = Fpath.parent t.Cli.config_file
 
   let run_cmd ?ppf ?err_ppf command =
-    match ppf with
-    | None -> Action.run_cmd ?err:err_ppf command
-    | Some help_ppf ->
-        Action.run_cmd_out ?err:err_ppf command >|= fun output ->
-        Fmt.pf help_ppf "%s%!" output
+    let err = match err_ppf with None -> None | Some f -> Some (`Fmt f) in
+    let out = match ppf with None -> None | Some f -> Some (`Fmt f) in
+    Action.run_cmd ?err ?out command
 
   (* re-exec the command by calling config.exe with the same argv as
      the current command. *)
@@ -197,7 +195,7 @@ module Make (P : S) = struct
       let env =
         let commands cmd =
           match Bos.Cmd.line_exec cmd with
-          | Some "dune" -> Some ("[...]", "")
+          | Some "dune" -> Some (Fmt.str "out: %a\n" Bos.Cmd.pp cmd, "")
           | _ -> None
         in
         Action.env ~commands ~files:(`Passtrough (Fpath.v ".")) ()

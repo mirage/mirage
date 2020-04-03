@@ -89,12 +89,16 @@ val get_var : string -> string option t
 (** [get_var v] gets the value of the variable [c] in the environment. (see
     [Bos.OS.Env.get]) *)
 
-val run_cmd :
-  ?err:Format.formatter -> ?out:Format.formatter -> Bos.Cmd.t -> unit t
-(** Run a command. (see [Bos.OS.Cmd.run]) *)
+type channel = [ `Null | `Fmt of Format.formatter ]
+(** The type for channels. *)
 
-val run_cmd_out : ?err:Format.formatter -> Bos.Cmd.t -> string t
-(** Run a command and return stdout. (See [Bos.OS.Cmd.run_out]) *)
+val run_cmd : ?err:channel -> ?out:channel -> Bos.Cmd.t -> unit t
+(** Run a command. By default, [err] is [Fmt.stderr] and [out] is [Fmt.stdout].
+    (see [Bos.OS.Cmd.run]) *)
+
+val run_cmd_out : ?err:channel -> Bos.Cmd.t -> string t
+(** Run a command and return stdout. By default [err] is [Fmt.stderr]. (See
+    [Bos.OS.Cmd.run_out]) *)
 
 val write_file : Fpath.t -> string -> unit t
 (** Write some data to a file. (see [Bos.OS.File.write]) *)

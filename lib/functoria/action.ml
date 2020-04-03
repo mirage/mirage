@@ -35,11 +35,9 @@ type 'a with_output = {
   append : bool;
 }
 
-type cmd = {
-  cmd : Bos.Cmd.t;
-  err : Format.formatter option;
-  out : Format.formatter option;
-}
+type channel = [ `Null | `Fmt of Format.formatter ]
+
+type cmd = { cmd : Bos.Cmd.t; err : channel; out : channel }
 
 type ls = { root : Fpath.t; filter : Fpath.t -> bool }
 
@@ -110,9 +108,11 @@ let set_var c v = wrap @@ Set_var (c, v)
 
 let get_var c = wrap @@ Get_var c
 
-let run_cmd ?err ?out cmd = wrap @@ Run_cmd { cmd; out; err }
+let run_cmd ?(err = `Fmt Fmt.stderr) ?(out = `Fmt Fmt.stdout) cmd =
+  wrap @@ Run_cmd { cmd; out; err }
 
-let run_cmd_out ?err cmd = wrap @@ Run_cmd_out { cmd; out = None; err }
+let run_cmd_out ?(err = `Fmt Fmt.stderr) cmd =
+  wrap @@ Run_cmd_out { cmd; out = `Null; err }
 
 let write_file path contents = wrap @@ Write_file (!path, contents)
 
@@ -123,26 +123,25 @@ let tmp_file ?mode pat = wrap @@ Tmp_file (mode, pat)
 let with_output ?mode ?(append = false) ~path ~purpose contents =
   wrap @@ With_output { append; mode; path; purpose; contents }
 
-let pfo ppf s = match ppf with None -> () | Some ppf -> Fmt.pf ppf "%s%!" s
+let pfo ppf s = match ppf with `Null -> () | `Fmt ppf -> Fmt.pf ppf "%s%!" s
 
 let interpret_cmd { cmd; err; out } =
   Log.debug (fun l -> l "RUN: %a" Bos.Cmd.pp cmd);
   let open Rresult in
   let err =
     match err with
-    | None -> Ok (None, fun () -> Ok ())
-    | Some _ as err ->
+    | `Null -> Ok (Bos.OS.Cmd.err_null, fun () -> Ok ())
+    | `Fmt ppf ->
         Bos.OS.File.tmp "cmd-err-%s" >>| fun path ->
-        let flush () = Bos.OS.File.read path >>| pfo err in
-        (Some (Bos.OS.Cmd.err_file path), flush)
+        let flush () = Bos.OS.File.read path >>| fun s -> Fmt.pf ppf "%s%!" s in
+        (Bos.OS.Cmd.err_file path, flush)
   in
   err >>= fun (err, flush_err) ->
-  Bos.OS.Cmd.run_out ?err cmd
-  |> Bos.OS.Cmd.out_string ~trim:false
-  |> Bos.OS.Cmd.success
-  >>= fun str_out ->
+  let res = Bos.OS.Cmd.run_out ~err cmd in
+  let res = Bos.OS.Cmd.out_string ~trim:false res in
+  res >>= fun (str_out, _) ->
   pfo out str_out;
-  flush_err () >>| fun () -> str_out
+  flush_err () >>= fun () -> Bos.OS.Cmd.success res
 
 let rec interpret_command : type r. r command -> r or_err = function
   | Rmdir path ->
@@ -465,7 +464,7 @@ let interpret_dry_cmd env { cmd; err; out } : string or_err * _ * _ =
   | Some (o, e) ->
       pfo out o;
       pfo err e;
-      (Ok o, env, Fmt.kstrf log "ok: out=%S err=%S" o e)
+      (Ok o, env, log "ok")
 
 let rec interpret_dry : type r. env:Env.t -> r command -> r or_err * _ * _ =
  fun ~env -> function

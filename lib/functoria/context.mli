@@ -18,14 +18,14 @@
 
 (** Universal map of keys *)
 
-type 'a key
 (** The type for keys. *)
+type 'a key
 
 val new_key : string -> 'a key
 (** [new_key n] is a new key with name [k]. *)
 
-type t
 (** The type for context maps. *)
+type t
 
 val empty : t
 (** [empty] is the empty context. *)

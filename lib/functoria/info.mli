@@ -18,8 +18,8 @@
 
 (** Information about the final application. *)
 
-type t
 (** The type for information about the final application. *)
+type t
 
 val name : t -> string
 (** [name t] is the name of the application. *)

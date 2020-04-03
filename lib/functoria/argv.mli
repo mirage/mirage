@@ -18,8 +18,8 @@
 
 (** Device representing the command line. *)
 
-type t
 (** The type for command-line arguments, similar to the usual [Sys.argv]. *)
+type t
 
 val argv : t Type.t
 (** [argv] is a value representing {!argv} module types. *)

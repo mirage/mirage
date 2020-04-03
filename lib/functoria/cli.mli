@@ -20,13 +20,13 @@
 
 open Cmdliner
 
+(** The type for global arguments. *)
 type 'a args = {
   context : 'a;
   config_file : Fpath.t;
   output : string option;
   dry_run : bool;
 }
-(** The type for global arguments. *)
 
 val peek_args : ?with_setup:bool -> string array -> unit args
 (** [peek_args ?with_setup argv] parses the global command-line arguments. If
@@ -42,17 +42,17 @@ val pp_args : 'a Fmt.t -> 'a args Fmt.t
 
 (** {1 Sub-commands} *)
 
-type 'a configure_args = { args : 'a args; depext : bool }
 (** The type for arguments of the [configure] sub-command. *)
+type 'a configure_args = { args : 'a args; depext : bool }
 
-type 'a build_args = 'a args
 (** The type for arguments of the [build] sub-command. *)
+type 'a build_args = 'a args
 
-type 'a clean_args = 'a args
 (** The type for arguments of the [clean] sub-command. *)
+type 'a clean_args = 'a args
 
-type 'a help_args = 'a args
 (** The type for arguments of the [help] sub-command. *)
+type 'a help_args = 'a args
 
 type query_kind =
   [ `Name
@@ -65,16 +65,16 @@ type query_kind =
 val pp_query_kind : query_kind Fmt.t
 (** [pp_query_kind] is the pretty-printer for query kinds. *)
 
-type 'a query_args = { args : 'a args; kind : query_kind; depext : bool }
 (** The type for arguments of the [query] sub-command. *)
+type 'a query_args = { args : 'a args; kind : query_kind; depext : bool }
 
+(** The type for arguments of the [describe] sub-command. *)
 type 'a describe_args = {
   args : 'a args;
   dotcmd : string;
   dot : bool;
   eval : bool option;
 }
-(** The type for arguments of the [describe] sub-command. *)
 
 val peek_full_eval : string array -> bool option
 (** [peek_full_eval argv] reads the [--eval] option from [argv]; the return
@@ -119,10 +119,10 @@ val eval :
     There are no side effects, save for the printing of usage messages and other
     help when either the 'help' subcommand or no subcommand is specified. *)
 
-type 'a result =
-  [ `Ok of 'a action | `Error of 'a args * [ `Exn | `Parse | `Term ] | `Version ]
 (** Similar to {!Cmdliner.Term.result} but help is folded into [`Ok] and errors
     also carry global command-line parameters. *)
+type 'a result =
+  [ `Ok of 'a action | `Error of 'a args * [ `Exn | `Parse | `Term ] | `Version ]
 
 val peek : ?with_setup:bool -> string array -> unit result
 (** [peek] is the same as {!eval} but without failing on unknown arguments. *)

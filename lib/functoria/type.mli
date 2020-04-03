@@ -42,20 +42,20 @@ val pp : 'a t Fmt.t
 
 (** {1 Useful module types} *)
 
-type job
 (** Type for job values. *)
+type job
 
 val job : job t
 (** [job] is the signature for user's application main module. *)
 
-type argv
 (** The type for command-line arguments, similar to the usual [Sys.argv]. *)
+type argv
 
 val argv : argv t
 (** [argv] is a value representing {!argv} module types. *)
 
-type info
 (** The type for application about the application being built. *)
+type info
 
 val info : info t
 (** [info] is a value representing {!info} module types. *)

@@ -25,11 +25,11 @@ let ipv4 : ipv4 typ = ip
 
 let ipv6 : ipv6 typ = ip
 
+(** Types for IPv4 manual configuration. *)
 type ipv4_config = {
   network : Ipaddr.V4.Prefix.t * Ipaddr.V4.t;
   gateway : Ipaddr.V4.t option;
 }
-(** Types for IPv4 manual configuration. *)
 
 let opt_opt_key s = Fmt.(option @@ prefix (unit ("?" ^^ s ^^ ":")) pp_key)
 
@@ -105,12 +105,12 @@ let create_ipv4 ?group ?config ?(random = default_random)
   and gateway = Key.V4.gateway ?group config.gateway in
   ipv4_keyed_conf ~ip ~gateway () $ random $ clock $ etif $ arp
 
+(** Types for IP manual configuration. *)
 type ipv6_config = {
   addresses : Ipaddr.V6.t list;
   netmasks : Ipaddr.V6.Prefix.t list;
   gateways : Ipaddr.V6.t list;
 }
-(** Types for IP manual configuration. *)
 
 let ipv4_qubes_conf =
   let packages = [ package ~min:"0.8.0" ~max:"0.9.0" "mirage-qubes-ipv4" ] in

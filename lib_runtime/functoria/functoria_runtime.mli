@@ -25,9 +25,9 @@
 module Arg : sig
   (** {1 Runtime command-line arguments} *)
 
-  type 'a t
   (** The type for runtime command-line arguments. Similar to
       {!Functoria_key.Arg.t} but only available at runtime. *)
+  type 'a t
 
   val opt : 'a Cmdliner.Arg.converter -> 'a -> Cmdliner.Arg.info -> 'a t
   (** [opt] is the runtime companion of {!Functoria_key.Arg.opt}. *)
@@ -48,8 +48,8 @@ end
 module Key : sig
   (** {1 Runtime keys} *)
 
-  type 'a t
   (** The type for runtime keys containing a value of type ['a]. *)
+  type 'a t
 
   val create : 'a Arg.t -> 'a t
   (** [create conv] create a new runtime key. *)
@@ -75,9 +75,9 @@ val with_argv : unit Cmdliner.Term.t list -> string -> string array -> unit
     application calls [exit(3)] with status [64]. If [`Help] or [`Version] were
     evaluated, [exit(3)] is called with status [63]. *)
 
+(** The type for build information available at runtime. *)
 type info = {
   name : string;
   libraries : string list;
   packages : (string * string) list;
 }
-(** The type for build information available at runtime. *)

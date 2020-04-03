@@ -19,8 +19,8 @@
 (** Manage context caches, via the [--context-file <file>] command-line
     argument. *)
 
-type t
 (** The type for cache. *)
+type t
 
 val empty : t
 (** The empty cache. *)

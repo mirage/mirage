@@ -21,8 +21,8 @@
 
 (** {1 The action type} *)
 
-type 'a t
 (** An action that when executed may return a value of type ['a]. *)
+type 'a t
 
 val ok : 'a -> 'a t
 (** An action that returns a value. *)
@@ -125,8 +125,8 @@ val with_output :
 val run : 'a t -> ('a, Rresult.R.msg) result
 (** Run the command through [Bos]. *)
 
-type env
 (** The type for virtual environments. *)
+type env
 
 val eq_env : env -> env -> bool
 (** [eq_env] is the equality function for virtual filesystems. *)

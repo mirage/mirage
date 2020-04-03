@@ -141,8 +141,8 @@ val noop : job impl
 (** [noop] is an implementation of {!Functoria.job} that holds no state, does
     nothing and has no dependency. *)
 
-type argv = Argv.t
 (** The type for command-line arguments, similar to the usual [Sys.argv]. *)
+type argv = Argv.t
 
 val argv : argv typ
 (** [argv] is a value representing {!argv} module types. *)

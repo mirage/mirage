@@ -33,8 +33,8 @@
 
 (** {1:combinators Combinators} *)
 
-type 'a typ = 'a Type.t
 (** The type for values representing module types. *)
+type 'a typ = 'a Type.t
 
 val typ : 'a -> 'a typ
 (** [type t] is a value representing the module type [t]. *)
@@ -49,8 +49,8 @@ val ( @-> ) : 'a typ -> 'b typ -> ('a -> 'b) typ
     This describes a functor type that accepts two arguments -- a [kv_ro] and an
     [ip] device -- and returns a [kv_ro]. *)
 
-type 'a impl = 'a Impl.t
 (** The type for values representing module implementations. *)
+type 'a impl = 'a Impl.t
 
 val ( $ ) : ('a -> 'b) impl -> 'a impl -> 'b impl
 (** [m $ a] applies the functor [m] to the module [a]. *)
@@ -61,14 +61,14 @@ val abstract : _ impl -> Impl.abstract
 
 (** {1:keys Keys} *)
 
-type abstract_key = Key.t
 (** The type for command-line keys. See {!Key.t}. *)
+type abstract_key = Key.t
 
-type context = Key.context
 (** The type for keys' parsing context. See {!Key.context}. *)
+type context = Key.context
 
-type 'a value = 'a Key.value
 (** The type for values parsed from the command-line. See {!Key.value}. *)
+type 'a value = 'a Key.value
 
 val if_impl : bool value -> 'a impl -> 'a impl -> 'a impl
 (** [if_impl v impl1 impl2] is [impl1] if [v] is resolved to true and [impl2]
@@ -84,8 +84,8 @@ val match_impl : 'b value -> default:'a impl -> ('b * 'a impl) list -> 'a impl
     consists of the opam package name, the ocamlfind names, and optional lower
     and upper bounds. The version constraints are merged with other modules. *)
 
-type package = Package.t
 (** The type for opam packages. *)
+type package = Package.t
 
 val package :
   ?build:bool ->

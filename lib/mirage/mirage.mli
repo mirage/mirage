@@ -31,8 +31,8 @@ include Functoria.DSL
 
 (** {2 General mirage devices} *)
 
-type tracing
 (** The type for tracing. *)
+type tracing
 
 val tracing : tracing typ
 (** Implementation of the {!tracing} type. *)
@@ -54,8 +54,8 @@ val default_qubesdb : qubesdb impl
 
 (** {2 Time} *)
 
-type time
 (** Abstract type for timers. *)
+type time
 
 val time : time typ
 (** Implementations of the [Mirage_types.TIME] signature. *)
@@ -65,8 +65,8 @@ val default_time : time impl
 
 (** {2 Clocks} *)
 
-type pclock
 (** Abstract type for POSIX clocks. *)
+type pclock
 
 val pclock : pclock typ
 (** Implementations of the {!Mirage_types.PCLOCK} signature. *)
@@ -74,8 +74,8 @@ val pclock : pclock typ
 val default_posix_clock : pclock impl
 (** The default mirage-clock PCLOCK implementation. *)
 
-type mclock
 (** Abstract type for monotonic clocks *)
+type mclock
 
 val mclock : mclock typ
 (** Implementations of the {!Mirage_types.MCLOCK} signature. *)
@@ -85,8 +85,8 @@ val default_monotonic_clock : mclock impl
 
 (** {2 Log reporters} *)
 
-type reporter
 (** The type for log reporters. *)
+type reporter
 
 val reporter : reporter typ
 (** Implementation of the log {!reporter} type. *)
@@ -107,8 +107,8 @@ val no_reporter : reporter impl
 
 (** {2 Random} *)
 
-type random
 (** Abstract type for random sources. *)
+type random
 
 val random : random typ
 (** Implementations of the [Mirage_types.RANDOM] signature. *)
@@ -127,8 +127,8 @@ val default_random : random impl
 
 (** {2 Consoles} *)
 
-type console
 (** Abstract type for consoles. *)
+type console
 
 val console : console typ
 (** Implementations of the [Mirage_types.CONSOLE] signature. *)
@@ -141,8 +141,8 @@ val custom_console : string -> console impl
 
 (** {2 Block devices} *)
 
-type block
 (** Abstract type for raw block device configurations. *)
+type block
 
 val block : block typ
 (** Implementations of the [Mirage_types.BLOCK] signature. *)
@@ -165,8 +165,8 @@ val generic_block :
 
 (** {2 Static key/value stores} *)
 
-type kv_ro
 (** Abstract type for read-only key/value store. *)
+type kv_ro
 
 val kv_ro : kv_ro typ
 (** Implementations of the [Mirage_types.KV_RO] signature. *)
@@ -192,8 +192,8 @@ val generic_kv_ro :
 
     If no key is provided, it uses {!Key.kv_ro} to create a new one. *)
 
-type kv_rw
 (** Abstract type for read-write key/value store. *)
+type kv_rw
 
 val kv_rw : kv_rw typ
 (** Implementations of the [Mirage_types.KV_RW] signature. *)
@@ -207,8 +207,8 @@ val kv_rw_mem : ?clock:pclock impl -> unit -> kv_rw impl
 
 (** {2 Filesystem} *)
 
-type fs
 (** Abstract type for filesystems. *)
+type fs
 
 val fs : fs typ
 (** Implementations of the [Mirage_types.FS] signature. *)
@@ -226,8 +226,8 @@ val kv_ro_of_fs : fs impl -> kv_ro impl
 
 (** {2 Network interfaces} *)
 
-type network
 (** Abstract type for network configurations. *)
+type network
 
 val network : network typ
 (** Implementations of the [Mirage_types.NETWORK] signature. *)
@@ -266,8 +266,8 @@ type v4
 
 type v6
 
-type 'a ip
 (** Abstract type for IP configurations. *)
+type 'a ip
 
 type ipv4 = v4 ip
 
@@ -279,18 +279,18 @@ val ipv4 : ipv4 typ
 val ipv6 : ipv6 typ
 (** The [Mirage_types.IPV6] module signature. *)
 
+(** Types for IPv4 manual configuration. *)
 type ipv4_config = {
   network : Ipaddr.V4.Prefix.t * Ipaddr.V4.t;
   gateway : Ipaddr.V4.t option;
 }
-(** Types for IPv4 manual configuration. *)
 
+(** Types for IP manual configuration. *)
 type ipv6_config = {
   addresses : Ipaddr.V6.t list;
   netmasks : Ipaddr.V6.Prefix.t list;
   gateways : Ipaddr.V6.t list;
 }
-(** Types for IP manual configuration. *)
 
 val create_ipv4 :
   ?group:string ->
@@ -468,8 +468,8 @@ val syslog_config :
   ?port:int -> ?truncate:int -> ?server:Ipaddr.V4.t -> string -> syslog_config
 (** Helper for constructing a {!syslog_config}. *)
 
-type syslog
 (** The type for syslog *)
+type syslog
 
 val syslog : syslog typ
 (** Implementation of the {!syslog} type. *)

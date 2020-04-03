@@ -16,14 +16,14 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-type 'a t
 (** The type for values representing module implementations of type ['a]. *)
+type 'a t
 
-type abstract
 (** The type for untyped {!t}. *)
+type abstract
 
-type 'a device = ('a, abstract) Device.t
 (** The type for device whose dependencies have typ {!abstract}. *)
+type 'a device = ('a, abstract) Device.t
 
 val abstract : 'a t -> abstract
 (** [abstract i] is [i] with its type erased. *)
@@ -72,19 +72,19 @@ val main :
 (** [main ... name ty] is [v ... ~connect name ty] where [connect] is
     [<name>.start <args>] *)
 
-module Tbl : Hashtbl.S with type key = abstract
 (** Hashtbl of implementations. *)
+module Tbl : Hashtbl.S with type key = abstract
 
 (** {1 Applications} *)
 
-type 'b f_dev = { f : 'a. 'a device -> 'b }
 (** The type for iterators on devices. *)
+type 'b f_dev = { f : 'a. 'a device -> 'b }
 
-type 'a f_if = cond:bool Key.value -> then_:'a -> else_:'a -> 'a
 (** The type for iterators in [if] nodes. *)
+type 'a f_if = cond:bool Key.value -> then_:'a -> else_:'a -> 'a
 
-type 'a f_app = f:'a -> x:'a -> 'a
 (** the type for iterators on [app] nodes. *)
+type 'a f_app = f:'a -> x:'a -> 'a
 
 val with_left_most_device : Key.context -> _ t -> 'a f_dev -> 'a
 (** [with_left_most_device ctx t f] applies [f] on the left-most device in [f].

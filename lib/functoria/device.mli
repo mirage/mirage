@@ -20,9 +20,9 @@
     contains a runtime state which can be set either at configuration time (by
     the application builder) or at runtime, using command-line arguments. *)
 
-type ('a, 'b) t
 (** The type for devices whose runtime state is of type ['a] and having extra
     data-dependencies of type ['b]. *)
+type ('a, 'b) t
 
 val module_type : ('a, 'b) t -> 'a Type.t
 (** [module_type t] is [t]'s module type. *)
@@ -56,8 +56,8 @@ val hash : ('a, 'b) t -> int
 
 (** {1 Effects} *)
 
-type 'a code = string
 (** The type for fragments of code of type ['a]. *)
+type 'a code = string
 
 val connect : ('a, 'b) t -> Info.t -> string -> string list -> 'a code
 (** [connect t info impl_name args] is the code to execute in order to create a

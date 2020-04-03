@@ -18,8 +18,8 @@
 
 (** Functoria engine. *)
 
-type t = Device_graph.t
 (** The type for key graphs. *)
+type t = Device_graph.t
 
 val if_keys : t -> Key.Set.t
 (** [if_keys t] is the set of [if] keys in the graph [t]. *)

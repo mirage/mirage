@@ -18,8 +18,8 @@
 
 (** Representation of opam packages. *)
 
-type t
 (** The type for opam packages. *)
+type t
 
 val v :
   ?build:bool ->

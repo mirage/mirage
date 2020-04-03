@@ -8,6 +8,23 @@ SYNOPSIS
 DESCRIPTION
        Clean the files produced by mirage for a given application.
 
+UNIKERNEL PARAMETERS
+       -l LEVEL, --logs=LEVEL (absent MIRAGE_LOGS env)
+           Be more or less verbose. LEVEL must be of the form
+           *:info,foo:debug means that that the log threshold is set to info
+           for every log sources but the foo which is set to debug. 
+
+MIRAGE PARAMETERS
+       -g  Enables target-specific support for debugging. Supported targets:
+           hvt (compiles solo5-hvt with GDB server support). 
+
+       -t TARGET, --target=TARGET (absent=unix or MODE env)
+           Target platform to compile the unikernel for. Valid values are:
+           xen, qubes, unix, macosx, virtio, hvt, spt, muen, genode. 
+
+       --warn-error
+           Enable -warn-error when compiling OCaml sources. 
+
 CONFIGURE OPTIONS
        --dry-run
            Display I/O actions instead of executing them.
@@ -17,6 +34,10 @@ CONFIGURE OPTIONS
 
        -o FILE, --output=FILE
            Name of the output file.
+
+APPLICATION OPTIONS
+       --hello=VAL (absent=Hello World!)
+           How to say hello. 
 
 OPTIONS
        --help[=FMT] (default=auto)
@@ -42,4 +63,13 @@ COMMON OPTIONS
        --verbosity=LEVEL (absent=warning)
            Be more or less verbose. LEVEL must be one of `quiet', `error',
            `warning', `info' or `debug'. Takes over -v.
+
+ENVIRONMENT
+       These environment variables affect the execution of clean:
+
+       MIRAGE_LOGS
+           See option --logs.
+
+       MODE
+           See option --target.
 

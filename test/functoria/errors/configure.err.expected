@@ -1,4 +1,1 @@
-test: unknown option `--vote', did you mean `-v' ?
-Usage: test configure [OPTION]... 
-Try `test configure --help' or `test --help' for more information.
 configuration file config.ml missing

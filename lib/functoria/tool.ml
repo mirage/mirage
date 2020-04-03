@@ -159,7 +159,7 @@ module Make (P : S) = struct
         if not t.Cli.dry_run then exit 1 else Fmt.epr "(exit 1)\n%!"
 
   let handle_parse_args_no_config ?help_ppf ?err_ppf (`Msg error) argv =
-    let base_context =
+    let context =
       (* Extract all the keys directly. Useful to pre-resolve the keys
          provided by the specialized DSL. *)
       let base_keys = Engine.all_keys @@ Device_graph.create (P.create []) in
@@ -167,11 +167,10 @@ module Make (P : S) = struct
         pure (fun _ -> Action.ok ())
         $ Key.context base_keys ~with_required:false ~stage:`Configure)
     in
-    let niet = Cmdliner.Term.pure (Action.ok ()) in
     let result =
       Cli.eval ?help_ppf ?err_ppf ~name:P.name ~version:P.version
-        ~configure:niet ~query:niet ~describe:niet ~build:niet ~clean:niet
-        ~help:base_context argv
+        ~configure:context ~query:context ~describe:context ~build:context
+        ~clean:context ~help:context argv
     in
     let ok = Action.ok () in
     let error = Action.error error in

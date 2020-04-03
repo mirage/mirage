@@ -249,12 +249,19 @@ module Make (P : S) = struct
 
   let run args action = action |> action_run args |> exit_err args
 
+  let pp_unit _ _ = ()
+
   let run_with_argv ?help_ppf ?err_ppf argv =
     let t = Cli.peek ~with_setup:true argv in
     match t with
-    | `Version -> Fmt.pr "%s\n%!" P.version
-    | `Error (args, _) -> run args @@ error args ?help_ppf ?err_ppf argv
+    | `Version ->
+        Log.info (fun l -> l "version");
+        Fmt.pr "%s\n%!" P.version
+    | `Error (t, _) ->
+        Log.info (fun l -> l "error: %a" (Cli.pp_args pp_unit) t);
+        run t @@ error t ?help_ppf ?err_ppf argv
     | `Ok t -> (
+        Log.info (fun l -> l "run: %a" (Cli.pp_action pp_unit) t);
         let args = Cli.args t in
         match t with
         | Configure t -> run args @@ configure t ?ppf:help_ppf ?err_ppf argv

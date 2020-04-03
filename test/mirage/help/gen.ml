@@ -10,14 +10,16 @@ let gen t =
  (action
   (with-stdout-to
    %%{target}
-   (run ./config.exe help %s --man-format=plain))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe help %s --man-format=plain)))))
 
 (rule
  (target %s-help)
  (action
   (with-stdout-to
    %%{target}
-   (run ./config.exe %s --help=plain))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe %s --help=plain)))))
 
 (rule
  (alias runtest)

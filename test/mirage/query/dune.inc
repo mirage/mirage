@@ -3,7 +3,8 @@
  (action
   (with-stdout-to name
   (with-stderr-to name.err
-   (run ./config.exe query name)))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe query name))))))
 
 (rule
  (alias runtest)
@@ -21,7 +22,8 @@
  (action
   (with-stdout-to opam
   (with-stderr-to opam.err
-   (run ./config.exe query opam)))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe query opam))))))
 
 (rule
  (alias runtest)
@@ -39,7 +41,8 @@
  (action
   (with-stdout-to packages
   (with-stderr-to packages.err
-   (run ./config.exe query packages)))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe query packages))))))
 
 (rule
  (alias runtest)
@@ -57,7 +60,8 @@
  (action
   (with-stdout-to files-configure
   (with-stderr-to files-configure.err
-   (run ./config.exe query files-configure)))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe query files-configure))))))
 
 (rule
  (alias runtest)
@@ -75,7 +79,8 @@
  (action
   (with-stdout-to files-build
   (with-stderr-to files-build.err
-   (run ./config.exe query files-build)))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe query files-build))))))
 
 (rule
  (alias runtest)
@@ -93,7 +98,8 @@
  (action
   (with-stdout-to Makefile
   (with-stderr-to Makefile.err
-   (run ./config.exe query Makefile)))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe query Makefile))))))
 
 (rule
  (alias runtest)
@@ -111,7 +117,8 @@
  (action
   (with-stdout-to Makefile.no-depext
   (with-stderr-to Makefile.no-depext.err
-   (run ./config.exe query Makefile --no-depext)))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe query Makefile --no-depext))))))
 
 (rule
  (alias runtest)
@@ -129,7 +136,8 @@
  (action
   (with-stdout-to Makefile.depext
   (with-stderr-to Makefile.depext.err
-   (run ./config.exe query Makefile --depext)))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe query Makefile --depext))))))
 
 (rule
  (alias runtest)
@@ -147,7 +155,8 @@
  (action
   (with-stdout-to version
   (with-stderr-to version.err
-   (run ./config.exe query --version)))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe query --version))))))
 
 (rule
  (alias runtest)
@@ -165,7 +174,8 @@
  (action
   (with-stdout-to name-hvt
   (with-stderr-to name-hvt.err
-   (run ./config.exe query name --target=hvt)))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe query name --target=hvt))))))
 
 (rule
  (alias runtest)
@@ -183,7 +193,8 @@
  (action
   (with-stdout-to opam-hvt
   (with-stderr-to opam-hvt.err
-   (run ./config.exe query opam --target=hvt)))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe query opam --target=hvt))))))
 
 (rule
  (alias runtest)
@@ -201,7 +212,8 @@
  (action
   (with-stdout-to packages-hvt
   (with-stderr-to packages-hvt.err
-   (run ./config.exe query packages --target=hvt)))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe query packages --target=hvt))))))
 
 (rule
  (alias runtest)
@@ -219,7 +231,8 @@
  (action
   (with-stdout-to files-configure-hvt
   (with-stderr-to files-configure-hvt.err
-   (run ./config.exe query files-configure --target=hvt)))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe query files-configure --target=hvt))))))
 
 (rule
  (alias runtest)
@@ -237,7 +250,8 @@
  (action
   (with-stdout-to files-build-hvt
   (with-stderr-to files-build-hvt.err
-   (run ./config.exe query files-build --target=hvt)))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe query files-build --target=hvt))))))
 
 (rule
  (alias runtest)
@@ -255,7 +269,8 @@
  (action
   (with-stdout-to Makefile-hvt
   (with-stderr-to Makefile-hvt.err
-   (run ./config.exe query Makefile --target=hvt)))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe query Makefile --target=hvt))))))
 
 (rule
  (alias runtest)
@@ -273,7 +288,8 @@
  (action
   (with-stdout-to Makefile.no-depext-hvt
   (with-stderr-to Makefile.no-depext-hvt.err
-   (run ./config.exe query Makefile --no-depext --target=hvt)))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe query Makefile --no-depext --target=hvt))))))
 
 (rule
  (alias runtest)
@@ -291,7 +307,8 @@
  (action
   (with-stdout-to Makefile.depext-hvt
   (with-stderr-to Makefile.depext-hvt.err
-   (run ./config.exe query Makefile --depext --target=hvt)))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe query Makefile --depext --target=hvt))))))
 
 (rule
  (alias runtest)
@@ -309,7 +326,8 @@
  (action
   (with-stdout-to version-hvt
   (with-stderr-to version-hvt.err
-   (run ./config.exe query --version --target=hvt)))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe query --version --target=hvt))))))
 
 (rule
  (alias runtest)

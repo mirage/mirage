@@ -21,7 +21,8 @@ let gen t =
  (action
   (with-stdout-to %s
   (with-stderr-to %s.err
-   (run ./config.exe %s)))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe %s))))))
 
 (rule
  (alias runtest)

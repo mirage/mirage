@@ -1,0 +1,25 @@
+opam-version: "2.0"
+name: "noop"
+maintainer: "dummy"
+authors: "dummy"
+homepage: "dummy"
+bug-reports: "dummy"
+synopsis: "This is a dummy"
+
+build: ["mirage" "build" "--config-file" "config.ml"]
+
+depends: [
+  "mirage-clock-unix" { >= "3.0.0" & < "4.0.0"}
+  "mirage-bootvar-unix" { >= "0.1.0" & < "0.2.0"}
+  "mirage-runtime"
+  "mirage-unix" { >= "4.0.0" & < "5.0.0"}
+  "ocaml" {build &  >= "4.06.0"}
+  "lwt"
+  "mirage-types" { >= "3.7.0" & < "3.8.0"}
+  "mirage-runtime" { >= "3.7.0" & < "3.8.0"}
+  "mirage" {build &  >= "3.7.0" & < "3.8.0"}
+  "ocamlfind" {build}
+  "ocamlbuild" {build}
+  "mirage-logs" { >= "1.2.0" & < "2.0.0"}
+]
+

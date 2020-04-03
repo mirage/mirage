@@ -138,7 +138,7 @@ let interpret_cmd { cmd; err; out } =
   in
   err >>= fun (err, flush_err) ->
   let res = Bos.OS.Cmd.run_out ~err cmd in
-  let res = Bos.OS.Cmd.out_string ~trim:false res in
+  let res = Bos.OS.Cmd.out_string ~trim:true res in
   res >>= fun (str_out, _) ->
   pfo out str_out;
   flush_err () >>= fun () -> Bos.OS.Cmd.success res

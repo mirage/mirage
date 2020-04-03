@@ -4,14 +4,16 @@
  (action
   (with-stdout-to
    %{target}
-   (run ./config.exe help configure --man-format=plain))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe help configure --man-format=plain)))))
 
 (rule
  (target configure-help)
  (action
   (with-stdout-to
    %{target}
-   (run ./config.exe configure --help=plain))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe configure --help=plain)))))
 
 (rule
  (alias runtest)
@@ -36,14 +38,16 @@
  (action
   (with-stdout-to
    %{target}
-   (run ./config.exe help configure -o foo --man-format=plain))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe help configure -o foo --man-format=plain)))))
 
 (rule
  (target configure-o-help)
  (action
   (with-stdout-to
    %{target}
-   (run ./config.exe configure -o foo --help=plain))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe configure -o foo --help=plain)))))
 
 (rule
  (alias runtest)
@@ -68,14 +72,16 @@
  (action
   (with-stdout-to
    %{target}
-   (run ./config.exe help build --man-format=plain))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe help build --man-format=plain)))))
 
 (rule
  (target build-help)
  (action
   (with-stdout-to
    %{target}
-   (run ./config.exe build --help=plain))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe build --help=plain)))))
 
 (rule
  (alias runtest)
@@ -100,14 +106,16 @@
  (action
   (with-stdout-to
    %{target}
-   (run ./config.exe help clean --man-format=plain))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe help clean --man-format=plain)))))
 
 (rule
  (target clean-help)
  (action
   (with-stdout-to
    %{target}
-   (run ./config.exe clean --help=plain))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe clean --help=plain)))))
 
 (rule
  (alias runtest)
@@ -132,14 +140,16 @@
  (action
   (with-stdout-to
    %{target}
-   (run ./config.exe help query --man-format=plain))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe help query --man-format=plain)))))
 
 (rule
  (target query-help)
  (action
   (with-stdout-to
    %{target}
-   (run ./config.exe query --help=plain))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe query --help=plain)))))
 
 (rule
  (alias runtest)
@@ -164,14 +174,16 @@
  (action
   (with-stdout-to
    %{target}
-   (run ./config.exe help describe --man-format=plain))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe help describe --man-format=plain)))))
 
 (rule
  (target describe-help)
  (action
   (with-stdout-to
    %{target}
-   (run ./config.exe describe --help=plain))))
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe describe --help=plain)))))
 
 (rule
  (alias runtest)

@@ -126,13 +126,27 @@ let target_conv : mode Cmdliner.Arg.converter =
   in
   (filter_ukvm, printer)
 
+let target_serialize ppf = function
+  | `Unix -> Fmt.pf ppf "`Unix"
+  | `Xen -> Fmt.pf ppf "`Xen"
+  | `Virtio -> Fmt.pf ppf "`Virtio"
+  | `Hvt -> Fmt.pf ppf "`Hvt"
+  | `Muen -> Fmt.pf ppf "`Muen"
+  | `MacOSX -> Fmt.pf ppf "`MacOSX"
+  | `Qubes -> Fmt.pf ppf "`Qubes"
+  | `Genode -> Fmt.pf ppf "`Genode"
+  | `Spt -> Fmt.pf ppf "`Spt"
+
 let pp_target fmt m = snd target_conv fmt m
 
-let default_unix =
-  lazy
-    ( match Action.run @@ Action.run_cmd_out Bos.Cmd.(v "uname" % "-s") with
-    | Ok "Darwin" -> `MacOSX
-    | _ -> `Unix )
+let default_target =
+  match Sys.getenv "MIRAGE_DEFAULT_TARGET" with
+  | "unix" -> `Unix
+  | s -> Fmt.failwith "invalid default target: %S" s
+  | exception Not_found -> (
+      match Action.run @@ Action.run_cmd_out Bos.Cmd.(v "uname" % "-s") with
+      | Ok "Darwin" -> `MacOSX
+      | _ -> `Unix )
 
 let target =
   let doc =
@@ -140,24 +154,15 @@ let target =
      $(i,qubes), $(i,unix), $(i,macosx), $(i,virtio), $(i,hvt), $(i,spt), \
      $(i,muen), $(i,genode)."
   in
-  let serialize ppf = function
-    | `Unix -> Fmt.pf ppf "`Unix"
-    | `Xen -> Fmt.pf ppf "`Xen"
-    | `Virtio -> Fmt.pf ppf "`Virtio"
-    | `Hvt -> Fmt.pf ppf "`Hvt"
-    | `Muen -> Fmt.pf ppf "`Muen"
-    | `MacOSX -> Fmt.pf ppf "`MacOSX"
-    | `Qubes -> Fmt.pf ppf "`Qubes"
-    | `Genode -> Fmt.pf ppf "`Genode"
-    | `Spt -> Fmt.pf ppf "`Spt"
+  let conv =
+    Arg.conv ~conv:target_conv ~runtime_conv:"target"
+      ~serialize:target_serialize
   in
-  let conv = Arg.conv ~conv:target_conv ~runtime_conv:"target" ~serialize in
   let doc =
     Arg.info ~docs:mirage_section ~docv:"TARGET" ~doc [ "t"; "target" ]
       ~env:"MODE"
   in
-  let default = Lazy.force default_unix in
-  let key = Arg.opt ~stage:`Configure conv default doc in
+  let key = Arg.opt ~stage:`Configure conv default_target doc in
   Key.create "target" key
 
 let is_unix =

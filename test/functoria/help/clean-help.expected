@@ -8,10 +8,13 @@ DESCRIPTION
        Clean the files produced by test for a given application.
 
 CONFIGURE OPTIONS
+       --context-file=FILE (absent=test.context)
+           The context file to use.
+
        --dry-run
            Display I/O actions instead of executing them.
 
-       -f FILE, --file=FILE (absent=config.ml)
+       -f FILE, --file=FILE, --config-file=FILE (absent=config.ml)
            The configuration file to use.
 
        -o FILE, --output=FILE

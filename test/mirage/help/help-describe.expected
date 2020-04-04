@@ -57,10 +57,13 @@ DESCRIBE OPTIONS
            default when the unikernel has not been configured.
 
 CONFIGURE OPTIONS
+       --context-file=FILE (absent=mirage.context)
+           The context file to use.
+
        --dry-run
            Display I/O actions instead of executing them.
 
-       -f FILE, --file=FILE (absent=config.ml)
+       -f FILE, --file=FILE, --config-file=FILE (absent=config.ml)
            The configuration file to use.
 
        -o FILE, --output=FILE

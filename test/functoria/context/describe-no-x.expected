@@ -1,0 +1,4 @@
+Name       noop
+Keys       target=x,
+           vote=cat (default),
+           warn_error=false (default)

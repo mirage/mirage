@@ -43,8 +43,7 @@ val find : 'a key -> t -> 'a option
 
 val merge : default:t -> t -> t
 (** [merge ~default t] merges [t] on top of [default]. If a key appears in both
-    [default] and [t], the value present in [t] is kept if if is not the default
-    value. *)
+    [default] and [t], the value present in [t] is kept. *)
 
 val dump : t Fmt.t
 (** [dump] dumps the state of [t]. *)

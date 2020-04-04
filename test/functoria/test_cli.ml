@@ -41,6 +41,7 @@ let test_configure () =
                context = (true, false);
                output = None;
                config_file = Fpath.v "config.ml";
+               context_file = None;
                dry_run = false;
              };
          }))
@@ -60,6 +61,7 @@ let test_describe () =
       [|
         "name";
         "describe";
+        "--context=config.json";
         "--cde";
         "--color=always";
         "--dot-command=dot";
@@ -76,6 +78,7 @@ let test_describe () =
                context = (false, true);
                output = None;
                config_file = Fpath.v "config.ml";
+               context_file = Some (Fpath.v "config.json");
                dry_run = false;
              };
            dotcmd = "dot";
@@ -105,6 +108,7 @@ let test_build () =
            context = (true, true);
            output = None;
            config_file = Fpath.v "config.ml";
+           context_file = None;
            dry_run = false;
          }))
     result
@@ -129,6 +133,7 @@ let test_clean () =
            context = (false, false);
            output = None;
            config_file = Fpath.v "config.ml";
+           context_file = None;
            dry_run = false;
          }))
     result

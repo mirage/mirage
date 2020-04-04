@@ -139,35 +139,23 @@ module Arg = struct
   let default (type a) (t : a t) =
     match t.kind with Opt (d, _) -> d | Flag -> false | Required _ -> None
 
-  let eq conv x y =
-    let str = Fmt.to_to_string conv.serialize in
-    str x = str y
-
-  let is_default (type a) (t : a t) (v : a) =
-    match t.kind with
-    | Opt (d, c) -> eq c d v
-    | Flag -> v = false
-    | Required _ -> v = None
-
-  let make_opt_cmdliner wrap i default f desc =
+  let make_opt_cmdliner wrap i default desc =
     let none =
       match default with
       | Some d -> Some (Fmt.strf "%a" (pp_conv desc) d)
       | None -> None
     in
-    let f_desc v z = match v with Some v -> f v z | None -> z in
-    Cmdliner.Term.(app @@ pure f_desc)
-      Cmdliner.Arg.(wrap @@ opt (some ?none @@ converter desc) None i)
+    Cmdliner.Arg.(wrap @@ opt (some ?none @@ converter desc) None i)
 
-  let to_cmdliner ~with_required (type a) (t : a t) (f : a -> _) =
+  let to_cmdliner ~with_required (type a) (t : a t) : a option Cmdliner.Term.t =
     let i = cmdliner_of_info t.info in
     match t.kind with
-    | Flag -> Cmdliner.Term.(app @@ pure f) Cmdliner.Arg.(value @@ flag i)
+    | Flag -> Cmdliner.Arg.(value & vflag None [ (Some true, i) ])
     | Opt (default, desc) ->
-        make_opt_cmdliner Cmdliner.Arg.value i (Some default) f desc
+        make_opt_cmdliner Cmdliner.Arg.value i (Some default) desc
     | Required desc when with_required && t.stage = `Configure ->
-        make_opt_cmdliner Cmdliner.Arg.required i None f (some (some desc))
-    | Required desc -> make_opt_cmdliner Cmdliner.Arg.value i None f (some desc)
+        make_opt_cmdliner Cmdliner.Arg.required i None (some (some desc))
+    | Required desc -> make_opt_cmdliner Cmdliner.Arg.value i None (some desc)
 
   let serialize_value (type a) (v : a) ppf (t : a t) =
     match t.kind with
@@ -403,15 +391,17 @@ let create name arg =
 
 (* {2 Cmdliner interface} *)
 
-let parse_key t = Arg.to_cmdliner t.arg
-
 let context ?(stage = `Both) ~with_required l =
   let gather (Any k) rest =
     let f v p =
-      let p = if Arg.is_default k.arg v then p else Context.add k.key v p in
-      Alias.apply v k.setters p
+      match v with
+      | None -> p
+      | Some v ->
+          let p = Context.add k.key v p in
+          Alias.apply v k.setters p
     in
-    Cmdliner.Term.(parse_key ~with_required k f $ rest)
+    let key = Arg.to_cmdliner k.arg ~with_required in
+    Cmdliner.Term.(pure f $ key $ rest)
   in
   Set.fold gather (filter_stage stage l) (Cmdliner.Term.pure empty_context)
 

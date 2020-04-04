@@ -129,7 +129,9 @@ module Make (P : S) = struct
   (* FIXME: describe init *)
   let describe (t : _ Cli.describe_args) =
     let (_, jobs), _ = t.Cli.args.context in
-    let f fmt = (if t.dot then Config.pp_dot else Config.pp) fmt jobs in
+    let f fmt =
+      Fmt.pf fmt "%a\n%!" (if t.dot then Config.pp_dot else Config.pp) jobs
+    in
     let with_fmt f =
       match t.args.output with
       | None when t.dot ->

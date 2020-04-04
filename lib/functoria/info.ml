@@ -93,8 +93,12 @@ let pp verbose ppf ({ name; keys; context; output; _ } as t) =
   in
   let list = Fmt.iter ~sep:(Fmt.unit ",@ ") List.iter Fmt.string in
   show "Name" Fmt.string name;
-  show "Keys" (Key.pps context) keys;
-  show "Output" ~newline:verbose Fmt.(option string) output;
+  show "Keys" ~newline:(verbose && output <> None) (Key.pps context) keys;
+  let () =
+    match output with
+    | None -> ()
+    | Some o -> show "Output" ~newline:verbose Fmt.(string) o
+  in
   if verbose then show "Libraries " list (libraries t);
   if verbose then
     show "Packages" ~newline:false

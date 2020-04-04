@@ -88,8 +88,6 @@ end
 module Make (P : S) = struct
   module Filegen = Filegen.Make (P)
 
-  let cache root = Fpath.(normalize @@ (root / ("." ^ P.name ^ ".config")))
-
   let default_init = [ Job.keys Argv.sys_argv ]
 
   let build_dir args = Fpath.parent args.Cli.config_file
@@ -262,26 +260,36 @@ module Make (P : S) = struct
         lines;
       r
 
+  let read_context args =
+    match args.Cli.context_file with
+    | None -> Action.ok Context_cache.empty
+    | Some file -> (
+        Action.is_file file >>= function
+        | false -> Action.errorf "cannot find file `%a'" Fpath.pp file
+        | true -> Context_cache.read file >|= fun t -> t )
+
   let run_configure_with_argv argv args config =
     (*   whether to fully evaluate the graph *)
     let full_eval = Cli.peek_full_eval argv in
 
+    read_context args >>= fun cache ->
     let base_context =
       (* Consider only the non-required keys. *)
       let non_required_term =
         let if_keys = Config.keys config in
         Key.context ~stage:`Configure ~with_required:false if_keys
       in
-      match Cmdliner.Term.eval_peek_opts ~argv non_required_term with
-      | _, `Ok context -> context
-      | _ -> Key.empty_context
+      let context =
+        match Cmdliner.Term.eval_peek_opts ~argv non_required_term with
+        | _, `Ok context -> context
+        | _ -> Key.empty_context
+      in
+      match Context_cache.peek cache non_required_term with
+      | None -> context
+      | Some default -> Key.merge_context ~default context
     in
     let output = Cli.peek_output argv in
 
-    (* this is a trim-down version of the cached context, with only
-        the values corresponding to 'if' keys. This is useful to
-        start reducing the config into something consistent. *)
-    Context_cache.read (cache (build_dir args)) >>= fun cache ->
     (* 3. Parse the command-line and handle the result. *)
     let configure =
       eval_cached ~with_required:true ~partial:false ~output ~cache base_context

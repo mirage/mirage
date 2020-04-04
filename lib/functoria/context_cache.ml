@@ -64,7 +64,7 @@ let read file =
         Action.ok args
       with Failure e -> Action.error e )
 
-let eval_term t term =
+let peek t term =
   match Cmdliner.Term.eval_peek_opts ~argv:t term with
   | Some c, _ | _, `Ok c -> Some c
   | _ ->
@@ -72,7 +72,7 @@ let eval_term t term =
 
 let merge t term =
   let cache =
-    match eval_term t term with None -> Key.empty_context | Some c -> c
+    match peek t term with None -> Key.empty_context | Some c -> c
   in
   let f term = Key.merge_context ~default:cache term in
   Cmdliner.Term.(pure f $ term)

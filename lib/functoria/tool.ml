@@ -39,6 +39,13 @@ module Make (P : S) = struct
 
   let build_dir t = Fpath.parent t.Cli.config_file
 
+  let context_file args =
+    match args.Cli.context_file with
+    | Some f -> f
+    | None ->
+        let dir = Fpath.parent args.Cli.config_file in
+        Fpath.(normalize (dir / (P.name ^ ".context")))
+
   let run_cmd ?ppf ?err_ppf command =
     let err = match err_ppf with None -> None | Some f -> Some (`Fmt f) in
     let out = match ppf with None -> None | Some f -> Some (`Fmt f) in
@@ -141,6 +148,10 @@ module Make (P : S) = struct
     Log.info (fun m -> m "Generating: %a" Fpath.pp file);
     Filegen.write file contents
 
+  let write_context t argv = Context_cache.write (context_file t) argv
+
+  let remove_context t = Action.rm (context_file t)
+
   (* Generated a project skeleton and try to compile config.exe. *)
   let check_project t ?ppf ?err_ppf () =
     generate_configuration_files t >>= fun () ->
@@ -174,17 +185,13 @@ module Make (P : S) = struct
     let error = Action.error error in
     match result with `Version | `Help | `Ok (Cli.Help _) -> ok | _ -> error
 
-  let cache args =
-    Fpath.(
-      normalize @@ (parent args.Cli.config_file / ("." ^ P.name ^ ".config")))
-
   let handle_parse_args ~save_args t ?ppf ?err_ppf argv =
     let file = t.Cli.config_file in
     Action.is_file file >>= function
     | true ->
         check_project t ?ppf ?err_ppf () >>= fun () ->
-        (if save_args then Context_cache.write (cache t) argv else Action.ok ())
-        >>= fun () -> re_exec t ?ppf ?err_ppf argv
+        (if save_args then write_context t argv else Action.ok ()) >>= fun () ->
+        re_exec t ?ppf ?err_ppf argv
     | false ->
         let msg = Fmt.str "configuration file %a missing" Fpath.pp file in
         handle_parse_args_no_config ?help_ppf:ppf ?err_ppf (`Msg msg) argv
@@ -219,7 +226,7 @@ module Make (P : S) = struct
         | _ -> false)
     >>= fun files ->
     Action.List.iter ~f:Filegen.rm files >>= fun () ->
-    Action.rm (cache args) >>= fun () ->
+    remove_context args >>= fun () ->
     Action.get_var "INSIDE_FUNCTORIA_TESTS" >>= function
     | Some "1" | Some "" -> Action.ok ()
     | None -> Action.rmdir Fpath.(v "_build")

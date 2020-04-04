@@ -36,6 +36,10 @@ val read : Fpath.t -> t Action.t
     [Action.ok empty] if [f] does not exists and [Action.error _] if the cache
     contains garbage. *)
 
+val peek : t -> Key.context Cmdliner.Term.t -> Key.context option
+(** [peek t term] is the context obtained by evaluating [term] over the cached
+    context [t]. *)
+
 val merge : t -> Key.context Cmdliner.Term.t -> Key.context Cmdliner.Term.t
 (** [eval_context t term] is the context obtained by evaluating [term] over the
     cached context [t]. *)

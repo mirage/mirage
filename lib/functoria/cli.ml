@@ -59,9 +59,22 @@ let setup ~with_setup =
 let config_file =
   let doc =
     Arg.info ~docs:configuration_section ~docv:"FILE"
-      ~doc:"The configuration file to use." [ "f"; "file" ]
+      ~doc:"The configuration file to use."
+      [ "f"; "file"; "config-file" ]
   in
   Term.(const Fpath.v $ Arg.(value & opt string "config.ml" & doc))
+
+let map_default ~default f x = if x == default then None else Some (f x)
+
+let context_file =
+  let doc =
+    Arg.info ~docs:configuration_section ~docv:"FILE"
+      ~doc:"The context file to use." [ "context-file" ]
+  in
+  let default = "$(mname).context" in
+  Term.(
+    const (map_default ~default Fpath.v)
+    $ Arg.(value & opt string default & doc))
 
 let dry_run =
   let doc =
@@ -141,6 +154,7 @@ let kind =
 type 'a args = {
   context : 'a;
   config_file : Fpath.t;
+  context_file : Fpath.t option;
   output : string option;
   dry_run : bool;
 }
@@ -234,10 +248,11 @@ let pp_action pp_a ppf = function
 
 let args ~with_setup context =
   Term.(
-    const (fun () config_file dry_run output context ->
-        { config_file; dry_run; output; context })
+    const (fun () config_file context_file dry_run output context ->
+        { config_file; context_file; dry_run; output; context })
     $ setup ~with_setup
     $ config_file
+    $ context_file
     $ dry_run
     $ output
     $ context)

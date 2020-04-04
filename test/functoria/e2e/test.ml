@@ -101,7 +101,7 @@ let test_configure () =
       "config.ml";
       "key_gen.ml";
       "main.ml";
-      ".test.config";
+      "test.context";
       ".merlin";
       "dune";
       "dune.config";
@@ -110,7 +110,7 @@ let test_configure () =
     (list_files root);
   clean ();
 
-  (* check that configure is writting the correct .test.config
+  (* check that configure is writting the correct test.context
      file *)
   let test_config root cfg =
     F0.Tool.run_with_argv (Array.of_list cfg);
@@ -118,7 +118,7 @@ let test_configure () =
       (String.concat ~sep:"\n" @@ List.map String.Ascii.escape (List.tl cfg))
       ^ "\n"
     in
-    let got = get_ok @@ Bos.OS.File.read Fpath.(v root / ".test.config") in
+    let got = get_ok @@ Bos.OS.File.read Fpath.(v root / "test.context") in
     Alcotest.(check string)
       ("config should persist in " ^ root)
       (String.Ascii.escape_string expected)

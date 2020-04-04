@@ -23,6 +23,7 @@ open Cmdliner
 type 'a args = {
   context : 'a;
   config_file : Fpath.t;
+  context_file : Fpath.t option;
   output : string option;
   dry_run : bool;
 }

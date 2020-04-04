@@ -29,7 +29,8 @@ CONFIGURE OPTIONS
 
        INFO (absent=packages)
            The information to query. INFO must be one of `name', `packages',
-           `opam', `install', `files-configure', `files-build' or `Makefile'
+           `opam', `files', `Makefile', `dune-base', `dune', `dune-project'
+           or `dune-workspace'
 
 APPLICATION OPTIONS
        --hello=VAL (absent=Hello World!)

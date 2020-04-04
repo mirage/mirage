@@ -32,7 +32,7 @@ let xen_block_packages =
    the user to pass stuff like "/dev/xvdi1", which mirage-block-xen
    also understands *)
 let xenstore_conf id =
-  let configure i =
+  let build i =
     match get_target i with
     | `Qubes | `Xen -> Action.ok ()
     | _ ->
@@ -41,7 +41,7 @@ let xenstore_conf id =
            the target is Xen or Qubes."
   in
   let connect _ impl_name _ = Fmt.strf "%s.connect %S" impl_name id in
-  impl ~configure ~connect ~packages:xen_block_packages "Block" block
+  impl ~build ~connect ~packages:xen_block_packages "Block" block
 
 let block_of_xenstore_id id = xenstore_conf id
 
@@ -72,7 +72,7 @@ let block_conf file =
     | #Mirage_key.mode_unix ->
         [ package ~min:"2.12.0" ~max:"3.0.0" "mirage-block-unix" ]
   in
-  let configure _ =
+  let build _ =
     let (_ : block_t) = make_block_t file in
     Action.ok ()
   in
@@ -81,7 +81,7 @@ let block_conf file =
     | `Muen -> failwith "Block devices not supported on Muen target."
     | _ -> Fmt.strf "%s.connect %S" s (connect_name (get_target i))
   in
-  Device.v ~configure ~packages_v ~connect "Block" block
+  Device.v ~build ~packages_v ~connect "Block" block
 
 let block_of_file file = of_device (block_conf file)
 
@@ -108,10 +108,11 @@ let count =
 let tar_block dir =
   let name = "tar_block" ^ string_of_int (count ()) in
   let block_file = name ^ ".img" in
+  let files _ = [ Fpath.v block_file ] in
   let pre_build _ =
     Action.run_cmd Bos.Cmd.(v "tar" % "-cvf" % block_file % dir)
   in
-  of_device @@ Device.extend ~pre_build (block_conf block_file)
+  of_device @@ Device.extend ~pre_build ~files (block_conf block_file)
 
 let archive_conf =
   let packages = [ package ~min:"1.0.0" ~max:"2.0.0" "tar-mirage" ] in

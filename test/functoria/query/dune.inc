@@ -55,57 +55,21 @@
 
 (rule
  (action
-  (with-stdout-to install
-  (with-stderr-to install.err
-   (run ./config.exe query install)))))
+  (with-stdout-to files
+  (with-stderr-to files.err
+   (run ./config.exe query files)))))
 
 (rule
  (alias runtest)
  (package functoria)
  (action
-  (diff install.expected install)))
+  (diff files.expected files)))
 
 (rule
  (alias runtest)
  (package functoria)
  (action
-  (diff install.err.expected install.err)))
-
-(rule
- (action
-  (with-stdout-to files-configure
-  (with-stderr-to files-configure.err
-   (run ./config.exe query files-configure)))))
-
-(rule
- (alias runtest)
- (package functoria)
- (action
-  (diff files-configure.expected files-configure)))
-
-(rule
- (alias runtest)
- (package functoria)
- (action
-  (diff files-configure.err.expected files-configure.err)))
-
-(rule
- (action
-  (with-stdout-to files-build
-  (with-stderr-to files-build.err
-   (run ./config.exe query files-build)))))
-
-(rule
- (alias runtest)
- (package functoria)
- (action
-  (diff files-build.expected files-build)))
-
-(rule
- (alias runtest)
- (package functoria)
- (action
-  (diff files-build.err.expected files-build.err)))
+  (diff files.err.expected files.err)))
 
 (rule
  (action
@@ -178,3 +142,75 @@
  (package functoria)
  (action
   (diff version.err.expected version.err)))
+
+(rule
+ (action
+  (with-stdout-to x-dune
+  (with-stderr-to x-dune.err
+   (run ./config.exe query dune)))))
+
+(rule
+ (alias runtest)
+ (package functoria)
+ (action
+  (diff x-dune.expected x-dune)))
+
+(rule
+ (alias runtest)
+ (package functoria)
+ (action
+  (diff x-dune.err.expected x-dune.err)))
+
+(rule
+ (action
+  (with-stdout-to x-dune-base
+  (with-stderr-to x-dune-base.err
+   (run ./config.exe query dune-base)))))
+
+(rule
+ (alias runtest)
+ (package functoria)
+ (action
+  (diff x-dune-base.expected x-dune-base)))
+
+(rule
+ (alias runtest)
+ (package functoria)
+ (action
+  (diff x-dune-base.err.expected x-dune-base.err)))
+
+(rule
+ (action
+  (with-stdout-to x-dune-project
+  (with-stderr-to x-dune-project.err
+   (run ./config.exe query dune-project)))))
+
+(rule
+ (alias runtest)
+ (package functoria)
+ (action
+  (diff x-dune-project.expected x-dune-project)))
+
+(rule
+ (alias runtest)
+ (package functoria)
+ (action
+  (diff x-dune-project.err.expected x-dune-project.err)))
+
+(rule
+ (action
+  (with-stdout-to x-dune-workspace
+  (with-stderr-to x-dune-workspace.err
+   (run ./config.exe query dune-workspace)))))
+
+(rule
+ (alias runtest)
+ (package functoria)
+ (action
+  (diff x-dune-workspace.expected x-dune-workspace)))
+
+(rule
+ (alias runtest)
+ (package functoria)
+ (action
+  (diff x-dune-workspace.err.expected x-dune-workspace.err)))

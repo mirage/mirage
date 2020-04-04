@@ -35,12 +35,12 @@ let direct_tcp ?(clock = default_monotonic_clock) ?(random = default_random)
 let tcpv4_socket_conf ipv4_key =
   let keys = [ Key.v ipv4_key ] in
   let packages_v = right_tcpip_library ~sublibs:[ "tcpv4-socket" ] "tcpip" in
-  let configure i =
+  let build i =
     match get_target i with
     | `Unix | `MacOSX -> Action.ok ()
     | _ -> Action.error "TCPv4 socket not supported on non-UNIX targets."
   in
   let connect _ modname _ = Fmt.strf "%s.connect %a" modname pp_key ipv4_key in
-  impl ~packages_v ~configure ~keys ~connect "Tcpv4_socket" tcpv4
+  impl ~packages_v ~build ~keys ~connect "Tcpv4_socket" tcpv4
 
 let socket_tcpv4 ?group ip = tcpv4_socket_conf @@ Key.V4.socket ?group ip

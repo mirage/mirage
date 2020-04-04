@@ -129,7 +129,6 @@ module type KEY =
 
 module Package = Package
 module Info = Info
-module Install = Install
 module Device = Device
 
 (** {1 Useful module implementations} *)
@@ -186,3 +185,4 @@ module Engine = Engine
 module DSL = DSL
 module Cli = Cli
 module Action = Action
+module Dune = Dune

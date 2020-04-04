@@ -27,11 +27,11 @@ let network_conf (intf : string Key.key) =
     (* @samoht: why not just use the args paramater? *)
     Fmt.strf "%s.connect %a" modname Key.serialize_call key
   in
-  let configure i =
+  let build i =
     all_networks := Key.get (Info.context i) intf :: !all_networks;
     Action.ok ()
   in
-  impl ~keys ~packages_v ~connect ~configure "Netif" network
+  impl ~keys ~packages_v ~connect ~build "Netif" network
 
 let netif ?group dev = network_conf @@ Key.interface ?group dev
 

@@ -14,5 +14,6 @@
 
 (rule
  (alias runtest)
+ (package functoria)
  (action
   (diff dune.inc dune.gen)))

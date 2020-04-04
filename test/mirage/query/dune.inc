@@ -58,41 +58,22 @@
 
 (rule
  (action
-  (with-stdout-to files-configure
-  (with-stderr-to files-configure.err
+  (with-stdout-to files
+  (with-stderr-to files.err
    (setenv MIRAGE_DEFAULT_TARGET unix
-   (run ./config.exe query files-configure))))))
+   (run ./config.exe query files))))))
 
 (rule
  (alias runtest)
  (package mirage)
  (action
-  (diff files-configure.expected files-configure)))
+  (diff files.expected files)))
 
 (rule
  (alias runtest)
  (package mirage)
  (action
-  (diff files-configure.err.expected files-configure.err)))
-
-(rule
- (action
-  (with-stdout-to files-build
-  (with-stderr-to files-build.err
-   (setenv MIRAGE_DEFAULT_TARGET unix
-   (run ./config.exe query files-build))))))
-
-(rule
- (alias runtest)
- (package mirage)
- (action
-  (diff files-build.expected files-build)))
-
-(rule
- (alias runtest)
- (package mirage)
- (action
-  (diff files-build.err.expected files-build.err)))
+  (diff files.err.expected files.err)))
 
 (rule
  (action
@@ -153,22 +134,79 @@
 
 (rule
  (action
-  (with-stdout-to version
-  (with-stderr-to version.err
+  (with-stdout-to x-dune
+  (with-stderr-to x-dune.err
    (setenv MIRAGE_DEFAULT_TARGET unix
-   (run ./config.exe query --version))))))
+   (run ./config.exe query dune --dry-run))))))
 
 (rule
  (alias runtest)
  (package mirage)
  (action
-  (diff version.expected version)))
+  (diff x-dune.expected x-dune)))
 
 (rule
  (alias runtest)
  (package mirage)
  (action
-  (diff version.err.expected version.err)))
+  (diff x-dune.err.expected x-dune.err)))
+
+(rule
+ (action
+  (with-stdout-to x-dune-base
+  (with-stderr-to x-dune-base.err
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe query dune-base))))))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff x-dune-base.expected x-dune-base)))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff x-dune-base.err.expected x-dune-base.err)))
+
+(rule
+ (action
+  (with-stdout-to x-dune-project
+  (with-stderr-to x-dune-project.err
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe query dune-project))))))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff x-dune-project.expected x-dune-project)))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff x-dune-project.err.expected x-dune-project.err)))
+
+(rule
+ (action
+  (with-stdout-to x-dune-workspace
+  (with-stderr-to x-dune-workspace.err
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe query dune-workspace --dry-run))))))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff x-dune-workspace.expected x-dune-workspace)))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff x-dune-workspace.err.expected x-dune-workspace.err)))
 
 (rule
  (action
@@ -229,41 +267,22 @@
 
 (rule
  (action
-  (with-stdout-to files-configure-hvt
-  (with-stderr-to files-configure-hvt.err
+  (with-stdout-to files-hvt
+  (with-stderr-to files-hvt.err
    (setenv MIRAGE_DEFAULT_TARGET unix
-   (run ./config.exe query files-configure --target=hvt))))))
+   (run ./config.exe query files --target=hvt))))))
 
 (rule
  (alias runtest)
  (package mirage)
  (action
-  (diff files-configure-hvt.expected files-configure-hvt)))
+  (diff files-hvt.expected files-hvt)))
 
 (rule
  (alias runtest)
  (package mirage)
  (action
-  (diff files-configure-hvt.err.expected files-configure-hvt.err)))
-
-(rule
- (action
-  (with-stdout-to files-build-hvt
-  (with-stderr-to files-build-hvt.err
-   (setenv MIRAGE_DEFAULT_TARGET unix
-   (run ./config.exe query files-build --target=hvt))))))
-
-(rule
- (alias runtest)
- (package mirage)
- (action
-  (diff files-build-hvt.expected files-build-hvt)))
-
-(rule
- (alias runtest)
- (package mirage)
- (action
-  (diff files-build-hvt.err.expected files-build-hvt.err)))
+  (diff files-hvt.err.expected files-hvt.err)))
 
 (rule
  (action
@@ -324,19 +343,76 @@
 
 (rule
  (action
-  (with-stdout-to version-hvt
-  (with-stderr-to version-hvt.err
+  (with-stdout-to x-dune-hvt
+  (with-stderr-to x-dune-hvt.err
    (setenv MIRAGE_DEFAULT_TARGET unix
-   (run ./config.exe query --version --target=hvt))))))
+   (run ./config.exe query dune --dry-run --target=hvt))))))
 
 (rule
  (alias runtest)
  (package mirage)
  (action
-  (diff version-hvt.expected version-hvt)))
+  (diff x-dune-hvt.expected x-dune-hvt)))
 
 (rule
  (alias runtest)
  (package mirage)
  (action
-  (diff version-hvt.err.expected version-hvt.err)))
+  (diff x-dune-hvt.err.expected x-dune-hvt.err)))
+
+(rule
+ (action
+  (with-stdout-to x-dune-base-hvt
+  (with-stderr-to x-dune-base-hvt.err
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe query dune-base --target=hvt))))))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff x-dune-base-hvt.expected x-dune-base-hvt)))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff x-dune-base-hvt.err.expected x-dune-base-hvt.err)))
+
+(rule
+ (action
+  (with-stdout-to x-dune-project-hvt
+  (with-stderr-to x-dune-project-hvt.err
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe query dune-project --target=hvt))))))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff x-dune-project-hvt.expected x-dune-project-hvt)))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff x-dune-project-hvt.err.expected x-dune-project-hvt.err)))
+
+(rule
+ (action
+  (with-stdout-to x-dune-workspace-hvt
+  (with-stderr-to x-dune-workspace-hvt.err
+   (setenv MIRAGE_DEFAULT_TARGET unix
+   (run ./config.exe query dune-workspace --dry-run --target=hvt))))))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff x-dune-workspace-hvt.expected x-dune-workspace-hvt)))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (diff x-dune-workspace-hvt.err.expected x-dune-workspace-hvt.err)))

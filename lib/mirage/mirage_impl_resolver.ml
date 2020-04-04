@@ -18,13 +18,13 @@ let resolver_unix_system =
       ]
       []
   in
-  let configure i =
+  let build i =
     match get_target i with
     | `Unix | `MacOSX -> Action.ok ()
     | _ -> Action.error "Unix resolver not supported on non-UNIX targets."
   in
   let connect _ _modname _ = "Lwt.return Resolver_lwt_unix.system" in
-  impl ~packages_v ~configure ~connect "Resolver_lwt" resolver
+  impl ~packages_v ~build ~connect "Resolver_lwt" resolver
 
 let resolver_dns_conf ~ns ~ns_port =
   let packages = [ Mirage_impl_conduit_connector.pkg ] in

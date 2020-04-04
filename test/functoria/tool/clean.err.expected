@@ -1,15 +1,7 @@
-* Is_file? config.ml -> true
-* Is_file? dune-project -> false
-* Write to dune-project (47 bytes)
-* With_dir ./ [Is_file? dune.config -> false
-               Write to dune.config (143 bytes)
-               Is_file? dune.build -> false
-               Write to dune.build (32 bytes)
-               Is_file? dune -> true
-               Read dune (221 bytes)]
-* Run_cmd 'dune build ./config.exe' (ok)
-* Run_cmd 'dune exec --root . -- ./config.exe clean a b c --dry-run' (ok)
 * Ls ./ (0 entry)
 * Rm test.context (no-op)
+* Is_file? dune -> true
+* Read dune (221 bytes)
+* Rm .merlin (removed)
 * Get_var INSIDE_FUNCTORIA_TESTS -> <not set>
-* Rmdir _build (no-op)
+* Run_cmd 'dune clean' (ok)

@@ -599,6 +599,7 @@ val register :
 module Type = Functoria.Type
 module Impl = Functoria.Impl
 module Info = Functoria.Info
+module Dune = Functoria.Dune
 module Action = Functoria.Action
 
 module FS : sig
@@ -610,8 +611,10 @@ module FS : sig
     unit
 end
 
-module Configure : sig
-  val configure : Info.t -> unit Action.t
+module Project : sig
+  val dune : Info.t -> Dune.stanza list Action.t
+
+  val build : Info.t -> unit Action.t
 end
 
 module Tool : sig

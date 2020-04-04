@@ -1,0 +1,8 @@
+* Get_var PKG_CONFIG_PATH -> <not set>
+* Run_cmd 'opam config var prefix' (ok)
+* Set_var PKG_CONFIG_PATH $prefix/share/pkgconfig:$prefix/lib/pkgconfig
+* Run_cmd 'pkg-config mirage-solo5 --cflags-only-I' (ok)
+* Get_var PKG_CONFIG_PATH -> $prefix/share/pkgconfig:$prefix/lib/pkgconfig
+* Run_cmd 'opam config var prefix' (ok)
+* Set_var PKG_CONFIG_PATH $prefix/share/pkgconfig:$prefix/lib/pkgconfig:$prefix/share/pkgconfig:$prefix/lib/pkgconfig
+* Run_cmd 'pkg-config solo5-bindings-hvt --cflags-only-other' (ok)

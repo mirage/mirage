@@ -1,2 +1,1 @@
-out: dune build ./config.exe
-out: dune exec --root . -- ./config.exe configure a b c --dry-run
+$(dune build ./config.exe)

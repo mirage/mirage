@@ -1,8 +1,13 @@
-type t = { cmd : string; file : string; target : [ `Unix | `Hvt ] }
+type t = {
+  cmd : string;
+  file : string;
+  args : string option;
+  target : [ `Unix | `Hvt ];
+}
 
 let target_str = function `Unix -> "unix" | `Hvt -> "hvt"
 
-let v x target = { cmd = "query " ^ x; file = x; target }
+let v ?args x target = { cmd = "query " ^ x; file = x; target; args }
 
 let gen t =
   let file =
@@ -15,6 +20,7 @@ let gen t =
     | `Unix -> t.cmd
     | x -> Format.sprintf "%s --target=%s" t.cmd (target_str x)
   in
+  let cmd = match t.args with None -> cmd | Some a -> cmd ^ " " ^ a in
   Format.printf
     {|
 (rule
@@ -44,16 +50,34 @@ let of_target target =
       v "name" target;
       v "opam" target;
       v "packages" target;
-      v "files-configure" target;
-      v "files-build" target;
+      v "files" target;
       v "Makefile" target;
       {
         file = "Makefile.no-depext";
         cmd = "query Makefile --no-depext";
+        args = None;
         target;
       };
-      { file = "Makefile.depext"; cmd = "query Makefile --depext"; target };
-      { file = "version"; cmd = "query --version"; target };
+      {
+        file = "Makefile.depext";
+        cmd = "query Makefile --depext";
+        target;
+        args = None;
+      };
+      { file = "x-dune"; cmd = "query dune --dry-run"; target; args = None };
+      { file = "x-dune-base"; cmd = "query dune-base"; target; args = None };
+      {
+        file = "x-dune-project";
+        cmd = "query dune-project";
+        target;
+        args = None;
+      };
+      {
+        file = "x-dune-workspace";
+        cmd = "query dune-workspace --dry-run";
+        target;
+        args = None;
+      };
     ]
 
 let () = List.iter of_target [ `Unix; `Hvt ]

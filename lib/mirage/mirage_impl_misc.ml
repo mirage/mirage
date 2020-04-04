@@ -51,7 +51,10 @@ let pkg_config pkgs args =
   in
   Action.set_var var (Some value) >>= fun () ->
   let cmd = Bos.Cmd.(v "pkg-config" % pkgs %% of_list args) in
-  Action.run_cmd_out cmd >|= fun data -> String.cuts ~sep:" " ~empty:false data
+  Action.run_cmd_out cmd >|= fun data ->
+  (* if dry-run just keep the full output *)
+  if String.is_prefix ~affix:"$(pkg-config" data then [ data ]
+  else String.cuts ~sep:" " ~empty:false data
 
 (* Implement something similar to the @name/file extended names of findlib. *)
 let rec expand_name ~lib param =

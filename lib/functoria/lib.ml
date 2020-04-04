@@ -78,11 +78,17 @@ end
 module type S = sig
   val prelude : string
 
+  val packages : Package.t list
+
   val name : string
 
   val version : string
 
   val create : job impl list -> job impl
+
+  val dune_project : Dune.t option
+
+  val dune_workspace : (info -> Dune.t Action.t) option
 end
 
 module Make (P : S) = struct
@@ -153,56 +159,66 @@ module Make (P : S) = struct
     >>= fun () ->
     Engine.configure i jobs >>= fun () -> Engine.connect i ~init jobs
 
-  let clean_main i jobs =
-    Engine.clean i jobs >>= fun () -> Action.rm (Info.main i)
-
-  let configure args =
-    let jobs, i = args.Cli.context in
-    Log.info (fun m -> m "Configuration: %a" Fpath.pp args.Cli.config_file);
-    let () =
-      match Info.output i with
-      | None -> ()
-      | Some o -> Log.info (fun m -> m "Output       : %a" Fmt.(string) o)
-    in
-    Action.with_dir (build_dir args) (fun () -> configure_main i jobs)
-
   let build args =
-    let (_, jobs), i = args.Cli.context in
+    Action.ok () >>= fun () ->
+    let jobs, i = args.Cli.context in
     Log.info (fun m -> m "Building: %a" Fpath.pp args.Cli.config_file);
-    Action.with_dir (build_dir args) (fun () -> Engine.build i jobs)
+    Action.with_dir (build_dir args) (fun () ->
+        configure_main i jobs >>= fun () -> Engine.build i (snd jobs))
+
+  let files i jobs =
+    let main = Info.main i in
+    let files = Engine.files i jobs in
+    let files = main :: files in
+    Fpath.Set.(elements (of_list files))
 
   let query ({ args; kind; depext } : _ Cli.query_args) =
-    let jobs, i = args.Cli.context in
+    let (_, jobs), i = args.Cli.context in
     match kind with
-    | `Name -> Fmt.pr "%s\n%!" (Info.name i)
+    | `Name ->
+        Fmt.pr "%s\n%!" (Info.name i);
+        Action.ok ()
     | `Packages ->
         let pkgs = Info.packages i in
-        List.iter (Fmt.pr "%a\n%!" (Package.pp ~surround:"\"")) pkgs
+        List.iter (Fmt.pr "%a\n%!" (Package.pp ~surround:"\"")) pkgs;
+        Action.ok ()
     | `Opam ->
         let opam = Info.opam i in
-        Fmt.pr "%a\n%!" Opam.pp opam
-    | `Install ->
-        let install = Key.eval (Info.context i) (Engine.install i (snd jobs)) in
-        Fmt.pr "%a\n%!" Install.pp install
-    | `Files stage ->
-        let actions =
-          match stage with `Configure -> configure args | `Build -> build args
-        in
-        let files = Fpath.Set.elements (Action.generated_files actions) in
-        Fmt.pr "%a\n%!" Fmt.(list ~sep:(unit " ") Fpath.pp) files
+        Fmt.pr "%a\n%!" Opam.pp opam;
+        Action.ok ()
+    | `Files ->
+        let files = files i jobs in
+        Fmt.pr "%a\n%!" Fmt.(list ~sep:(unit " ") Fpath.pp) files;
+        Action.ok ()
     | `Makefile ->
         let file = Makefile.v ~depext (Info.name i) in
-        Fmt.pr "%a\n%!" Makefile.pp file
-
-  let clean args =
-    let (_, jobs), i = args.Cli.context in
-    Log.info (fun m -> m "Cleaning: %a" Fpath.pp args.Cli.config_file);
-    Action.with_dir (build_dir args) (fun () ->
-        clean_main i jobs >>= fun () ->
-        Filegen.rm Fpath.(v "dune") >>= fun () ->
-        Filegen.rm Fpath.(v "dune.config") >>= fun () ->
-        Filegen.rm Fpath.(v "dune.build") >>= fun () ->
-        Action.rm Fpath.(v ".merlin"))
+        Fmt.pr "%a\n%!" Makefile.pp file;
+        Action.ok ()
+    | `Dune `Base ->
+        let dune =
+          Dune.base ~packages:P.packages ~name:P.name ~version:P.version
+        in
+        Fmt.pr "%a\n%!" Dune.pp dune;
+        Action.ok ()
+    | `Dune `Full ->
+        let files = files i jobs in
+        Engine.dune i jobs >|= fun extra ->
+        let dune =
+          Dune.full ~packages:P.packages ~name:P.name ~version:P.version ~files
+            ~extra { args with context = () }
+        in
+        Fmt.pr "%a\n%!" Dune.pp dune
+    | `Dune `Project ->
+        let dune =
+          match P.dune_project with None -> Dune.base_project | Some d -> d
+        in
+        Fmt.pr "%a\n%!" Dune.pp dune;
+        Action.ok ()
+    | `Dune `Workspace ->
+        ( match P.dune_workspace with
+        | None -> Action.ok Dune.base_workspace
+        | Some f -> f i )
+        >|= fun dune -> Fmt.pr "%a\n%!" Dune.pp dune
 
   let ok () = Action.ok ()
 
@@ -230,7 +246,7 @@ module Make (P : S) = struct
         | Cli.Configure t ->
             let t = { t with args = with_output t.args } in
             Log.info (fun m -> pp_info m (Some Logs.Debug) t.args);
-            configure t.args
+            Action.ok ()
         | Cli.Build t ->
             let t = with_output t in
             Log.info (fun m -> pp_info m (Some Logs.Debug) t);
@@ -238,21 +254,31 @@ module Make (P : S) = struct
         | Cli.Query t ->
             let t = { t with args = with_output t.args } in
             Log.info (fun m -> pp_info m (Some Logs.Debug) t.args);
-            query t;
-            ok ()
+            query t
         | Cli.Describe t ->
             let t = { t with args = with_output t.args } in
             pp_info Fmt.(pf stdout) (Some Logs.Info) t.args;
             describe t
-        | Cli.Clean t ->
-            let t = with_output t in
-            Log.info (fun m -> pp_info m (Some Logs.Debug) t);
-            clean t )
+        | Cli.Clean _ -> Action.ok () )
 
   let action_run args a =
     if not args.Cli.dry_run then Action.run a
     else
-      let env = Action.env ~files:(`Passtrough (Fpath.v ".")) () in
+      let commands cmd =
+        let cmd_str =
+          let out =
+            Fmt.str "$(%a)"
+              Fmt.(list ~sep:(unit " ") string)
+              (Bos.Cmd.to_list cmd)
+          in
+          Some (out, "")
+        in
+        match Bos.Cmd.to_list cmd with
+        | [ "opam"; "config"; "var"; "prefix" ] -> Some ("$prefix", "")
+        | "ocamlfind" :: "query" :: _ | "pkg-config" :: _ -> cmd_str
+        | _ -> None
+      in
+      let env = Action.env ~files:(`Passtrough (Fpath.v ".")) ~commands () in
       let r, _, lines = Action.dry_run ~env a in
       List.iter
         (fun line ->

@@ -1,0 +1,8 @@
+(lang dune 2.0)
+
+(context (default))
+
+(context (default
+  (name mirage-hvt)
+  (host default)
+  (env (_ (c_flags (:standard $(pkg-config mirage-solo5 --cflags-only-I) $(pkg-config solo5-bindings-hvt --cflags-only-other)))))))

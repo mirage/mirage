@@ -26,6 +26,7 @@ type 'a args = {
   context_file : Fpath.t option;
   output : string option;
   dry_run : bool;
+  setup : string list;
 }
 (** The type for global arguments. *)
 
@@ -40,6 +41,9 @@ val peek_output : string array -> string option
 
 val pp_args : 'a Fmt.t -> 'a args Fmt.t
 (** [pp_args] is the pretty-printer for args. *)
+
+val argv_of_args : unit args -> string array
+(** [argv_of_args a] is the command-line arguments [x] such as [eval x = a]. *)
 
 (** {1 Sub-commands} *)
 
@@ -59,8 +63,8 @@ type query_kind =
   [ `Name
   | `Packages
   | `Opam
-  | `Install
-  | `Files of [ `Configure | `Build ]
+  | `Files
+  | `Dune of [ `Base | `Full | `Project | `Workspace ]
   | `Makefile ]
 
 val pp_query_kind : query_kind Fmt.t

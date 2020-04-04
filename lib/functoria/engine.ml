@@ -47,19 +47,33 @@ let packages =
   | Dev c -> Device.packages c
   | If _ | App -> Packages.empty
 
-module Installs = struct
-  type t = Install.t Key.value
+module Dune = struct
+  type t = Dune.stanza list Action.t
 
-  let union x y = Key.(pure Install.union $ x $ y)
+  let union x y =
+    x >>= fun x ->
+    y >|= fun y -> x @ y
 
-  let empty = Key.pure Install.empty
+  let empty = Action.ok []
 end
 
-let install i =
-  let open Device_graph in
-  Device_graph.collect (module Installs) @@ function
-  | Dev c -> Device.install c i
-  | If _ | App -> Installs.empty
+let dune info =
+  Device_graph.collect (module Dune) @@ function
+  | Dev c -> Device.dune c info
+  | If _ | App -> Dune.empty
+
+module Files = struct
+  type t = Fpath.t list
+
+  let union = ( @ )
+
+  let empty = []
+end
+
+let files info =
+  Device_graph.collect (module Files) @@ function
+  | Dev c -> Device.files c info
+  | If _ | App -> Files.empty
 
 (* [module_expresion tbl c args] returns the module expression of
    the functor [c] applies to [args]. *)
@@ -103,7 +117,6 @@ let configure info t =
     match Device_graph.explode t v with
     | `App _ | `If _ -> assert false
     | `Dev (Device_graph.D c, `Args args, `Deps _) ->
-        Device.configure c info >>= fun () ->
         if args = [] then Action.ok ()
         else
           append_main info "configure" "@[<2>module %s =@ %a@]@."
@@ -156,11 +169,3 @@ let connect ?(init = []) info t =
     |> List.rev
   in
   emit_run info init_names main_name
-
-let clean i t =
-  let f v =
-    match Device_graph.explode t v with
-    | `App _ | `If _ -> assert false
-    | `Dev (Device_graph.D c, _, _) -> Device.clean c i
-  in
-  iter_actions f t

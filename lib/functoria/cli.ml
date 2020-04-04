@@ -35,8 +35,8 @@ type query_kind =
   [ `Name
   | `Packages
   | `Opam
-  | `Install
-  | `Files of [ `Configure | `Build ]
+  | `Files
+  | `Dune of [ `Base | `Full | `Project | `Workspace ]
   | `Makefile ]
 
 let query_kinds : (string * query_kind) list =
@@ -44,17 +44,21 @@ let query_kinds : (string * query_kind) list =
     ("name", `Name);
     ("packages", `Packages);
     ("opam", `Opam);
-    ("install", `Install);
-    ("files-configure", `Files `Configure);
-    ("files-build", `Files `Build);
+    ("files", `Files);
     ("Makefile", `Makefile);
+    ("dune-base", `Dune `Base);
+    ("dune", `Dune `Full);
+    ("dune-project", `Dune `Project);
+    ("dune-workspace", `Dune `Workspace);
   ]
 
 let setup ~with_setup =
   Term.(
-    const (if with_setup then setup_log else fun _ _ -> ())
-    $ Fmt_cli.style_renderer ~docs:common_section ()
-    $ Logs_cli.level ~docs:common_section ())
+    const snd
+    $ with_used_args
+        ( const (if with_setup then setup_log else fun _ _ -> ())
+        $ Fmt_cli.style_renderer ~docs:common_section ()
+        $ Logs_cli.level ~docs:common_section () ))
 
 let config_file =
   let doc =
@@ -157,7 +161,26 @@ type 'a args = {
   context_file : Fpath.t option;
   output : string option;
   dry_run : bool;
+  setup : string list;
 }
+
+let argv_of_args t =
+  let config_file =
+    match Fpath.to_string t.config_file with
+    | "config.ml" -> [||]
+    | f -> [| "--config-file"; f |]
+  in
+  let context_file =
+    match t.context_file with
+    | None -> [||]
+    | Some f -> [| "--context-file"; Fpath.to_string f |]
+  in
+  let output = match t.output with None -> [||] | Some f -> [| "-o"; f |] in
+  let dry_run =
+    match t.dry_run with false -> [||] | true -> [| "--dry-run" |]
+  in
+  let setup = Array.of_list t.setup in
+  Array.concat [ config_file; context_file; output; dry_run; setup ]
 
 type 'a configure_args = { args : 'a args; depext : bool }
 
@@ -196,6 +219,7 @@ let pp_args pp_a =
       field "config_file" (fun t -> t.config_file) Fpath.pp;
       field "output" (fun t -> t.output) (option string);
       field "dry_run" (fun t -> t.dry_run) Fmt.bool;
+      field "setup" (fun t -> t.setup) (list string);
     ]
 
 let pp_configure pp_a =
@@ -248,8 +272,8 @@ let pp_action pp_a ppf = function
 
 let args ~with_setup context =
   Term.(
-    const (fun () config_file context_file dry_run output context ->
-        { config_file; context_file; dry_run; output; context })
+    const (fun setup config_file context_file dry_run output context ->
+        { setup; config_file; context_file; dry_run; output; context })
     $ setup ~with_setup
     $ config_file
     $ context_file

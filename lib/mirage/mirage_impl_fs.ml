@@ -54,6 +54,7 @@ let count =
 let fat_block ?(dir = ".") ?(regexp = "*") () =
   let name = "fat_block" ^ string_of_int (count ()) in
   let block_file = name ^ ".img" in
+  let files _ = function `Build -> [ Fpath.v block_file ] | _ -> [] in
   let file = Fmt.strf "make-%s-image.sh" name in
   let pre_build _ =
     let dir = Fpath.of_string dir |> Rresult.R.error_msg_to_invalid_arg in
@@ -70,7 +71,7 @@ let fat_block ?(dir = ".") ?(regexp = "*") () =
   in
   let packages = [ fat_pkg ] in
   let block = Mirage_impl_block.block_conf block_file in
-  of_device @@ Device.extend ~packages ~pre_build ~pre_clean block
+  of_device @@ Device.extend ~files ~packages ~pre_build ~pre_clean block
 
 let fat_of_files ?dir ?regexp () = fat @@ fat_block ?dir ?regexp ()
 

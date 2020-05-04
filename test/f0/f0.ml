@@ -29,13 +29,13 @@ let root () = Action.pwd () >>= root
 
 let dune_build = Fpath.(v "dune.build")
 
-let file_of_key k = Key.(name @@ v k)
+let file_of_key k = Fpath.v Key.(name @@ v k)
 
 let write_key i k f =
   let context = Functoria.Info.context i in
   let file = file_of_key k in
   let contents = f (Key.get context k) in
-  Action.write_file Fpath.(v file) contents
+  Action.write_file file contents
 
 let split_root () =
   Action.pwd () >>= fun cwd ->
@@ -56,6 +56,10 @@ module C = struct
   let packages = [ Functoria.package "functoria"; Functoria.package "f0" ]
 
   let keys = Key.[ v vote; v warn_error ]
+
+  let files _ = function
+    | `Build -> [ file_of_key vote; file_of_key warn_error ]
+    | _ -> []
 
   let connect _ _ _ = "()"
 
@@ -97,15 +101,15 @@ module C = struct
           match Info.output i with None -> Info.name i | Some o -> o
         in
         let dst = Fpath.v dst in
-        let vote = Fpath.(prefix / file_of_key vote) in
-        let warn_error = Fpath.(prefix / file_of_key warn_error) in
+        let vote = Fpath.(prefix // file_of_key vote) in
+        let warn_error = Fpath.(prefix // file_of_key warn_error) in
         Install.v ~bin:[ (src, dst) ] ~etc:[ vote; warn_error ] ()
 
   let create jobs =
     let packages = Functoria.[ package "fmt" ] in
     let extra_deps = List.map Functoria.abstract jobs in
-    Functoria.impl ~keys ~packages ~configure ~connect ~clean ~build ~extra_deps
-      ~install "F0" Functoria.job
+    Functoria.impl ~keys ~packages ~configure ~connect ~clean ~files ~build
+      ~extra_deps ~install "F0" Functoria.job
 end
 
 include Lib.Make (C)

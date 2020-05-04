@@ -106,7 +106,7 @@ module Make (P : S) = struct
     in
     Filegen.write file contents
 
-  (* Generate a `dune.config` file in the build directory. *)
+  (* Generate a `dune.build` file in the build directory. *)
   let generate_empty_dune_build () = Filegen.write (Fpath.v "dune.build") "\n"
 
   (* Generate a `dune` file in the build directory. *)

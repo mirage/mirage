@@ -84,3 +84,10 @@ let build i =
   >>= fun () ->
   link i name target target_debug >|= fun out ->
   Log.info (fun m -> m "Build succeeded: %s" out)
+
+let files i =
+  let ctx = Info.context i in
+  let target = Key.(get ctx target) in
+  match target with
+  | #Mirage_key.mode_unix -> [ Fpath.v "main.native" ]
+  | #Mirage_key.mode_xen | #Mirage_key.mode_solo5 -> [ Fpath.v "main.native.o" ]

@@ -54,7 +54,16 @@ val equal : ('a, 'b) t -> ('c, 'd) t -> bool
 val hash : ('a, 'b) t -> int
 (** [hash t] is [t]'s hash. *)
 
-(** {1 Effects} *)
+(** {1 Resources} *)
+
+val files : ('a, 'b) t -> Info.t -> [ `Configure | `Build ] -> Fpath.t list
+(** [files t info s] is the list of files generated at stage [s]. *)
+
+val keys : ('a, 'b) t -> Key.t list
+(** [keys t] is the list of command-line keys which can be used to configure
+    [t]. *)
+
+(** {1 Code Generation} *)
 
 type 'a code = string
 (** The type for fragments of code of type ['a]. *)
@@ -64,6 +73,11 @@ val connect : ('a, 'b) t -> Info.t -> string -> string list -> 'a code
     new state (usually calling [<module_name t>.connect]) with the arguments
     [args], in the context of the project information [info]. The freshly
     created state will be made available in [var_name t] *)
+
+val start : string -> string list -> 'a code
+(** [start impl_name args] is the code [<impl_name>.start <args>]. *)
+
+(** {1 Actions} *)
 
 val configure : ('a, 'b) t -> Info.t -> unit Action.t
 (** [configure t info] runs [t]'s configuration hooks. During the configuration
@@ -79,13 +93,6 @@ val build : ('a, 'b) t -> Info.t -> unit Action.t
 val clean : ('a, 'b) t -> Info.t -> unit Action.t
 (** [clean t info] runs [t]'s clean-up hooks. *)
 
-val keys : ('a, 'b) t -> Key.t list
-(** [keys t] is the list of command-line keys which can be used to configure
-    [t]. *)
-
-val start : string -> string list -> 'a code
-(** [start impl_name args] is the code [<impl_name>.start <args>]. *)
-
 (** {1 Constructors} *)
 
 val v :
@@ -97,6 +104,7 @@ val v :
   ?extra_deps:'b list ->
   ?connect:(Info.t -> string -> string list -> 'a code) ->
   ?configure:(Info.t -> unit Action.t) ->
+  ?files:(Info.t -> [ `Configure | `Build ] -> Fpath.t list) ->
   ?build:(Info.t -> unit Action.t) ->
   ?clean:(Info.t -> unit Action.t) ->
   string ->
@@ -106,6 +114,7 @@ val v :
 val extend :
   ?packages:Package.t list ->
   ?packages_v:Package.t list Key.value ->
+  ?files:(Info.t -> [ `Configure | `Build ] -> Fpath.t list) ->
   ?pre_configure:(Info.t -> unit Action.t) ->
   ?post_configure:(Info.t -> unit Action.t) ->
   ?pre_build:(Info.t -> unit Action.t) ->

@@ -232,8 +232,6 @@ module Env : sig
 
   val pp : t Fmt.t
 
-  val diff_files : old:t -> t -> Fpath.Set.t
-
   val pwd : t -> Fpath.t
 
   val chdir : t -> Fpath.t -> t
@@ -278,17 +276,6 @@ end = struct
     env : string String.Map.t;
     commands : Bos.Cmd.t -> (string * string) option;
   }
-
-  let diff_files ~old t =
-    let to_set t =
-      Fpath.Map.fold
-        (fun f _ acc ->
-          match Fpath.rem_prefix t.pwd f with
-          | None -> acc
-          | Some f -> Fpath.Set.add f acc)
-        t.files Fpath.Set.empty
-    in
-    Fpath.Set.diff (to_set t) (to_set old)
 
   let scan dir =
     (let open Rresult in
@@ -614,10 +601,6 @@ let dry_run ?(env = env ()) t = dry_run ~env t
 let dry_run_trace ?env t =
   let _, _, lines = dry_run ?env t in
   List.iter print_endline lines
-
-let generated_files ?(env = env ()) t =
-  let _, new_env, _ = dry_run ~env t in
-  Env.diff_files ~old:env new_env
 
 module Infix = struct
   let ( >>= ) x f = bind ~f x

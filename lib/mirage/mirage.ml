@@ -337,6 +337,10 @@ module Project = struct
     let name = match Info.output i with None -> Info.name i | Some n -> n in
     Install.v ~bin:[ bin ~name k ] ~etc:(etc ~name k) ()
 
+  let files t = function
+    | `Build -> Mirage_build.files t
+    | `Configure -> Mirage_configure.files t
+
   let create jobs =
     let keys = Key.[ v target; v warn_error; v target_debug ] in
     let packages_v =
@@ -367,7 +371,7 @@ module Project = struct
     let install_v i = Key.match_ Key.(value target) (install i) in
     let extra_deps = List.map abstract jobs in
     let connect _ _ _ = "return ()" in
-    impl ~keys ~packages_v ~install_v ~build ~configure ~clean ~connect
+    impl ~files ~keys ~packages_v ~install_v ~build ~configure ~clean ~connect
       ~extra_deps "Mirage_runtime" job
 end
 

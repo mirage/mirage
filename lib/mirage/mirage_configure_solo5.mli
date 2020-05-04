@@ -11,3 +11,5 @@ val generate_manifest_json : unit -> unit Action.t
 val generate_manifest_c : unit -> unit Action.t
 
 val compile_manifest : [> Mirage_key.mode_solo5 ] -> unit Action.t
+
+val files : Info.t -> Fpath.t list

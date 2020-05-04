@@ -106,6 +106,9 @@ val package :
     The builder is in charge if parsing the command-line arguments and of
     generating code for the final application. See {!App} for details. *)
 
+type info = Info.t
+(** The type for build information. *)
+
 val foreign :
   ?packages:package list ->
   ?packages_v:package list Key.value ->
@@ -149,10 +152,11 @@ val impl :
   ?install_v:(Info.t -> Install.t Key.value) ->
   ?keys:Key.t list ->
   ?extra_deps:Impl.abstract list ->
-  ?connect:(Info.t -> string -> string list -> string) ->
-  ?configure:(Info.t -> unit Action.t) ->
-  ?build:(Info.t -> unit Action.t) ->
-  ?clean:(Info.t -> unit Action.t) ->
+  ?connect:(info -> string -> string list -> string) ->
+  ?configure:(info -> unit Action.t) ->
+  ?files:(info -> [ `Configure | `Build ] -> Fpath.t list) ->
+  ?build:(info -> unit Action.t) ->
+  ?clean:(info -> unit Action.t) ->
   string ->
   'a typ ->
   'a impl
@@ -161,5 +165,3 @@ val impl :
 (** {1 Jobs} *)
 
 type job = Job.t
-
-type info = Info.t

@@ -36,6 +36,7 @@ type ('a, 'impl) t = {
   install : info -> Install.t value;
   connect : info -> string -> string list -> string;
   configure : info -> unit Action.t;
+  files : info -> [ `Configure | `Build ] -> Fpath.t list;
   build : info -> unit Action.t;
   clean : info -> unit Action.t;
   extra_deps : 'impl list;
@@ -66,6 +67,8 @@ let default_connect _ _ l =
 
 let niet _ = Action.ok ()
 
+let nil _ _ = []
+
 type 'a code = string
 
 let merge empty union a b =
@@ -86,8 +89,8 @@ let count =
     !i
 
 let v ?packages ?packages_v ?install ?install_v ?(keys = []) ?(extra_deps = [])
-    ?(connect = default_connect) ?(configure = niet) ?(build = niet)
-    ?(clean = niet) module_name module_type =
+    ?(connect = default_connect) ?(configure = niet) ?(files = nil)
+    ?(build = niet) ?(clean = niet) module_name module_type =
   let id = count () in
   let packages = merge_packages packages packages_v in
   let install i =
@@ -104,6 +107,7 @@ let v ?packages ?packages_v ?install ?install_v ?(keys = []) ?(extra_deps = [])
     install;
     clean;
     configure;
+    files;
     build;
     extra_deps;
   }
@@ -122,6 +126,8 @@ let connect t = t.connect
 
 let configure t = t.configure
 
+let files t = t.files
+
 let build t = t.build
 
 let clean t = t.clean
@@ -135,8 +141,9 @@ let start impl_name args =
 
 let exec_hook i = function None -> Action.ok () | Some h -> h i
 
-let extend ?packages ?packages_v ?pre_configure ?post_configure ?pre_build
-    ?post_build ?pre_clean ?post_clean t =
+let extend ?packages ?packages_v ?(files = nil) ?pre_configure ?post_configure
+    ?pre_build ?post_build ?pre_clean ?post_clean t =
+  let files i s = files i s @ t.files i s in
   let packages =
     Key.(pure List.append $ merge_packages packages packages_v $ t.packages)
   in
@@ -147,4 +154,4 @@ let extend ?packages ?packages_v ?pre_configure ?post_configure ?pre_build
   let configure = exec pre_configure t.configure post_configure in
   let build = exec pre_build t.build post_build in
   let clean = exec pre_clean t.clean post_clean in
-  { t with packages; configure; build; clean }
+  { t with packages; files; configure; build; clean }

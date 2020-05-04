@@ -55,10 +55,11 @@ let keys ?(runtime_package = "functoria-runtime")
   let key_gen = Key.module_name in
   let file = Fpath.(v (String.Ascii.lowercase key_gen) + "ml") in
   let configure = Keys.configure ~file and clean = Keys.clean ~file in
+  let files _ = function `Configure -> [ file ] | `Build -> [] in
   let connect info impl_name = function
     | [ argv ] ->
         Fmt.strf "return (%s.with_argv (List.map fst %s.runtime_keys) %S %s)"
           runtime_modname impl_name (Info.name info) argv
     | _ -> failwith "The keys connect should receive exactly one argument."
   in
-  Impl.v ~configure ~clean ~packages ~extra_deps ~connect key_gen t
+  Impl.v ~files ~configure ~clean ~packages ~extra_deps ~connect key_gen t

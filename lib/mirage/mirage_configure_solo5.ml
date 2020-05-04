@@ -3,6 +3,7 @@ open Functoria
 open Mirage_impl_misc
 open Action.Infix
 module Log = Mirage_impl_misc.Log
+module Key = Mirage_key
 
 let solo5_manifest_path = Fpath.v "_build/manifest.json"
 
@@ -63,3 +64,9 @@ let compile_manifest target =
   let cmd = Bos.Cmd.(v "cc" %% of_list cflags % "-c" % c % "-o" % obj) in
   Log.info (fun m -> m "executing %a" Bos.Cmd.pp cmd);
   Action.run_cmd cmd
+
+let files i =
+  let ctx = Info.context i in
+  let target = Key.(get ctx target) in
+  Fpath.v "_build/manifest.json"
+  :: (match target with `Virtio -> [ Fpath.v "libvirt.xml" ] | _ -> [])

@@ -166,6 +166,12 @@ module Make (P : S) = struct
     in
     Action.with_dir (build_dir args) (fun () -> configure_main i jobs)
 
+  let files i jobs s =
+    let main = Info.main i in
+    let files = Engine.files i jobs s in
+    let files = if s = `Configure then main :: files else files in
+    Fpath.Set.(elements (of_list files))
+
   let build args =
     let (_, jobs), i = args.Cli.context in
     Log.info (fun m -> m "Building: %a" Fpath.pp args.Cli.config_file);
@@ -185,10 +191,7 @@ module Make (P : S) = struct
         let install = Key.eval (Info.context i) (Engine.install i (snd jobs)) in
         Fmt.pr "%a\n%!" Install.pp install
     | `Files stage ->
-        let actions =
-          match stage with `Configure -> configure args | `Build -> build args
-        in
-        let files = Fpath.Set.elements (Action.generated_files actions) in
+        let files = files i (snd jobs) stage in
         Fmt.pr "%a\n%!" Fmt.(list ~sep:(unit " ") Fpath.pp) files
     | `Makefile ->
         let file = Makefile.v ~depext (Info.name i) in

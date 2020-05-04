@@ -61,6 +61,20 @@ let install i =
   | Dev c -> Device.install c i
   | If _ | App -> Installs.empty
 
+module Files = struct
+  type t = Fpath.t list
+
+  let union = ( @ )
+
+  let empty = []
+end
+
+let files info t stage =
+  Device_graph.collect
+    (module Files)
+    (function Dev c -> Device.files c info stage | If _ | App -> Files.empty)
+    t
+
 (* [module_expresion tbl c args] returns the module expression of
    the functor [c] applies to [args]. *)
 let module_expression fmt (c, args) =

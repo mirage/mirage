@@ -181,3 +181,12 @@ let configure_main_xe ~name =
       append fmt "xe vm-start uuid=$VM")
 
 let clean_main_xe ~name = Action.rm Fpath.(v name + "xe")
+
+let files i =
+  let name = Info.name i in
+  [
+    Fpath.(v name + "xl");
+    Fpath.(v name + "xl.in");
+    Fpath.(v name + "xe");
+    Fpath.v "libvirt.xml";
+  ]

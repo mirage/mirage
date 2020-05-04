@@ -48,3 +48,14 @@ let configure i =
       Mirage_configure_libvirt.configure_main ~name
   | `Virtio -> Mirage_configure_libvirt.configure_virtio ~name
   | _ -> Action.ok ()
+
+let files i =
+  let ctx = Info.context i in
+  let target = Key.(get ctx target) in
+  Fpath.v "myocamlbuild.ml"
+  ::
+  ( match target with
+  | `Virtio -> Mirage_configure_solo5.files i
+  | #Mirage_key.mode_solo5 -> Mirage_configure_solo5.files i
+  | `Xen -> Mirage_configure_xen.files i
+  | _ -> [] )

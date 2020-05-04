@@ -54,6 +54,7 @@ val v :
   ?extra_deps:abstract list ->
   ?connect:(Info.t -> string -> string list -> string) ->
   ?configure:(Info.t -> unit Action.t) ->
+  ?files:(Info.t -> [ `Configure | `Build ] -> Fpath.t list) ->
   ?build:(Info.t -> unit Action.t) ->
   ?clean:(Info.t -> unit Action.t) ->
   string ->

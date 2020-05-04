@@ -7,3 +7,5 @@ val configure_myocamlbuild : unit -> unit Action.t
 val clean_myocamlbuild : unit -> unit Action.t
 
 val configure : Functoria.Info.t -> unit Action.t
+
+val files : Info.t -> Fpath.t list

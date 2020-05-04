@@ -66,18 +66,3 @@ val pp : bool -> t Fmt.t
 (** {1 Devices} *)
 
 val t : t Type.t
-
-val app_info :
-  (packages:Package.t list ->
-  connect:(t -> string -> string list -> string) ->
-  clean:(t -> unit Action.t) ->
-  build:(t -> unit Action.t) ->
-  string ->
-  t Type.t ->
-  'd) ->
-  ?runtime_package:string ->
-  ?opam_list:(string * string) list ->
-  ?gen_modname:string ->
-  ?modname:string ->
-  unit ->
-  'd

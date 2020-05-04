@@ -37,7 +37,7 @@ type 'a with_output = {
 
 type channel = [ `Null | `Fmt of Format.formatter ]
 
-type cmd = { cmd : Bos.Cmd.t; err : channel; out : channel }
+type cmd = { cmd : Bos.Cmd.t; err : channel; out : channel; trim : bool }
 
 type ls = { root : Fpath.t; filter : Fpath.t -> bool }
 
@@ -109,10 +109,10 @@ let set_var c v = wrap @@ Set_var (c, v)
 let get_var c = wrap @@ Get_var c
 
 let run_cmd ?(err = `Fmt Fmt.stderr) ?(out = `Fmt Fmt.stdout) cmd =
-  wrap @@ Run_cmd { cmd; out; err }
+  wrap @@ Run_cmd { cmd; out; err; trim = false }
 
 let run_cmd_out ?(err = `Fmt Fmt.stderr) cmd =
-  wrap @@ Run_cmd_out { cmd; out = `Null; err }
+  wrap @@ Run_cmd_out { cmd; out = `Null; err; trim = true }
 
 let write_file path contents = wrap @@ Write_file (!path, contents)
 
@@ -125,7 +125,7 @@ let with_output ?mode ?(append = false) ~path ~purpose contents =
 
 let pfo ppf s = match ppf with `Null -> () | `Fmt ppf -> Fmt.pf ppf "%s%!" s
 
-let interpret_cmd { cmd; err; out } =
+let interpret_cmd { cmd; err; out; trim } =
   Log.debug (fun l -> l "RUN: %a" Bos.Cmd.pp cmd);
   let open Rresult in
   let err =
@@ -138,7 +138,7 @@ let interpret_cmd { cmd; err; out } =
   in
   err >>= fun (err, flush_err) ->
   let res = Bos.OS.Cmd.run_out ~err cmd in
-  let res = Bos.OS.Cmd.out_string ~trim:true res in
+  let res = Bos.OS.Cmd.out_string ~trim res in
   res >>= fun (str_out, _) ->
   pfo out str_out;
   flush_err () >>= fun () -> Bos.OS.Cmd.success res
@@ -456,7 +456,7 @@ let eq_env = Env.eq
 
 let pp_env = Env.pp
 
-let interpret_dry_cmd env { cmd; err; out } : string or_err * _ * _ =
+let interpret_dry_cmd env { cmd; err; out; _ } : string or_err * _ * _ =
   Log.debug (fun l -> l "Run_cmd '%a'" Bos.Cmd.pp cmd);
   let log x = Fmt.str "Run_cmd '%a' (%s)" Bos.Cmd.pp cmd x in
   match Env.exec env cmd with

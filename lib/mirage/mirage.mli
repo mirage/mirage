@@ -15,19 +15,103 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Mirage combinators.
+(** {e Release %%VERSION%%} *)
 
-    [Mirage] devices a set of devices and combinator to to define portable
-    applications across all platforms that MirageOS supports.
+(** {1 What is MirageOS?}
 
-    {e Release %%VERSION%%} *)
+    MirageOS is a library operating system that can build standalone unikernels
+    on various platforms. More precisely, the architecture can be divided into:
+
+    - {e operating system libraries} that implement kernel and protocol
+      functionality, ranging from low-level network card drivers to a full
+      reimplementation of the TLS protocol, through to a reimplementation of the
+      Git protocol to store versioned data.
+
+    - A set of {e typed signatures} to make sure these libraries are consistent
+      and can interoperate. As all the library are almost all pure OCaml code,
+      we have defined {e a set of OCaml module types} that encode these
+      conventions in a statically enforcable way. We make no compatibility
+      guarantees at the C level, but compile those on a best-effort basis.
+
+    - Finally, MirageOS is also a {e metaprogramming compiler} that generates
+      OCaml code. It takes as input: the OCaml source code of a program and all
+      of its dependencies, the full description of the deployment target,
+      including configuration values (like the HTTP port to listen too, or the
+      private key or the service being deployed). The `mirage`CLI tool uses all
+      of these to {e generate a executable unikernel}: a specialised binary
+      artefact containing only the code what is needed to run on the given
+      deployment platform and no more.
+
+    It is possible to write high-level MirageOS applications, such as HTTPS,
+    email or CalDAV servers which can be deployed on very heterogenous and
+    embedded platforms by changing only a few compilation parameters. The
+    supported platforms range from ESP32 micro-controllers, minimal virtual
+    machines running on a cloud providers, or processes running inside a Docker
+    container configured with a tight security profile. In general, these
+    platform do not have a full POSIX environment; MirageOS does not try to
+    emulate POSIX and focuses on providing a small, well-defined, typed
+    interface with the system components. The nearest equivalent to the MirageOS
+    approach is the WASI (wasi.dev) set of interfaces for WebAssembly.
+
+    {2 Is everything really written in OCaml?}
+
+    While most of the code is written in OCaml, a typed, high-level language
+    with many good safety properties, there are pieces of MirageOS which are
+    still written in unsafe C. These bits can be separated in three categories:
+
+    - The OCaml runtime is written in C. It needs to be ported to the platform
+      that MirageOS is trying to target, which do not support POSIX. Hence, the
+      first component to port to a new platform is the OCaml runtime.
+
+    - The low-level device drivers (network, console, clock, etc) also need some
+      C bits.
+
+    - The base usual C bindings; some libraries are widely used and
+      (unfortunately) very hard (but not impossible) to replace them completely
+      without taking a big performance hit or having to trust code without much
+      real-world usages. This is the case for low-level bit handling for crypto
+      code (even if we try to make sure allocation is alway handled by the OCaml
+      runtime) as well as arbitrary precision numeric computation (e.g. gmp).
+      Ideally we could image rewriting all of these libraries in OCaml if we had
+      an infinite amount of time in our hands.
+
+    {2 MirageOS as a cross-compilator}
+
+    The MirageOS compiler is basically a cross-compiler, where the host and
+    target toolchain are identical, but with different flags for the C bindings:
+    for instance, it is necessary to pass [-freestanding] to {e all} C bindings
+    to not use POSIX headers. The MirageOS compiler also uses a custom linker:
+    eg. not only it needs a custom OCaml's runtime [libasmrun.a], but it also
+    needs to run a different linker to generate specialised executable images.
+
+    Historically, the OCaml ecosystem always had partial support for
+    cross-compilation: for instance, the
+    {{:https://github.com/ocaml-cross/opam-cross-windows} ocaml-cross} way of
+    doing it is to duplicate {e all} existing opam pacakges by adding a
+    [-windows] suffix to their names and dependencies; this allows normal
+    packages and windows packages can be co-installed in the same opam switch.
+
+    MirageOS 3 solves this by duplicating only the packages defining C bindings
+    and (ab)using
+    {{:https://github.com/ocaml/opam-repository/blob/master/packages/zarith-xen/zarith-xen.1.7/files/mirage-install.sh#L20}
+    ocamlfind predicates} to resolve link time depencencies for C archives and
+    on relying on the now deprecated [--output-obj] option of the OCaml
+    compiler.
+
+    {1 MirageOS eDSL}
+
+    The rest of the document describes Functoria, the embedded domain-specific
+    language to be used in [config.ml] files, to described how the typed
+    libraries have to be assembled. *)
+
+include Functoria.DSL
+(** @inline *)
 
 (** Configuration keys. *)
 module Key : module type of struct
   include Mirage_key
 end
-
-include Functoria.DSL
+(** @inline *)
 
 (** {2 General mirage devices} *)
 

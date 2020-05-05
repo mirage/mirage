@@ -150,7 +150,7 @@ type 'a domain = {
 (** The type for interpreted values. *)
 
 val eq_domain : ('a -> 'a -> bool) -> 'a domain -> 'a domain -> bool
-(** [eq_domain] is the equality function between !{domain}s. *)
+(** [eq_domain] is the equality function between {!domain}s. *)
 
 val pp_domain : 'a Fmt.t -> 'a domain Fmt.t
 (** [pp_domain] is the pretty-printer for {!domain}s. *)

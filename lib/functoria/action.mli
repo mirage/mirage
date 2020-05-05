@@ -132,12 +132,6 @@ val run : 'a t -> ('a, Rresult.R.msg) result
 type env
 (** The type for virtual environments. *)
 
-val eq_env : env -> env -> bool
-(** [eq_env] is the equality function for virtual filesystems. *)
-
-val pp_env : env Fmt.t
-(** [pp_env] is the pretty-printer for virtual filesystems. *)
-
 type files = [ `Passtrough of Fpath.t | `Files of (Fpath.t * string) list ]
 
 val env :
@@ -148,7 +142,20 @@ val env :
   unit ->
   env
 
-val dry_run : ?env:env -> 'a t -> ('a, Rresult.R.msg) result * env * string list
+type 'a domain = {
+  result : ('a, Rresult.R.msg) result;
+  env : env;
+  logs : string list;
+}
+(** The type for interpreted values. *)
+
+val eq_domain : ('a -> 'a -> bool) -> 'a domain -> 'a domain -> bool
+(** [eq_domain] is the equality function between !{domain}s. *)
+
+val pp_domain : 'a Fmt.t -> 'a domain Fmt.t
+(** [pp_domain] is the pretty-printer for {!domain}s. *)
+
+val dry_run : ?env:env -> 'a t -> 'a domain
 (** Emulate the action. This will not do IO on the actual files. Some
     approximation is done to determine the result of actions. [files] is a list
     of paths that are supposed to exist at the beginning. Returns:

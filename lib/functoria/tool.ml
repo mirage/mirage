@@ -46,14 +46,24 @@ module Make (P : S) = struct
         let dir = Fpath.parent args.Cli.config_file in
         Fpath.(normalize (dir / (P.name ^ ".context")))
 
+  let add_context_file t argv =
+    match Cli.peek_context_file argv with
+    | Some _ -> Action.ok argv
+    | None -> (
+        let file = context_file t in
+        Action.is_file file >|= function
+        | false -> argv (* should only happen when doing configure --help *)
+        | true -> Array.append argv [| "--context"; Fpath.to_string file |] )
+
   let run_cmd ?ppf ?err_ppf command =
     let err = match err_ppf with None -> None | Some f -> Some (`Fmt f) in
     let out = match ppf with None -> None | Some f -> Some (`Fmt f) in
     Action.run_cmd ?err ?out command
 
   (* re-exec the command by calling config.exe with the same argv as
-     the current command. *)
+     the current command. Also add the [--context] argument if needed. *)
   let re_exec t ?ppf ?err_ppf argv =
+    add_context_file t argv >>= fun argv ->
     let args = Bos.Cmd.of_list (List.tl (Array.to_list argv)) in
     let command =
       Bos.Cmd.(
@@ -202,7 +212,7 @@ module Make (P : S) = struct
       let env =
         let commands cmd =
           match Bos.Cmd.line_exec cmd with
-          | Some "dune" -> Some (Fmt.str "out: %a\n" Bos.Cmd.pp cmd, "")
+          | Some "dune" -> Some (Fmt.str "$(%a)\n" Bos.Cmd.pp cmd, "")
           | _ -> None
         in
         Action.env ~commands ~files:(`Passtrough (Fpath.v ".")) ()

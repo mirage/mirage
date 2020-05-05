@@ -5,6 +5,10 @@ type http = HTTP
 
 let http = Type.v HTTP
 
+type http2 = HTTP2
+
+let http2 = Type.v HTTP2
+
 let connect err _i modname = function
   | [ conduit ] -> Fmt.strf "%s.connect %s" modname conduit
   | _ -> failwith (connect_err err 1)
@@ -18,5 +22,11 @@ let cohttp_server conduit =
 let httpaf_server conduit =
   let packages = [ package "httpaf-mirage" ] in
   let extra_deps = [ abstract conduit ] in
-  impl ~packages ~connect:(connect "httapf") ~extra_deps
+  impl ~packages ~connect:(connect "httpaf") ~extra_deps
     "Httpaf_mirage.Server_with_conduit" http
+
+let http2_server conduit =
+  let packages = [ package "h2-mirage" ] in
+  let extra_deps = [ abstract conduit ] in
+  impl ~packages ~connect:(connect "h2") ~extra_deps
+    "H2_mirage.Server_with_conduit" http2

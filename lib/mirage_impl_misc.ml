@@ -40,7 +40,9 @@ let query_ocamlfind ?(recursive = false) ?(format="%p") ?predicates libs =
 
 let opam_prefix =
   let cmd = Bos.Cmd.(v "opam" % "config" % "var" % "prefix") in
-  lazy Bos.OS.Cmd.(run_out cmd |> out_string |> success)
+  lazy (match Sys.getenv_opt "PREFIX" with
+      | Some x -> Ok x
+      | None -> Bos.OS.Cmd.(run_out cmd |> out_string |> success))
 
 (* Invoke pkg-config and return output if successful. *)
 let pkg_config pkgs args =

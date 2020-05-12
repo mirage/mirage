@@ -419,7 +419,7 @@ val generic_stackv4:
 type resolver
 val resolver: resolver typ
 val resolver_dns:
-  ?ns:Ipaddr.V4.t -> ?ns_port:int -> ?random:random impl -> ?mclock:mclock impl -> stackv4 impl -> resolver impl
+  ?ns:Ipaddr.V4.t -> ?ns_port:int -> ?random:random impl -> ?time:time impl -> ?mclock:mclock impl -> stackv4 impl -> resolver impl
 val resolver_unix_system: resolver impl
 
 (** {2 Syslog configuration} *)

@@ -40,7 +40,7 @@ let query_ocamlfind ?(recursive = false) ?(format="%p") ?predicates libs =
 
 let opam_prefix =
   let cmd = Bos.Cmd.(v "opam" % "config" % "var" % "prefix") in
-  lazy (Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>| fst)
+  lazy Bos.OS.Cmd.(run_out cmd |> out_string |> success)
 
 (* Invoke pkg-config and return output if successful. *)
 let pkg_config pkgs args =
@@ -58,7 +58,7 @@ let pkg_config pkgs args =
   in
   Bos.OS.Env.set_var var (Some value) >>= fun () ->
   let cmd = Bos.Cmd.(v "pkg-config" % pkgs %% of_list args) in
-  Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>| fun (data, _) ->
+  Bos.OS.Cmd.(run_out cmd |> out_string |> success) >>| fun data ->
   String.cuts ~sep:" " ~empty:false data
 
 (* Implement something similar to the @name/file extended names of findlib. *)

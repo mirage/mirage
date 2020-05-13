@@ -63,7 +63,7 @@ val min_versions : t -> string list
 
 val merge : t -> t -> t option
 (** [merge x y] is merges the information of [x] and [y]. The result is [None]
-    if [opam x != opam y]. *)
+    if [name x != name y]. *)
 
 val pp : ?surround:string -> t Fmt.t
 (** [pp] is the pretty-printer for packages. *)

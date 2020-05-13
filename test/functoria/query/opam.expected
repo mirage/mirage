@@ -9,7 +9,7 @@ synopsis: "This is a dummy"
 build: ["test" "build" "--config-file" "config.ml"]
 
 depends: [
-  "functoria-runtime"
   "fmt"
+  "functoria-runtime"
 ]
 

@@ -72,9 +72,7 @@ let qubes_ipv4_stack ?(qubesdb = default_qubesdb) ?(arp = arp ?time:None) tap =
 let stackv4_socket_conf ips =
   let keys = [ Key.v ips ] in
   let packages_v = right_tcpip_library ~sublibs:[ "stack-socket" ] "tcpip" in
-  let extra_deps =
-    [ abstract (socket_udpv4 None); abstract (socket_tcpv4 None) ]
-  in
+  let extra_deps = [ dep (socket_udpv4 None); dep (socket_tcpv4 None) ] in
   let connect _i modname = function
     | [ udpv4; tcpv4 ] ->
         Fmt.strf "%s.connect %a %s %s" modname pp_key ips udpv4 tcpv4

@@ -32,7 +32,7 @@ let dune_build = Fpath.(v "dune.build")
 let file_of_key k = Fpath.v Key.(name @@ v k)
 
 let write_key i k f =
-  let context = Functoria.Info.context i in
+  let context = Info.context i in
   let file = file_of_key k in
   let contents = f (Key.get context k) in
   Action.write_file file contents
@@ -53,7 +53,7 @@ module C = struct
 
   let version = "1.0~test"
 
-  let packages = [ Functoria.package "functoria"; Functoria.package "f0" ]
+  let packages = [ package "functoria"; package "f0" ]
 
   let keys = Key.[ v vote; v warn_error ]
 
@@ -106,10 +106,10 @@ module C = struct
         Install.v ~bin:[ (src, dst) ] ~etc:[ vote; warn_error ] ()
 
   let create jobs =
-    let packages = Functoria.[ package "fmt" ] in
-    let extra_deps = List.map Functoria.abstract jobs in
-    Functoria.impl ~keys ~packages ~configure ~connect ~clean ~files ~build
-      ~extra_deps ~install "F0" Functoria.job
+    let packages = [ package "fmt" ] in
+    let extra_deps = List.map dep jobs in
+    impl ~keys ~packages ~configure ~connect ~clean ~files ~build ~extra_deps
+      ~install "F0" job
 end
 
 include Lib.Make (C)

@@ -16,7 +16,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+type 'a key = 'a Key.key
+
 type 'a value = 'a Key.value
+
+type abstract_key = Key.t
 
 type package = Package.t
 
@@ -24,7 +28,15 @@ type 'a typ = 'a Type.t
 
 type 'a impl = 'a Impl.t
 
+type abstract_impl = Impl.abstract
+
 type 'a device = ('a, Impl.abstract) Device.t
+
+type context = Key.context
+
+type job = Job.t
+
+type info = Info.t
 
 let package = Package.v
 
@@ -36,7 +48,11 @@ let ( $ ) = Impl.( $ )
 
 let of_device = Impl.of_device
 
-let abstract = Impl.abstract
+let key = Key.v
+
+let dep = Impl.abstract
+
+let abstract = dep
 
 let if_impl = Impl.if_
 
@@ -54,11 +70,3 @@ let main ?packages ?packages_v ?keys ?extra_deps module_name ty =
 
 let foreign ?packages ?packages_v ?keys ?deps module_name ty =
   main ?packages ?packages_v ?keys ?extra_deps:deps module_name ty
-
-type context = Key.context
-
-type abstract_key = Key.t
-
-type job = Job.t
-
-type info = Info.t

@@ -1,28 +1,25 @@
 open Functoria
-open Mirage_impl_misc
+open Mirage_impl_mclock
+open Mirage_impl_time
 
 type random = RANDOM
 let random = Type RANDOM
 
 let random_conf = object
   inherit base_configurable
-  method ty = random
+  method ty = time @-> mclock @-> random
   method name = "random"
-  method module_name = "Mirage_crypto_rng"
+  method module_name = "Mirage_crypto_rng_mirage.Make"
   method! keys = [ Mirage_key.(abstract prng) ]
   method! packages =
-    Mirage_key.(if_ is_unix)
-      [ package ~sublibs:["unix"] "mirage-crypto-rng" ]
-      [ package "mirage-crypto-entropy" ]
-  method! connect i _ _ =
-    match get_target i with
-    | #Mirage_key.mode_unix ->
-      "Lwt.return (Mirage_crypto_rng_unix.initialize ())"
-    | _ ->
-      (* here we could use the boot argument (--prng) to select the RNG! *)
-      "Mirage_crypto_entropy.initialize (module Mirage_crypto_rng.Fortuna)"
+    Mirage_key.pure [
+      package ~sublibs:["mirage"] ~min:"0.7.0" "mirage-crypto-rng"
+    ]
+  method! connect _i modname _ =
+    (* here we could use the boot argument (--prng) to select the RNG! *)
+    Fmt.strf "%s.initialize (module Mirage_crypto_rng.Fortuna)" modname
 end
 
-let default_random = impl random_conf
+let default_random = impl random_conf $ default_time $ default_monotonic_clock
 
 let nocrypto = Functoria_app.noop

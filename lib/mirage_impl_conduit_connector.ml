@@ -5,7 +5,7 @@ open Mirage_impl_stackv4
 type conduit_connector = Conduit_connector
 let conduit_connector = Type Conduit_connector
 
-let pkg = package ~min:"2.0.2" ~max:"3.0.0" "conduit-mirage"
+let pkg = package ~min:"2.2.0" ~max:"3.0.0" "conduit-mirage"
 
 let tcp_conduit_connector = impl @@ object
     inherit base_configurable
@@ -25,7 +25,7 @@ let tls_conduit_connector = impl @@ object
     method module_name = "Conduit_mirage"
     method! packages =
       Mirage_key.pure [
-        package ~min:"0.11.0" ~max:"0.12.0" "tls-mirage" ;
+        package ~min:"0.12.0" ~max:"0.13.0" "tls-mirage" ;
         pkg
       ]
     method! connect _ _ _ = "Lwt.return Conduit_mirage.with_tls"

@@ -4,6 +4,7 @@ open Mirage_impl_misc
 open Mirage_impl_mclock
 open Mirage_impl_stackv4
 open Mirage_impl_random
+open Mirage_impl_time
 open Rresult
 
 type resolver = Resolver
@@ -28,14 +29,14 @@ let resolver_unix_system = impl @@ object
 
 let resolver_dns_conf ~ns ~ns_port = impl @@ object
     inherit base_configurable
-    method ty = random @-> mclock @-> stackv4 @-> resolver
+    method ty = random @-> time @-> mclock @-> stackv4 @-> resolver
     method name = "resolver"
     method module_name = "Resolver_mirage.Make_with_stack"
     method! packages =
       Key.pure [ Mirage_impl_conduit_connector.pkg ]
     method! keys = [ Key.abstract ns ; Key.abstract ns_port ]
     method! connect _ modname = function
-      | [ _r ; _t ; stack ] ->
+      | [ _r ; _t ; _m ; stack ] ->
         Fmt.strf
           "let ns = %a in@;\
            let ns_port = %a in@;\
@@ -45,8 +46,8 @@ let resolver_dns_conf ~ns ~ns_port = impl @@ object
       | _ -> failwith (connect_err "resolver" 3)
   end
 
-let resolver_dns ?ns ?ns_port ?(random = default_random) ?(mclock = default_monotonic_clock) stack =
+let resolver_dns ?ns ?ns_port ?(random = default_random) ?(time = default_time) ?(mclock = default_monotonic_clock) stack =
   let ns = Key.resolver ?default:ns ()
   and ns_port = Key.resolver_port ?default:ns_port ()
   in
-  resolver_dns_conf ~ns ~ns_port $ random $ mclock $ stack
+  resolver_dns_conf ~ns ~ns_port $ random $ time $ mclock $ stack

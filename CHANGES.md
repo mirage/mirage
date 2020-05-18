@@ -1,3 +1,9 @@
+### v3.7.7 (2020-05-18)
+
+* handle errors from Bos.OS.Cmd.run_out
+* use PREFIX if defined (no need to call "opam config var prefix")
+* adapt to conduit 2.2.0, tls 0.12, mirage-crypto 0.7.0 changes
+
 ### v3.7.6 (2020-03-18)
 
 * fix conduit with 3.7.5 changes (#1086, @hannesm)

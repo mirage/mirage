@@ -266,6 +266,11 @@ let block ?group () =
   in
   create_simple ~doc ?group ~stage:`Configure ~default:`Ramdisk conv "block"
 
+(** {3 PCIe device keys} *)
+let pci ?group default =
+  let doc = Fmt.strf "The PCIe device controlled by %a." pp_group group in
+  create_simple ~doc ~default ?group Arg.string "pci"
+
 (** {3 PRNG key} *)
 let prng =
   let conv =

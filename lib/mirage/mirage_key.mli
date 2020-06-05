@@ -95,6 +95,9 @@ val kv_ro : ?group:string -> unit -> [ `Archive | `Crunch | `Direct | `Fat ] key
 val block : ?group:string -> unit -> [ `XenstoreId | `BlockFile | `Ramdisk ] key
 (** {3 Block device keys} *)
 
+(** {3 PCIe device keys} *)
+val pci : ?group:string -> string -> string key
+
 (** {3 PRNG key} *)
 
 val prng : [ `Stdlib | `Nocrypto ] key

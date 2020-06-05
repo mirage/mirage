@@ -224,6 +224,19 @@ val fat_of_files : ?dir:string -> ?regexp:string -> unit -> fs impl
 val kv_ro_of_fs : fs impl -> kv_ro impl
 (** Consider a filesystem implementation as a read-only key/value store. *)
 
+(** {2 PCIe devices} *)
+
+type pci
+(** Abstract type for PCIe configurations. *)
+
+val pci : pci typ
+(** Implementations of the [Mirage_types.PCI] signature. *)
+
+type device_info = Mirage_impl_pci.device_info
+
+val pcidev : ?group:string -> device_info -> string -> pci impl
+(** A custom PCIe device. Exposes a {!Key.interface} key. *)
+
 (** {2 Network interfaces} *)
 
 type network

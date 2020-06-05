@@ -116,6 +116,14 @@ let generic_kv_ro = Mirage_impl_fs.generic_kv_ro
 
 let kv_ro_of_fs = Mirage_impl_fs.kv_ro_of_fs
 
+type pci = Mirage_impl_pci.pci
+
+let pci = Mirage_impl_pci.pci
+
+type device_info = Mirage_impl_pci.device_info
+
+let pcidev = Mirage_impl_pci.pcidev
+
 type network = Mirage_impl_network.network
 
 let network = Mirage_impl_network.network

@@ -125,6 +125,9 @@ val default_random : random impl
 (** Default PRNG device to be used in unikernels. It uses getrandom/getentropy
     on Unix, and a Fortuna PRNG on other targets. *)
 
+val rng : ?time:time impl -> ?mclock:mclock impl -> unit -> random impl
+(** [rng] is the device [Mirage_crypto_rng.Make]. *)
+
 (** {2 Consoles} *)
 
 type console
@@ -444,6 +447,7 @@ val resolver_dns :
   ?ns:Ipaddr.V4.t ->
   ?ns_port:int ->
   ?random:random impl ->
+  ?time:time impl ->
   ?mclock:mclock impl ->
   stackv4 impl ->
   resolver impl

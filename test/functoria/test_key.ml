@@ -78,10 +78,20 @@ let test_merge () =
   Alcotest.(check (option string))
     "merge c" (Some "foo") (Key.get context key_c)
 
+let key = Alcotest.testable Key.pp Key.equal
+
+let test_equal () =
+  let k1 = Key.(v @@ create "foo" Arg.(opt int 1 (info [ "foo" ]))) in
+  let k2 = Key.(v @@ create "foo" Arg.(opt int 2 (info [ "foo" ]))) in
+  let k3 = Key.(v @@ create "foo" Arg.(opt int 1 (info [ "foo" ]))) in
+  Alcotest.(check @@ neg key) "different defaults" k1 k2;
+  Alcotest.(check @@ key) "same defaults" k1 k3
+
 let suite =
   List.map
     (fun (n, f) -> (n, `Quick, f))
     [
+      ("equal", test_equal);
       ("eval", test_eval);
       ("get", test_get);
       ("find", test_find);

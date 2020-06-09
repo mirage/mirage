@@ -122,9 +122,40 @@ module Arg = struct
     | Required c -> pp_conv (some c)
     | Flag -> Fmt.bool
 
+  let hash_of_kind : type a. a kind -> int = function
+    | Opt (x, _) -> Hashtbl.hash (`Opt x)
+    | Required _ -> Hashtbl.hash `Required
+    | Flag -> Hashtbl.hash `Flag
+
+  let compare_kind : type a b. a kind -> b kind -> int =
+   fun a b ->
+    let default cx x = Fmt.to_to_string (snd cx.conv) x in
+    match (a, b) with
+    | Opt (x, cx), Opt (y, cy) -> String.compare (default cx x) (default cy y)
+    | Required _, Required _ -> 0
+    | Flag, Flag -> 0
+    | Opt _, _ -> 1
+    | _, Opt _ -> -1
+    | Required _, _ -> 1
+    | _, Required _ -> -1
+
   type 'a t = { stage : stage; info : info; kind : 'a kind }
 
   let pp t = pp_kind t.kind
+
+  let equal x y =
+    x.stage = y.stage && x.info = y.info && compare_kind x.kind y.kind = 0
+
+  let compare x y =
+    match compare x.stage y.stage with
+    | 0 -> (
+        match compare x.info y.info with
+        | 0 -> compare_kind x.kind y.kind
+        | i -> i )
+    | i -> i
+
+  let hash x =
+    Hashtbl.hash (Hashtbl.hash x.stage, Hashtbl.hash x.info, hash_of_kind x.kind)
 
   let stage t = t.stage
 
@@ -189,16 +220,51 @@ type 'a key = {
 
 and -'a setter = Setter : 'b key * ('a -> 'b option) -> 'a setter
 
+type t = Any : 'a key -> t
+
+let rec equal (Any x) (Any y) =
+  String.equal x.name y.name
+  && Arg.equal x.arg y.arg
+  && equal_setters x.setters y.setters
+
+and equal_setters : type a b. a setter list -> b setter list -> bool =
+ fun x y ->
+  List.length x = List.length y
+  && List.for_all2
+       (fun (Setter (x, _)) (Setter (y, _)) -> equal (Any x) (Any y))
+       x y
+
+let rec hash (Any x) =
+  Hashtbl.hash
+    (Hashtbl.hash x.name, Arg.hash x.arg, List.map hash_setter x.setters)
+
+and hash_setter : type a. a setter -> int = fun (Setter (x, _)) -> hash (Any x)
+
+let rec compare (Any x) (Any y) =
+  match String.compare x.name y.name with
+  | 0 -> (
+      match Arg.compare x.arg y.arg with
+      | 0 -> compare_setters x.setters y.setters
+      | i -> i )
+  | i -> i
+
+and compare_setters : type a b. a setter list -> b setter list -> int =
+ fun x y ->
+  match (x, y) with
+  | [], [] -> 0
+  | [], _ -> -1
+  | _, [] -> 1
+  | Setter (x, _) :: tx, Setter (y, _) :: ty -> (
+      match compare (Any x) (Any y) with 0 -> compare_setters tx ty | i -> i )
+
 module Set = struct
-  type elt = Any : 'a key -> elt
-
   module M = struct
-    type t = elt
+    type nonrec t = t
 
-    let compare (Any k1) (Any k2) = String.compare k1.name k2.name
+    let compare = compare
   end
 
-  include (Set.Make (M) : Set.S with type elt := elt)
+  include Set.Make (M)
 
   let add k set =
     if mem k set then
@@ -214,12 +280,6 @@ module Set = struct
 
   let pp = pp_gen pp_elt
 end
-
-type t = Set.elt = Any : 'a key -> t
-
-let compare = Set.M.compare
-
-let equal (Any x) (Any y) = String.equal x.name y.name
 
 module Alias = struct
   type 'a t = { a_setters : 'a setter list; a_arg : 'a Arg.t }

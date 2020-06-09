@@ -28,9 +28,9 @@ let tcp_direct_func () =
   impl ~packages_v ~connect "Tcp.Flow.Make"
     (ip @-> time @-> mclock @-> random @-> tcp)
 
-let direct_tcp ?(clock = default_monotonic_clock) ?(random = default_random)
-    ?(time = default_time) ip =
-  tcp_direct_func () $ ip $ time $ clock $ random
+let direct_tcp ?(mclock = default_monotonic_clock) ?(time = default_time)
+    ?(random = rng ~time ~mclock ()) ip =
+  tcp_direct_func () $ ip $ time $ mclock $ random
 
 let tcpv4_socket_conf ipv4_key =
   let keys = [ Key.v ipv4_key ] in

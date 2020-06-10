@@ -66,12 +66,12 @@ let config_file =
 
 let map_default ~default f x = if x == default then None else Some (f x)
 
-let context_file =
+let context_file mname =
   let doc =
     Arg.info ~docs:configuration_section ~docv:"FILE"
       ~doc:"The context file to use." [ "context-file" ]
   in
-  let default = "$(mname).context" in
+  let default = mname ^ ".context" in
   Term.(
     const (map_default ~default Fpath.v)
     $ Arg.(value & opt string default & doc))
@@ -246,13 +246,13 @@ let pp_action pp_a ppf = function
   | Clean c -> Fmt.pf ppf "@[clean:@ @[<2>%a@]@]" (pp_clean pp_a) c
   | Help h -> Fmt.pf ppf "@[help:@ @[<2>%a@]@]" (pp_help pp_a) h
 
-let args ~with_setup context =
+let args ~with_setup context mname =
   Term.(
     const (fun () config_file context_file dry_run output context ->
         { config_file; context_file; dry_run; output; context })
     $ setup ~with_setup
     $ config_file
-    $ context_file
+    $ context_file mname
     $ dry_run
     $ output
     $ context)
@@ -263,10 +263,10 @@ let args ~with_setup context =
 
 module Subcommands = struct
   (** The 'configure' subcommand *)
-  let configure ~with_setup context =
+  let configure ~with_setup mname context =
     ( Term.(
         const (fun args depext -> Configure { args; depext })
-        $ args ~with_setup context
+        $ args ~with_setup context mname
         $ depext configuration_section),
       Term.info "configure" ~doc:"Configure a $(mname) application."
         ~man:
@@ -277,11 +277,11 @@ module Subcommands = struct
                application.";
           ] )
 
-  let query ~with_setup context =
+  let query ~with_setup mname context =
     ( Term.(
         const (fun kind args depext -> Query { kind; args; depext })
         $ kind
-        $ args ~with_setup context
+        $ args ~with_setup context mname
         $ depext query_section),
       Term.info "query" ~doc:"Query information about the $(mname) application."
         ~man:
@@ -293,10 +293,10 @@ module Subcommands = struct
           ] )
 
   (** The 'describe' subcommand *)
-  let describe ~with_setup context =
+  let describe ~with_setup mname context =
     ( Term.(
         const (fun args eval dotcmd dot -> Describe { args; eval; dotcmd; dot })
-        $ args ~with_setup context
+        $ args ~with_setup context mname
         $ full_eval
         $ dotcmd
         $ dot),
@@ -328,19 +328,19 @@ module Subcommands = struct
           ] )
 
   (** The 'build' subcommand *)
-  let build ~with_setup context =
+  let build ~with_setup mname context =
     let doc = "Build a $(mname) application." in
-    ( Term.(const (fun args -> Build args) $ args ~with_setup context),
+    ( Term.(const (fun args -> Build args) $ args ~with_setup context mname),
       Term.info "build" ~doc ~man:[ `S "DESCRIPTION"; `P doc ] )
 
   (** The 'clean' subcommand *)
-  let clean ~with_setup context =
+  let clean ~with_setup mname context =
     let doc = "Clean the files produced by $(mname) for a given application." in
-    ( Term.(const (fun args -> Clean args) $ args ~with_setup context),
+    ( Term.(const (fun args -> Clean args) $ args ~with_setup context mname),
       Term.info "clean" ~doc ~man:[ `S "DESCRIPTION"; `P doc ] )
 
   (** The 'help' subcommand *)
-  let help ~with_setup context =
+  let help ~with_setup mname context =
     let topic =
       let doc = Arg.info [] ~docv:"TOPIC" ~doc:"The topic to get help on." in
       Arg.(value & pos 0 (some string) None & doc)
@@ -361,7 +361,7 @@ module Subcommands = struct
     in
     ( Term.(
         const (fun args _ _ () -> Help args)
-        $ args ~with_setup context
+        $ args ~with_setup context mname
         $ depext configuration_section
         $ full_eval
         $ ret (const help $ Term.man_format $ Term.choice_names $ topic)),
@@ -400,25 +400,27 @@ let peek_full_eval argv =
 let peek_output argv =
   match Term.eval_peek_opts ~argv output with _, `Ok b -> b | _ -> None
 
-let peek_args ?(with_setup = false) argv =
-  match Term.eval_peek_opts ~argv (args ~with_setup (Term.pure ())) with
+let peek_args ?(with_setup = false) ~mname argv =
+  match Term.eval_peek_opts ~argv (args ~with_setup (Term.pure ()) mname) with
   | _, `Ok b | Some b, _ -> b
   | _ -> assert false
 
-let peek_context_file argv =
-  match Term.eval_peek_opts ~argv context_file with _, `Ok b -> b | _ -> None
+let peek_context_file ~mname argv =
+  match Term.eval_peek_opts ~argv (context_file mname) with
+  | _, `Ok b -> b
+  | _ -> None
 
 let eval ?(with_setup = true) ?help_ppf ?err_ppf ~name ~version ~configure
-    ~query ~describe ~build ~clean ~help argv =
+    ~query ~describe ~build ~clean ~help ~mname argv =
   Cmdliner.Term.eval_choice ?help:help_ppf ?err:err_ppf ~argv ~catch:false
     (Subcommands.default ~with_setup ~name ~version)
     [
-      Subcommands.configure ~with_setup configure;
-      Subcommands.describe ~with_setup describe;
-      Subcommands.query ~with_setup query;
-      Subcommands.build ~with_setup build;
-      Subcommands.clean ~with_setup clean;
-      Subcommands.help ~with_setup help;
+      Subcommands.configure ~with_setup mname configure;
+      Subcommands.describe ~with_setup mname describe;
+      Subcommands.query ~with_setup mname query;
+      Subcommands.build ~with_setup mname build;
+      Subcommands.clean ~with_setup mname clean;
+      Subcommands.help ~with_setup mname help;
     ]
 
 let args = function
@@ -494,25 +496,25 @@ let peek_choice argv =
 type 'a result =
   [ `Ok of 'a action | `Error of 'a args * [ `Exn | `Parse | `Term ] | `Version ]
 
-let peek ?(with_setup = false) argv : unit result =
+let peek ?(with_setup = false) ~mname argv : unit result =
   let niet = Term.pure () in
   let peek t =
     match Term.eval_peek_opts ~argv ~version_opt:true (fst t) with
     | _, `Version -> `Version
-    | _, `Error e -> `Error (peek_args ~with_setup:false argv, e)
+    | _, `Error e -> `Error (peek_args ~with_setup:false ~mname argv, e)
     | _, `Help ->
-        let args = peek_args ~with_setup:false argv in
+        let args = peek_args ~with_setup:false ~mname argv in
         `Ok (Help args)
     | Some v, _ | _, `Ok v -> `Ok v
   in
   let peek_cmd t = peek (t niet) in
   match peek_choice argv with
-  | `Ok `Configure -> peek_cmd (Subcommands.configure ~with_setup)
-  | `Ok `Build -> peek_cmd (Subcommands.build ~with_setup)
-  | `Ok `Clean -> peek_cmd (Subcommands.clean ~with_setup)
-  | `Ok (`Query _) -> peek_cmd (Subcommands.query ~with_setup)
-  | `Ok `Describe -> peek_cmd (Subcommands.describe ~with_setup)
-  | `Ok `Help -> peek_cmd (Subcommands.help ~with_setup)
+  | `Ok `Configure -> peek_cmd (Subcommands.configure ~with_setup mname)
+  | `Ok `Build -> peek_cmd (Subcommands.build ~with_setup mname)
+  | `Ok `Clean -> peek_cmd (Subcommands.clean ~with_setup mname)
+  | `Ok (`Query _) -> peek_cmd (Subcommands.query ~with_setup mname)
+  | `Ok `Describe -> peek_cmd (Subcommands.describe ~with_setup mname)
+  | `Ok `Help -> peek_cmd (Subcommands.help ~with_setup mname)
   | `Default ->
       peek (Subcommands.default ~with_setup ~name:"<name>" ~version:"<version>")
-  | `Error e -> `Error (peek_args argv, e)
+  | `Error e -> `Error (peek_args ~mname argv, e)

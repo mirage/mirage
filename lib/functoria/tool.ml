@@ -47,7 +47,7 @@ module Make (P : S) = struct
         Fpath.(normalize (dir / (P.name ^ ".context")))
 
   let add_context_file t argv =
-    match Cli.peek_context_file argv with
+    match Cli.peek_context_file ~mname:P.name argv with
     | Some _ -> Action.ok argv
     | None -> (
         let file = context_file t in
@@ -189,7 +189,7 @@ module Make (P : S) = struct
     let result =
       Cli.eval ?help_ppf ?err_ppf ~name:P.name ~version:P.version
         ~configure:context ~query:context ~describe:context ~build:context
-        ~clean:context ~help:context argv
+        ~clean:context ~help:context ~mname:P.name argv
     in
     let ok = Action.ok () in
     let error = Action.error error in
@@ -266,7 +266,7 @@ module Make (P : S) = struct
   let pp_unit _ _ = ()
 
   let run_with_argv ?help_ppf ?err_ppf argv =
-    let t = Cli.peek ~with_setup:true argv in
+    let t = Cli.peek ~with_setup:true ~mname:P.name argv in
     match t with
     | `Version ->
         Log.info (fun l -> l "version");

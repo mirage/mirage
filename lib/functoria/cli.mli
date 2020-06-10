@@ -29,10 +29,10 @@ type 'a args = {
 }
 (** The type for global arguments. *)
 
-val peek_context_file : string array -> Fpath.t option
+val peek_context_file : mname:string -> string array -> Fpath.t option
 (** [peek_context_file] reads the [--context-file] option on the command-line. *)
 
-val peek_args : ?with_setup:bool -> string array -> unit args
+val peek_args : ?with_setup:bool -> mname:string -> string array -> unit args
 (** [peek_args ?with_setup argv] parses the global command-line arguments. If
     [with_setup] is set (by default it is), interprets [-v] and [--color] to
     set-up the terminal configuration as a side-effect. *)
@@ -114,6 +114,7 @@ val eval :
   build:'a Term.t ->
   clean:'a Term.t ->
   help:'a Term.t ->
+  mname:string ->
   string array ->
   'a action Term.result
 (** Parse the functoria command line. The arguments to [~configure],
@@ -128,5 +129,5 @@ type 'a result =
 (** Similar to {!Cmdliner.Term.result} but help is folded into [`Ok] and errors
     also carry global command-line parameters. *)
 
-val peek : ?with_setup:bool -> string array -> unit result
+val peek : ?with_setup:bool -> mname:string -> string array -> unit result
 (** [peek] is the same as {!eval} but without failing on unknown arguments. *)

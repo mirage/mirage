@@ -11,9 +11,9 @@ val tcpv4 : tcpv4 Functoria.typ
 val tcpv6 : tcpv6 Functoria.typ
 
 val direct_tcp :
-  ?clock:Mirage_impl_mclock.mclock Functoria.impl ->
-  ?random:Mirage_impl_random.random Functoria.impl ->
+  ?mclock:Mirage_impl_mclock.mclock Functoria.impl ->
   ?time:Mirage_impl_time.time Functoria.impl ->
+  ?random:Mirage_impl_random.random Functoria.impl ->
   'a Mirage_impl_ip.ip Functoria.impl ->
   'a tcp Functoria.impl
 

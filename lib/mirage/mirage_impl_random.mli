@@ -1,7 +1,13 @@
+open Functoria
+open Mirage_impl_time
+open Mirage_impl_mclock
+
 type random
 
-val random : random Functoria.typ
+val random : random typ
 
-val default_random : random Functoria.impl
+val rng : ?time:time impl -> ?mclock:mclock impl -> unit -> random impl
 
-val nocrypto : Functoria.job Functoria.impl
+val default_random : random impl
+
+val nocrypto : job impl

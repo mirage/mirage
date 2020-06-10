@@ -36,8 +36,8 @@ let stackv4_direct_conf () =
     @-> tcpv4
     @-> stackv4 )
 
-let direct_stackv4 ?(clock = default_monotonic_clock) ?(random = default_random)
-    ?(time = default_time) network eth arp ip =
+let direct_stackv4 ?(mclock = default_monotonic_clock) ?(time = default_time)
+    ?(random = rng ~time ~mclock ()) network eth arp ip =
   stackv4_direct_conf ()
   $ time
   $ random
@@ -47,7 +47,7 @@ let direct_stackv4 ?(clock = default_monotonic_clock) ?(random = default_random)
   $ ip
   $ Mirage_impl_icmp.direct_icmpv4 ip
   $ direct_udp ~random ip
-  $ direct_tcp ~clock ~random ~time ip
+  $ direct_tcp ~mclock ~random ~time ip
 
 let dhcp_ipv4_stack ?(random = default_random) ?(time = default_time)
     ?(arp = arp ?time:None) tap =

@@ -60,6 +60,8 @@ let stdlib_random = Mirage_impl_random.default_random
 
 let default_random = Mirage_impl_random.default_random
 
+let rng = Mirage_impl_random.rng
+
 let nocrypto = Mirage_impl_random.nocrypto
 
 let nocrypto_random = Mirage_impl_random.default_random

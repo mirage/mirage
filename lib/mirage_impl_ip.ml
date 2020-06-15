@@ -21,7 +21,7 @@ let ipv4: ipv4 typ = ip
 let ipv6: ipv6 typ = ip
 
 type ipv4_config = {
-  network : Ipaddr.V4.Prefix.t * Ipaddr.V4.t;
+  network : Ipaddr.V4.Prefix.t;
   gateway : Ipaddr.V4.t option;
 }
 (** Types for IPv4 manual configuration. *)
@@ -34,7 +34,7 @@ let (@??) x y = opt_map Key.abstract x @? y
 
 (* convenience function for linking tcpip.unix or .xen for checksums *)
 let right_tcpip_library ?ocamlfind ~sublibs pkg =
-  let min = "4.0.0" and max = "5.0.0" in
+  let min = "5.0.0" and max = "6.0.0" in
   Key.match_ Key.(value target) @@ function
   | #Mirage_key.mode_unix ->
     [ package ~min ~max ?ocamlfind ~sublibs:("unix"::sublibs) pkg ]
@@ -55,7 +55,7 @@ let ipv4_keyed_conf ~ip ?gateway () = impl @@ object
       Fmt.strf
         "%s.connect@[@ %a@ %a@ %s@ %s@]"
         modname
-        Fmt.(prefix (unit "~ip:") pp_key) ip
+        Fmt.(prefix (unit "~cidr:") pp_key) ip
         (opt_opt_key "gateway") gateway
         etif arp
       | _ -> failwith (connect_err "ipv4 keyed" 4)
@@ -99,7 +99,7 @@ let create_ipv4 ?group ?config
     ?(random = default_random) ?(clock = default_monotonic_clock) etif arp =
   let config = match config with
   | None ->
-    let network = Ipaddr.V4.Prefix.of_address_string_exn "10.0.0.2/24"
+    let network = Ipaddr.V4.Prefix.of_string_exn "10.0.0.2/24"
     and gateway = Some (Ipaddr.V4.of_string_exn "10.0.0.1")
     in
     { network; gateway }

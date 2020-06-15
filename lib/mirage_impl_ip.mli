@@ -23,7 +23,7 @@ val ipv4 : ipv4 Functoria.typ
 val ipv6 : ipv6 Functoria.typ
 
 type ipv4_config =
-  {network: Ipaddr.V4.Prefix.t * Ipaddr.V4.t; gateway: Ipaddr.V4.t option}
+  {network: Ipaddr.V4.Prefix.t; gateway: Ipaddr.V4.t option}
 
 type ipv6_config =
   { addresses: Ipaddr.V6.t list

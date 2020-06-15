@@ -293,7 +293,7 @@ val ipv6: ipv6 typ
 (** The [Mirage_types.IPV6] module signature. *)
 
 type ipv4_config = {
-  network : Ipaddr.V4.Prefix.t * Ipaddr.V4.t;
+  network : Ipaddr.V4.Prefix.t;
   gateway : Ipaddr.V4.t option;
 }
 (** Types for IPv4 manual configuration. *)

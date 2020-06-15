@@ -64,11 +64,11 @@ module Arg = struct
   let ipv4_address = of_module (module Ipaddr.V4)
 
   let ipv4 =
-    let serialize fmt (prefix, ip) =
-      Format.fprintf fmt "%S" @@ Ipaddr.V4.Prefix.to_address_string prefix ip
+    let serialize fmt cidr =
+      Format.fprintf fmt "%S" @@ Ipaddr.V4.Prefix.to_string cidr
     in
     let parse str =
-      match Ipaddr.V4.Prefix.of_address_string str with
+      match Ipaddr.V4.Prefix.of_string str with
       | Error (`Msg m) ->
           `Error (str ^ " is not a valid IPv4 address and netmask: " ^ m)
       | Ok n -> `Ok n

@@ -159,7 +159,7 @@ let create_ipv4 = Mirage_impl_ip.create_ipv4
 let create_ipv6 = Mirage_impl_ip.create_ipv6
 
 type ipv4_config = Mirage_impl_ip.ipv4_config = {
-  network : Ipaddr.V4.Prefix.t * Ipaddr.V4.t;
+  network : Ipaddr.V4.Prefix.t;
   gateway : Ipaddr.V4.t option;
 }
 

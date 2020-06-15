@@ -26,7 +26,7 @@ let ipv4 : ipv4 typ = ip
 let ipv6 : ipv6 typ = ip
 
 type ipv4_config = {
-  network : Ipaddr.V4.Prefix.t * Ipaddr.V4.t;
+  network : Ipaddr.V4.Prefix.t;
   gateway : Ipaddr.V4.t option;
 }
 (** Types for IPv4 manual configuration. *)
@@ -96,7 +96,7 @@ let create_ipv4 ?group ?config ?(random = default_random)
   let config =
     match config with
     | None ->
-        let network = Ipaddr.V4.Prefix.of_address_string_exn "10.0.0.2/24"
+        let network = Ipaddr.V4.Prefix.of_string_exn "10.0.0.2/24"
         and gateway = Some (Ipaddr.V4.of_string_exn "10.0.0.1") in
         { network; gateway }
     | Some config -> config

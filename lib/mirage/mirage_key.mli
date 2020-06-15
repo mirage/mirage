@@ -25,7 +25,7 @@ module Arg : sig
 
   val ipv4_address : Ipaddr.V4.t converter
 
-  val ipv4 : (Ipaddr.V4.Prefix.t * Ipaddr.V4.t) converter
+  val ipv4 : Ipaddr.V4.Prefix.t converter
 
   val ipv6 : Ipaddr.V6.t converter
 
@@ -117,7 +117,7 @@ val interface : ?group:string -> string -> string key
 module V4 : sig
   open Ipaddr.V4
 
-  val network : ?group:string -> Prefix.t * t -> (Prefix.t * t) key
+  val network : ?group:string -> Prefix.t -> Prefix.t key
   (** A network defined by an address and netmask. *)
 
   val gateway : ?group:string -> t option -> t option key

@@ -16,9 +16,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** The Functoria DSL.
-
-    The Functoria DSL allows users to describe how to create portable and
+(** The Functoria DSL allows users to describe how to create portable and
     flexible applications. It allows to pass application parameters easily using
     command-line arguments either at configure-time or at runtime.
 

@@ -217,12 +217,12 @@ module Make (P : S) = struct
         in
         Action.env ~commands ~files:(`Passtrough (Fpath.v ".")) ()
       in
-      let r, _, lines = Action.dry_run ~env a in
+      let dom = Action.dry_run ~env a in
       List.iter
         (fun line ->
           Fmt.epr "%a %s\n%!" Fmt.(styled (`Fg `Cyan) string) "*" line)
-        lines;
-      r
+        dom.logs;
+      dom.result
 
   let clean_files args =
     Action.ls (Fpath.v ".") (fun file ->

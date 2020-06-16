@@ -255,13 +255,27 @@ module Make (P : S) = struct
   let action_run args a =
     if not args.Cli.dry_run then Action.run a
     else
-      let env = Action.env ~files:(`Passtrough (Fpath.v ".")) () in
-      let r, _, lines = Action.dry_run ~env a in
+      let commands cmd =
+        let cmd_str =
+          let out =
+            Fmt.str "$(%a)"
+              Fmt.(list ~sep:(unit " ") string)
+              (Bos.Cmd.to_list cmd)
+          in
+          Some (out, "")
+        in
+        match Bos.Cmd.to_list cmd with
+        | [ "opam"; "config"; "var"; "prefix" ] -> Some ("$prefix", "")
+        | "ocamlfind" :: "query" :: _ -> cmd_str
+        | _ -> None
+      in
+      let env = Action.env ~files:(`Passtrough (Fpath.v ".")) ~commands () in
+      let dom = Action.dry_run ~env a in
       List.iter
         (fun line ->
           Fmt.epr "%a %s\n%!" Fmt.(styled (`Fg `Cyan) string) "*" line)
-        lines;
-      r
+        dom.logs;
+      dom.result
 
   let read_context args =
     match args.Cli.context_file with

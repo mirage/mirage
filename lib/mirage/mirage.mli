@@ -57,7 +57,7 @@
 
     While most of the code is written in OCaml, a typed, high-level language
     with many good safety properties, there are pieces of MirageOS which are
-    still written in unsafe C. These bits can be separated in three categories:
+    still written in C. These bits can be separated in three categories:
 
     - The OCaml runtime is written in C. It needs to be ported to the platform
       that MirageOS is trying to target, which do not support POSIX. Hence, the

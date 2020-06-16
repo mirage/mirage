@@ -27,7 +27,7 @@ let test_configure () =
   in
   let result =
     eval ~configure:extra_term ~query:extra_term ~describe:extra_term
-      ~build:extra_term ~clean:extra_term ~help:extra_term
+      ~build:extra_term ~clean:extra_term ~help:extra_term ~mname:"test"
       [| "name"; "configure"; "--xyz"; "--verbose" |]
   in
   Alcotest.(check result_b)
@@ -57,7 +57,7 @@ let test_describe () =
   in
   let result =
     eval ~configure:extra_term ~query:extra_term ~describe:extra_term
-      ~build:extra_term ~clean:extra_term ~help:extra_term
+      ~build:extra_term ~clean:extra_term ~help:extra_term ~mname:"test"
       [|
         "name";
         "describe";
@@ -97,7 +97,7 @@ let test_build () =
   in
   let result =
     eval ~configure:extra_term ~query:extra_term ~describe:extra_term
-      ~build:extra_term ~clean:extra_term ~help:extra_term
+      ~build:extra_term ~clean:extra_term ~help:extra_term ~mname:"test"
       [| "name"; "build"; "--cde"; "-x"; "--color=never"; "-v"; "-v" |]
   in
   Alcotest.(check result_b)
@@ -124,6 +124,7 @@ let test_clean () =
   let result =
     eval ~configure:extra_term ~query:extra_term ~describe:extra_term
       ~build:extra_term ~clean:extra_term ~help:extra_term [| "name"; "clean" |]
+      ~mname:"test"
   in
   Alcotest.(check result_b)
     "clean"
@@ -150,6 +151,7 @@ let test_help () =
   let result =
     eval ~help_ppf:null ~configure:extra_term ~query:extra_term
       ~describe:extra_term ~build:extra_term ~clean:extra_term ~help:extra_term
+      ~mname:"test"
       [| "name"; "help"; "--help"; "plain" |]
   in
   Alcotest.(check result_b) "help" `Help result
@@ -166,7 +168,7 @@ let test_default () =
   let result =
     eval ~help_ppf:null ~configure:extra_term ~query:extra_term
       ~describe:extra_term ~build:extra_term ~clean:extra_term ~help:extra_term
-      [| "name" |]
+      ~mname:"test" [| "name" |]
   in
   Alcotest.(check result_b) "default" `Help result
 

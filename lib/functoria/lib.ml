@@ -320,14 +320,14 @@ module Make (P : S) = struct
 
     handle_parse_args_result
       (Cli.eval ~name:P.name ~version:P.version ~configure ~query ~describe
-         ~build ~clean ~help argv)
+         ~build ~clean ~help ~mname:P.name argv)
 
   let register ?packages ?keys ?(init = default_init) ?(src = `Auto) name jobs =
     (* 1. Pre-parse the arguments set the log level, config file
        and root directory. *)
     let argv = Sys.argv in
     (* TODO: do not are parse the command-line twice *)
-    let args = Cli.peek_args argv in
+    let args = Cli.peek_args ~mname:P.name argv in
     let run () =
       let build_cmd = get_build_cmd args in
       let main_dev = P.create (init @ jobs) in

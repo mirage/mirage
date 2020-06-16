@@ -16,6 +16,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+open Astring
 open Action.Infix
 
 type t = Device_graph.t
@@ -34,18 +35,26 @@ let all_keys =
   | App -> Key.Set.empty
 
 module Packages = struct
-  type t = Package.t list Key.value
+  type t = Package.t String.Map.t Key.value
 
-  let union x y = Key.(pure List.append $ x $ y)
+  let union x y = Key.(pure (String.Map.union (fun _ -> Package.merge)) $ x $ y)
 
-  let empty = Key.pure []
+  let empty = Key.pure String.Map.empty
 end
 
-let packages =
+let packages t =
   let open Device_graph in
-  Device_graph.collect (module Packages) @@ function
-  | Dev c -> Device.packages c
-  | If _ | App -> Packages.empty
+  let aux = function
+    | Dev c ->
+        let pkgs = Device.packages c in
+        let aux x =
+          String.Map.of_list (List.map (fun p -> (Package.name p, p)) x)
+        in
+        Key.(pure aux $ pkgs)
+    | If _ | App -> Packages.empty
+  in
+  let return x = List.map snd (String.Map.bindings x) in
+  Key.(pure return $ Device_graph.collect (module Packages) aux t)
 
 module Installs = struct
   type t = Install.t Key.value

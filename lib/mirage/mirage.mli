@@ -45,13 +45,13 @@
     It is possible to write high-level MirageOS applications, such as HTTPS,
     email or CalDAV servers which can be deployed on very heterogenous and
     embedded platforms by changing only a few compilation parameters. The
-    supported platforms range from ESP32 micro-controllers, minimal virtual
-    machines running on a cloud providers, or processes running inside a Docker
-    container configured with a tight security profile. In general, these
-    platform do not have a full POSIX environment; MirageOS does not try to
-    emulate POSIX and focuses on providing a small, well-defined, typed
-    interface with the system components. The nearest equivalent to the MirageOS
-    approach is the WASI (wasi.dev) set of interfaces for WebAssembly.
+    supported platforms range from minimal virtual machines running on cloud
+    providers, or processes running inside Docker containers configured with a
+    tight security profile. In general, these platform do not have a full POSIX
+    environment; MirageOS does not try to emulate POSIX and focuses on providing
+    a small, well-defined, typed interface with the system components. The
+    nearest equivalent to the MirageOS approach is the WASI (wasi.dev) set of
+    interfaces for WebAssembly.
 
     {2 Is everything really written in OCaml?}
 
@@ -587,7 +587,7 @@ val syslog_tls :
   kv_ro impl ->
   syslog impl
 (** Emit log messages via TLS to the configured host, using the credentials
-    (private ekey, certificate, trust anchor) provided in the KV_RO using the
+    (private key, certificate, trust anchor) provided in the KV_RO using the
     [keyname]. *)
 
 (** {2 Entropy} *)

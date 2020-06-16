@@ -36,7 +36,7 @@
     - Finally, MirageOS is also a {e metaprogramming compiler} that generates
       OCaml code. It takes as input: the OCaml source code of a program and all
       of its dependencies, the full description of the deployment target,
-      including configuration values (like the HTTP port to listen too, or the
+      including configuration values (like the HTTP port to listen on, or the
       private key or the service being deployed). The `mirage`CLI tool uses all
       of these to {e generate a executable unikernel}: a specialised binary
       artefact containing only the code what is needed to run on the given

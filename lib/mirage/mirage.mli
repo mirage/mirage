@@ -91,12 +91,17 @@
     [-windows] suffix to their names and dependencies; this allows normal
     packages and windows packages can be co-installed in the same opam switch.
 
-    MirageOS 3 solves this by duplicating only the packages defining C bindings
-    and (ab)using
+    {3 MirageOS 3.x}
+
+    MirageOS 3.x solves this by duplicating only the packages defining C
+    bindings. It relies on every MirageOS backend registering a set of [CFLAGS]
+    with [pkg-config]. Then every bindings uses [pkg-config] to configure their
+    [CFLAGS] and [ocamfind] to register
     {{:https://github.com/ocaml/opam-repository/blob/master/packages/zarith-xen/zarith-xen.1.7/files/mirage-install.sh#L20}
-    ocamlfind predicates} to resolve link time depencencies for C archives and
-    on relying on the now deprecated [--output-obj] option of the OCaml
-    compiler.
+    link-time predicates}, e.g. additional link time options like the name of
+    the C archives. Finally, the final link step is done by querying ocamlfind
+    (using the cust om registered predicates) to link the list of dependencies'
+    objects files with the result of OCam compiler's [--output-obj] option.
 
     {1 MirageOS eDSL}
 

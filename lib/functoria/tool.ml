@@ -209,14 +209,7 @@ module Make (P : S) = struct
   let action_run t a =
     if not t.Cli.dry_run then Action.run a
     else
-      let env =
-        let commands cmd =
-          match Bos.Cmd.line_exec cmd with
-          | Some "dune" -> Some (Fmt.str "$(%a)\n" Bos.Cmd.pp cmd, "")
-          | _ -> None
-        in
-        Action.env ~commands ~files:(`Passtrough (Fpath.v ".")) ()
-      in
+      let env = Action.env ~files:(`Passtrough (Fpath.v ".")) () in
       let dom = Action.dry_run ~env a in
       List.iter
         (fun line ->

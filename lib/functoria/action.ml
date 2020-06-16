@@ -224,6 +224,12 @@ and run : type r. r t -> r or_err = function
 
 type files = [ `Passtrough of Fpath.t | `Files of (Fpath.t * string) list ]
 
+let default_exec cmd =
+  let cmd =
+    Fmt.str "$(%a)\n" Fmt.(list ~sep:(unit " ") string) (Bos.Cmd.to_list cmd)
+  in
+  Some (cmd, "")
+
 (* (simple) virtual environment *)
 module Env : sig
   type t
@@ -232,6 +238,8 @@ module Env : sig
 
   val pp : t Fmt.t
 
+  val diff_files : old:t -> t -> Fpath.Set.t
+
   val pwd : t -> Fpath.t
 
   val chdir : t -> Fpath.t -> t
@@ -239,7 +247,7 @@ module Env : sig
   val ls : t -> Fpath.t -> Fpath.t list option
 
   val v :
-    ?commands:(Bos.Cmd.t -> (string * string) option) ->
+    ?exec:(Bos.Cmd.t -> (string * string) option) ->
     ?env:(string * string) list ->
     ?pwd:Fpath.t ->
     ?files:files ->
@@ -274,8 +282,19 @@ end = struct
     files : string Fpath.Map.t;
     pwd : Fpath.t;
     env : string String.Map.t;
-    commands : Bos.Cmd.t -> (string * string) option;
+    exec : Bos.Cmd.t -> (string * string) option;
   }
+
+  let diff_files ~old t =
+    let to_set t =
+      Fpath.Map.fold
+        (fun f _ acc ->
+          match Fpath.rem_prefix t.pwd f with
+          | None -> acc
+          | Some f -> Fpath.Set.add f acc)
+        t.files Fpath.Set.empty
+    in
+    Fpath.Set.diff (to_set t) (to_set old)
 
   let scan dir =
     (let open Rresult in
@@ -287,9 +306,7 @@ end = struct
     |> Rresult.R.join
     |> Rresult.R.error_msg_to_invalid_arg
 
-  let default_commands _ = None
-
-  let v ?(commands = default_commands) ?env ?pwd ?(files = `Files []) () =
+  let v ?(exec = default_exec) ?env ?pwd ?(files = `Files []) () =
     let env =
       match env with Some e -> String.Map.of_list e | None -> String.Map.empty
     in
@@ -308,7 +325,7 @@ end = struct
       in
       List.map (fun (f, c) -> (Fpath.normalize f, c)) files
     in
-    { files = Fpath.Map.of_list files; pwd; env; commands }
+    { files = Fpath.Map.of_list files; pwd; env; exec }
 
   let eq x y =
     Fpath.Map.equal ( = ) x.files y.files
@@ -326,7 +343,7 @@ end = struct
 
   let pwd t = t.pwd
 
-  let exec t cmd = t.commands cmd
+  let exec t cmd = t.exec cmd
 
   let mk_path t path =
     match (Fpath.to_string t.pwd, Fpath.is_rel path) with
@@ -624,6 +641,10 @@ let dry_run ?(env = env ()) t = dry_run ~env t
 let dry_run_trace ?env t =
   let domain = dry_run ?env t in
   List.iter print_endline domain.logs
+
+let generated_files ?(env = env ~exec:(fun _ -> None) ()) t =
+  let domain = dry_run ~env t in
+  Env.diff_files ~old:env domain.env
 
 module Infix = struct
   let ( >>= ) x f = bind ~f x

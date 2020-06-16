@@ -56,7 +56,7 @@ val hash : ('a, 'b) t -> int
 
 (** {1 Resources} *)
 
-val files : ('a, 'b) t -> Info.t -> [ `Configure | `Build ] -> Fpath.t list
+val files : ('a, 'b) t -> Info.t -> [ `Configure | `Build ] -> Fpath.Set.t
 (** [files t info s] is the list of files generated at stage [s]. *)
 
 val keys : ('a, 'b) t -> Key.t list

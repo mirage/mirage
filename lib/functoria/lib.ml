@@ -169,8 +169,8 @@ module Make (P : S) = struct
   let files i jobs s =
     let main = Info.main i in
     let files = Engine.files i jobs s in
-    let files = if s = `Configure then main :: files else files in
-    Fpath.Set.(elements (of_list files))
+    let files = if s = `Configure then Fpath.Set.add main files else files in
+    Fpath.Set.(elements files)
 
   let build args =
     let (_, jobs), i = args.Cli.context in
@@ -255,21 +255,12 @@ module Make (P : S) = struct
   let action_run args a =
     if not args.Cli.dry_run then Action.run a
     else
-      let commands cmd =
-        let cmd_str =
-          let out =
-            Fmt.str "$(%a)"
-              Fmt.(list ~sep:(unit " ") string)
-              (Bos.Cmd.to_list cmd)
-          in
-          Some (out, "")
-        in
+      let exec cmd =
         match Bos.Cmd.to_list cmd with
         | [ "opam"; "config"; "var"; "prefix" ] -> Some ("$prefix", "")
-        | "ocamlfind" :: "query" :: _ -> cmd_str
-        | _ -> None
+        | _ -> Action.default_exec cmd
       in
-      let env = Action.env ~files:(`Passtrough (Fpath.v ".")) ~commands () in
+      let env = Action.env ~files:(`Passtrough (Fpath.v ".")) ~exec () in
       let dom = Action.dry_run ~env a in
       List.iter
         (fun line ->

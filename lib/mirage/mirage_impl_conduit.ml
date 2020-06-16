@@ -7,7 +7,7 @@ let conduit = Type.v Conduit
 
 let conduit_with_connectors connectors =
   let packages = [ pkg ] in
-  let extra_deps = List.map abstract connectors in
+  let extra_deps = List.map dep connectors in
   let connect _ _ connectors =
     let pp_connector = Fmt.fmt "%s >>=@ " in
     let pp_connectors = Fmt.list ~sep:Fmt.nop pp_connector in

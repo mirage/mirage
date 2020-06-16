@@ -29,6 +29,8 @@ end
 
 include Functoria.DSL
 
+val abstract : 'a impl -> abstract_impl [@@ocaml.deprecated "Use Mirage.dep."]
+
 (** {2 General mirage devices} *)
 
 type tracing

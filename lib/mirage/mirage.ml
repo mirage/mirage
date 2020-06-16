@@ -371,7 +371,7 @@ module Project = struct
           :: common
     in
     let install_v i = Key.match_ Key.(value target) (install i) in
-    let extra_deps = List.map abstract jobs in
+    let extra_deps = List.map dep jobs in
     let connect _ _ _ = "return ()" in
     impl ~files ~keys ~packages_v ~install_v ~build ~configure ~clean ~connect
       ~extra_deps "Mirage_runtime" job

@@ -55,20 +55,31 @@ type 'a impl = 'a Impl.t
 val ( $ ) : ('a -> 'b) impl -> 'a impl -> 'b impl
 (** [m $ a] applies the functor [m] to the module [a]. *)
 
-val abstract : _ impl -> Impl.abstract
-(** [abstract t] is [t] but with its type variable abstracted. Useful for
-    dependencies. *)
+type abstract_impl = Impl.abstract
+(** Same as {!impl} but with hidden type. *)
+
+val dep : 'a impl -> abstract_impl
+(** [dep t] is the (build-time) dependency towards [t]. *)
+
+val abstract : 'a impl -> abstract_impl
+  [@@ocaml.deprecated "Use Functoria.dep."]
 
 (** {1:keys Keys} *)
 
+type 'a key = 'a Key.key
+(** The type for command-line parameters. *)
+
 type abstract_key = Key.t
-(** The type for command-line keys. See {!Key.t}. *)
+(** The type for abstract keys. *)
 
 type context = Key.context
 (** The type for keys' parsing context. See {!Key.context}. *)
 
 type 'a value = 'a Key.value
 (** The type for values parsed from the command-line. See {!Key.value}. *)
+
+val key : 'a key -> Key.t
+(** [key k] is an untyped representation of [k]. *)
 
 val if_impl : bool value -> 'a impl -> 'a impl -> 'a impl
 (** [if_impl v impl1 impl2] is [impl1] if [v] is resolved to true and [impl2]
@@ -111,9 +122,9 @@ type info = Info.t
 
 val foreign :
   ?packages:package list ->
-  ?packages_v:package list Key.value ->
+  ?packages_v:package list value ->
   ?keys:abstract_key list ->
-  ?deps:Impl.abstract list ->
+  ?deps:abstract_impl list ->
   string ->
   'a typ ->
   'a impl
@@ -121,9 +132,9 @@ val foreign :
 
 val main :
   ?packages:package list ->
-  ?packages_v:package list Key.value ->
+  ?packages_v:package list value ->
   ?keys:abstract_key list ->
-  ?extra_deps:Impl.abstract list ->
+  ?extra_deps:abstract_impl list ->
   string ->
   'a typ ->
   'a impl
@@ -140,7 +151,7 @@ val main :
 
 (** {1 Devices} *)
 
-type 'a device = ('a, Impl.abstract) Device.t
+type 'a device = ('a, abstract_impl) Device.t
 
 val of_device : 'a device -> 'a impl
 (** [of_device t] is the implementation device [t]. *)
@@ -151,7 +162,7 @@ val impl :
   ?install:(Info.t -> Install.t) ->
   ?install_v:(Info.t -> Install.t Key.value) ->
   ?keys:Key.t list ->
-  ?extra_deps:Impl.abstract list ->
+  ?extra_deps:abstract_impl list ->
   ?connect:(info -> string -> string list -> string) ->
   ?configure:(info -> unit Action.t) ->
   ?files:(info -> [ `Configure | `Build ] -> Fpath.t list) ->

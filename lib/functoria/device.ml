@@ -36,7 +36,7 @@ type ('a, 'impl) t = {
   install : info -> Install.t value;
   connect : info -> string -> string list -> string;
   configure : info -> unit Action.t;
-  files : info -> [ `Configure | `Build ] -> Fpath.t list;
+  files : (info -> [ `Configure | `Build ] -> Fpath.t list) option;
   build : info -> unit Action.t;
   clean : info -> unit Action.t;
   extra_deps : 'impl list;
@@ -67,8 +67,6 @@ let default_connect _ _ l =
 
 let niet _ = Action.ok ()
 
-let nil _ _ = []
-
 type 'a code = string
 
 let merge empty union a b =
@@ -89,8 +87,8 @@ let count =
     !i
 
 let v ?packages ?packages_v ?install ?install_v ?(keys = []) ?(extra_deps = [])
-    ?(connect = default_connect) ?(configure = niet) ?(files = nil)
-    ?(build = niet) ?(clean = niet) module_name module_type =
+    ?(connect = default_connect) ?(configure = niet) ?files ?(build = niet)
+    ?(clean = niet) module_name module_type =
   let id = count () in
   let packages = merge_packages packages packages_v in
   let install i =
@@ -126,7 +124,15 @@ let connect t = t.connect
 
 let configure t = t.configure
 
-let files t = t.files
+let files t i stage =
+  let gen =
+    match stage with
+    | `Configure -> Action.generated_files (t.configure i)
+    | `Build -> Action.generated_files (t.build i)
+  in
+  match t.files with
+  | None -> gen
+  | Some files -> Fpath.Set.(union gen (of_list (files i stage)))
 
 let build t = t.build
 
@@ -141,9 +147,16 @@ let start impl_name args =
 
 let exec_hook i = function None -> Action.ok () | Some h -> h i
 
-let extend ?packages ?packages_v ?(files = nil) ?pre_configure ?post_configure
+let uniq t = Fpath.Set.(elements (of_list t))
+
+let extend ?packages ?packages_v ?files ?pre_configure ?post_configure
     ?pre_build ?post_build ?pre_clean ?post_clean t =
-  let files i s = files i s @ t.files i s in
+  let files =
+    match (files, t.files) with
+    | None, None -> None
+    | Some f, None | None, Some f -> Some f
+    | Some x, Some y -> Some (fun i stage -> uniq (x i stage @ y i stage))
+  in
   let packages =
     Key.(pure List.append $ merge_packages packages packages_v $ t.packages)
   in

@@ -235,19 +235,19 @@ let yay _ = Some ("yay", "")
 let yay_err _ = Some ("yay", "err")
 
 let test_run_cmd () =
-  let test msg ?err ?out ~env ~cmd ~expected ~expected_log () =
-    let env = Action.env ~commands:env () in
+  let test msg ?err ?out ~exec ~cmd ~expected ~expected_log () =
+    let env = Action.env ~exec () in
     let got = Action.dry_run ~env (Action.run_cmd ?err ?out cmd) in
     Alcotest.check (domain pp_unit) msg (dom expected env expected_log) got
   in
-  test "run_cmd fails if the command doesn't exist" ~env:none
+  test "run_cmd fails if the command doesn't exist" ~exec:none
     ~cmd:(Bos.Cmd.v "some-command")
     ~expected:(error "'some-command' not found")
     ~expected_log:[ "Run_cmd 'some-command' (error)" ]
     ();
 
   let cmd = Bos.Cmd.v "some-command" in
-  test "run_cmd succeeds if the command exists" ~env:yay ~cmd ~expected:(Ok ())
+  test "run_cmd succeeds if the command exists" ~exec:yay ~cmd ~expected:(Ok ())
     ~expected_log:[ "Run_cmd 'some-command' (ok)" ]
     ();
 
@@ -255,7 +255,7 @@ let test_run_cmd () =
   let err = `Fmt (Fmt.with_buffer err_b) in
   let out_b = Buffer.create 10 in
   let out = `Fmt (Fmt.with_buffer out_b) in
-  test "run_cmd succeeds if the command exists" ~env:yay_err ~cmd ~out ~err
+  test "run_cmd succeeds if the command exists" ~exec:yay_err ~cmd ~out ~err
     ~expected:(Ok ())
     ~expected_log:[ "Run_cmd 'some-command' (ok)" ]
     ();
@@ -263,26 +263,26 @@ let test_run_cmd () =
   Alcotest.(check string) "cmd err" "err" (Buffer.contents err_b)
 
 let test_run_cmd_out () =
-  let test msg ?err ~env ~cmd ~expected ~expected_log () =
-    let env = Action.env ~commands:env () in
+  let test msg ?err ~exec ~cmd ~expected ~expected_log () =
+    let env = Action.env ~exec () in
     let got = Action.dry_run ~env (Action.run_cmd_out ?err cmd) in
     Alcotest.check (domain Fmt.string) msg (dom expected env expected_log) got
   in
-  test "run_cmd_out fails if the command doesn't exist" ~env:none
+  test "run_cmd_out fails if the command doesn't exist" ~exec:none
     ~cmd:(Bos.Cmd.v "some-command")
     ~expected:(error "'some-command' not found")
     ~expected_log:[ "Run_cmd 'some-command' (error)" ]
     ();
 
   let cmd = Bos.Cmd.v "some-command" in
-  test "run_cmd_out succeeds if the command exists" ~env:yay ~cmd
+  test "run_cmd_out succeeds if the command exists" ~exec:yay ~cmd
     ~expected:(Ok "yay")
     ~expected_log:[ "Run_cmd 'some-command' (ok)" ]
     ();
 
   let err_b = Buffer.create 10 in
   let err = `Fmt (Fmt.with_buffer err_b) in
-  test "run_cmd_out succeeds if the command exists" ~env:yay_err ~cmd ~err
+  test "run_cmd_out succeeds if the command exists" ~exec:yay_err ~cmd ~err
     ~expected:(Ok "yay")
     ~expected_log:[ "Run_cmd 'some-command' (ok)" ]
     ();

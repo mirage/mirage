@@ -134,8 +134,11 @@ type env
 
 type files = [ `Passtrough of Fpath.t | `Files of (Fpath.t * string) list ]
 
+val default_exec : Bos.Cmd.t -> (string * string) option
+(** [default_exec cmd] is [Some ("$(<cmd>)", "")]. *)
+
 val env :
-  ?commands:(Bos.Cmd.t -> (string * string) option) ->
+  ?exec:(Bos.Cmd.t -> (string * string) option) ->
   ?env:(string * string) list ->
   ?pwd:Fpath.t ->
   ?files:files ->
@@ -166,3 +169,7 @@ val dry_run : ?env:env -> 'a t -> 'a domain
 
 val dry_run_trace : ?env:env -> 'a t -> unit
 (** Only output the trace part of [dry_run]. *)
+
+val generated_files : ?env:env -> 'a t -> Fpath.Set.t
+(** [generated_files t] is the set of files created by [t]. Note: this might be
+    incomplete/incorrect in case of calls to external commands. *)

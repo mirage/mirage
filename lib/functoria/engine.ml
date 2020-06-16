@@ -70,18 +70,11 @@ let install i =
   | Dev c -> Device.install c i
   | If _ | App -> Installs.empty
 
-module Files = struct
-  type t = Fpath.t list
-
-  let union = ( @ )
-
-  let empty = []
-end
-
 let files info t stage =
   Device_graph.collect
-    (module Files)
-    (function Dev c -> Device.files c info stage | If _ | App -> Files.empty)
+    (module Fpath.Set)
+    (function
+      | Dev c -> Device.files c info stage | If _ | App -> Fpath.Set.empty)
     t
 
 (* [module_expresion tbl c args] returns the module expression of

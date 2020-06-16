@@ -57,10 +57,6 @@ module C = struct
 
   let keys = Key.[ v vote; v warn_error ]
 
-  let files _ = function
-    | `Build -> [ file_of_key vote; file_of_key warn_error ]
-    | _ -> []
-
   let connect _ _ _ = "()"
 
   let configure i =
@@ -108,8 +104,8 @@ module C = struct
   let create jobs =
     let packages = [ package "fmt" ] in
     let extra_deps = List.map dep jobs in
-    impl ~keys ~packages ~configure ~connect ~clean ~files ~build ~extra_deps
-      ~install "F0" job
+    impl ~keys ~packages ~configure ~connect ~clean ~build ~extra_deps ~install
+      "F0" job
 end
 
 include Lib.Make (C)

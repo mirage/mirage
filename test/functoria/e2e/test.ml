@@ -217,7 +217,7 @@ let test_cache () =
   test "configure --file %a --vote=%s" Fpath.pp config_ml str;
   test "build --file %a" Fpath.pp config_ml;
   Alcotest.(check string) "cache is valid" str (read_file Fpath.(root / "vote"));
-  clean ()
+  test "clean --file %a" Fpath.pp config_ml
 
 let test_help () =
   let help_ppf = Fmt.with_buffer (Buffer.create 10) in

@@ -10,7 +10,10 @@
 * Run_cmd 'dune build ./config.exe' (ok)
 * Is_file? test.context -> false
 * Run_cmd 'dune exec --root . -- ./config.exe clean a b c --dry-run' (ok)
-* Ls ./ (0 entry)
+* Ls ./ (1 entry)
+* Is_file? dune-project -> true
+* Read dune-project (47 bytes)
+* Rm dune-project (removed)
 * Rm test.context (no-op)
 * Get_var INSIDE_FUNCTORIA_TESTS -> <not set>
 * Rmdir _build (no-op)

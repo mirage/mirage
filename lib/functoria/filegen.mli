@@ -27,5 +27,7 @@ end
 module Make (P : PROJECT) : sig
   val write : Fpath.t -> string -> unit Action.t
 
+  val headers : [ `OCaml | `Sexp | `Make | `Opam ] -> string
+
   val rm : Fpath.t -> unit Action.t
 end

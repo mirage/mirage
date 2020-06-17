@@ -1,3 +1,4 @@
+version = 0.14.2
 break-cases=all
 break-infix=fit-or-vertical
 field-space=loose

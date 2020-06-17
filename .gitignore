@@ -7,3 +7,4 @@ _build
 *.install
 _tests/
 .merlin
+_opam

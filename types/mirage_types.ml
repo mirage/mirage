@@ -157,5 +157,5 @@ module type KV_RW = Mirage_kv.RW
 
 (** {2 Filesystem devices} *)
 
-module type FS = Mirage_fs.S
+module type FS = Mirage_fs.S [@ocaml.warning "-3"]
 [@@ocaml.deprecated "This will be removed from MirageOS 4.0, use Mirage_kv.RW."]

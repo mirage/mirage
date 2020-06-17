@@ -3,18 +3,17 @@ install: wget https://raw.githubusercontent.com/ocaml/ocaml-ci-scripts/master/.t
 script: bash -ex .travis-docker.sh
 services:
   - docker
-sudo: false
 env:
  global:
    - POST_INSTALL_HOOK="sh ./.travis-ci.sh"
    - PINS="mirage:. mirage-types:. mirage-types-lwt:. mirage-runtime:."
    - PACKAGE=mirage
    - TESTS=false
- matrix:
-   - DISTRO=alpine OCAML_VERSION=4.07 EXTRA_ENV="MODE=unix" TESTS=true
-   - DISTRO=alpine OCAML_VERSION=4.07 EXTRA_ENV="MODE=virtio"
-   - DISTRO=alpine OCAML_VERSION=4.08 EXTRA_ENV="MODE=spt"
+ jobs:
+   - DISTRO=alpine OCAML_VERSION=4.09 EXTRA_ENV="MODE=unix" TESTS=true
+   - DISTRO=alpine OCAML_VERSION=4.09 EXTRA_ENV="MODE=virtio"
+   - DISTRO=alpine OCAML_VERSION=4.10 EXTRA_ENV="MODE=spt"
    - DISTRO=ubuntu OCAML_VERSION=4.08 EXTRA_ENV="MODE=xen"
    - DISTRO=alpine OCAML_VERSION=4.08 EXTRA_ENV="MODE=muen"
    - DISTRO=debian-stable OCAML_VERSION=4.08 EXTRA_ENV="MODE=hvt"
-   - DISTRO=ubuntu-lts OCAML_VERSION=4.07 EXTRA_ENV="MODE=qubes"
+   - DISTRO=ubuntu-lts OCAML_VERSION=4.09 EXTRA_ENV="MODE=qubes"

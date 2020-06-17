@@ -87,6 +87,14 @@ let test_equal () =
   Alcotest.(check @@ neg key) "different defaults" k1 k2;
   Alcotest.(check @@ key) "same defaults" k1 k3
 
+let test_cmdliner () =
+  let k1 = Key.(v @@ create "foo" Arg.(opt int 1 (info [ "foo" ]))) in
+  let k2 = Key.(v @@ create "foo" Arg.(opt int 2 (info [ "foo" ]))) in
+  let keys = Key.Set.of_list [ k1; k2 ] in
+  let context = Key.context ~with_required:true keys in
+  let _ = eval (fun x -> x) context [] in
+  ()
+
 let suite =
   List.map
     (fun (n, f) -> (n, `Quick, f))
@@ -96,4 +104,5 @@ let suite =
       ("get", test_get);
       ("find", test_find);
       ("merge", test_merge);
+      ("cmdliner", test_cmdliner);
     ]

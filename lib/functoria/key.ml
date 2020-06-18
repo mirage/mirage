@@ -257,6 +257,17 @@ and compare_setters : type a b. a setter list -> b setter list -> int =
   | Setter (x, _) :: tx, Setter (y, _) :: ty -> (
       match compare (Any x) (Any y) with 0 -> compare_setters tx ty | i -> i )
 
+(* Set of keys, without runtime name conflicts. This is useful to create a
+   valid cmdliner term. *)
+module Names = Stdlib.Set.Make (struct
+  type nonrec t = t
+
+  let compare (Any x) (Any y) = String.compare x.name y.name
+end)
+
+(* Set of keys, where keys with the same name but with different
+   defaults are distinguished. This is useful to build the graph of
+   devices. *)
 module Set = struct
   module M = struct
     type nonrec t = t
@@ -452,6 +463,8 @@ let create name arg =
 (* {2 Cmdliner interface} *)
 
 let context ?(stage = `Both) ~with_required l =
+  let stage = filter_stage stage l in
+  let names = Names.of_list (Set.elements stage) in
   let gather (Any k) rest =
     let f v p =
       match v with
@@ -463,7 +476,7 @@ let context ?(stage = `Both) ~with_required l =
     let key = Arg.to_cmdliner k.arg ~with_required in
     Cmdliner.Term.(pure f $ key $ rest)
   in
-  Set.fold gather (filter_stage stage l) (Cmdliner.Term.pure empty_context)
+  Names.fold gather names (Cmdliner.Term.pure empty_context)
 
 (* {2 Code emission} *)
 

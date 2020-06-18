@@ -219,13 +219,13 @@ module Make (P : S) = struct
 
   let clean_files args =
     Action.ls (Fpath.v ".") (fun file ->
-        Fpath.parent file = Fpath.v "."
+        Fpath.parent file = Fpath.v "./"
         &&
         let base, ext = Fpath.split_ext file in
         let base = Fpath.basename base in
         match (base, ext) with
         | _, (".opam" | ".install") -> true
-        | "Makefile", "" -> true
+        | ("Makefile" | "dune-project" | "dune-workspace"), "" -> true
         | _ -> false)
     >>= fun files ->
     Action.List.iter ~f:Filegen.rm files >>= fun () ->

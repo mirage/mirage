@@ -60,10 +60,11 @@ module Make (P : S) = struct
   let re_exec t ?ppf ?err_ppf argv =
     add_context_file t argv >>= fun argv ->
     let args = Bos.Cmd.of_list (List.tl (Array.to_list argv)) in
-    let command =
-      Bos.Cmd.(
-        v "dune" % "exec" % "--" % p Fpath.(build_dir t / "config.exe") %% args)
+    let config_exe =
+      Fpath.(
+        normalize @@ (v "_build" / "default" // build_dir t / "config.exe"))
     in
+    let command = Bos.Cmd.(v (p config_exe) %% args) in
     run_cmd ?ppf ?err_ppf command
 
   let re_exec_out t ?err_ppf argv =
@@ -75,11 +76,14 @@ module Make (P : S) = struct
     re_exec_out t ?err_ppf
       [| ""; "query"; Fmt.to_to_string Cli.pp_query_kind k |]
 
-  (* Generate a `dune-project` file at the project root. *)
+  (* Generate a `dune-project` file at the project root if there is
+     none already. *)
   let generate_dune_project () =
     let file = Fpath.(v "dune-project") in
     let contents = Dune.base_project in
-    Filegen.write file (Fmt.str "%a\n" Dune.pp contents)
+    Action.is_file file >>= function
+    | false -> Filegen.write file (Fmt.str "%a\n" Dune.pp contents)
+    | true -> Action.ok ()
 
   let generate_makefile ~depext ~duniverse name =
     let file = Fpath.(v "Makefile") in

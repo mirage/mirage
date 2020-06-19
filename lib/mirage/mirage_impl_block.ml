@@ -68,7 +68,7 @@ let block_conf file =
     Key.match_ Key.(value target) @@ function
     | #Mirage_key.mode_xen -> xen_block_packages
     | #Mirage_key.mode_solo5 ->
-        [ package ~min:"0.6.1" ~max:"0.7.0" "mirage-block-solo5" ]
+        [ package ~min:"1.0.0" ~max:"2.0.0" "mirage-block-solo5" ]
     | #Mirage_key.mode_unix ->
         [ package ~min:"2.12.0" ~max:"3.0.0" "mirage-block-unix" ]
   in

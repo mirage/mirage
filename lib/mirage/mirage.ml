@@ -329,7 +329,7 @@ module Project = struct
   let dune_project =
     let contents =
       Dune.stanza {|
-(lang dune 2.6)
+(lang dune 2.7)
 (implicit_transitive_deps true)
 |}
     in

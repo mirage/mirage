@@ -86,7 +86,7 @@ module type S = sig
 
   val dune_project : Dune.t option
 
-  val dune_workspace : (info -> Dune.t) option
+  val dune_workspace : (build_dir:Fpath.t -> info -> Dune.t) option
 end
 
 module Make (P : S) = struct
@@ -205,7 +205,7 @@ module Make (P : S) = struct
         let dune =
           match P.dune_workspace with
           | None -> Dune.base_workspace
-          | Some f -> f i
+          | Some f -> f ~build_dir:(build_dir args) i
         in
         Fmt.pr "%a\n%!" Dune.pp dune
 

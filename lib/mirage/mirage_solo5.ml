@@ -138,10 +138,11 @@ let main i =
 
 let dune i = [ main i; manifest i; link i; workspace_flags i; install i ]
 
-let workspace i =
+let workspace ~build_dir i =
   let target = Info.get i Key.target in
   let pkg = package target in
   let profile_release = Dune.stanza "(profile release)" in
+  let cflags = Fpath.(normalize @@ (build_dir / (pkg ^ "-cflags"))) in
   let context =
     Dune.stanzaf
       {|
@@ -149,8 +150,8 @@ let workspace i =
   (name mirage-%a)
   (host default)
   (disable_dynamically_linked_foreign_archives true)
-  (env (_ (c_flags (:include %s-cflags))))))
+  (env (_ (c_flags (:include %a))))))
 |}
-      Key.pp_target target pkg
+      Key.pp_target target Fpath.pp cflags
   in
   [ profile_release; context ]

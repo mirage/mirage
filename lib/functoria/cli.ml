@@ -60,25 +60,25 @@ let setup ~with_setup =
         $ Fmt_cli.style_renderer ~docs:common_section ()
         $ Logs_cli.level ~docs:common_section () ))
 
+let fpath = Arg.conv ~docv:"FILE" (Fpath.of_string, Fpath.pp)
+
 let config_file =
   let doc =
     Arg.info ~docs:configuration_section ~docv:"FILE"
       ~doc:"The configuration file to use."
       [ "f"; "file"; "config-file" ]
   in
-  Term.(const Fpath.v $ Arg.(value & opt string "config.ml" & doc))
+  Arg.(value & opt fpath (Fpath.v "config.ml") & doc)
 
-let map_default ~default f x = if x == default then None else Some (f x)
+let none_if_eq default x = if x == default then None else Some x
 
 let context_file mname =
   let doc =
     Arg.info ~docs:configuration_section ~docv:"FILE"
       ~doc:"The context file to use." [ "context-file" ]
   in
-  let default = mname ^ ".context" in
-  Term.(
-    const (map_default ~default Fpath.v)
-    $ Arg.(value & opt string default & doc))
+  let default = Fpath.v (mname ^ ".context") in
+  Term.(const (none_if_eq default) $ Arg.(value & opt fpath default & doc))
 
 let duniverse doc_section =
   let env = Arg.env_var "DUNIVERSE_INIT" in
@@ -90,6 +90,13 @@ let duniverse doc_section =
       [ "duniverse-init" ]
   in
   Arg.(value & opt (some string) None & doc)
+
+let build_dir =
+  let doc =
+    Arg.info ~docs:query_section ~docv:"DIR" ~doc:"The build directory."
+      [ "build-dir" ]
+  in
+  Arg.(value & opt (some fpath) None & doc)
 
 let dry_run =
   let doc =
@@ -217,6 +224,7 @@ type 'a query_args = {
   kind : query_kind;
   depext : bool;
   duniverse : string option;
+  build_dir : Fpath.t option;
 }
 
 type 'a action =
@@ -325,12 +333,13 @@ module Subcommands = struct
 
   let query ~with_setup mname context =
     ( Term.(
-        const (fun kind args depext duniverse ->
-            Query { kind; args; depext; duniverse })
+        const (fun kind args depext duniverse build_dir ->
+            Query { kind; args; depext; duniverse; build_dir })
         $ kind
         $ args ~with_setup context mname
         $ depext query_section
-        $ duniverse query_section),
+        $ duniverse query_section
+        $ build_dir),
       Term.info "query" ~doc:"Query information about the $(mname) application."
         ~man:
           [

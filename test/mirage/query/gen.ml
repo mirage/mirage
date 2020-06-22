@@ -74,7 +74,7 @@ let of_target target =
       };
       {
         file = "x-dune-workspace";
-        cmd = "query dune-workspace --dry-run";
+        cmd = "query dune-workspace --dry-run --build-dir foo";
         target;
         args = None;
       };

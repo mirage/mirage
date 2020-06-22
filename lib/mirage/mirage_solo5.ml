@@ -138,11 +138,16 @@ let main i =
 
 let dune i = [ main i; manifest i; link i; workspace_flags i; install i ]
 
-let workspace ~build_dir i =
+let workspace ?build_dir i =
   let target = Info.get i Key.target in
   let pkg = package target in
   let profile_release = Dune.stanza "(profile release)" in
-  let cflags = Fpath.(normalize @@ (build_dir / (pkg ^ "-cflags"))) in
+  let cflags =
+    let file = Fpath.v (pkg ^ "-cflags") in
+    match build_dir with
+    | None -> file
+    | Some dir -> Fpath.(normalize (dir // file))
+  in
   let context =
     Dune.stanzaf
       {|

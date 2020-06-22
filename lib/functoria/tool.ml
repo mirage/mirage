@@ -73,8 +73,16 @@ module Make (P : S) = struct
     re_exec t ~ppf ?err_ppf argv >|= fun () -> Buffer.contents buf
 
   let query k t ?err_ppf _ =
+    let build_dir =
+      match (Fpath.to_string (build_dir t), k) with
+      | "./", _ -> [||]
+      | dir, `Dune `Workspace -> [| "--build-dir=" ^ dir |]
+      | _ -> [||]
+    in
     re_exec_out t ?err_ppf
-      [| ""; "query"; Fmt.to_to_string Cli.pp_query_kind k |]
+      (Array.append
+         [| ""; "query"; Fmt.to_to_string Cli.pp_query_kind k |]
+         build_dir)
 
   (* Generate a `dune-project` file at the project root if there is
      none already. *)

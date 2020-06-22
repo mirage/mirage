@@ -48,7 +48,7 @@ module type S = sig
 
   val dune_project : Dune.t option
 
-  val dune_workspace : (build_dir:Fpath.t -> info -> Dune.t) option
+  val dune_workspace : (?build_dir:Fpath.t -> info -> Dune.t) option
 end
 
 module Make (P : S) : sig

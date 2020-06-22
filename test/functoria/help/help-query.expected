@@ -8,6 +8,9 @@ DESCRIPTION
        The query command queries information about the test application.
 
 QUERY OPTIONS
+       --build-dir=DIR
+           The build directory.
+
        --depext
            Enable call to `opam depext' in the project Makefile.
 

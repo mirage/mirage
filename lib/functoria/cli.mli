@@ -79,6 +79,7 @@ type 'a query_args = {
   kind : query_kind;
   depext : bool;
   duniverse : string option;
+  build_dir : Fpath.t option;
 }
 (** The type for arguments of the [query] sub-command. *)
 

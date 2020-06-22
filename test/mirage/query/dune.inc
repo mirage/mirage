@@ -194,7 +194,7 @@
   (with-stdout-to x-dune-workspace
   (with-stderr-to x-dune-workspace.err
    (setenv MIRAGE_DEFAULT_TARGET unix
-   (run ./config.exe query dune-workspace --dry-run))))))
+   (run ./config.exe query dune-workspace --dry-run --build-dir foo))))))
 
 (rule
  (alias runtest)
@@ -403,7 +403,7 @@
   (with-stdout-to x-dune-workspace-hvt
   (with-stderr-to x-dune-workspace-hvt.err
    (setenv MIRAGE_DEFAULT_TARGET unix
-   (run ./config.exe query dune-workspace --dry-run --target=hvt))))))
+   (run ./config.exe query dune-workspace --dry-run --build-dir foo --target=hvt))))))
 
 (rule
  (alias runtest)

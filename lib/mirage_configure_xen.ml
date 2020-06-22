@@ -85,7 +85,7 @@ let configure_main_xl ?substitutions ~ext i =
       newline fmt;
       append fmt "name = '%s'" (lookup substitutions Name);
       append fmt "kernel = '%s'" (lookup substitutions Kernel);
-      append fmt "builder = 'linux'";
+      append fmt "type = 'pv'";
       append fmt "memory = %s" (lookup substitutions Memory);
       append fmt "on_crash = 'preserve'";
       newline fmt;

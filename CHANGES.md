@@ -1,3 +1,8 @@
+### v3.8.0 (2020-06-22)
+
+* Emit type=pv in xl (instead of builder=linux), as required by xen 4.10+ (#1166 by @djs55)
+* adapt to ipaddr 5.0.0, tcpip 5.0.0, mirage-crypto 0.8 (#1172 @hannesm)
+
 ### v3.7.7 (2020-05-18)
 
 * handle errors from Bos.OS.Cmd.run_out

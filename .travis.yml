@@ -6,7 +6,7 @@ services:
 env:
  global:
    - POST_INSTALL_HOOK="sh ./.travis-ci.sh"
-   - PINS="mirage.3.8.0:. mirage-types.3.8.0:. mirage-types-lwt.3.8.0:. mirage-runtime.3.8.0:."
+   - PINS="mirage:. mirage-types:. mirage-types-lwt:. mirage-runtime:."
    - PACKAGE=mirage
    - TESTS=false
  jobs:

@@ -193,7 +193,7 @@ module Make (P : S) = struct
   let clean_files ?ppf ?err_ppf args =
     let dune_clean () =
       Action.get_var "INSIDE_FUNCTORIA_TESTS" >>= function
-      | Some "1" | Some "" -> Action.ok ()
+      | Some "1" | Some "" -> Action.rm Fpath.(build_dir args / ".merlin")
       | _ -> run_cmd ?ppf ?err_ppf Bos.Cmd.(v "dune" % "clean")
     in
     let rm_gen_files () =

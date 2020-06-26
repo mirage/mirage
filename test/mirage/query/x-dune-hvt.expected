@@ -35,7 +35,6 @@
 (rule
  (target noop.hvt)
  (enabled_if (= %{context_name} "mirage-hvt"))
- (mode (promote (until-clean)))
  (deps main.exe.o (package solo5-hvt) solo5-hvt-ldflags)
  (action
   (bash

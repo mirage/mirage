@@ -210,7 +210,6 @@ let test_cache () =
   Alcotest.(check string)
     "cache is valid" str
     (read_file Fpath.(build_root / "vote"));
-  test "clean --file %a" Fpath.pp config_ml;
   clean ()
 
 let test_help () =

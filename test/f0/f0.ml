@@ -61,6 +61,8 @@ module C = struct
     let extra_deps = List.map dep jobs in
     impl ~keys ~packages ~connect ~dune ~configure ~extra_deps "F0" job
 
+  let name_of_target i = Info.name i
+
   let dune_project = None
 
   let dune_workspace = None

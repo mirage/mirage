@@ -23,7 +23,6 @@ let dune i =
  (public_name %s)
  (name %s)
  (package %s)
- (promote (until-clean))
  (libraries %a)
  (link_flags (-thread))
  (modules (:standard \ config))

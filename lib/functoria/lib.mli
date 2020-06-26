@@ -46,6 +46,12 @@ module type S = sig
   (** [create jobs] is the top-level job in the custom DSL which will execute
       the given list of [job]. *)
 
+  val name_of_target : Info.t -> string
+  (** [name_of_target i] is the name used to build the project with the build
+      info [i]. For simple projects it can be [Info.name]. For more complex
+      projects (like [mirage]), the name is suffixed by the value of the target
+      key defined in [i]. *)
+
   val dune_project : Dune.t option
 
   val dune_workspace : (?build_dir:Fpath.t -> info -> Dune.t) option

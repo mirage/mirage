@@ -16,7 +16,6 @@
  (public_name noop)
  (name main)
  (package noop)
- (promote (until-clean))
  (libraries lwt mirage-bootvar-unix mirage-clock-unix mirage-logs
    mirage-runtime mirage-unix)
  (link_flags (-thread))

@@ -70,7 +70,6 @@ let link i =
 (rule
  (target %s)
  (enabled_if (= %%{context_name} "mirage-%a"))
- (mode (promote (until-clean)))
  (deps main.exe.o (package %s) %s-ldflags)
  (action
   (bash

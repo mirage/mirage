@@ -326,6 +326,14 @@ module Project = struct
     | #Mirage_key.mode_xen -> Mirage_xen.configure i
     | #Mirage_key.mode_unix -> Mirage_unix.configure i
 
+  let name_of_target i =
+    match Info.output i with
+    | Some o -> o
+    | None ->
+        let name = Info.name i in
+        let target = Info.get i Key.target in
+        Fmt.str "%s-%a" name Key.pp_target target
+
   let dune_project =
     let contents =
       Dune.stanza {|

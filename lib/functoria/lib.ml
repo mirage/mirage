@@ -84,6 +84,8 @@ module type S = sig
 
   val create : job impl list -> job impl
 
+  val name_of_target : Info.t -> string
+
   val dune_project : Dune.t option
 
   val dune_workspace : (?build_dir:Fpath.t -> info -> Dune.t) option
@@ -170,7 +172,7 @@ module Make (P : S) = struct
   let query ({ args; kind; depext; duniverse; build_dir } : _ Cli.query_args) =
     let (_, jobs), i = args.context in
     match kind with
-    | `Name -> Fmt.pr "%s\n%!" (Info.name i)
+    | `Name -> Fmt.pr "%s\n%!" (P.name_of_target i)
     | `Packages ->
         let pkgs = Info.packages i in
         List.iter (Fmt.pr "%a\n%!" (Package.pp ~surround:"\"")) pkgs

@@ -49,7 +49,15 @@ let clean () =
       | _ ->
           if Rresult.R.get_ok @@ Bos.OS.Dir.exists Fpath.(root / f) then ()
           else get_ok @@ Bos.OS.File.delete Fpath.(root / f))
-    files
+    files;
+  let root_files = list_files (Fpath.v "./") in
+  List.iter
+    (fun f ->
+      match Filename.basename f with
+      | "dune-workspace" | "noop.opam" ->
+          Rresult.R.get_ok @@ Bos.OS.File.delete (Fpath.v f)
+      | _ -> ())
+    root_files
 
 let test ?err_ppf ?help_ppf fmt =
   Fmt.kstrf

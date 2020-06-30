@@ -1,6 +1,6 @@
 open Functoria
 
-val dune : Info.t -> Dune.stanza list
+val dune : name:string -> Info.t -> Dune.stanza list
 
 val configure : Info.t -> unit Action.t
 

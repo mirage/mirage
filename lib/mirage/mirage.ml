@@ -314,18 +314,6 @@ module Project = struct
   (* The ocamlfind packages to use when compiling config.ml *)
   let packages = [ package "mirage" ]
 
-  let dune i =
-    match Info.get i Key.target with
-    | #Mirage_key.mode_solo5 -> Mirage_solo5.dune i
-    | #Mirage_key.mode_xen -> Mirage_xen.dune i
-    | #Mirage_key.mode_unix -> Mirage_unix.dune i
-
-  let configure i =
-    match Info.get i Key.target with
-    | #Mirage_key.mode_solo5 -> Mirage_solo5.configure i
-    | #Mirage_key.mode_xen -> Mirage_xen.configure i
-    | #Mirage_key.mode_unix -> Mirage_unix.configure i
-
   let name_of_target i =
     match Info.output i with
     | Some o -> o
@@ -333,6 +321,19 @@ module Project = struct
         let name = Info.name i in
         let target = Info.get i Key.target in
         Fmt.str "%s-%a" name Key.pp_target target
+
+  let dune i =
+    let name = name_of_target i in
+    match Info.get i Key.target with
+    | #Mirage_key.mode_solo5 -> Mirage_solo5.dune ~name i
+    | #Mirage_key.mode_xen -> Mirage_xen.dune ~name i
+    | #Mirage_key.mode_unix -> Mirage_unix.dune ~name i
+
+  let configure i =
+    match Info.get i Key.target with
+    | #Mirage_key.mode_solo5 -> Mirage_solo5.configure i
+    | #Mirage_key.mode_xen -> Mirage_xen.configure i
+    | #Mirage_key.mode_unix -> Mirage_unix.configure i
 
   let dune_project =
     let contents =

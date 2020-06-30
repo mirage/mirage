@@ -7,7 +7,7 @@ let workspace _ = []
 
 let configure _ = Action.ok ()
 
-let dune i =
+let dune ~name i =
   let libraries = Info.libraries i in
   let flags = Mirage_dune.flags i in
   let public_name =
@@ -19,16 +19,18 @@ let dune i =
   let dune =
     Dune.stanzaf
       {|
-(executable
- (public_name %s)
- (name %s)
- (package %s)
- (libraries %a)
- (link_flags (-thread))
- (modules (:standard \ config))
- (flags %a))
+(indir %s
+ (copy_files# ../**)
+ (executable
+  (public_name %s)
+  (name %s)
+  (package %s)
+  (libraries %a)
+  (link_flags (-thread))
+  (modules (:standard \ config))
+  (flags %a)))
 |}
-      public_name main package (pp_list "libraries") libraries (pp_list "flags")
-      flags
+      name public_name main package (pp_list "libraries") libraries
+      (pp_list "flags") flags
   in
   [ dune ]

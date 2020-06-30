@@ -12,13 +12,15 @@
  (action
   (run ./config.exe configure --context-file mirage.context --dry-run)))
 
-(executable
- (public_name noop)
- (name main)
- (package noop)
- (libraries lwt mirage-bootvar-unix mirage-clock-unix mirage-logs
+(indir noop-unix
+ (copy_files# ../**)
+ (executable
+  (public_name noop)
+  (name main)
+  (package noop)
+  (libraries lwt mirage-bootvar-unix mirage-clock-unix mirage-logs
    mirage-runtime mirage-unix)
- (link_flags (-thread))
- (modules (:standard \ config))
- (flags -g -w +A-4-41-42-44 -bin-annot -strict-sequence -principal
-   -safe-string))
+  (link_flags (-thread))
+  (modules (:standard \ config))
+  (flags -g -w +A-4-41-42-44 -bin-annot -strict-sequence -principal
+   -safe-string)))

@@ -123,21 +123,25 @@ let main i =
   let pp_list f = Dune.compact_list f in
   Dune.stanzaf
     {|
-(executable
- (enabled_if (= %%{context_name} "mirage-%a"))
- (name %s)
- (modes (native object))
- (libraries %a)
- (link_flags %a)
- (modules (:standard \ config manifest))
- (foreign_stubs (language c) (names manifest))
- (forbidden_libraries unix))
+ (copy_files# ../**)
+ (executable
+  (enabled_if (= %%{context_name} "mirage-%a"))
+  (name %s)
+  (modes (native object))
+  (libraries %a)
+  (link_flags %a)
+  (modules (:standard \ config manifest))
+  (foreign_stubs (language c) (names manifest))
+  (forbidden_libraries unix))
 |}
     Key.pp_target target main (pp_list "libraries") libraries
     (pp_list "link_flags") flags
 
-let dune i =
-  [ main i; manifest i; link i; install i ] @ List.map workspace_flags modes
+let in_dir name s = Dune.stanzaf "(indir %s\n %a)\n" name Dune.pp (Dune.v s)
+
+let dune ~name i =
+  in_dir name [ main i; manifest i; link i; install i ]
+  :: List.map workspace_flags modes
 
 let workspace ?build_dir _ =
   let profile_release = Dune.stanza "(profile release)" in

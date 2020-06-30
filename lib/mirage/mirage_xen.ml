@@ -1,6 +1,6 @@
 let todo x = Fmt.failwith "TODO: xen-%s" x
 
-let dune _ = todo "dune"
+let dune ~name:_ _ = todo "dune"
 
 let configure _ = todo "configure"
 

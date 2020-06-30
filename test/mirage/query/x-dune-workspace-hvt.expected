@@ -9,3 +9,27 @@
   (host default)
   (disable_dynamically_linked_foreign_archives true)
   (env (_ (c_flags (:include foo/solo5-hvt-cflags))))))
+
+(context (default
+  (name mirage-spt)
+  (host default)
+  (disable_dynamically_linked_foreign_archives true)
+  (env (_ (c_flags (:include foo/solo5-spt-cflags))))))
+
+(context (default
+  (name mirage-virtio)
+  (host default)
+  (disable_dynamically_linked_foreign_archives true)
+  (env (_ (c_flags (:include foo/solo5-virtio-cflags))))))
+
+(context (default
+  (name mirage-muen)
+  (host default)
+  (disable_dynamically_linked_foreign_archives true)
+  (env (_ (c_flags (:include foo/solo5-muen-cflags))))))
+
+(context (default
+  (name mirage-genode)
+  (host default)
+  (disable_dynamically_linked_foreign_archives true)
+  (env (_ (c_flags (:include foo/solo5-genode-cflags))))))

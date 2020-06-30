@@ -3,11 +3,13 @@ open Action.Infix
 open Astring
 module Key = Mirage_key
 
+let modes = [ `Hvt; `Spt; `Virtio; `Muen; `Genode ]
+
 let package = function
   | `Virtio -> "solo5-virtio"
   | `Muen -> "solo5-muen"
   | `Hvt -> "solo5-hvt"
-  | `Genode -> "solo5--genode"
+  | `Genode -> "solo5-genode"
   | `Spt -> "solo5-spt"
   | _ -> invalid_arg "solo5 bindings only defined for solo5 targets"
 
@@ -102,8 +104,7 @@ let install i =
     out Key.pp_target target package
 
 (* FIXME: should be generated in the root dune only *)
-let workspace_flags i =
-  let target = Info.get i Key.target in
+let workspace_flags target =
   let pkg = package target in
   Dune.stanzaf
     {|
@@ -135,19 +136,19 @@ let main i =
     Key.pp_target target main (pp_list "libraries") libraries
     (pp_list "link_flags") flags
 
-let dune i = [ main i; manifest i; link i; workspace_flags i; install i ]
+let dune i =
+  [ main i; manifest i; link i; install i ] @ List.map workspace_flags modes
 
-let workspace ?build_dir i =
-  let target = Info.get i Key.target in
-  let pkg = package target in
+let workspace ?build_dir _ =
   let profile_release = Dune.stanza "(profile release)" in
-  let cflags =
-    let file = Fpath.v (pkg ^ "-cflags") in
-    match build_dir with
-    | None -> file
-    | Some dir -> Fpath.(normalize (dir // file))
-  in
-  let context =
+  let aux target =
+    let pkg = package target in
+    let cflags =
+      let file = Fpath.v (pkg ^ "-cflags") in
+      match build_dir with
+      | None -> file
+      | Some dir -> Fpath.(normalize (dir // file))
+    in
     Dune.stanzaf
       {|
 (context (default
@@ -158,4 +159,5 @@ let workspace ?build_dir i =
 |}
       Key.pp_target target Fpath.pp cflags
   in
-  [ profile_release; context ]
+
+  profile_release :: List.map aux modes

@@ -345,12 +345,8 @@ module Project = struct
 
   let dune_workspace =
     let f ?build_dir i =
-      let target = Info.get i Key.target in
       let stanzas =
-        match target with
-        | #Mirage_key.mode_solo5 -> Mirage_solo5.workspace ?build_dir i
-        | #Mirage_key.mode_xen -> Mirage_xen.workspace i
-        | #Mirage_key.mode_unix -> Mirage_unix.workspace i
+        Mirage_unix.workspace i @ Mirage_solo5.workspace ?build_dir i
       in
       let main =
         Dune.stanza {|

@@ -40,13 +40,33 @@
   (bash
    "ld main.exe.o -o %{target} $(cat solo5-hvt-ldflags)")))
 
+(install
+ (files noop.hvt)
+ (enabled_if (= %{context_name} "mirage-hvt"))
+ (section bin)
+ (package noop)))
+
 (rule
  (deps (package solo5))
  (action
   (copy %{lib:solo5-hvt:cflags} solo5-hvt-cflags)))
 
-(install
- (files noop.hvt)
- (enabled_if (= %{context_name} "mirage-hvt"))
- (section bin)
- (package noop))
+(rule
+ (deps (package solo5))
+ (action
+  (copy %{lib:solo5-spt:cflags} solo5-spt-cflags)))
+
+(rule
+ (deps (package solo5))
+ (action
+  (copy %{lib:solo5-virtio:cflags} solo5-virtio-cflags)))
+
+(rule
+ (deps (package solo5))
+ (action
+  (copy %{lib:solo5-muen:cflags} solo5-muen-cflags)))
+
+(rule
+ (deps (package solo5))
+ (action
+  (copy %{lib:solo5-genode:cflags} solo5-genode-cflags)))

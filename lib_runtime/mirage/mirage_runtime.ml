@@ -108,6 +108,14 @@ module Arg = struct
       | `Src s, l -> Fmt.pf ppf "%s:%s" s (string_of_level l)
     in
     (parser, serialize)
+
+  let allocation_policy =
+    Cmdliner.Arg.enum
+      [
+        ("next-fit", `Next_fit);
+        ("first-fit", `First_fit);
+        ("best-fit", `Best_fit);
+      ]
 end
 
 include (

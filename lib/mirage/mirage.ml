@@ -380,6 +380,75 @@ end
 include Lib.Make (Project)
 module Tool = Tool.Make (Project)
 
+let backtrace =
+  let keys = [ Key.v Key.backtrace ] in
+  let connect _ _ _ =
+    Fmt.strf "return (Printexc.record_backtrace %a)" Mirage_impl_misc.pp_key
+      Key.backtrace
+  in
+  impl ~keys ~connect "Printexc" job
+
+let randomize_hashtables =
+  let keys = [ Key.v Key.randomize_hashtables ] in
+  let connect _ _ _ =
+    Fmt.strf "return (if %a then Hashtbl.randomize ())" Mirage_impl_misc.pp_key
+      Key.randomize_hashtables
+  in
+  impl ~keys ~connect "Hashtbl" job
+
+let gc_control =
+  let pp_pol ~name =
+    Fmt.(
+      prefix
+        (unit (name ^^ " = "))
+        (suffix
+           (unit " with `Next_fit -> 0 | `First_fit -> 1 | `Best_fit -> 2)")
+           (prefix (unit "(match ") Mirage_impl_misc.pp_key)))
+  and pp_k ~name =
+    let m_body = " with None -> ctrl." ^^ name ^^ " | Some x -> x)" in
+    Fmt.(
+      prefix
+        (unit (name ^^ " = "))
+        (suffix (unit m_body) (prefix (unit "(match ") Mirage_impl_misc.pp_key)))
+  in
+  let keys =
+    [
+      Key.v Key.allocation_policy;
+      Key.v Key.minor_heap_size;
+      Key.v Key.major_heap_increment;
+      Key.v Key.space_overhead;
+      Key.v Key.max_space_overhead;
+      Key.v Key.gc_verbosity;
+      Key.v Key.gc_window_size;
+      Key.v Key.custom_major_ratio;
+      Key.v Key.custom_minor_ratio;
+      Key.v Key.custom_minor_max_size;
+    ]
+  in
+  let connect _ _ _ =
+    Fmt.strf
+      "return (@.@[<v 2>let open Gc in@ let ctrl = get () in@ set ({ ctrl with \
+       %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a })@]@.)"
+      (pp_pol ~name:"allocation_policy")
+      Key.allocation_policy
+      (pp_k ~name:"minor_heap_size")
+      Key.minor_heap_size
+      (pp_k ~name:"major_heap_increment")
+      Key.major_heap_increment
+      (pp_k ~name:"space_overhead")
+      Key.space_overhead
+      (pp_k ~name:"max_overhead")
+      Key.max_space_overhead (pp_k ~name:"verbose") Key.gc_verbosity
+      (pp_k ~name:"window_size") Key.gc_window_size
+      (pp_k ~name:"custom_major_ratio")
+      Key.custom_major_ratio
+      (pp_k ~name:"custom_minor_ratio")
+      Key.custom_minor_ratio
+      (pp_k ~name:"custom_minor_max_size")
+      Key.custom_minor_max_size
+  in
+  impl ~keys ~connect "Gc" job
+
 (** Custom registration *)
 
 let keys argv =
@@ -394,9 +463,9 @@ let ( ++ ) acc x =
 
 let register ?(argv = default_argv) ?tracing ?(reporter = default_reporter ())
     ?keys:extra_keys ?packages ?src name jobs =
-  let argv = Some [ keys argv ] in
+  let first = [ keys argv; backtrace; randomize_hashtables; gc_control ] in
   let reporter = if reporter == no_reporter then None else Some reporter in
-  let init = argv ++ reporter ++ tracing in
+  let init = Some first ++ reporter ++ tracing in
   register ?keys:extra_keys ?packages ?init ?src name jobs
 
 module FS = Mirage_impl_fs

@@ -251,6 +251,73 @@ end
 
 include Functoria_app.Make (Project)
 
+let backtrace = impl @@ object
+    inherit base_configurable
+    method ty = job
+    method name = "ocaml_backtrace"
+    method module_name = "Printexc"
+    method! keys = [ Key.abstract Key.backtrace ]
+    method! connect _ _ _ =
+      Fmt.strf "Lwt.return (Printexc.record_backtrace %a)"
+        Mirage_impl_misc.pp_key Key.backtrace
+  end
+
+let randomize_hashtables = impl @@ object
+    inherit base_configurable
+    method ty = job
+    method name = "ocaml_hashtable_randomize"
+    method module_name = "Hashtbl"
+    method! keys = [ Key.abstract Key.randomize_hashtables ]
+    method! connect _ _ _ =
+      Fmt.strf "Lwt.return (if %a then Hashtbl.randomize ())"
+        Mirage_impl_misc.pp_key Key.randomize_hashtables
+  end
+
+let gc_control =
+  let pp_pol ~name =
+    Fmt.(prefix (unit (name ^^ " = "))
+           (suffix (unit " with `Next_fit -> 0 | `First_fit -> 1 | `Best_fit -> 2)")
+              (prefix (unit "(match ") Mirage_impl_misc.pp_key)))
+  and pp_k ~name =
+    let m_body = " with None -> ctrl." ^^ name ^^ " | Some x -> x)" in
+    Fmt.(prefix (unit (name ^^ " = "))
+           (suffix (unit m_body) (prefix (unit "(match ") Mirage_impl_misc.pp_key)))
+  in
+  impl @@ object
+    inherit base_configurable
+    method ty = job
+    method name = "ocaml_gc_control"
+    method module_name = "Gc"
+    method! keys = [
+      Key.abstract Key.allocation_policy ;
+      Key.abstract Key.minor_heap_size ;
+      Key.abstract Key.major_heap_increment ;
+      Key.abstract Key.space_overhead ;
+      Key.abstract Key.max_space_overhead ;
+      Key.abstract Key.gc_verbosity ;
+      Key.abstract Key.gc_window_size ;
+      Key.abstract Key.custom_major_ratio ;
+      Key.abstract Key.custom_minor_ratio ;
+      Key.abstract Key.custom_minor_max_size ;
+    ]
+    method! connect _ _ _ =
+      Fmt.strf "Lwt.return (@.\
+                  @[<v 2>let open Gc in@ \
+                  let ctrl = get () in@ \
+                  set ({ ctrl with %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a })@]@.\
+                )"
+        (pp_pol ~name:"allocation_policy") Key.allocation_policy
+        (pp_k ~name:"minor_heap_size") Key.minor_heap_size
+        (pp_k ~name:"major_heap_increment") Key.major_heap_increment
+        (pp_k ~name:"space_overhead") Key.space_overhead
+        (pp_k ~name:"max_overhead") Key.max_space_overhead
+        (pp_k ~name:"verbose") Key.gc_verbosity
+        (pp_k ~name:"window_size") Key.gc_window_size
+        (pp_k ~name:"custom_major_ratio") Key.custom_major_ratio
+        (pp_k ~name:"custom_minor_ratio") Key.custom_minor_ratio
+        (pp_k ~name:"custom_minor_max_size") Key.custom_minor_max_size
+  end
+
 (** {Custom registration} *)
 
 let (++) acc x = match acc, x with
@@ -262,7 +329,7 @@ let register
     ?(argv=default_argv) ?tracing ?(reporter=default_reporter ())
     ?keys ?packages
     name jobs =
-  let argv = Some [Functoria_app.keys argv] in
+  let first = [ Functoria_app.keys argv ; backtrace ; randomize_hashtables ; gc_control ] in
   let reporter = if reporter == no_reporter then None else Some reporter in
-  let init = argv ++ reporter ++ tracing in
+  let init = Some first ++ reporter ++ tracing in
   register ?keys ?packages ?init name jobs

@@ -234,9 +234,13 @@ module Project = struct
         | #Mirage_key.mode_unix ->
           package ~min:"4.0.0" ~max:"5.0.0" "mirage-unix" :: common
         | #Mirage_key.mode_xen ->
-          package ~min:"5.0.0" ~max:"6.0.0" "mirage-xen" :: common
+          (* The Mirage/Xen PVH platform package has different version numbers
+           * than Mirage/Solo5, so needs its own case here. *)
+          package ~min:"0.6.0" ~max:"0.7.0" ~ocamlfind:[] "solo5-bindings-xen" ::
+          package ~min:"6.0.0" ~max:"7.0.0" "mirage-xen" ::
+          common
         | #Mirage_key.mode_solo5 as tgt ->
-          package ~min:"0.6.0" ~max:"0.7.0" ~ocamlfind:[] (fst (Mirage_configure_solo5.solo5_pkg tgt)) ::
+          package ~min:"0.6.0" ~max:"0.7.0" ~ocamlfind:[] (fst (Mirage_configure_solo5.solo5_bindings_pkg tgt)) ::
           package ~min:"0.6.1" ~max:"0.7.0" "mirage-solo5" ::
           common
 

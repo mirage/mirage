@@ -70,6 +70,9 @@ module Arg: sig
   val log_threshold: log_threshold Cmdliner.Arg.converter
   (** [log_threshold] converts log reporter threshold. *)
 
+  val allocation_policy : [`Next_fit|`First_fit|`Best_fit] Cmdliner.Arg.converter
+  (** [allocation_policy] converts allocation policy. *)
+
 end
 
 include module type of Functoria_runtime with module Arg := Arg

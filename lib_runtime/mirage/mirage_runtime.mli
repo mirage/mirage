@@ -61,7 +61,7 @@ module Arg : sig
   val ipv4_address : Ipaddr.V4.t Cmdliner.Arg.converter
   (** [ipv4] converts an IPv4 address. *)
 
-  val ipv4 : (Ipaddr.V4.Prefix.t * Ipaddr.V4.t) Cmdliner.Arg.converter
+  val ipv4 : Ipaddr.V4.Prefix.t Cmdliner.Arg.converter
   (** [ipv4] converts ipv4/netmask to Ipaddr.V4.t * Ipaddr.V4.Prefix.t . *)
 
   val ipv6 : Ipaddr.V6.t Cmdliner.Arg.converter

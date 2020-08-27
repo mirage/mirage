@@ -148,8 +148,7 @@ module Make (P : S) = struct
     let purpose = Fmt.strf "configure: create %a" Fpath.pp main in
     Log.info (fun m -> m "Generating: %a (main file)" Fpath.pp main);
     Action.with_output ~path:main ~append:false ~purpose (fun ppf ->
-        Fmt.pf ppf "%a@.@.let _ = Printexc.record_backtrace true@.@." Fmt.text
-          P.prelude)
+        Fmt.pf ppf "%a@.@." Fmt.text P.prelude)
     >>= fun () ->
     Engine.configure i jobs >>= fun () -> Engine.connect i ~init jobs
 

@@ -80,7 +80,7 @@ let static_ipv4_make__76 = lazy (
   __mclock__9 >>= fun _mclock__9 ->
   __ethernet_make__66 >>= fun _ethernet_make__66 ->
   __arp_make__69 >>= fun _arp_make__69 ->
-  Static_ipv4_make__76.connect ~ip:(Key_gen.ipv4 ())
+  Static_ipv4_make__76.connect ~cidr:(Key_gen.ipv4 ())
                             ?gateway:(Key_gen.ipv4_gateway ())
                             _ethernet_make__66 _arp_make__69
   )

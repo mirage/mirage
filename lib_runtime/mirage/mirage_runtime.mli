@@ -61,7 +61,7 @@ module Arg : sig
   val ipv4_address : Ipaddr.V4.t Cmdliner.Arg.converter
   (** [ipv4] converts an IPv4 address. *)
 
-  val ipv4 : (Ipaddr.V4.Prefix.t * Ipaddr.V4.t) Cmdliner.Arg.converter
+  val ipv4 : Ipaddr.V4.Prefix.t Cmdliner.Arg.converter
   (** [ipv4] converts ipv4/netmask to Ipaddr.V4.t * Ipaddr.V4.Prefix.t . *)
 
   val ipv6 : Ipaddr.V6.t Cmdliner.Arg.converter
@@ -72,6 +72,10 @@ module Arg : sig
 
   val log_threshold : log_threshold Cmdliner.Arg.converter
   (** [log_threshold] converts log reporter threshold. *)
+
+  val allocation_policy :
+    [ `Next_fit | `First_fit | `Best_fit ] Cmdliner.Arg.converter
+  (** [allocation_policy] converts allocation policy. *)
 end
 
 include module type of Functoria_runtime with module Arg := Arg

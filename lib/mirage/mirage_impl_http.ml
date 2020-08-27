@@ -18,5 +18,5 @@ let cohttp_server conduit =
 let httpaf_server conduit =
   let packages = [ package "httpaf-mirage" ] in
   let extra_deps = [ dep conduit ] in
-  impl ~packages ~connect:(connect "httapf") ~extra_deps
+  impl ~packages ~connect:(connect "httpaf") ~extra_deps
     "Httpaf_mirage.Server_with_conduit" http

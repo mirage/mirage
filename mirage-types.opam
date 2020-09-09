@@ -32,6 +32,7 @@ depends: [
   "mirage-fs" {>= "3.0.0"}
   "mirage-kv" {>= "3.0.0"}
   "mirage-channel" {>= "4.0.0"}
+  "mirage-pci"
 ]
 synopsis: "Module type definitions for MirageOS applications"
 description: """

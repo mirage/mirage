@@ -321,7 +321,7 @@ val ipv4_qubes: ?random:random impl -> ?clock:mclock impl ->
 
 val create_ipv6:
   ?random:random impl -> ?time:time impl -> ?clock:mclock impl ->
-  ?group:string -> ethernet impl -> ipv6_config -> ipv6 impl
+  ?group:string -> network impl -> ethernet impl -> ipv6_config -> ipv6 impl
 (** Use an IPv6 address.
     Exposes the keys {!Key.V6.ips}, {!Key.V6.netmasks} and {!Key.V6.gateways}.
 *)

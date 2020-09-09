@@ -122,28 +122,29 @@ let ipv4_qubes
 
 let ipv6_conf ?addresses ?netmasks ?gateways () = impl @@ object
     inherit base_configurable
-    method ty = ethernet @-> random @-> time @-> mclock @-> ipv6
+    method ty = network @-> ethernet @-> random @-> time @-> mclock @-> ipv6
     method name = Name.create "ipv6" ~prefix:"ipv6"
     method module_name = "Ipv6.Make"
     method! packages = right_tcpip_library ~sublibs:["ipv6"] "tcpip"
     method! keys = addresses @?? netmasks @?? gateways @?? []
     method! connect _ modname = function
-      | [ etif ; _random ; _time ; _clock ] ->
-        Fmt.strf "%s.connect@[@ %a@ %a@ %a@ %s@]"
+      | [ interface ; etif ; _random ; _time ; _clock ] ->
+        Fmt.strf "%s.connect@[@ %a@ %a@ %a@ %s %s@]"
           modname
           (opt_key "ip") addresses
           (opt_key "netmask") netmasks
           (opt_key "gateways") gateways
+          interface
           etif
-      | _ -> failwith (connect_err "ipv6" 3)
+      | _ -> failwith (connect_err "ipv6" 5)
   end
 
 let create_ipv6
     ?(random = default_random)
     ?(time = default_time)
     ?(clock = default_monotonic_clock)
-    ?group etif { addresses ; netmasks ; gateways } =
+    ?group netif etif { addresses ; netmasks ; gateways } =
   let addresses = Key.V6.ips ?group addresses in
   let netmasks = Key.V6.netmasks ?group netmasks in
   let gateways = Key.V6.gateways ?group gateways in
-  ipv6_conf ~addresses ~netmasks ~gateways () $ etif $ random $ time $ clock
+  ipv6_conf ~addresses ~netmasks ~gateways () $ netif $ etif $ random $ time $ clock

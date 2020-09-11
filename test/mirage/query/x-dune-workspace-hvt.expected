@@ -1,0 +1,11 @@
+(lang dune 2.0)
+
+(context (default))
+
+(profile release)
+
+(context (default
+  (name mirage-hvt)
+  (host default)
+  (disable_dynamically_linked_foreign_archives true)
+  (env (_ (c_flags (:include solo5-hvt-cflags))))))

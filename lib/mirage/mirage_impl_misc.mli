@@ -19,8 +19,6 @@ val query_ocamlfind :
 
 val opam_prefix : string Action.t Lazy.t
 
-val pkg_config : string -> string list -> string list Action.t
-
 val extra_c_artifacts : string -> string list -> string list Action.t
 
 val terminal : unit -> bool

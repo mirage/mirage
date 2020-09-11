@@ -35,8 +35,8 @@ type query_kind =
   [ `Name
   | `Packages
   | `Opam
-  | `Install
-  | `Files of [ `Configure | `Build ]
+  | `Files
+  | `Dune of [ `Base | `Full | `Project | `Workspace ]
   | `Makefile ]
 
 let query_kinds : (string * query_kind) list =
@@ -44,17 +44,21 @@ let query_kinds : (string * query_kind) list =
     ("name", `Name);
     ("packages", `Packages);
     ("opam", `Opam);
-    ("install", `Install);
-    ("files-configure", `Files `Configure);
-    ("files-build", `Files `Build);
+    ("files", `Files);
     ("Makefile", `Makefile);
+    ("dune-base", `Dune `Base);
+    ("dune", `Dune `Full);
+    ("dune-project", `Dune `Project);
+    ("dune-workspace", `Dune `Workspace);
   ]
 
 let setup ~with_setup =
   Term.(
-    const (if with_setup then setup_log else fun _ _ -> ())
-    $ Fmt_cli.style_renderer ~docs:common_section ()
-    $ Logs_cli.level ~docs:common_section ())
+    const snd
+    $ with_used_args
+        ( const (if with_setup then setup_log else fun _ _ -> ())
+        $ Fmt_cli.style_renderer ~docs:common_section ()
+        $ Logs_cli.level ~docs:common_section () ))
 
 let config_file =
   let doc =
@@ -75,6 +79,17 @@ let context_file mname =
   Term.(
     const (map_default ~default Fpath.v)
     $ Arg.(value & opt string default & doc))
+
+let duniverse doc_section =
+  let env = Arg.env_var "DUNIVERSE_INIT" in
+  let doc =
+    Arg.info ~docs:doc_section ~docv:"URL" ~env
+      ~doc:
+        "Alternate opam-repository overlay used by `duniverse init' to gather \
+         local sources."
+      [ "duniverse-init" ]
+  in
+  Arg.(value & opt (some string) None & doc)
 
 let dry_run =
   let doc =
@@ -157,9 +172,32 @@ type 'a args = {
   context_file : Fpath.t option;
   output : string option;
   dry_run : bool;
+  setup : string list;
 }
 
-type 'a configure_args = { args : 'a args; depext : bool }
+let argv_of_args t =
+  let config_file =
+    match Fpath.to_string t.config_file with
+    | "config.ml" -> [||]
+    | f -> [| "--config-file"; f |]
+  in
+  let context_file =
+    match t.context_file with
+    | None -> [||]
+    | Some f -> [| "--context-file"; Fpath.to_string f |]
+  in
+  let output = match t.output with None -> [||] | Some f -> [| "-o"; f |] in
+  let dry_run =
+    match t.dry_run with false -> [||] | true -> [| "--dry-run" |]
+  in
+  let setup = Array.of_list t.setup in
+  Array.concat [ config_file; context_file; output; dry_run; setup ]
+
+type 'a configure_args = {
+  args : 'a args;
+  depext : bool;
+  duniverse : string option;
+}
 
 type 'a build_args = 'a args
 
@@ -174,7 +212,12 @@ type 'a describe_args = {
   eval : bool option;
 }
 
-type 'a query_args = { args : 'a args; kind : query_kind; depext : bool }
+type 'a query_args = {
+  args : 'a args;
+  kind : query_kind;
+  depext : bool;
+  duniverse : string option;
+}
 
 type 'a action =
   | Configure of 'a configure_args
@@ -196,6 +239,7 @@ let pp_args pp_a =
       field "config_file" (fun t -> t.config_file) Fpath.pp;
       field "output" (fun t -> t.output) (option string);
       field "dry_run" (fun t -> t.dry_run) Fmt.bool;
+      field "setup" (fun t -> t.setup) (list string);
     ]
 
 let pp_configure pp_a =
@@ -248,8 +292,8 @@ let pp_action pp_a ppf = function
 
 let args ~with_setup context mname =
   Term.(
-    const (fun () config_file context_file dry_run output context ->
-        { config_file; context_file; dry_run; output; context })
+    const (fun setup config_file context_file dry_run output context ->
+        { setup; config_file; context_file; dry_run; output; context })
     $ setup ~with_setup
     $ config_file
     $ context_file mname
@@ -265,9 +309,11 @@ module Subcommands = struct
   (** The 'configure' subcommand *)
   let configure ~with_setup mname context =
     ( Term.(
-        const (fun args depext -> Configure { args; depext })
+        const (fun args depext duniverse ->
+            Configure { args; depext; duniverse })
         $ args ~with_setup context mname
-        $ depext configuration_section),
+        $ depext configuration_section
+        $ duniverse configuration_section),
       Term.info "configure" ~doc:"Configure a $(mname) application."
         ~man:
           [
@@ -279,10 +325,12 @@ module Subcommands = struct
 
   let query ~with_setup mname context =
     ( Term.(
-        const (fun kind args depext -> Query { kind; args; depext })
+        const (fun kind args depext duniverse ->
+            Query { kind; args; depext; duniverse })
         $ kind
         $ args ~with_setup context mname
-        $ depext query_section),
+        $ depext query_section
+        $ duniverse query_section),
       Term.info "query" ~doc:"Query information about the $(mname) application."
         ~man:
           [
@@ -360,9 +408,10 @@ module Subcommands = struct
           | `Ok t -> `Help (man_format, Some t) )
     in
     ( Term.(
-        const (fun args _ _ () -> Help args)
+        const (fun args _ _ _ () -> Help args)
         $ args ~with_setup context mname
         $ depext configuration_section
+        $ duniverse configuration_section
         $ full_eval
         $ ret (const help $ Term.man_format $ Term.choice_names $ topic)),
       Term.info "help" ~doc:"Display help about $(mname) commands."
@@ -404,11 +453,6 @@ let peek_args ?(with_setup = false) ~mname argv =
   match Term.eval_peek_opts ~argv (args ~with_setup (Term.pure ()) mname) with
   | _, `Ok b | Some b, _ -> b
   | _ -> assert false
-
-let peek_context_file ~mname argv =
-  match Term.eval_peek_opts ~argv (context_file mname) with
-  | _, `Ok b -> b
-  | _ -> None
 
 let eval ?(with_setup = true) ?help_ppf ?err_ppf ~name ~version ~configure
     ~query ~describe ~build ~clean ~help ~mname argv =

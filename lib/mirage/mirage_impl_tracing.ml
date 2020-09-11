@@ -1,6 +1,5 @@
 open Functoria
 open Mirage_impl_misc
-open Action.Infix
 module Key = Mirage_key
 
 type tracing = job
@@ -25,14 +24,6 @@ let mprof_trace ~size () =
           package ~max:"1.0.0" "mirage-profile-unix";
         ]
   in
-  let build _ =
-    query_ocamlfind [ "lwt.tracing" ] >>= function
-    | [] ->
-        Action.error
-          "lwt.tracing module not found. Hint:opam pin add lwt \
-           https://github.com/mirage/lwt.git#tracing"
-    | _ -> Action.ok ()
-  in
   let connect i _ _ =
     match get_target i with
     | #Mirage_key.mode_solo5 ->
@@ -54,4 +45,4 @@ let mprof_trace ~size () =
            ~domid:0 trace_pages@ |> OS.Main.run@]"
           Key.serialize_call (Key.v key)
   in
-  impl ~keys ~packages_v ~build ~connect "MProf" job
+  impl ~keys ~packages_v ~connect "MProf" job

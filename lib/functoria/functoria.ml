@@ -17,13 +17,13 @@
  *)
 
 open Astring
+open Action.Infix
 module Key = Key
 module Package = Package
 module Info = Info
 module Type = Type
 module Impl = Impl
 module Device = Device
-module Install = Install
 module Opam = Opam
 module Lib = Lib
 module Tool = Tool
@@ -32,6 +32,7 @@ module Engine = Engine
 module DSL = DSL
 module Cli = Cli
 module Action = Action
+module Dune = Dune
 
 module type DSL = module type of DSL
 
@@ -67,8 +68,6 @@ let sys_argv = Argv.sys_argv
 let argv = Argv.argv
 
 (* Info device *)
-
-open Action.Infix
 
 let src = Logs.Src.create "functoria" ~doc:"functoria library"
 
@@ -134,12 +133,11 @@ let package_names t = List.map Package.name (Info.packages t)
 
 let app_info ?(runtime_package = "functoria-runtime") ?opam_list
     ?(gen_modname = "Info_gen") ?(modname = "Functoria_runtime") () =
-  let file = Fpath.(v (String.Ascii.lowercase gen_modname) + "ml") in
+  let info_gen = Fpath.(v (String.Ascii.lowercase gen_modname) + "ml") in
   let module_name = gen_modname in
   let connect _ impl_name _ = Fmt.strf "return %s.info" impl_name in
-  let clean _ = Action.rm file in
-  let build i =
-    Log.info (fun m -> m "Generating: %a (info)" Fpath.pp file);
+  let configure i =
+    Log.info (fun m -> m "Generating: %a (info)" Fpath.pp info_gen);
     let packages =
       match opam_list with
       | None -> default_opam_deps (package_names i)
@@ -147,10 +145,11 @@ let app_info ?(runtime_package = "functoria-runtime") ?opam_list
     in
     packages >>= fun opam ->
     let ocl = String.Set.of_list (Info.libraries i) in
-    Fmt.kstr (Action.write_file file) "@[<v 2>let info = %a@]"
-      (pp_dump_pkgs modname)
+    Fmt.kstr
+      (Action.write_file info_gen)
+      "@[<v 2>let info = %a@]" (pp_dump_pkgs modname)
       (Info.name i, opam, ocl)
   in
-  let files _ = function `Configure -> [ file ] | _ -> [] in
+  let files _ = [ info_gen ] in
   let packages = [ Package.v runtime_package ] in
-  Impl.v ~packages ~connect ~clean ~files ~build module_name Info.t
+  Impl.v ~files ~packages ~connect ~configure module_name Info.t

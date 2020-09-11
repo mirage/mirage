@@ -43,11 +43,11 @@ let rec match_ kv ~default = function
 
 let ( $ ) f x = App { f; x }
 
-let v ?packages ?packages_v ?keys ?extra_deps ?connect ?configure ?files ?build
-    ?clean module_name module_type =
+let v ?packages ?packages_v ?keys ?extra_deps ?connect ?dune ?configure ?files
+    module_name module_type =
   of_device
-  @@ Device.v ?packages ?packages_v ?keys ?extra_deps ?connect ?configure ?files
-       ?build ?clean module_name module_type
+  @@ Device.v ?packages ?packages_v ?keys ?extra_deps ?connect ?dune ?configure
+       ?files module_name module_type
 
 let main ?packages ?packages_v ?keys ?extra_deps module_name ty =
   let connect _ = Device.start in

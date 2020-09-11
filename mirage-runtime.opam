@@ -30,3 +30,5 @@ synopsis: "The base MirageOS runtime library, part of every MirageOS unikernel"
 description: """
 A bundle of useful runtime functions for applications built with MirageOS
 """
+name: "mirage-runtime"
+version: "4.0.0"

@@ -10,9 +10,12 @@ DEPEXT ?= $(OPAM) pin add -k path --no-action --yes noop . && \
 
 all:: build
 
-depend depends::
+depend depends::dune-get
+	duniverse pull
+
+dune-get:
 	$(DEPEXT)
-	$(OPAM) install -y --deps-only .
+	duniverse init
 
 build::
 	mirage build

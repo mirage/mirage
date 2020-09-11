@@ -1,2 +1,2 @@
 $(dune build ./config.exe)
-$(dune exec --root . -- ./config.exe help a b c --dry-run)
+$(dune exec -- ./config.exe help a b c --dry-run)

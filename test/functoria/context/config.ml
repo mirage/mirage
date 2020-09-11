@@ -11,4 +11,4 @@ let target =
 
 let main = match_impl (Key.value target) ~default:y [ ("x", x) ]
 
-let () = register ~src:`None "noop" [ main ]
+let () = register "noop" [ main ]

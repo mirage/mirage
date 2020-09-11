@@ -28,7 +28,6 @@ let () =
   List.iter gen
     [
       v 1 "configure";
-      v 1 "build";
       v 1 "query";
       v 1 "describe";
       { code = 0; file = "help"; cmd = "help --man-format=plain" };

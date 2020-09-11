@@ -18,6 +18,6 @@
 
 type t
 
-val v : depext:bool -> string -> t
+val v : ?duniverse:string -> depext:bool -> string -> t
 
 val pp : t Fmt.t

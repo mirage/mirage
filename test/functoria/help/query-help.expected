@@ -11,6 +11,10 @@ QUERY OPTIONS
        --depext
            Enable call to `opam depext' in the project Makefile.
 
+       --duniverse-init=URL (absent DUNIVERSE_INIT env)
+           Alternate opam-repository overlay used by `duniverse init' to
+           gather local sources.
+
        --no-depext
            Disable call to `opam depext' in the project Makefile.
 
@@ -29,7 +33,8 @@ CONFIGURE OPTIONS
 
        INFO (absent=packages)
            The information to query. INFO must be one of `name', `packages',
-           `opam', `install', `files-configure', `files-build' or `Makefile'
+           `opam', `files', `Makefile', `dune-base', `dune', `dune-project'
+           or `dune-workspace'
 
 APPLICATION OPTIONS
        --hello=VAL (absent=Hello World!)
@@ -65,4 +70,10 @@ COMMON OPTIONS
        --verbosity=LEVEL (absent=warning)
            Be more or less verbose. LEVEL must be one of `quiet', `error',
            `warning', `info' or `debug'. Takes over -v.
+
+ENVIRONMENT
+       These environment variables affect the execution of query:
+
+       DUNIVERSE_INIT
+           See option --duniverse-init.
 

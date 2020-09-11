@@ -33,7 +33,6 @@ module Config = struct
     keys : Key.Set.t;
     init : job impl list;
     jobs : Device_graph.t;
-    src : [ `Auto | `None | `Some of string ];
   }
 
   (* In practice, we get all the keys associated to [if] cases, and
@@ -47,22 +46,21 @@ module Config = struct
     in
     Key.Set.fold f all_keys skeys
 
-  let v ?(keys = []) ?(packages = []) ?(init = []) ~build_cmd ~src name main_dev
-      =
+  let v ?(keys = []) ?(packages = []) ?(init = []) ~build_cmd name main_dev =
     let name = Name.ocamlify name in
     let jobs = Device_graph.create main_dev in
     let packages = Key.pure @@ packages in
     let keys = Key.Set.(union (of_list keys) (get_if_context jobs)) in
-    { packages; keys; name; init; jobs; build_cmd; src }
+    { packages; keys; name; init; jobs; build_cmd }
 
-  let eval ~partial context
-      { name = n; build_cmd; packages; keys; jobs; init; src } =
+  let eval ~partial context { name = n; build_cmd; packages; keys; jobs; init }
+      =
     let e = Device_graph.eval ~partial ~context jobs in
     let packages = Key.(pure List.append $ packages $ Engine.packages e) in
     let keys = Key.Set.elements (Key.Set.union keys @@ Engine.all_keys e) in
     Key.(
       pure (fun packages _ context ->
-          ((init, e), Info.v ~packages ~keys ~context ~build_cmd ~src n))
+          ((init, e), Info.v ~packages ~keys ~context ~build_cmd n))
       $ packages
       $ of_deps (Set.of_list keys))
 
@@ -78,11 +76,17 @@ end
 module type S = sig
   val prelude : string
 
+  val packages : Package.t list
+
   val name : string
 
   val version : string
 
   val create : job impl list -> job impl
+
+  val dune_project : Dune.t option
+
+  val dune_workspace : (info -> Dune.t) option
 end
 
 module Make (P : S) = struct
@@ -143,41 +147,28 @@ module Make (P : S) = struct
     in
     with_fmt f
 
-  let configure_main i (init, jobs) =
+  let configure ({ args; _ } : _ Cli.configure_args) =
+    let (init, jobs), i = args.context in
     let main = Info.main i in
     let purpose = Fmt.strf "configure: create %a" Fpath.pp main in
     Log.info (fun m -> m "Generating: %a (main file)" Fpath.pp main);
+    Action.with_dir (build_dir args) @@ fun () ->
     Action.with_output ~path:main ~append:false ~purpose (fun ppf ->
         Fmt.pf ppf "%a@.@." Fmt.text P.prelude)
     >>= fun () ->
-    Engine.configure i jobs >>= fun () -> Engine.connect i ~init jobs
+    Engine.generate_modules i jobs >>= fun () ->
+    Engine.generate_connects i ~init jobs >>= fun () ->
+    (* Generate extra-code if needed *)
+    Engine.configure i jobs
 
-  let clean_main i jobs =
-    Engine.clean i jobs >>= fun () -> Action.rm (Info.main i)
-
-  let configure args =
-    let jobs, i = args.Cli.context in
-    Log.info (fun m -> m "Configuration: %a" Fpath.pp args.Cli.config_file);
-    let () =
-      match Info.output i with
-      | None -> ()
-      | Some o -> Log.info (fun m -> m "Output       : %a" Fmt.(string) o)
-    in
-    Action.with_dir (build_dir args) (fun () -> configure_main i jobs)
-
-  let files i jobs s =
+  let files i jobs =
     let main = Info.main i in
-    let files = Engine.files i jobs s in
-    let files = if s = `Configure then Fpath.Set.add main files else files in
+    let files = Engine.files i jobs in
+    let files = Fpath.Set.add main files in
     Fpath.Set.(elements files)
 
-  let build args =
-    let (_, jobs), i = args.Cli.context in
-    Log.info (fun m -> m "Building: %a" Fpath.pp args.Cli.config_file);
-    Action.with_dir (build_dir args) (fun () -> Engine.build i jobs)
-
-  let query ({ args; kind; depext } : _ Cli.query_args) =
-    let jobs, i = args.Cli.context in
+  let query ({ args; kind; depext; duniverse } : _ Cli.query_args) =
+    let (_, jobs), i = args.context in
     match kind with
     | `Name -> Fmt.pr "%s\n%!" (Info.name i)
     | `Packages ->
@@ -186,25 +177,37 @@ module Make (P : S) = struct
     | `Opam ->
         let opam = Info.opam i in
         Fmt.pr "%a\n%!" Opam.pp opam
-    | `Install ->
-        let install = Key.eval (Info.context i) (Engine.install i (snd jobs)) in
-        Fmt.pr "%a\n%!" Install.pp install
-    | `Files stage ->
-        let files = files i (snd jobs) stage in
+    | `Files ->
+        let files = files i jobs in
         Fmt.pr "%a\n%!" Fmt.(list ~sep:(unit " ") Fpath.pp) files
     | `Makefile ->
-        let file = Makefile.v ~depext (Info.name i) in
+        let file = Makefile.v ~depext ?duniverse (Info.name i) in
         Fmt.pr "%a\n%!" Makefile.pp file
-
-  let clean args =
-    let (_, jobs), i = args.Cli.context in
-    Log.info (fun m -> m "Cleaning: %a" Fpath.pp args.Cli.config_file);
-    Action.with_dir (build_dir args) (fun () ->
-        clean_main i jobs >>= fun () ->
-        Filegen.rm Fpath.(v "dune") >>= fun () ->
-        Filegen.rm Fpath.(v "dune.config") >>= fun () ->
-        Filegen.rm Fpath.(v "dune.build") >>= fun () ->
-        Action.rm Fpath.(v ".merlin"))
+    | `Dune `Base ->
+        let dune =
+          Dune.base ~packages:P.packages ~name:P.name ~version:P.version
+        in
+        Fmt.pr "%a\n%!" Dune.pp dune
+    | `Dune `Full ->
+        let files = files i jobs in
+        let extra = Engine.dune i jobs in
+        let dune =
+          Dune.full ~packages:P.packages ~name:P.name ~version:P.version ~files
+            ~extra { args with context = () }
+        in
+        Fmt.pr "%a\n%!" Dune.pp dune
+    | `Dune `Project ->
+        let dune =
+          match P.dune_project with None -> Dune.base_project | Some d -> d
+        in
+        Fmt.pr "%a\n%!" Dune.pp dune
+    | `Dune `Workspace ->
+        let dune =
+          match P.dune_workspace with
+          | None -> Dune.base_workspace
+          | Some f -> f i
+        in
+        Fmt.pr "%a\n%!" Dune.pp dune
 
   let ok () = Action.ok ()
 
@@ -223,6 +226,10 @@ module Make (P : S) = struct
     let _, i = args.Cli.context in
     f "@[<v>%a@]" (Info.pp verbose) i
 
+  let build _ =
+    Fmt.pr "Use `dune build' instead.\n%!";
+    Action.ok ()
+
   let handle_parse_args_result = function
     | `Error _ -> exit ()
     | `Version | `Help -> ok ()
@@ -232,7 +239,7 @@ module Make (P : S) = struct
         | Cli.Configure t ->
             let t = { t with args = with_output t.args } in
             Log.info (fun m -> pp_info m (Some Logs.Debug) t.args);
-            configure t.args
+            configure t
         | Cli.Build t ->
             let t = with_output t in
             Log.info (fun m -> pp_info m (Some Logs.Debug) t);
@@ -246,10 +253,7 @@ module Make (P : S) = struct
             let t = { t with args = with_output t.args } in
             pp_info Fmt.(pf stdout) (Some Logs.Info) t.args;
             describe t
-        | Cli.Clean t ->
-            let t = with_output t in
-            Log.info (fun m -> pp_info m (Some Logs.Debug) t);
-            clean t )
+        | Cli.Clean _ -> ok () )
 
   let action_run args a =
     if not args.Cli.dry_run then Action.run a
@@ -326,7 +330,7 @@ module Make (P : S) = struct
       (Cli.eval ~name:P.name ~version:P.version ~configure ~query ~describe
          ~build ~clean ~help ~mname:P.name argv)
 
-  let register ?packages ?keys ?(init = default_init) ?(src = `Auto) name jobs =
+  let register ?packages ?keys ?(init = default_init) name jobs =
     (* 1. Pre-parse the arguments set the log level, config file
        and root directory. *)
     let argv = Sys.argv in
@@ -335,7 +339,7 @@ module Make (P : S) = struct
     let run () =
       let build_cmd = get_build_cmd args in
       let main_dev = P.create (init @ jobs) in
-      let c = Config.v ?keys ?packages ~init ~build_cmd ~src name main_dev in
+      let c = Config.v ?keys ?packages ~init ~build_cmd name main_dev in
       run_configure_with_argv argv args c
     in
     run () |> action_run args |> exit_err args

@@ -16,14 +16,17 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-type t = { depext : bool; name : string }
+type t = { depext : bool; name : string; duniverse : string option }
 
-let v ~depext name = { depext; name }
+let v ?duniverse ~depext name = { depext; name; duniverse }
 
 let pp ppf t =
   let pp_depext ppf = function
     | true -> Fmt.pf ppf "\n\t$(DEPEXT)"
     | false -> ()
+  in
+  let init =
+    match t.duniverse with None -> "" | Some r -> Fmt.strf " --opam-repo %s" r
   in
   Fmt.pf ppf
     "-include Makefile.user\n\n\
@@ -33,10 +36,12 @@ let pp ppf t =
      \t    $(OPAM) pin remove --no-action %s\n\n\
      .PHONY: all depend depends clean build\n\n\
      all:: build\n\n\
-     depend depends::%a\n\
-     \t$(OPAM) install -y --deps-only .\n\n\
+     depend depends::dune-get\n\
+     \tduniverse pull\n\n\
+     dune-get:%a\n\
+     \tduniverse init%s\n\n\
      build::\n\
      \tmirage build\n\n\
      clean::\n\
      \tmirage clean\n"
-    t.name t.name t.name pp_depext t.depext
+    t.name t.name t.name pp_depext t.depext init

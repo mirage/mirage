@@ -1,2 +1,1 @@
-$(dune build ./config.exe)
-$(dune exec --root . -- ./config.exe clean a b c --dry-run)
+$(dune clean)

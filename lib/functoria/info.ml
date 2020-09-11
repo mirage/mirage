@@ -33,6 +33,8 @@ let main t =
   let main = match t.output with None -> "main" | Some f -> f in
   Fpath.v (main ^ ".ml")
 
+let get t k = Key.get t.context k
+
 let opam t = t.opam
 
 let output t = t.output
@@ -51,8 +53,6 @@ let packages t = List.map snd (String.Map.bindings t.packages)
 
 let libraries t = libraries (packages t)
 
-let package_names t = List.map Package.name (packages t)
-
 let pins packages =
   List.fold_left
     (fun acc p ->
@@ -65,10 +65,10 @@ let keys t = Key.Set.elements t.keys
 
 let context t = t.context
 
-let v ~packages ~keys ~context ~build_cmd ~src name =
+let v ~packages ~keys ~context ~build_cmd name =
   let keys = Key.Set.of_list keys in
   let opam =
-    Opam.v ~depends:packages ~pins:(pins packages) ~build:build_cmd ~src name
+    Opam.v ~depends:packages ~pins:(pins packages) ~build:build_cmd name
   in
   let packages =
     List.fold_left
@@ -107,7 +107,6 @@ let pp verbose ppf ({ name; keys; context; output; _ } as t) =
 
 let t =
   let i =
-    v ~packages:[] ~keys:[] ~context:Key.empty_context ~build_cmd:[] ~src:`None
-      "dummy"
+    v ~packages:[] ~keys:[] ~context:Key.empty_context ~build_cmd:[] "dummy"
   in
   Type.v i

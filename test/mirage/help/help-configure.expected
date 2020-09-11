@@ -86,6 +86,10 @@ CONFIGURE OPTIONS
        --dry-run
            Display I/O actions instead of executing them.
 
+       --duniverse-init=URL (absent DUNIVERSE_INIT env)
+           Alternate opam-repository overlay used by `duniverse init' to
+           gather local sources.
+
        -f FILE, --file=FILE, --config-file=FILE (absent=config.ml)
            The configuration file to use.
 
@@ -126,6 +130,9 @@ COMMON OPTIONS
 
 ENVIRONMENT
        These environment variables affect the execution of configure:
+
+       DUNIVERSE_INIT
+           See option --duniverse-init.
 
        MIRAGE_LOGS
            See option --logs.

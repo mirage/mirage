@@ -18,9 +18,8 @@ let run ?(keys = []) ?init context device =
   let keys = keys @ Key.Set.elements (Engine.all_keys t) in
   let packages = Key.eval context (Engine.packages t) in
   let info =
-    Functoria.Info.v ~packages ~context ~keys ~build_cmd:[ "build"; "me" ]
-      ~src:`None "foo"
+    Functoria.Info.v ~packages ~context ~keys ~build_cmd:[ "build"; "me" ] "foo"
   in
   prelude info >>= fun () ->
-  Engine.configure info t >>= fun () ->
-  Engine.connect ?init info t >>= fun () -> Engine.build info t
+  Engine.generate_modules info t >>= fun _ ->
+  Engine.generate_connects ?init info t >>= fun () -> Engine.configure info t

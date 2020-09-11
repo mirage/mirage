@@ -33,6 +33,9 @@ module type S = sig
       - a [return] function of type ['a -> 'a t]
       - a [>>=] operator of type ['a t -> ('a -> 'b t) -> 'b t] *)
 
+  val packages : Package.t list
+  (** The packages to load when compiling the configuration file. *)
+
   val name : string
   (** Name of the custom DSL. *)
 
@@ -42,6 +45,10 @@ module type S = sig
   val create : job impl list -> job impl
   (** [create jobs] is the top-level job in the custom DSL which will execute
       the given list of [job]. *)
+
+  val dune_project : Dune.t option
+
+  val dune_workspace : (info -> Dune.t) option
 end
 
 module Make (P : S) : sig
@@ -53,7 +60,6 @@ module Make (P : S) : sig
     ?packages:package list ->
     ?keys:abstract_key list ->
     ?init:job impl list ->
-    ?src:[ `Auto | `None | `Some of string ] ->
     string ->
     job impl list ->
     unit

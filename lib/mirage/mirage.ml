@@ -17,9 +17,10 @@
  *)
 
 open Functoria
-module Type = Functoria.Type
-module Impl = Functoria.Impl
-module Info = Functoria.Info
+module Type = Type
+module Impl = Impl
+module Info = Info
+module Dune = Dune
 module Key = Mirage_key
 module Log = Mirage_impl_misc.Log
 include Functoria.DSL
@@ -300,10 +301,6 @@ let app_info = app_info_partial ()
 
 let app_info_with_opam_deps opam_list = app_info_partial ~opam_list ()
 
-open Mirage_configure
-open Mirage_build
-open Mirage_clean
-
 module Project = struct
   let name = "mirage"
 
@@ -317,46 +314,58 @@ module Project = struct
   (* The ocamlfind packages to use when compiling config.ml *)
   let packages = [ package "mirage" ]
 
-  let bin ~name = function
-    | #Mirage_key.mode_solo5 as tgt ->
-        let ext = snd (Mirage_configure_solo5.solo5_pkg tgt) in
-        let file = Fpath.v (name ^ ext) in
-        (file, file)
-    | #Mirage_key.mode_unix ->
-        (Fpath.((v "_build" / "main") + "native"), Fpath.v name)
-    | #Mirage_key.mode_xen ->
-        let file = Fpath.(v name + "xen") in
-        (file, file)
+  let dune i =
+    match Info.get i Key.target with
+    | #Mirage_key.mode_solo5 -> Mirage_solo5.dune i
+    | #Mirage_key.mode_xen -> Mirage_xen.dune i
+    | #Mirage_key.mode_unix -> Mirage_unix.dune i
 
-  let etc ~name =
-    let libvirt = Mirage_configure_libvirt.filename ~name in
-    function
-    | `Xen -> Fpath.[ v name + "xl"; v name + "xl.in"; v name + "xe"; libvirt ]
-    | `Virtio -> [ libvirt ]
-    | _ -> []
+  let configure i =
+    match Info.get i Key.target with
+    | #Mirage_key.mode_solo5 -> Mirage_solo5.configure i
+    | #Mirage_key.mode_xen -> Mirage_xen.configure i
+    | #Mirage_key.mode_unix -> Mirage_unix.configure i
 
-  let install i k =
-    let name = match Info.output i with None -> Info.name i | Some n -> n in
-    Install.v ~bin:[ bin ~name k ] ~etc:(etc ~name k) ()
+  let dune_project =
+    let contents =
+      Dune.stanza {|
+(lang dune 2.3)
+(implicit_transitive_deps true)
+|}
+    in
+    Some (Dune.v [ contents ])
 
-  let files t = function
-    | `Build -> Mirage_build.files t
-    | `Configure -> Mirage_configure.files t
+  let dune_workspace =
+    let f i =
+      let target = Info.get i Key.target in
+      let stanzas =
+        match target with
+        | #Mirage_key.mode_solo5 -> Mirage_solo5.workspace i
+        | #Mirage_key.mode_xen -> Mirage_xen.workspace i
+        | #Mirage_key.mode_unix -> Mirage_unix.workspace i
+      in
+      let main =
+        Dune.stanza {|
+(lang dune 2.0)
+
+(context (default))
+        |}
+      in
+      Dune.v (main :: stanzas)
+    in
+
+    Some f
 
   let create jobs =
     let keys = Key.[ v target; v warn_error; v target_debug ] in
     let packages_v =
       (* XXX: use %%VERSION_NUM%% here instead of hardcoding a version? *)
-      let min = "3.8.0" and max = "3.9.0" in
+      let min = "4.0.0" and max = "4.1.0" in
       let common =
         [
-          package ~build:true ~min:"4.06.0" "ocaml";
           package "lwt";
-          package ~min ~max "mirage-types";
           package ~min ~max "mirage-runtime";
           package ~build:true ~min ~max "mirage";
-          package ~build:true "ocamlfind";
-          package ~build:true "ocamlbuild";
         ]
       in
       Key.match_ Key.(value target) @@ function
@@ -365,16 +374,14 @@ module Project = struct
       | #Mirage_key.mode_xen ->
           package ~min:"5.0.0" ~max:"6.0.0" "mirage-xen" :: common
       | #Mirage_key.mode_solo5 as tgt ->
-          package ~min:"0.6.0" ~max:"0.7.0" ~libs:[]
-            (fst (Mirage_configure_solo5.solo5_pkg tgt))
-          :: package ~min:"0.6.1" ~max:"0.7.0" "mirage-solo5"
+          package ~min:"1.0.0" ~max:"1.1.0" ~libs:[] (Mirage_solo5.package tgt)
+          :: package ~min:"1.0.0" ~max:"1.1.0" "mirage-solo5"
           :: common
     in
-    let install_v i = Key.match_ Key.(value target) (install i) in
     let extra_deps = List.map dep jobs in
     let connect _ _ _ = "return ()" in
-    impl ~files ~keys ~packages_v ~install_v ~build ~configure ~clean ~connect
-      ~extra_deps "Mirage_runtime" job
+    impl ~keys ~packages_v ~configure ~dune ~connect ~extra_deps
+      "Mirage_runtime" job
 end
 
 include Lib.Make (Project)
@@ -462,12 +469,11 @@ let ( ++ ) acc x =
   | Some acc, Some x -> Some (acc @ [ x ])
 
 let register ?(argv = default_argv) ?tracing ?(reporter = default_reporter ())
-    ?keys:extra_keys ?packages ?src name jobs =
+    ?keys:extra_keys ?packages name jobs =
   let first = [ keys argv; backtrace; randomize_hashtables; gc_control ] in
   let reporter = if reporter == no_reporter then None else Some reporter in
   let init = Some first ++ reporter ++ tracing in
-  register ?keys:extra_keys ?packages ?init ?src name jobs
+  register ?keys:extra_keys ?packages ?init name jobs
 
 module FS = Mirage_impl_fs
-module Configure = Mirage_configure
 module Action = Functoria.Action

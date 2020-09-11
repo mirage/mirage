@@ -41,3 +41,5 @@ Since Xen powers most public cloud computing infrastructure such as
 Amazon EC2 or Rackspace, this lets your servers run more cheaply,
 securely and with finer control than with a full software stack.
 """
+name: "mirage"
+version: "4.0.0"

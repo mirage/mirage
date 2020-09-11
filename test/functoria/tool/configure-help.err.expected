@@ -1,27 +1,29 @@
 * Is_file? config.ml -> true
 * Is_file? dune-project -> false
 * Write to dune-project (47 bytes)
-* With_dir ./ [Is_file? dune.config -> false
-               Write to dune.config (143 bytes)
-               Is_file? dune.build -> false
-               Write to dune.build (32 bytes)
-               Is_file? dune -> true
-               Read dune (221 bytes)]
-* Run_cmd 'dune build ./config.exe' (ok)
+* Is_file? dune -> true
+* Read dune (221 bytes)
 * Write to test.context (25 bytes)
+* Run_cmd 'dune build ./config.exe' (ok)
 * Is_file? test.context -> true
-* Run_cmd 'dune exec --root . -- ./config.exe configure help --dry-run
-           --context test.context' (ok)
+* Run_cmd 'dune exec -- ./config.exe query name --context test.context' (ok)
 * Is_file? test.context -> true
-* Run_cmd 'dune exec --root . -- ./config.exe query name --context test.context' (ok)
-* Is_file? test.context -> true
-* Run_cmd 'dune exec --root . -- ./config.exe query opam --context test.context' (ok)
-* Is_file? $(dune exec --root . -- ./config.exe query name --context test.context).opam -> false
-* Write to $(dune exec --root . -- ./config.exe query name --context test.context).opam (102 bytes)
-* Is_file? test.context -> true
-* Run_cmd 'dune exec --root . -- ./config.exe query install --context
-           test.context' (ok)
-* Is_file? $(dune exec --root . -- ./config.exe query name --context test.context).install -> false
-* Write to $(dune exec --root . -- ./config.exe query name --context test.context).install (105 bytes)
+* Run_cmd 'dune exec -- ./config.exe query opam --context test.context' (ok)
+* Is_file? $(dune exec -- ./config.exe query name --context test.context).opam -> false
+* Write to $(dune exec -- ./config.exe query name --context test.context).opam (93 bytes)
 * Is_file? Makefile -> false
-* Write to Makefile (578 bytes)
+* Write to Makefile (568 bytes)
+* Is_file? test.context -> true
+* Run_cmd 'dune exec -- ./config.exe query dune-project --context test.context' (ok)
+* Is_file? dune-project -> true
+* Read dune-project (47 bytes)
+* Write to dune-project (102 bytes)
+* Is_file? test.context -> true
+* Run_cmd 'dune exec -- ./config.exe query dune-workspace --context
+           test.context' (ok)
+* Is_file? dune-workspace -> false
+* Write to dune-workspace (104 bytes)
+* Is_file? test.context -> true
+* Run_cmd 'dune exec -- ./config.exe query dune --context test.context' (ok)
+* Is_file? dune -> true
+* Read dune (221 bytes)

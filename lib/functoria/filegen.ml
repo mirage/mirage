@@ -33,7 +33,7 @@ module Make (P : PROJECT) = struct
     | _, (".ml" | ".mli") -> Some `OCaml
     | _, (".opam" | ".install") -> Some `Opam
     | "Makefile", _ -> Some `Make
-    | ("dune" | "dune-project"), _ -> Some `Sexp
+    | ("dune" | "dune-project" | "dune-workspace"), _ -> Some `Sexp
     | _ -> None
 
   let headers lang =

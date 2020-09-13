@@ -180,6 +180,8 @@ module V6 : sig
   val gateways : ?group:string -> t list -> t list key
   (** A list of gateways. *)
 
+  val socket : ?group:string -> t option -> t option key
+  (** An IPv6 address bound by a socket. Will be none if no address is provided. *)
 end
 
 val resolver: ?default:Ipaddr.V4.t -> unit -> Ipaddr.V4.t key

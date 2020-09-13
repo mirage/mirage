@@ -434,6 +434,11 @@ module V6 = struct
     let doc = Fmt.strf "The gateways of %a." pp_group group in
     create_simple ~doc ~default ?group Arg.(list ipv6) "gateways"
 
+  let socket ?group default =
+    let doc =
+      Fmt.strf "The IPv6 address bound by the socket in %a." pp_group group
+    in
+    create_simple ~doc ~default ?group Arg.(some ipv6) "socket"
 end
 
 let resolver ?(default = Ipaddr.V4.of_string_exn "91.239.100.100") () =

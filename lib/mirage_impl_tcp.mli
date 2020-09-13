@@ -6,9 +6,13 @@ type tcpv4 = Mirage_impl_ip.v4 tcp
 
 type tcpv6 = Mirage_impl_ip.v6 tcp
 
+type tcpv4v6 = Mirage_impl_ip.v4v6 tcp
+
 val tcpv4 : tcpv4 Functoria.typ
 
 val tcpv6 : tcpv6 Functoria.typ
+
+val tcpv4v6 : tcpv4v6 Functoria.typ
 
 val direct_tcp :
      ?clock:Mirage_impl_mclock.mclock Functoria.impl
@@ -18,3 +22,5 @@ val direct_tcp :
   -> 'a tcp Functoria.impl
 
 val socket_tcpv4 : ?group:string -> Ipaddr.V4.t option -> tcpv4 Functoria.impl
+
+val socket_tcpv6 : ?group:string -> Ipaddr.V6.t option -> tcpv6 Functoria.impl

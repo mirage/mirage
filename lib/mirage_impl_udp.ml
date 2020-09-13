@@ -9,10 +9,12 @@ open Rresult
 type 'a udp = UDP
 type udpv4 = v4 udp
 type udpv6 = v6 udp
+type udpv4v6 = v4v6 udp
 
 let udp = Type UDP
 let udpv4: udpv4 typ = udp
 let udpv6: udpv6 typ = udp
+let udpv4v6: udpv4v6 typ = udp
 
 (* Value restriction ... *)
 let udp_direct_conf () = object
@@ -47,3 +49,21 @@ let udpv4_socket_conf ipv4_key = object
 end
 
 let socket_udpv4 ?group ip = impl (udpv4_socket_conf @@ Key.V4.socket ?group ip)
+
+let udpv6_socket_conf ipv6_key = object
+  inherit base_configurable
+  method ty = udpv6
+  val name = Name.create "udpv6_socket" ~prefix:"udpv6_socket"
+  method name = name
+  method module_name = "Udpv6_socket"
+  method! keys = [ Key.abstract ipv6_key ]
+  method! packages =
+    right_tcpip_library ~sublibs:["udpv6-socket"] "tcpip"
+  method! configure i =
+    match get_target i with
+    | `Unix | `MacOSX -> R.ok ()
+    | _ -> R.error_msg "UDPv6 socket not supported on non-UNIX targets."
+  method! connect _ modname _ = Fmt.strf "%s.connect %a" modname pp_key ipv6_key
+end
+
+let socket_udpv6 ?group ip = impl (udpv6_socket_conf @@ Key.V6.socket ?group ip)

@@ -12,13 +12,16 @@ open Mirage_impl_time
 
 type v4
 type v6
+type v4v6
 type 'a ip = IP
 type ipv4 = v4 ip
 type ipv6 = v6 ip
+type ipv4v6 = v4v6 ip
 
 let ip = Type IP
 let ipv4: ipv4 typ = ip
 let ipv6: ipv6 typ = ip
+let ipv4v6: ipv4v6 typ = ip
 
 type ipv4_config = {
   network : Ipaddr.V4.Prefix.t;
@@ -148,3 +151,18 @@ let create_ipv6
   let netmasks = Key.V6.netmasks ?group netmasks in
   let gateways = Key.V6.gateways ?group gateways in
   ipv6_conf ~addresses ~netmasks ~gateways () $ netif $ etif $ random $ time $ clock
+
+let ipv4v6_conf = impl @@ object
+    inherit base_configurable
+    method ty = ipv4 @-> ipv6 @-> ipv4v6
+    method name = Name.create "ipv4v6" ~prefix:"ipv4v6"
+    method module_name = "Tcpip_stack_direct.IPV4V6"
+    method! packages = right_tcpip_library ~sublibs:["stack-direct"] "tcpip"
+    method! connect _ modname = function
+      | [ ipv4 ; ipv6 ] ->
+        Fmt.strf "%s.connect@[@ %s@ %s@]"
+          modname ipv4 ipv6
+      | _ -> failwith (connect_err "ipv4v6" 2)
+  end
+
+let create_ipv4v6 ipv4 ipv6 = ipv4v6_conf $ ipv4 $ ipv6

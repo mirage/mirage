@@ -71,7 +71,7 @@ let stackv4_socket_conf ?(group="") ips = impl @@ object
     method ty = stackv4
     val name = add_suffix "stackv4_socket" ~suffix:group
     method name = name
-    method module_name = "Tcpip_stack_socket"
+    method module_name = "Tcpip_stack_socket.V4"
     method! keys = [ Key.abstract ips ]
     method! packages = right_tcpip_library ~sublibs:["stack-socket"] "tcpip"
     method! deps = [abstract (socket_udpv4 None); abstract (socket_tcpv4 None)]

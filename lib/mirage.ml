@@ -142,6 +142,13 @@ let qubes_ipv4_stack = Mirage_impl_stackv4.qubes_ipv4_stack
 let direct_stackv4 = Mirage_impl_stackv4.direct_stackv4
 let socket_stackv4 = Mirage_impl_stackv4.socket_stackv4
 
+type stackv6 = Mirage_impl_stackv4.stackv6
+let stackv6 = Mirage_impl_stackv4.stackv6
+let generic_stackv6 = Mirage_impl_stackv4.generic_stackv6
+let static_ipv6_stack = Mirage_impl_stackv4.static_ipv6_stack
+let direct_stackv6 = Mirage_impl_stackv4.direct_stackv6
+let socket_stackv6 = Mirage_impl_stackv4.socket_stackv6
+
 type conduit = Mirage_impl_conduit.conduit
 let conduit = Mirage_impl_conduit.conduit
 let conduit_direct = Mirage_impl_conduit.conduit_direct

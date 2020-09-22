@@ -1,3 +1,9 @@
+### v3.8.1 (2020-09-22)
+
+* OCaml runtime parameters (OCAMLPARAM) are exposed as boot and configure
+  arguments. This allows e.g. to switch to the best-fit garbage collection
+  strategy (#1180 @hannesm)
+
 ### v3.8.0 (2020-06-22)
 
 * Emit type=pv in xl (instead of builder=linux), as required by xen 4.10+ (#1166 by @djs55)

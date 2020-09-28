@@ -17,7 +17,7 @@ build: [
 ]
 
 depends: [
-  "ocaml" {>= "4.06.0"}
+  "ocaml" {>= "4.10.1"}
   "dune" {>= "1.1.0"}
   "mirage-device" {>= "2.0.0"}
   "mirage-time" {>= "2.0.0"}

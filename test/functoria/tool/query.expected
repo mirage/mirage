@@ -1,2 +1,2 @@
 $(dune build ./config.exe)
-$(_build/default/config.exe query a b c --dry-run)
+$(dune exec -- ./config.exe query a b c --dry-run)

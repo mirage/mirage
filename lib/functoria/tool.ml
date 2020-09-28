@@ -60,11 +60,8 @@ module Make (P : S) = struct
   let re_exec t ?ppf ?err_ppf argv =
     add_context_file t argv >>= fun argv ->
     let args = Bos.Cmd.of_list (List.tl (Array.to_list argv)) in
-    let config_exe =
-      Fpath.(
-        normalize @@ (v "_build" / "default" // build_dir t / "config.exe"))
-    in
-    let command = Bos.Cmd.(v (p config_exe) %% args) in
+    let config_exe = Fpath.(build_dir t / "config.exe") in
+    let command = Bos.Cmd.(v "dune" % "exec" % "--" % p config_exe %% args) in
     run_cmd ?ppf ?err_ppf command
 
   let re_exec_out t ?err_ppf argv =

@@ -61,11 +61,11 @@ module Arg: sig
   val ipv4: Ipaddr.V4.Prefix.t Cmdliner.Arg.converter
   (** [ipv4] converts ipv4/netmask to Ipaddr.V4.t * Ipaddr.V4.Prefix.t . *)
 
-  val ipv6: Ipaddr.V6.t Cmdliner.Arg.converter
-  (** [ipv6]converts IPv6 address. *)
+  val ipv6_address: Ipaddr.V6.t Cmdliner.Arg.converter
+  (** [ipv6_address] converts IPv6 address. *)
 
-  val ipv6_prefix: Ipaddr.V6.Prefix.t Cmdliner.Arg.converter
-  (**[ipv6_prefix] converts IPv6 prefixes. *)
+  val ipv6: Ipaddr.V6.Prefix.t Cmdliner.Arg.converter
+  (**[ipv6] converts IPv6 prefixes. *)
 
   val log_threshold: log_threshold Cmdliner.Arg.converter
   (** [log_threshold] converts log reporter threshold. *)

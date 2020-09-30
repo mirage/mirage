@@ -75,25 +75,19 @@ let qubes_ipv4_stack ?group ?(qubesdb = default_qubesdb) ?(arp = arp ?time:None)
   let i = qubes_ipv4 ~qubesdb e a in
   direct_stackv4 ?group tap e a i
 
-let stackv4_socket_conf ?(group="") ips = impl @@ object
+let socket_stackv4 ?(group="") () = impl @@ object
     inherit base_configurable
     method ty = stackv4
     val name = add_suffix "stackv4_socket" ~suffix:group
+    val key = Key.V4.network ~group Ipaddr.V4.Prefix.global
     method name = name
     method module_name = "Tcpip_stack_socket.V4"
-    method! keys = [ Key.abstract ips ]
     method! packages = right_tcpip_library ~sublibs:["stack-socket"] "tcpip"
-    method! deps = [abstract (socket_udpv4 None); abstract (socket_tcpv4 None)]
+    method! deps = [abstract (keyed_socket_udpv4 key) ; abstract (keyed_socket_tcpv4 key)]
     method! connect _i modname = function
-      | [ udpv4 ; tcpv4 ] ->
-        Fmt.strf
-          "%s.connect %a %s %s"
-          modname pp_key ips udpv4 tcpv4
+      | [ udpv4 ; tcpv4 ] -> Fmt.strf "%s.connect %s %s" modname udpv4 tcpv4
       | _ -> failwith (connect_err "socket stack" 2)
   end
-
-let socket_stackv4 ?group ipv4s =
-  stackv4_socket_conf ?group (Key.V4.ips ?group ipv4s)
 
 (** Generic stack *)
 
@@ -116,7 +110,7 @@ let generic_stackv4
           $ dhcp_key) in
   match_impl p [
     `Dhcp, dhcp_ipv4_stack ?group tap;
-    `Socket, socket_stackv4 ?group [Ipaddr.V4.any];
+    `Socket, socket_stackv4 ?group ();
     `Qubes, qubes_ipv4_stack ?group tap;
   ] ~default:(static_ipv4_stack ?config ?group tap)
 
@@ -154,30 +148,24 @@ let direct_stackv6
   $ direct_udp ~random ip
   $ direct_tcp ~clock ~random ~time ip
 
-let static_ipv6_stack ?group ?(config = { addresses = [] ; netmasks = [] ; gateways = [] }) tap =
+let static_ipv6_stack ?group ?config tap =
   let e = etif tap in
-  let i = create_ipv6 ?group tap e config in
+  let i = create_ipv6 ?group ?config tap e in
   direct_stackv6 ?group tap e i
 
-let stackv6_socket_conf ?(group="") ips = impl @@ object
+let socket_stackv6 ?(group="") () = impl @@ object
     inherit base_configurable
     method ty = stackv6
     val name = add_suffix "stackv6_socket" ~suffix:group
+    val key = Key.V6.network ~group None
     method name = name
     method module_name = "Tcpip_stack_socket.V6"
-    method! keys = [ Key.abstract ips ]
     method! packages = right_tcpip_library ~sublibs:["stack-socket"] "tcpip"
-    method! deps = [abstract (socket_udpv4 None); abstract (socket_tcpv4 None)]
+    method! deps = [abstract (keyed_socket_udpv6 key); abstract (keyed_socket_tcpv6 key)]
     method! connect _i modname = function
-      | [ udp ; tcp ] ->
-        Fmt.strf
-          "%s.connect %a %s %s"
-          modname pp_key ips udp tcp
+      | [ udp ; tcp ] -> Fmt.strf "%s.connect %s %s" modname udp tcp
       | _ -> failwith (connect_err "socket stack" 2)
   end
-
-let socket_stackv6 ?group ips =
-  stackv6_socket_conf ?group (Key.V6.ips ?group ips)
 
 (** Generic stack *)
 
@@ -195,7 +183,7 @@ let generic_stackv6
           $ Key.(value target)
           $ net_key) in
   match_impl p [
-    `Socket, socket_stackv6 ?group [Ipaddr.V6.unspecified];
+    `Socket, socket_stackv6 ?group ();
   ] ~default:(static_ipv6_stack ?group ?config tap)
 
 (** dual stack *)
@@ -237,7 +225,7 @@ let direct_stackv4v6
 
 let static_ipv4v6_stack
     ?group
-    ?(ipv6_config = { addresses = [] ; netmasks = [] ; gateways = [] })
+    ?ipv6_config
     ?ipv4_config
     ?(arp = arp ?time:None)
     tap
@@ -245,13 +233,13 @@ let static_ipv4v6_stack
   let e = etif tap in
   let a = arp e in
   let i4 = static_ipv4 ?group ?config:ipv4_config e a in
-  let i6 = create_ipv6 ?group tap e ipv6_config in
+  let i6 = create_ipv6 ?group ?config:ipv6_config tap e in
   direct_stackv4v6 ?group tap e a i4 i6
 
 let generic_ipv4v6_stack
     p
     ?group
-    ?(ipv6_config = { addresses = [] ; netmasks = [] ; gateways = [] })
+    ?ipv6_config
     ?ipv4_config
     ?(arp = arp ?time:None)
     tap
@@ -264,8 +252,23 @@ let generic_ipv4v6_stack
       `Dhcp, dhcp_ipv4 tap e a ]
     ~default:(static_ipv4 ?group ?config:ipv4_config e a)
   in
-  let i6 = create_ipv6 ?group tap e ipv6_config in
+  let i6 = create_ipv6 ?group ?config:ipv6_config tap e in
   direct_stackv4v6 ?group tap e a i4 i6
+
+let socket_stackv4v6 ?(group="") () = impl @@ object
+    inherit base_configurable
+    method ty = stackv4v6
+    val name = add_suffix "stackv4v6_socket" ~suffix:group
+    val v4key = Key.V4.network ~group Ipaddr.V4.Prefix.global
+    val v6key = Key.V6.network ~group None
+    method name = name
+    method module_name = "Tcpip_stack_socket.V4V6"
+    method! packages = right_tcpip_library ~sublibs:["stack-socket"] "tcpip"
+    method! deps = [abstract (keyed_socket_udpv4v6 v4key v6key); abstract (keyed_socket_tcpv4v6 v4key v6key)]
+    method! connect _i modname = function
+      | [ udp ; tcp ] -> Fmt.strf "%s.connect %s %s" modname udp tcp
+      | _ -> failwith (connect_err "socket stack" 2)
+  end
 
 (** Generic stack *)
 let generic_stackv4v6
@@ -286,5 +289,5 @@ let generic_stackv4v6
           $ net_key
           $ dhcp_key) in
   match_impl p [
-    (*    `Socket, socket_stackv4v6 ?group [Ipaddr.V6.unspecified]; *)
+    `Socket, socket_stackv4v6 ?group ();
   ] ~default:(generic_ipv4v6_stack p ?group ?ipv6_config ?ipv4_config tap)

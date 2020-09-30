@@ -114,9 +114,8 @@ type ipv4_config = Mirage_impl_ip.ipv4_config = {
   gateway : Ipaddr.V4.t option;
 }
 type ipv6_config = Mirage_impl_ip.ipv6_config = {
-  addresses : Ipaddr.V6.t list;
-  netmasks  : Ipaddr.V6.Prefix.t list;
-  gateways  : Ipaddr.V6.t list;
+  network  : Ipaddr.V6.Prefix.t;
+  gateway  : Ipaddr.V6.t option;
 }
 
 type 'a udp = 'a Mirage_impl_udp.udp
@@ -130,6 +129,7 @@ let udpv4v6 = Mirage_impl_udp.udpv4v6
 let direct_udp = Mirage_impl_udp.direct_udp
 let socket_udpv4 = Mirage_impl_udp.socket_udpv4
 let socket_udpv6 = Mirage_impl_udp.socket_udpv6
+let socket_udpv4v6 = Mirage_impl_udp.socket_udpv4v6
 
 type 'a tcp = 'a Mirage_impl_tcp.tcp
 let tcp = Mirage_impl_tcp.tcp
@@ -142,6 +142,7 @@ let tcpv4v6 = Mirage_impl_tcp.tcpv4v6
 let direct_tcp = Mirage_impl_tcp.direct_tcp
 let socket_tcpv4 = Mirage_impl_tcp.socket_tcpv4
 let socket_tcpv6 = Mirage_impl_tcp.socket_tcpv6
+let socket_tcpv4v6 = Mirage_impl_tcp.socket_tcpv4v6
 
 type stackv4 = Mirage_impl_stackv4.stackv4
 let stackv4 = Mirage_impl_stackv4.stackv4
@@ -164,6 +165,7 @@ let stackv4v6 = Mirage_impl_stackv4.stackv4v6
 let generic_stackv4v6 = Mirage_impl_stackv4.generic_stackv4v6
 let static_ipv4v6_stack = Mirage_impl_stackv4.static_ipv4v6_stack
 let direct_stackv4v6 = Mirage_impl_stackv4.direct_stackv4v6
+let socket_stackv4v6 = Mirage_impl_stackv4.socket_stackv4v6
 
 type conduit = Mirage_impl_conduit.conduit
 let conduit = Mirage_impl_conduit.conduit

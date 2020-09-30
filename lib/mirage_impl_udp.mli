@@ -17,5 +17,14 @@ Functoria.impl -> 'a udp Functoria.impl
 val socket_udpv4:
 ?group:string -> Ipaddr.V4.t option -> udpv4 Functoria.impl
 
+val keyed_socket_udpv4 : Ipaddr.V4.Prefix.t Mirage_key.key -> udpv4 Functoria.impl
+
 val socket_udpv6:
 ?group:string -> Ipaddr.V6.t option -> udpv6 Functoria.impl
+
+val keyed_socket_udpv6 : Ipaddr.V6.Prefix.t option Mirage_key.key -> udpv6 Functoria.impl
+
+val socket_udpv4v6:
+?group:string -> Ipaddr.V4.t option -> Ipaddr.V6.t option -> udpv4v6 Functoria.impl
+
+val keyed_socket_udpv4v6 : Ipaddr.V4.Prefix.t Mirage_key.key -> Ipaddr.V6.Prefix.t option Mirage_key.key -> udpv4v6 Functoria.impl

@@ -422,7 +422,7 @@ let resolver_port ?(default = 53) () =
 
 let syslog default =
   let doc = Fmt.strf "syslog server" in
-  create_simple ~doc ~default Arg.(some ipv4_address) "syslog"
+  create_simple ~doc ~default Arg.(some ip_address) "syslog"
 
 let syslog_port default =
   let doc = Fmt.strf "syslog server port" in

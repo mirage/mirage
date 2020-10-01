@@ -530,12 +530,12 @@ val resolver_unix_system: resolver impl
 
 type syslog_config = {
   hostname : string;
-  server   : Ipaddr.V4.t option;
+  server   : Ipaddr.t option;
   port     : int option;
   truncate : int option
 }
 
-val syslog_config: ?port:int -> ?truncate:int -> ?server:Ipaddr.V4.t -> string -> syslog_config
+val syslog_config: ?port:int -> ?truncate:int -> ?server:Ipaddr.t -> string -> syslog_config
 (** Helper for constructing a {!syslog_config}. *)
 
 type syslog
@@ -544,13 +544,13 @@ type syslog
 val syslog: syslog typ
 (** Implementation of the {!syslog} type. *)
 
-val syslog_udp: ?config:syslog_config -> ?console:console impl -> ?clock:pclock impl -> stackv4 impl -> syslog impl
+val syslog_udp: ?config:syslog_config -> ?console:console impl -> ?clock:pclock impl -> stackv4v6 impl -> syslog impl
 (** Emit log messages via UDP to the configured host. *)
 
-val syslog_tcp: ?config:syslog_config -> ?console:console impl -> ?clock:pclock impl -> stackv4 impl -> syslog impl
+val syslog_tcp: ?config:syslog_config -> ?console:console impl -> ?clock:pclock impl -> stackv4v6 impl -> syslog impl
 (** Emit log messages via TCP to the configured host. *)
 
-val syslog_tls: ?config:syslog_config -> ?keyname:string -> ?console:console impl -> ?clock:pclock impl -> stackv4 impl -> kv_ro impl -> syslog impl
+val syslog_tls: ?config:syslog_config -> ?keyname:string -> ?console:console impl -> ?clock:pclock impl -> stackv4v6 impl -> kv_ro impl -> syslog impl
 (** Emit log messages via TLS to the configured host, using the credentials
     (private ekey, certificate, trust anchor) provided in the KV_RO using the
     [keyname]. *)

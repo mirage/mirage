@@ -310,7 +310,7 @@ type ipv6_config = {
 (** Type for manual IPv6 configuration. *)
 
 val create_ipv4: ?group:string ->
-  ?config:ipv4_config -> ?random:random impl -> ?clock:mclock impl ->
+  ?config:ipv4_config -> ?no_init:bool Key.key -> ?random:random impl -> ?clock:mclock impl ->
   ethernet impl -> arpv4 impl -> ipv4 impl
 (** Use an IPv4 address
     Exposes the keys {!Key.V4.network} and {!Key.V4.gateway}.
@@ -325,7 +325,7 @@ val ipv4_qubes: ?random:random impl -> ?clock:mclock impl ->
 
 val create_ipv6:
   ?random:random impl -> ?time:time impl -> ?clock:mclock impl ->
-  ?group:string -> ?config:ipv6_config -> network impl -> ethernet impl -> ipv6 impl
+  ?group:string -> ?config:ipv6_config -> ?no_init:bool Key.key -> network impl -> ethernet impl -> ipv6 impl
 (** Use an IPv6 address.
     Exposes the keys {!Key.V6.network} and {!Key.V6.gateway}.
 *)
@@ -480,6 +480,8 @@ val direct_stackv4v6 :
   -> ?random:random impl
   -> ?time:time impl
   -> ?group:string
+  -> ipv4_only:bool Key.key
+  -> ipv6_only:bool Key.key
   -> network impl
   -> ethernet impl
   -> arpv4 impl

@@ -261,10 +261,15 @@ let socket_stackv4v6 ?(group="") () = impl @@ object
     val name = add_suffix "stackv4v6_socket" ~suffix:group
     val v4key = Key.V4.network ~group Ipaddr.V4.Prefix.global
     val v6key = Key.V6.network ~group None
+    val ipv4_only = Key.ipv4_only ~group ()
+    val ipv6_only = Key.ipv6_only ~group ()
     method name = name
     method module_name = "Tcpip_stack_socket.V4V6"
     method! packages = right_tcpip_library ~sublibs:["stack-socket"] "tcpip"
-    method! deps = [abstract (keyed_socket_udpv4v6 v4key v6key); abstract (keyed_socket_tcpv4v6 v4key v6key)]
+    method! deps = [
+      abstract (keyed_socket_udpv4v6 ~ipv4_only ~ipv6_only v4key v6key);
+      abstract (keyed_socket_tcpv4v6 ~ipv4_only ~ipv6_only v4key v6key)
+    ]
     method! connect _i modname = function
       | [ udp ; tcp ] -> Fmt.strf "%s.connect %s %s" modname udp tcp
       | _ -> failwith (connect_err "socket stack" 2)

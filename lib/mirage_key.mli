@@ -169,7 +169,16 @@ module V6 : sig
 
   val gateway : ?group:string -> t option -> t option key
   (** A default gateway option. *)
+
+  val accept_router_advertisements : ?group:string -> unit -> bool key
+  (** An option whether to accept router advertisements. *)
 end
+
+val ipv4_only : ?group:string -> unit -> bool key
+(** An option for dual stack to only use IPv4. *)
+
+val ipv6_only : ?group:string -> unit -> bool key
+(** An option for dual stack to only use IPv6. *)
 
 val resolver: ?default:Ipaddr.V4.t -> unit -> Ipaddr.V4.t key
 (** The address of the DNS resolver to use. *)

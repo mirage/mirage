@@ -30,6 +30,7 @@ type ipv4_config = {
 (** Types for IPv4 manual configuration. *)
 
 let opt_opt_key s = Fmt.(option @@ prefix (unit ("?"^^s^^":")) pp_key)
+let opt_key s = Fmt.(option @@ prefix (unit ("~"^^s^^":")) pp_key)
 let opt_map f = function Some x -> Some (f x) | None -> None
 let (@?) x l = match x with Some s -> s :: l | None -> l
 let (@??) x y = opt_map Key.abstract x @? y
@@ -118,17 +119,18 @@ let ipv4_qubes
     ?(clock = default_monotonic_clock) db ethernet arp =
   ipv4_qubes_conf $ db $ random $ clock $ ethernet $ arp
 
-let ipv6_conf ?ip ?gateway () = impl @@ object
+let ipv6_conf ?ip ?gateway ?handle_ra () = impl @@ object
     inherit base_configurable
     method ty = network @-> ethernet @-> random @-> time @-> mclock @-> ipv6
     method name = Name.create "ipv6" ~prefix:"ipv6"
     method module_name = "Ipv6.Make"
     method! packages = right_tcpip_library ~sublibs:["ipv6"] "tcpip"
-    method! keys = ip @?? gateway @?? []
+    method! keys = ip @?? gateway @?? handle_ra @?? []
     method! connect _ modname = function
       | [ interface ; etif ; _random ; _time ; _clock ] ->
-        Fmt.strf "%s.connect@[@ %a@ %a@ %s@ %s@]"
+        Fmt.strf "%s.connect@[@ %a@ %a@ %a@ %s@ %s@]"
           modname
+          (opt_key "handle_ra") handle_ra
           (opt_opt_key "cidr") ip
           (opt_opt_key "gateway") gateway
           interface
@@ -145,21 +147,31 @@ let create_ipv6
     | None -> None, None
     | Some { network ; gateway } -> Some network, gateway
   in
-  let ip = Key.V6.network ?group network in
-  let gateway = Key.V6.gateway ?group gateway in
-  ipv6_conf ~ip ~gateway () $ netif $ etif $ random $ time $ clock
+  let ip = Key.V6.network ?group network
+  and gateway = Key.V6.gateway ?group gateway
+  and handle_ra = Key.V6.accept_router_advertisements ?group ()
+  in
+  ipv6_conf ~ip ~gateway ~handle_ra () $ netif $ etif $ random $ time $ clock
 
-let ipv4v6_conf = impl @@ object
+let ipv4v6_conf ?ipv4_only ?ipv6_only () = impl @@ object
     inherit base_configurable
     method ty = ipv4 @-> ipv6 @-> ipv4v6
     method name = Name.create "ipv4v6" ~prefix:"ipv4v6"
     method module_name = "Tcpip_stack_direct.IPV4V6"
     method! packages = right_tcpip_library ~sublibs:["stack-direct"] "tcpip"
+    method! keys = ipv4_only @?? ipv6_only @?? []
     method! connect _ modname = function
       | [ ipv4 ; ipv6 ] ->
-        Fmt.strf "%s.connect@[@ %s@ %s@]"
-          modname ipv4 ipv6
+        Fmt.strf "%s.connect@[@ %a@ %a@ %s@ %s@]"
+          modname
+          (opt_key "ipv4_only") ipv4_only
+          (opt_key "ipv6_only") ipv6_only
+          ipv4 ipv6
       | _ -> failwith (connect_err "ipv4v6" 2)
   end
 
-let create_ipv4v6 ipv4 ipv6 = ipv4v6_conf $ ipv4 $ ipv6
+let create_ipv4v6 ?group ipv4 ipv6 =
+  let ipv4_only = Key.ipv4_only ?group ()
+  and ipv6_only = Key.ipv6_only ?group ()
+  in
+  ipv4v6_conf ~ipv4_only ~ipv6_only () $ ipv4 $ ipv6

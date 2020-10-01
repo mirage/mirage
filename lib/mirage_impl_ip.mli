@@ -76,4 +76,4 @@ val right_tcpip_library :
   -> string
   -> package list value
 
-val create_ipv4v6 : ipv4 impl -> ipv6 impl -> ipv4v6 impl
+val create_ipv4v6 : ?group:string -> ipv4 impl -> ipv6 impl -> ipv4v6 impl

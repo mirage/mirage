@@ -31,4 +31,7 @@ val keyed_socket_tcpv6 : Ipaddr.V6.Prefix.t option Mirage_key.key -> tcpv6 Funct
 
 val socket_tcpv4v6 : ?group:string -> Ipaddr.V4.t option -> Ipaddr.V6.t option -> tcpv4v6 Functoria.impl
 
-val keyed_socket_tcpv4v6 : Ipaddr.V4.Prefix.t Mirage_key.key -> Ipaddr.V6.Prefix.t option Mirage_key.key -> tcpv4v6 Functoria.impl
+val keyed_socket_tcpv4v6 :
+  ipv4_only:bool Mirage_key.key -> ipv6_only:bool Mirage_key.key ->
+  Ipaddr.V4.Prefix.t Mirage_key.key -> Ipaddr.V6.Prefix.t option Mirage_key.key ->
+  tcpv4v6 Functoria.impl

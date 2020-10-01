@@ -82,13 +82,13 @@ let socket_udpv6 ?group ip =
   in
   keyed_socket_udpv6 @@ Key.V6.network ?group ip
 
-let udpv4v6_socket_conf ipv4_key ipv6_key = object
+let udpv4v6_socket_conf ~ipv4_only ~ipv6_only ipv4_key ipv6_key = object
   inherit base_configurable
   method ty = udpv4v6
   val name = Name.create "udpv4v6_socket" ~prefix:"udpv4v6_socket"
   method name = name
   method module_name = "Udpv4v6_socket"
-  method! keys = [ Key.abstract ipv4_key ; Key.abstract ipv6_key ]
+  method! keys = [ Key.abstract ipv4_only ; Key.abstract ipv6_only ; Key.abstract ipv4_key ; Key.abstract ipv6_key ]
   method! packages =
     right_tcpip_library ~sublibs:["udpv4v6-socket"] "tcpip"
   method! configure i =
@@ -96,10 +96,14 @@ let udpv4v6_socket_conf ipv4_key ipv6_key = object
     | `Unix | `MacOSX -> R.ok ()
     | _ -> R.error_msg "UDPv4v6 socket not supported on non-UNIX targets."
   method! connect _ modname _ =
-    Fmt.strf "%s.connect %a %a" modname pp_key ipv4_key pp_key ipv6_key
+    Fmt.strf "%s.connect ~ipv4_only:%a ~ipv6_only:%a %a %a"
+      modname
+      pp_key ipv4_only pp_key ipv6_only
+      pp_key ipv4_key pp_key ipv6_key
 end
 
-let keyed_socket_udpv4v6 ipv4 ipv6 = impl (udpv4v6_socket_conf ipv4 ipv6)
+let keyed_socket_udpv4v6 ~ipv4_only ~ipv6_only ipv4 ipv6 =
+  impl (udpv4v6_socket_conf ~ipv4_only ~ipv6_only ipv4 ipv6)
 
 let socket_udpv4v6 ?group ipv4 ipv6 =
   let ipv4 = match ipv4 with
@@ -108,5 +112,7 @@ let socket_udpv4v6 ?group ipv4 ipv6 =
   and ipv6 = match ipv6 with
     | None -> None
     | Some ip -> Some (Ipaddr.V6.Prefix.make 128 ip)
+  and ipv4_only = Key.ipv4_only ?group ()
+  and ipv6_only = Key.ipv6_only ?group ()
   in
-  keyed_socket_udpv4v6 (Key.V4.network ?group ipv4) (Key.V6.network ?group ipv6)
+  keyed_socket_udpv4v6 ~ipv4_only ~ipv6_only (Key.V4.network ?group ipv4) (Key.V6.network ?group ipv6)

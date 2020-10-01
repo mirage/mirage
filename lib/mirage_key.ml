@@ -396,7 +396,19 @@ module V6 = struct
   let gateway ?group default =
     let doc = Fmt.strf "The gateway of %a." pp_group group in
     create_simple ~doc ~default ?group Arg.(some ipv6_address) "ipv6-gateway"
+
+  let accept_router_advertisements ?group () =
+    let doc = Fmt.strf "Accept router advertisements for %a." pp_group group in
+    create_simple ~doc ?group ~default:true Arg.bool "accept-router-advertisements"
 end
+
+let ipv4_only ?group () =
+  let doc = Fmt.strf "Only use IPv4 for %a." pp_group group in
+  create_simple ~doc ?group ~default:false Arg.bool "ipv4-only"
+
+let ipv6_only ?group () =
+  let doc = Fmt.strf "Only use IPv6 for %a." pp_group group in
+  create_simple ~doc ?group ~default:false Arg.bool "ipv6-only"
 
 let resolver ?(default = Ipaddr.V4.of_string_exn "91.239.100.100") () =
   let doc = Fmt.strf "DNS resolver (default to anycast.censurfridns.dk)" in

@@ -10,5 +10,3 @@ val resolver_dns :
   -> ?mclock:Mirage_impl_mclock.mclock Functoria.impl
   -> Mirage_impl_stackv4.stackv4 Functoria.impl
   -> resolver Functoria.impl
-
-val resolver_unix_system : resolver Functoria.impl

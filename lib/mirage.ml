@@ -142,13 +142,19 @@ let qubes_ipv4_stack = Mirage_impl_stackv4.qubes_ipv4_stack
 let direct_stackv4 = Mirage_impl_stackv4.direct_stackv4
 let socket_stackv4 = Mirage_impl_stackv4.socket_stackv4
 
-type conduit = Mirage_impl_conduit.conduit
+type c_tcp = Mirage_impl_conduit.c_tcp
+type c_tls = Mirage_impl_conduit.c_tls
+type 'a conduit = 'a Mirage_impl_conduit.conduit
+type tcp_conduit = Mirage_impl_conduit.tcp_conduit
+type tls_conduit = Mirage_impl_conduit.tls_conduit
 let conduit = Mirage_impl_conduit.conduit
-let conduit_direct = Mirage_impl_conduit.conduit_direct
+let tcp_conduit = Mirage_impl_conduit.tcp_conduit
+let tls_conduit = Mirage_impl_conduit.tls_conduit
+let create_tcp_conduit = Mirage_impl_conduit.create_tcp_conduit
+let create_tls_conduit = Mirage_impl_conduit.create_tls_conduit
 
 type resolver = Mirage_impl_resolver.resolver
 let resolver = Mirage_impl_resolver.resolver
-let resolver_unix_system = Mirage_impl_resolver.resolver_unix_system
 let resolver_dns = Mirage_impl_resolver.resolver_dns
 
 type syslog = Mirage_impl_syslog.syslog
@@ -163,12 +169,6 @@ type syslog_config = Mirage_impl_syslog.syslog_config =
     truncate : int option;
   }
 let syslog_config = Mirage_impl_syslog.syslog_config
-
-type http = Mirage_impl_http.http
-let http = Mirage_impl_http.http
-let http_server = Mirage_impl_http.cohttp_server
-let cohttp_server = Mirage_impl_http.cohttp_server
-let httpaf_server = Mirage_impl_http.httpaf_server
 
 let default_argv = Mirage_impl_argv.default_argv
 let no_argv = Mirage_impl_argv.no_argv

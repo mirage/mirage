@@ -420,7 +420,6 @@ type resolver
 val resolver: resolver typ
 val resolver_dns:
   ?ns:Ipaddr.V4.t -> ?ns_port:int -> ?random:random impl -> ?time:time impl -> ?mclock:mclock impl -> stackv4 impl -> resolver impl
-val resolver_unix_system: resolver impl
 
 (** {2 Syslog configuration} *)
 
@@ -464,23 +463,17 @@ val nocrypto: job impl
 
 (** {2 Conduit configuration} *)
 
-type conduit
-val conduit: conduit typ
-val conduit_direct: ?tls:bool -> stackv4 impl -> conduit impl
+type c_tcp
+type c_tls
+type 'a conduit
+type tcp_conduit = c_tcp conduit
+type tls_conduit = c_tls conduit
+val conduit: 'a conduit typ
+val tcp_conduit : tcp_conduit typ
+val tls_conduit : tls_conduit typ
 
-(** {2 HTTP configuration} *)
-
-type http
-val http: http typ
-
-val http_server: conduit impl -> http impl
-[@@ocaml.deprecated "`http_server` is deprecated. Please use `cohttp_server` or `httpaf_server` instead."]
-
-val cohttp_server: conduit impl -> http impl
-(** [cohttp_server] starts a Cohttp server. *)
-
-val httpaf_server: conduit impl -> http impl
-(** [httpaf_server] starts a http/af server. *)
+val create_tcp_conduit: stackv4 impl -> tcp_conduit impl
+val create_tls_conduit: 'a conduit impl -> tls_conduit impl
 
 (** {2 Argv configuration} *)
 

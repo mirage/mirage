@@ -217,8 +217,7 @@ let randomize_hashtables =
 let allocation_policy =
   let doc =
     "The policy used for allocating in the OCaml heap. Possible values are: \
-      $(i,next-fit), $(i,first-fit), $(i,best-fit). \
-     Best-fit is only supported since OCaml 4.10."
+      $(i,next-fit), $(i,first-fit), $(i,best-fit)."
   in
   let serialize ppf = function
     | `Next_fit -> Fmt.pf ppf "`Next_fit"
@@ -230,7 +229,7 @@ let allocation_policy =
   let doc =
     Arg.info ~docs:ocaml_section ~docv:"ALLOCATION" ~doc ["allocation-policy"]
   in
-  let key = Arg.opt conv `Next_fit doc in
+  let key = Arg.opt conv `Best_fit doc in
   Key.create "allocation-policy" key
 
 let minor_heap_size =

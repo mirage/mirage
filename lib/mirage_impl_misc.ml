@@ -6,12 +6,6 @@ module Log = (val Logs.src_log src : Logs.LOG)
 
 let get_target i = Mirage_key.(get (Functoria.Info.context i) target)
 
-(* Mirage implementation backing the target. *)
-let backend_predicate = function
-  | #Mirage_key.mode_xen -> "mirage_xen"
-  | #Mirage_key.mode_solo5 -> "mirage_solo5"
-  | #Mirage_key.mode_unix -> "mirage_unix"
-
 let connect_err name number =
   Fmt.strf "The %s connect expects exactly %d argument%s"
     name number (if number = 1 then "" else "s")

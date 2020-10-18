@@ -3,7 +3,6 @@ open Rresult
 module Log : Logs.LOG
 
 val get_target : Functoria.Info.t -> Mirage_key.mode
-val backend_predicate : Mirage_key.mode -> string
 
 val connect_err : string -> int -> string
 

@@ -1,8 +1,2 @@
-version = 0.14.2
-break-cases=all
-break-infix=fit-or-vertical
-field-space=loose
-margin=79
-parens-tuple=always
-sequence-style=terminator
-type-decl=sparse
+version = 0.15.0
+disable = true

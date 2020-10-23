@@ -1,3 +1,20 @@
+### v3.8.1 (2020-09-22)
+
+* OCaml runtime parameters (OCAMLPARAM) are exposed as boot and configure
+  arguments. This allows e.g. to switch to the best-fit garbage collection
+  strategy (#1180 @hannesm)
+
+### v3.8.0 (2020-06-22)
+
+* Emit type=pv in xl (instead of builder=linux), as required by xen 4.10+ (#1166 by @djs55)
+* adapt to ipaddr 5.0.0, tcpip 5.0.0, mirage-crypto 0.8 (#1172 @hannesm)
+
+### v3.7.7 (2020-05-18)
+
+* handle errors from Bos.OS.Cmd.run_out
+* use PREFIX if defined (no need to call "opam config var prefix")
+* adapt to conduit 2.2.0, tls 0.12, mirage-crypto 0.7.0 changes
+
 ### v3.7.6 (2020-03-18)
 
 * fix conduit with 3.7.5 changes (#1086 / #1087, @hannesm)

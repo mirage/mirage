@@ -5,9 +5,3 @@
  (libraries mirage-device mirage-time mirage-random mirage-flow
    mirage-console mirage-block mirage-clock mirage-net mirage-kv mirage-fs
    mirage-channel mirage-protocols mirage-stack))
-
-(library
- (name mirage_types_lwt)
- (public_name mirage-types-lwt)
- (modules mirage_types_lwt)
- (libraries mirage-types))

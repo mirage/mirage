@@ -6,7 +6,7 @@
 "mirage-runtime" { >= "3.8.0" & < "3.9.0"}
 "mirage-solo5" { >= "0.6.1" & < "0.7.0"}
 "mirage-types" { >= "3.8.0" & < "3.9.0"}
-"ocaml" {build &  >= "4.06.0"}
+"ocaml" {build &  >= "4.08.0"}
 "ocamlbuild" {build}
 "ocamlfind" {build}
 "solo5-bindings-hvt" { >= "0.6.0" & < "0.7.0"}

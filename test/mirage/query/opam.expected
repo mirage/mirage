@@ -17,7 +17,7 @@ depends: [
   "mirage-runtime" { >= "3.8.0" & < "3.9.0"}
   "mirage-types" { >= "3.8.0" & < "3.9.0"}
   "mirage-unix" { >= "4.0.0" & < "5.0.0"}
-  "ocaml" {build &  >= "4.06.0"}
+  "ocaml" {build &  >= "4.08.0"}
   "ocamlbuild" {build}
   "ocamlfind" {build}
 ]

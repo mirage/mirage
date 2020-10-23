@@ -34,14 +34,15 @@ let link info name target _target_debug =
     Bos.OS.Cmd.run link >>= fun () ->
     Ok name
   | #Mirage_key.mode_solo5 | #Mirage_key.mode_xen ->
-    let bindings, post = Mirage_configure_solo5.solo5_bindings_pkg target in
+    let bindings = Mirage_configure_solo5.solo5_bindings_pkg target in
     let platform = Mirage_configure_solo5.solo5_platform_pkg target in
     extra_c_artifacts "freestanding" libs >>= fun c_artifacts ->
     static_libs platform
     >>= fun static_libs ->
     ldflags bindings >>= fun ldflags ->
     ldpostflags bindings >>= fun ldpostflags ->
-    let out = name ^ post in
+    let extension = Mirage_configure_solo5.bin_extension target in
+    let out = name ^ extension in
     let ld = find_ld bindings in
     let linker =
       Bos.Cmd.(v ld %% of_list ldflags % "_build/main.native.o" %

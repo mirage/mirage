@@ -38,7 +38,7 @@ let right_tcpip_library ?ocamlfind ~sublibs pkg =
   Key.match_ Key.(value target) @@ function
   | #Mirage_key.mode_unix ->
     [ package ~min ~max ?ocamlfind ~sublibs:("unix"::sublibs) pkg ]
-  | _ ->
+  | #Mirage_key.mode_xen | #Mirage_key.mode_solo5 ->
     [ package ~min ~max ?ocamlfind ~sublibs pkg ]
 
 let ipv4_keyed_conf ~ip ?gateway () = impl @@ object

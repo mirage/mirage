@@ -47,13 +47,23 @@ let generate_manifest_c () =
   Log.info (fun m -> m "executing %a" Bos.Cmd.pp cmd);
   Bos.OS.Cmd.run cmd
 
+let bin_extension = function
+  | `Virtio -> ".virtio"
+  | `Muen -> ".muen"
+  | `Hvt -> ".hvt"
+  | `Genode -> ".genode"
+  | `Spt -> ".spt"
+  | `Xen | `Qubes -> ".xen"
+  | _ ->
+    invalid_arg "extension only defined for solo5 targets"
+
 let solo5_bindings_pkg = function
-  | `Virtio -> "solo5-bindings-virtio", ".virtio"
-  | `Muen -> "solo5-bindings-muen", ".muen"
-  | `Hvt -> "solo5-bindings-hvt", ".hvt"
-  | `Genode -> "solo5-bindings-genode", ".genode"
-  | `Spt -> "solo5-bindings-spt", ".spt"
-  | `Xen | `Qubes -> "solo5-bindings-xen", ".xen"
+  | `Virtio -> "solo5-bindings-virtio"
+  | `Muen -> "solo5-bindings-muen"
+  | `Hvt -> "solo5-bindings-hvt"
+  | `Genode -> "solo5-bindings-genode"
+  | `Spt -> "solo5-bindings-spt"
+  | `Xen | `Qubes -> "solo5-bindings-xen"
   | _ ->
     invalid_arg "solo5 bindings package only defined for solo5 targets"
 
@@ -66,7 +76,7 @@ let solo5_platform_pkg = function
 let cflags pkg = pkg_config pkg ["--cflags"]
 
 let compile_manifest target =
-  let bindings, _post = solo5_bindings_pkg target in
+  let bindings = solo5_bindings_pkg target in
   let c = "_build/manifest.c" in
   let obj = "_build/manifest.o" in
   cflags bindings >>= fun cflags ->

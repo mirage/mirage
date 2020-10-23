@@ -33,7 +33,7 @@ let opam_path ~name = Fpath.(v name + "opam")
 
 let artifact ~name = function
   | #Mirage_key.mode_solo5 | #Mirage_key.mode_xen as tgt ->
-    let ext = snd (Mirage_configure_solo5.solo5_bindings_pkg tgt) in
+    let ext = Mirage_configure_solo5.bin_extension tgt in
     let file = Fpath.v (name ^ ext) in
     file, file
   | #Mirage_key.mode_unix ->

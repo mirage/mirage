@@ -18,15 +18,8 @@ let no_argv =
   impl ~connect "Mirage_runtime" ty
 
 let argv_xen =
-  let packages = [ package ~min:"0.7.0" ~max:"0.8.0" "mirage-bootvar-xen" ] in
-  let connect _ _ _ =
-    Fmt.strf
-      (* Some hypervisor configurations try to pass some extra arguments.
-       * They means well, but we can't do much with them,
-       * and they cause Functoria to abort. *)
-      "let filter (key, _) = List.mem key (List.map snd Key_gen.runtime_keys) \
-       in@ Bootvar.argv ~filter ()"
-  in
+  let packages = [ package ~min:"0.8.0" ~max:"0.9.0" "mirage-bootvar-xen" ] in
+  let connect _ _ _ = "Bootvar.argv ()" in
   impl ~packages ~connect "Bootvar" ty
 
 let default_argv =

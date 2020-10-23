@@ -8,11 +8,11 @@ let console = Type.v CONSOLE
 let connect str _ m _ = Fmt.strf "%s.connect %S" m str
 
 let console_unix str =
-  let packages = [ package ~min:"3.0.0" ~max:"4.0.0" "mirage-console-unix" ] in
+  let packages = [ package ~min:"4.0.0" ~max:"5.0.0" "mirage-console-unix" ] in
   impl ~packages ~connect:(connect str) "Console_unix" console
 
 let console_xen str =
-  let packages = [ package ~min:"3.0.0" ~max:"4.0.0" "mirage-console-xen" ] in
+  let packages = [ package ~min:"4.0.0" ~max:"5.0.0" "mirage-console-xen" ] in
   impl ~packages ~connect:(connect str) "Console_xen" console
 
 let console_solo5 str =

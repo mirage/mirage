@@ -32,20 +32,17 @@ let clean_myocamlbuild () =
 let opam_path ~name = Fpath.(v name + "opam")
 
 let artifact ~name = function
-  | #Mirage_key.mode_solo5 as tgt ->
-    let ext = snd (Mirage_configure_solo5.solo5_pkg tgt) in
+  | #Mirage_key.mode_solo5 | #Mirage_key.mode_xen as tgt ->
+    let ext = Mirage_configure_solo5.bin_extension tgt in
     let file = Fpath.v (name ^ ext) in
     file, file
   | #Mirage_key.mode_unix ->
     Fpath.(v "_build" / "main" + "native"), Fpath.v name
-  | #Mirage_key.mode_xen ->
-    let file = Fpath.(v name + "xen") in
-    file, file
 
 let additional_artifacts ~name =
   let libvirt = Mirage_configure_libvirt.filename ~name in
   function
-  | `Xen -> Fpath.[ v name + "xl" ; v name + "xl.in" ; v name + "xe" ; libvirt ]
+  | `Xen -> Fpath.[ v name + "xl" ; v name + "xl.in" ; libvirt ]
   | `Virtio -> [ libvirt ]
   | _ -> []
 
@@ -84,6 +81,7 @@ let configure_opam ~name info =
       append fmt {|authors: "dummy"|};
       append fmt {|homepage: "dummy"|};
       append fmt {|bug-reports: "dummy"|};
+      append fmt {|dev-repo: "git+https://example.com/nonexistent"|};
       Format.fprintf fmt {|build: [ "sh" "-exc" "|};
       (match subdir with
        | None -> ()
@@ -178,13 +176,16 @@ let configure i =
   let no_depext = Key.(get ctx no_depext) in
   configure_makefile ~no_depext ~opam_name >>= fun () ->
   (match target with
-    | #Mirage_key.mode_solo5 -> generate_manifest_json ()
+    | #Mirage_key.mode_solo5 -> generate_manifest_json true ()
+    (* On Xen, a Solo5 manifest must be present to keep the build system and
+     * Solo5 happy, but we intentionally do not generate any devices[] as
+     * their naming does not follow the Solo5 rules. *)
+    | #Mirage_key.mode_xen -> generate_manifest_json false ()
     | _ -> R.ok ()) >>= fun () ->
   match target with
   | `Xen ->
     configure_main_xl ~ext:"xl" i >>= fun () ->
     configure_main_xl ~substitutions:[] ~ext:"xl.in" i >>= fun () ->
-    configure_main_xe ~root ~name >>= fun () ->
     Mirage_configure_libvirt.configure_main ~root ~name
   | `Virtio ->
     Mirage_configure_libvirt.configure_virtio ~root ~name

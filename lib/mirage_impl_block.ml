@@ -26,7 +26,7 @@ let make_block_t =
     b
 
 let xen_block_packages =
-  [ package ~min:"1.7.0" ~max:"2.0.0" ~sublibs:["front"] "mirage-block-xen" ]
+  [ package ~min:"2.0.0" ~max:"3.0.0" ~sublibs:["front"] "mirage-block-xen" ]
 
 (* this class takes a string rather than an int as `id` to allow the user to
    pass stuff like "/dev/xvdi1", which mirage-block-xen also understands *)

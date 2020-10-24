@@ -33,47 +33,17 @@ let link info name target _target_debug =
     let link = Bos.Cmd.(v "ln" % "-nfs" % "_build/main.native" % name) in
     Bos.OS.Cmd.run link >>= fun () ->
     Ok name
-  | #Mirage_key.mode_xen ->
-    extra_c_artifacts "xen" libs >>= fun c_artifacts ->
-    static_libs "mirage-xen" >>= fun static_libs ->
-    let linker =
-      Bos.Cmd.(v "ld" % "-d" % "-static" % "-nostdlib" %
-               "_build/main.native.o" %%
-               of_list c_artifacts %%
-               of_list static_libs)
-    in
-    let out = name ^ ".xen" in
-    let uname_cmd = Bos.Cmd.(v "uname" % "-m") in
-    Bos.OS.Cmd.(run_out uname_cmd |> out_string |> success) >>= fun machine ->
-    if String.is_prefix ~affix:"arm" machine then begin
-      (* On ARM:
-         - we must convert the ELF image to an ARM boot executable zImage,
-           while on x86 we leave it as it is.
-         - we need to link libgcc.a (otherwise we get undefined references to:
-           __aeabi_dcmpge, __aeabi_dadd, ...) *)
-      let libgcc_cmd = Bos.Cmd.(v "gcc" % "-print-libgcc-file-name") in
-      Bos.OS.Cmd.(run_out libgcc_cmd |> out_string |> success) >>= fun libgcc ->
-      let elf = name ^ ".elf" in
-      let link = Bos.Cmd.(linker % libgcc % "-o" % elf) in
-      Log.info (fun m -> m "linking with %a" Bos.Cmd.pp link);
-      Bos.OS.Cmd.run link >>= fun () ->
-      let objcopy_cmd = Bos.Cmd.(v "objcopy" % "-O" % "binary" % elf % out) in
-      Bos.OS.Cmd.run objcopy_cmd  >>= fun () ->
-      Ok out
-    end else begin
-      let link = Bos.Cmd.(linker % "-o" % out) in
-      Log.info (fun m -> m "linking with %a" Bos.Cmd.pp link);
-      Bos.OS.Cmd.run link >>= fun () ->
-      Ok out
-    end
-  | #Mirage_key.mode_solo5 ->
-    let pkg, post = Mirage_configure_solo5.solo5_pkg target in
+  | #Mirage_key.mode_solo5 | #Mirage_key.mode_xen ->
+    let bindings = Mirage_configure_solo5.solo5_bindings_pkg target in
+    let platform = Mirage_configure_solo5.solo5_platform_pkg target in
     extra_c_artifacts "freestanding" libs >>= fun c_artifacts ->
-    static_libs "mirage-solo5" >>= fun static_libs ->
-    ldflags pkg >>= fun ldflags ->
-    ldpostflags pkg >>= fun ldpostflags ->
-    let out = name ^ post in
-    let ld = find_ld pkg in
+    static_libs platform
+    >>= fun static_libs ->
+    ldflags bindings >>= fun ldflags ->
+    ldpostflags bindings >>= fun ldpostflags ->
+    let extension = Mirage_configure_solo5.bin_extension target in
+    let out = name ^ extension in
+    let ld = find_ld bindings in
     let linker =
       Bos.Cmd.(v ld %% of_list ldflags % "_build/main.native.o" %
                "_build/manifest.o" %%

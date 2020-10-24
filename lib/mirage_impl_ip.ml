@@ -32,15 +32,13 @@ let opt_map f = function Some x -> Some (f x) | None -> None
 let (@?) x l = match x with Some s -> s :: l | None -> l
 let (@??) x y = opt_map Key.abstract x @? y
 
-(* convenience function for linking tcpip.unix or .xen for checksums *)
+(* convenience function for linking tcpip.unix for checksums *)
 let right_tcpip_library ?ocamlfind ~sublibs pkg =
   let min = "5.0.0" and max = "6.0.0" in
   Key.match_ Key.(value target) @@ function
   | #Mirage_key.mode_unix ->
     [ package ~min ~max ?ocamlfind ~sublibs:("unix"::sublibs) pkg ]
-  | #Mirage_key.mode_xen ->
-    [ package ~min ~max ?ocamlfind ~sublibs:("xen"::sublibs) pkg ]
-  | #Mirage_key.mode_solo5 ->
+  | #Mirage_key.mode_xen | #Mirage_key.mode_solo5 ->
     [ package ~min ~max ?ocamlfind ~sublibs pkg ]
 
 let ipv4_keyed_conf ~ip ?gateway () = impl @@ object
@@ -123,7 +121,7 @@ let ipv4_qubes_conf = impl @@ object
     method name = Name.create "qubes_ipv4" ~prefix:"qubes_ipv4"
     method module_name = "Qubesdb_ipv4.Make"
     method! packages =
-      Key.pure [ package ~min:"0.8.0" ~max:"0.9.0" "mirage-qubes-ipv4" ]
+      Key.pure [ package ~min:"0.9.0" ~max:"0.10.0" "mirage-qubes-ipv4" ]
     method! connect _ modname = function
       | [  db ; _random ; _mclock ;etif; arp ] ->
         Fmt.strf "%s.connect@[@ %s@ %s@ %s@]" modname db etif arp

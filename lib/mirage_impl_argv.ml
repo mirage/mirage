@@ -35,13 +35,8 @@ let argv_xen = impl @@ object
     method name = "argv_xen"
     method module_name = "Bootvar"
     method! packages =
-      Key.pure [ package ~min:"0.7.0" ~max:"0.8.0" "mirage-bootvar-xen" ]
-    method! connect _ _ _ = Fmt.strf
-      (* Some hypervisor configurations try to pass some extra arguments.
-       * They means well, but we can't do much with them,
-       * and they cause Functoria to abort. *)
-      "let filter (key, _) = List.mem key (List.map snd Key_gen.runtime_keys) in@ \
-       Bootvar.argv ~filter ()"
+      Key.pure [ package ~min:"0.8.0" ~max:"0.9.0" "mirage-bootvar-xen" ]
+    method! connect _ _ _ = "Bootvar.argv ()"
   end
 
 let default_argv =

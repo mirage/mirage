@@ -1,3 +1,55 @@
+### v3.9.0 (2020-10-24)
+
+The Xen backend is a minimal legacy-free re-write: Solo5 (since 0.6.6) provides
+the low-level glue code, and ocaml-freestanding provides the OCaml runtime. The
+PV-only Mini-OS implementation has been retired.
+
+The only supported virtualization mode is now Xen PVH (version 2 or above),
+supported since Xen version 4.10 or later (and Qubes OS 4.0).
+
+The support for the ARM32 architecture on Xen has been removed.
+
+Security posture improvements:
+
+With the move to a Solo5 and ocaml-freestanding base MirageOS gains several
+notable improvements to security posture for unikernels on Xen:
+
+* Stack smashing protection is enabled unconditionally for all C code.
+* W^X is enforced throughout, i.e. `.text` is read-execute, `.rodata` is
+  read-only, non-executable and `.data`, heap and stack are read-write and
+  non-executable.
+* The memory allocator used by the OCaml runtime is now dlmalloc (provided by
+  ocaml-freestanding), which is a big improvement over the Mini-OS malloc, and
+  incorporates features such as heap canaries.
+
+Interface changes:
+
+* With the rewrite of the Xen core platform stack, several Xen-specific APIs
+  have changed in incompatible ways; unikernels may need to be updated. Please
+  refer to the mirage-xen v6.0.0 [change
+  log](https://github.com/mirage/mirage-xen/releases/tag/v6.0.0) for a list of
+  interfaces that have changed along with their replacements.
+
+Other changes:
+
+* OCaml 4.08 is the minimum supported version.
+* A dummy `dev-repo` field is emitted for the generated opam file.
+* .xe files are no longer generated.
+* Previous versions of MirageOS would strip boot parameters on Xen, since Qubes
+  OS 3.x added arguments that could not be interpreted by our command line
+  parser. Since Qubes OS 4.0 this is no longer an issue, and MirageOS no longer
+  strips any boot parameters. You may need to execute
+  `qvm-prefs qube-name kernelopts ''`.
+
+Acknowledgements:
+
+* Thanks to Roger Pau Monné, Andrew Cooper and other core Xen developers for
+  help with understanding the specifics of how PVHv2 works, and how to write an
+  implementation from scratch.
+* Thanks to Marek Marczykowski-Górecki for help with the Qubes OS specifics, and
+  for forward-porting some missing parts of PVHv2 to Qubes OS version of Xen.
+* Thanks to @palainp on Github for help with testing on Qubes OS.
+
 ### v3.8.1 (2020-09-22)
 
 * OCaml runtime parameters (OCAMLPARAM) are exposed as boot and configure

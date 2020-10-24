@@ -42,7 +42,7 @@ let artifact ~name = function
 let additional_artifacts ~name =
   let libvirt = Mirage_configure_libvirt.filename ~name in
   function
-  | `Xen -> Fpath.[ v name + "xl" ; v name + "xl.in" ; v name + "xe" ; libvirt ]
+  | `Xen -> Fpath.[ v name + "xl" ; v name + "xl.in" ; libvirt ]
   | `Virtio -> [ libvirt ]
   | _ -> []
 

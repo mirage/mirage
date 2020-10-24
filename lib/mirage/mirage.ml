@@ -344,7 +344,7 @@ module Project = struct
     let keys = Key.[ v target; v warn_error; v target_debug ] in
     let packages_v =
       (* XXX: use %%VERSION_NUM%% here instead of hardcoding a version? *)
-      let min = "3.8.0" and max = "3.9.0" in
+      let min = "3.9.0" and max = "3.10.0" in
       let common =
         [
           package ~build:true ~min:"4.08.0" "ocaml";

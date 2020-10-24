@@ -81,6 +81,7 @@ let configure_opam ~name info =
       append fmt {|authors: "dummy"|};
       append fmt {|homepage: "dummy"|};
       append fmt {|bug-reports: "dummy"|};
+      append fmt {|dev-repo: "git+https://example.com/nonexistent"|};
       Format.fprintf fmt {|build: [ "sh" "-exc" "|};
       (match subdir with
        | None -> ()

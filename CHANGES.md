@@ -1,4 +1,4 @@
-## v3.9.0 (2020-10-24)
+### v3.9.0 (2020-10-24)
 
 The Xen backend is a minimal legacy-free re-write: Solo5 (since 0.6.6) provides
 the low-level glue code, and ocaml-freestanding provides the OCaml runtime. The

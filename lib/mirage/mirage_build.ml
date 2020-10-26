@@ -9,7 +9,6 @@ module Info = Functoria.Info
 let compile ignore_dirs libs warn_error target =
   let tags =
     [
-      Fmt.strf "predicate(%s)" (backend_predicate target);
       "warn(A-4-41-42-44-48)";
       "debug";
       "bin_annot";
@@ -77,7 +76,7 @@ let build i =
   let target_debug = Key.(get ctx target_debug) in
   compile ignore_dirs libs warn_error target >>= fun () ->
   ( match target with
-  | #Mirage_key.mode_solo5 ->
+  | #Mirage_key.mode_solo5 | #Mirage_key.mode_xen ->
       Mirage_configure_solo5.generate_manifest_c () >>= fun () ->
       Mirage_configure_solo5.compile_manifest target
   | _ -> Action.ok () )

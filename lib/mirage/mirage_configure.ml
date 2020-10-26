@@ -37,14 +37,17 @@ let configure i =
     Log.warn (fun m -> m "-g not supported for target: %a" Key.pp_target target);
   configure_myocamlbuild () >>= fun () ->
   ( match target with
-  | #Mirage_key.mode_solo5 -> generate_manifest_json ()
+  | #Mirage_key.mode_solo5 -> generate_manifest_json true ()
+  (* On Xen, a Solo5 manifest must be present to keep the build system and
+     Solo5 happy, but we intentionally do not generate any devices[] as
+     their naming does not follow the Solo5 rules. *)
+  | #Mirage_key.mode_xen -> generate_manifest_json false ()
   | _ -> Action.ok () )
   >>= fun () ->
   match target with
   | `Xen ->
       configure_main_xl ~ext:"xl" i >>= fun () ->
       configure_main_xl ~substitutions:[] ~ext:"xl.in" i >>= fun () ->
-      configure_main_xe ~name >>= fun () ->
       Mirage_configure_libvirt.configure_main ~name
   | `Virtio -> Mirage_configure_libvirt.configure_virtio ~name
   | _ -> Action.ok ()

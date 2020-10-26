@@ -14,10 +14,10 @@ let network_conf (intf : string Key.key) =
     Key.match_ Key.(value target) @@ function
     | `Unix -> [ package ~min:"2.7.0" ~max:"3.0.0" "mirage-net-unix" ]
     | `MacOSX -> [ package ~min:"1.8.0" ~max:"2.0.0" "mirage-net-macosx" ]
-    | `Xen -> [ package ~min:"1.13.0" ~max:"2.0.0" "mirage-net-xen" ]
+    | `Xen -> [ package ~min:"2.0.0" ~max:"3.0.0" "mirage-net-xen" ]
     | `Qubes ->
         [
-          package ~min:"1.13.0" ~max:"2.0.0" "mirage-net-xen";
+          package ~min:"2.0.0" ~max:"3.0.0" "mirage-net-xen";
           Mirage_impl_qubesdb.pkg;
         ]
     | #Mirage_key.mode_solo5 ->

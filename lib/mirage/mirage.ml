@@ -318,20 +318,17 @@ module Project = struct
   let packages = [ package "mirage" ]
 
   let bin ~name = function
-    | #Mirage_key.mode_solo5 as tgt ->
-        let ext = snd (Mirage_configure_solo5.solo5_pkg tgt) in
+    | (#Mirage_key.mode_solo5 | #Mirage_key.mode_xen) as tgt ->
+        let ext = Mirage_configure_solo5.bin_extension tgt in
         let file = Fpath.v (name ^ ext) in
         (file, file)
     | #Mirage_key.mode_unix ->
         (Fpath.((v "_build" / "main") + "native"), Fpath.v name)
-    | #Mirage_key.mode_xen ->
-        let file = Fpath.(v name + "xen") in
-        (file, file)
 
   let etc ~name =
     let libvirt = Mirage_configure_libvirt.filename ~name in
     function
-    | `Xen -> Fpath.[ v name + "xl"; v name + "xl.in"; v name + "xe"; libvirt ]
+    | `Xen -> Fpath.[ v name + "xl"; v name + "xl.in"; libvirt ]
     | `Virtio -> [ libvirt ]
     | _ -> []
 
@@ -347,10 +344,10 @@ module Project = struct
     let keys = Key.[ v target; v warn_error; v target_debug ] in
     let packages_v =
       (* XXX: use %%VERSION_NUM%% here instead of hardcoding a version? *)
-      let min = "3.8.0" and max = "3.9.0" in
+      let min = "3.9.0" and max = "3.10.0" in
       let common =
         [
-          package ~build:true ~min:"4.06.0" "ocaml";
+          package ~build:true ~min:"4.08.0" "ocaml";
           package "lwt";
           package ~min ~max "mirage-types";
           package ~min ~max "mirage-runtime";
@@ -363,10 +360,14 @@ module Project = struct
       | #Mirage_key.mode_unix ->
           package ~min:"4.0.0" ~max:"5.0.0" "mirage-unix" :: common
       | #Mirage_key.mode_xen ->
-          package ~min:"5.0.0" ~max:"6.0.0" "mirage-xen" :: common
+          (* The Mirage/Xen PVH platform package has different version numbers
+             than Mirage/Solo5, so needs its own case here. *)
+          package ~min:"0.6.0" ~max:"0.7.0" ~libs:[] "solo5-bindings-xen"
+          :: package ~min:"6.0.0" ~max:"7.0.0" "mirage-xen"
+          :: common
       | #Mirage_key.mode_solo5 as tgt ->
           package ~min:"0.6.0" ~max:"0.7.0" ~libs:[]
-            (fst (Mirage_configure_solo5.solo5_pkg tgt))
+            (Mirage_configure_solo5.solo5_bindings_pkg tgt)
           :: package ~min:"0.6.1" ~max:"0.7.0" "mirage-solo5"
           :: common
     in

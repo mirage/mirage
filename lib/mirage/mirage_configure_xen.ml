@@ -77,7 +77,7 @@ let configure_main_xl ?substitutions ~ext i =
       let open Mirage_impl_block in
       append fmt "name = '%s'" (lookup substitutions Name);
       append fmt "kernel = '%s'" (lookup substitutions Kernel);
-      append fmt "type = 'pv'";
+      append fmt "type = 'pvh'";
       append fmt "memory = %s" (lookup substitutions Memory);
       append fmt "on_crash = 'preserve'";
       append fmt "";
@@ -118,67 +118,6 @@ let configure_main_xl ?substitutions ~ext i =
       append fmt "vif = [ %s ]" (String.concat ~sep:", " networks))
 
 let clean_main_xl ~name ~ext = Action.rm Fpath.(v name + ext)
-
-let configure_main_xe ~name =
-  Action.with_output ~mode:0o755
-    ~path:Fpath.(v name + "xe")
-    ~purpose:"xe file"
-    (fun fmt ->
-      let open Mirage_impl_block in
-      append fmt "#!/bin/sh";
-      append fmt "set -e";
-      append fmt "";
-      append fmt "# Dependency: xe";
-      append fmt
-        "command -v xe >/dev/null 2>&1 || { echo >&2 \"I require xe but it's \
-         not installed.  Aborting.\"; exit 1; }";
-      append fmt "# Dependency: xe-unikernel-upload";
-      append fmt
-        "command -v xe-unikernel-upload >/dev/null 2>&1 || { echo >&2 \"I \
-         require xe-unikernel-upload but it's not installed.  Aborting.\"; \
-         exit 1; }";
-      append fmt "# Dependency: a $HOME/.xe";
-      append fmt "if [ ! -e $HOME/.xe ]; then";
-      append fmt
-        "  echo Please create a config file for xe in $HOME/.xe which contains:";
-      append fmt "  echo server='<IP or DNS name of the host running xapi>'";
-      append fmt "  echo username=root";
-      append fmt "  echo password=password";
-      append fmt "  exit 1";
-      append fmt "fi";
-      append fmt "";
-      append fmt "echo Uploading VDI containing unikernel";
-      append fmt "VDI=$(xe-unikernel-upload --path %s.xen)" name;
-      append fmt "echo VDI=$VDI";
-      append fmt "echo Creating VM metadata";
-      append fmt "VM=$(xe vm-create name-label=%s)" name;
-      append fmt "echo VM=$VM";
-      append fmt "xe vm-param-set uuid=$VM PV-bootloader=pygrub";
-      append fmt "echo Adding network interface connected to xenbr0";
-      append fmt "ETH0=$(xe network-list bridge=xenbr0 params=uuid --minimal)";
-      append fmt "VIF=$(xe vif-create vm-uuid=$VM network-uuid=$ETH0 device=0)";
-      append fmt "echo Atting block device and making it bootable";
-      append fmt "VBD=$(xe vbd-create vm-uuid=$VM vdi-uuid=$VDI device=0)";
-      append fmt "xe vbd-param-set uuid=$VBD bootable=true";
-      append fmt "xe vbd-param-set uuid=$VBD other-config:owner=true";
-      List.iter
-        (fun b ->
-          append fmt "echo Uploading data VDI %s" b.filename;
-          append fmt "echo VDI=$VDI";
-          append fmt "SIZE=$(stat --format '%%s' %s)" b.filename;
-          append fmt "POOL=$(xe pool-list params=uuid --minimal)";
-          append fmt "SR=$(xe pool-list uuid=$POOL params=default-SR --minimal)";
-          append fmt
-            "VDI=$(xe vdi-create type=user name-label='%s' virtual-size=$SIZE \
-             sr-uuid=$SR)"
-            b.filename;
-          append fmt "xe vdi-import uuid=$VDI filename=%s" b.filename;
-          append fmt "VBD=$(xe vbd-create vm-uuid=$VM vdi-uuid=$VDI device=%d)"
-            b.number;
-          append fmt "xe vbd-param-set uuid=$VBD other-config:owner=true")
-        (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []);
-      append fmt "echo Starting VM";
-      append fmt "xe vm-start uuid=$VM")
 
 let clean_main_xe ~name = Action.rm Fpath.(v name + "xe")
 

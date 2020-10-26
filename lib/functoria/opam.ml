@@ -99,6 +99,7 @@ maintainer: "dummy"
 authors: "dummy"
 homepage: "dummy"
 bug-reports: "dummy"
+dev-repo: "git+https://example.com/nonexistent"
 synopsis: "This is a dummy"
 
 build: [%a]

@@ -4,8 +4,6 @@ module Log : Logs.LOG
 
 val get_target : Info.t -> Mirage_key.mode
 
-val backend_predicate : Mirage_key.mode -> string
-
 val connect_err : string -> int -> string
 
 val pp_key : Format.formatter -> 'a Key.key -> unit

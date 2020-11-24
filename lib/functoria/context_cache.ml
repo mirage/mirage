@@ -17,7 +17,7 @@
  *)
 
 open Astring
-open Action.Infix
+open Action.Syntax
 
 let src = Logs.Src.create "functoria.cache" ~doc:"functoria library"
 
@@ -42,27 +42,27 @@ let write file argv =
 
 let read file =
   Log.info (fun l -> l "reading cache %a" Fpath.pp file);
-  Action.is_file file >>= function
-  | false -> Action.ok empty
-  | true -> (
-      Action.read_file file >>= fun args ->
-      let args = String.cuts ~sep:"\n" args in
-      (* remove trailing '\n' *)
-      let args = List.rev (List.tl (List.rev args)) in
-      (* Add an empty command *)
-      let args = "" :: args in
-      let args = Array.of_list args in
-      try
-        let args =
-          Array.map
-            (fun x ->
-              match String.Ascii.unescape x with
-              | Some s -> s
-              | None -> Fmt.failwith "%S: cannot parse" x)
-            args
-        in
-        Action.ok args
-      with Failure e -> Action.error e )
+  let* is_file = Action.is_file file in
+  if not is_file then Action.ok empty
+  else
+    let* args = Action.read_file file in
+    let args = String.cuts ~sep:"\n" args in
+    (* remove trailing '\n' *)
+    let args = List.rev (List.tl (List.rev args)) in
+    (* Add an empty command *)
+    let args = "" :: args in
+    let args = Array.of_list args in
+    try
+      let args =
+        Array.map
+          (fun x ->
+            match String.Ascii.unescape x with
+            | Some s -> s
+            | None -> Fmt.failwith "%S: cannot parse" x)
+          args
+      in
+      Action.ok args
+    with Failure e -> Action.error e
 
 let peek t term =
   match Cmdliner.Term.eval_peek_opts ~argv:t term with

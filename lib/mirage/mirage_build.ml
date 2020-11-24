@@ -1,5 +1,5 @@
 open Functoria
-open Action.Infix
+open Action.Syntax
 open Astring
 open Mirage_impl_misc
 module Key = Mirage_key
@@ -64,9 +64,9 @@ let build i =
   let warn_error = Key.(get ctx warn_error) in
   let target = Key.(get ctx target) in
   let libs = Info.libraries i in
-  compile ignore_dirs libs warn_error target >>= fun () ->
-  Mirage_target.build i >>= fun () ->
-  Mirage_target.link ~name i >|= fun out ->
+  let* () = compile ignore_dirs libs warn_error target in
+  let* () = Mirage_target.build i in
+  let+ out = Mirage_target.link ~name i in
   Log.info (fun m -> m "Build succeeded: %s" out)
 
 let files i =

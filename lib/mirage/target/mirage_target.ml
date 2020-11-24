@@ -1,5 +1,5 @@
 open Functoria
-open Action.Infix
+open Action.Syntax
 module Key = Mirage_key
 
 let choose : Key.mode -> (module S.TARGET) = function
@@ -47,4 +47,6 @@ let ocamlbuild_tags target =
   let (module Target) = choose target in
   Target.ocamlbuild_tags
 
-let clean i = Solo5.clean i >>= fun () -> Unix.clean i
+let clean i =
+  let* () = Solo5.clean i in
+  Unix.clean i

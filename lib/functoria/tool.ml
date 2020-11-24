@@ -17,7 +17,7 @@
  *)
 
 open Astring
-open Action.Infix
+open Action.Syntax
 open DSL
 
 let src = Logs.Src.create "functoria.tool" ~doc:"functoria library"
@@ -49,11 +49,12 @@ module Make (P : S) = struct
   let add_context_file t argv =
     match Cli.peek_context_file ~mname:P.name argv with
     | Some _ -> Action.ok argv
-    | None -> (
+    | None ->
         let file = context_file t in
-        Action.is_file file >|= function
-        | false -> argv (* should only happen when doing configure --help *)
-        | true -> Array.append argv [| "--context"; Fpath.to_string file |] )
+        let+ is_file = Action.is_file file in
+        if is_file then
+          Array.append argv [| "--context"; Fpath.to_string file |]
+        else (* should only happen when doing configure --help *) argv
 
   let run_cmd ?ppf ?err_ppf command =
     let err = match err_ppf with None -> None | Some f -> Some (`Fmt f) in
@@ -63,7 +64,7 @@ module Make (P : S) = struct
   (* re-exec the command by calling config.exe with the same argv as
      the current command. Also add the [--context] argument if needed. *)
   let re_exec t ?ppf ?err_ppf argv =
-    add_context_file t argv >>= fun argv ->
+    let* argv = add_context_file t argv in
     let args = Bos.Cmd.of_list (List.tl (Array.to_list argv)) in
     let command =
       Bos.Cmd.(
@@ -80,7 +81,8 @@ module Make (P : S) = struct
   let re_exec_out t ?err_ppf argv =
     let buf = Buffer.create 10 in
     let ppf = Fmt.with_buffer buf in
-    re_exec t ~ppf ?err_ppf argv >|= fun () -> Buffer.contents buf
+    let+ () = re_exec t ~ppf ?err_ppf argv in
+    Buffer.contents buf
 
   let query k t ?err_ppf _argv =
     re_exec_out t ?err_ppf
@@ -134,26 +136,29 @@ module Make (P : S) = struct
   (* Generate the configuration files in the the build directory *)
   let generate_configuration_files t =
     Log.info (fun m -> m "Compiling: %a" Fpath.pp t.Cli.config_file);
-    generate_dune_project () >>= fun () ->
+    let* () = generate_dune_project () in
     Action.with_dir (build_dir t) (fun () ->
-        generate_dune_config t >>= fun () ->
-        generate_empty_dune_build () >>= fun () -> generate_dune ())
+        let* () = generate_dune_config t in
+        let* () = generate_empty_dune_build () in
+        generate_dune ())
 
   let generate_makefile ~depext name =
     let file = Fpath.(v "Makefile") in
     let contents = Fmt.to_to_string Makefile.pp (Makefile.v ~depext name) in
     Filegen.write file contents
 
-  let query_name t ?err_ppf argv = query `Name t ?err_ppf argv >|= String.trim
+  let query_name t ?err_ppf argv =
+    let+ name = query `Name t ?err_ppf argv in
+    String.trim name
 
   let generate_opam ~name t ?err_ppf argv =
-    query `Opam t ?err_ppf argv >>= fun contents ->
+    let* contents = query `Opam t ?err_ppf argv in
     let file = Fpath.(v name + ".opam") in
     Log.info (fun m -> m "Generating: %a" Fpath.pp file);
     Filegen.write file contents
 
   let generate_install ~name t ?err_ppf argv =
-    query `Install t ?err_ppf argv >>= fun contents ->
+    let* contents = query `Install t ?err_ppf argv in
     let file = Fpath.(v name + ".install") in
     Log.info (fun m -> m "Generating: %a" Fpath.pp file);
     Filegen.write file contents
@@ -164,7 +169,7 @@ module Make (P : S) = struct
 
   (* Generated a project skeleton and try to compile config.exe. *)
   let check_project t ?ppf ?err_ppf () =
-    generate_configuration_files t >>= fun () ->
+    let* () = generate_configuration_files t in
     let command =
       Bos.Cmd.(v "dune" % "build" % p Fpath.(build_dir t / "config.exe"))
     in
@@ -197,14 +202,14 @@ module Make (P : S) = struct
 
   let handle_parse_args ~save_args t ?ppf ?err_ppf argv =
     let file = t.Cli.config_file in
-    Action.is_file file >>= function
-    | true ->
-        check_project t ?ppf ?err_ppf () >>= fun () ->
-        (if save_args then write_context t argv else Action.ok ()) >>= fun () ->
-        re_exec t ?ppf ?err_ppf argv
-    | false ->
-        let msg = Fmt.str "configuration file %a missing" Fpath.pp file in
-        handle_parse_args_no_config ?help_ppf:ppf ?err_ppf (`Msg msg) argv
+    let* is_file = Action.is_file file in
+    if is_file then
+      let* () = check_project t ?ppf ?err_ppf () in
+      let* () = if save_args then write_context t argv else Action.ok () in
+      re_exec t ?ppf ?err_ppf argv
+    else
+      let msg = Fmt.str "configuration file %a missing" Fpath.pp file in
+      handle_parse_args_no_config ?help_ppf:ppf ?err_ppf (`Msg msg) argv
 
   let action_run t a =
     if not t.Cli.dry_run then Action.run a
@@ -218,20 +223,21 @@ module Make (P : S) = struct
       dom.result
 
   let clean_files args =
-    Action.ls (Fpath.v ".") (fun file ->
-        Fpath.parent file = Fpath.v "./"
-        &&
-        let base, ext = Fpath.split_ext file in
-        let base = Fpath.basename base in
-        match (base, ext) with
-        | _, (".opam" | ".install") -> true
-        | ("Makefile" | "dune-project" | "dune-workspace"), "" -> true
-        | _ -> false)
-    >>= fun files ->
-    Action.List.iter ~f:Filegen.rm files >>= fun () ->
-    remove_context args >>= fun () ->
-    Action.get_var "INSIDE_FUNCTORIA_TESTS" >>= function
-    | Some "1" | Some "" -> Action.ok ()
+    let* files =
+      Action.ls (Fpath.v ".") (fun file ->
+          Fpath.parent file = Fpath.v "./"
+          &&
+          let base, ext = Fpath.split_ext file in
+          let base = Fpath.basename base in
+          match (base, ext) with
+          | _, (".opam" | ".install") -> true
+          | ("Makefile" | "dune-project" | "dune-workspace"), "" -> true
+          | _ -> false)
+    in
+    let* () = Action.List.iter ~f:Filegen.rm files in
+    let* () = remove_context args in
+    let* var = Action.get_var "INSIDE_FUNCTORIA_TESTS" in
+    match var with
     | None -> Action.rmdir Fpath.(v "_build")
     | _ -> Action.rmdir Fpath.(v "_build")
 
@@ -239,20 +245,22 @@ module Make (P : S) = struct
     handle_parse_args args ~save_args:false ?ppf:help_ppf ?err_ppf argv
 
   let configure ({ args; depext } : _ Cli.configure_args) ?ppf ?err_ppf argv =
-    handle_parse_args ~save_args:true args ?ppf ?err_ppf argv >>= fun () ->
-    query_name args ?err_ppf argv >>= fun name ->
-    generate_opam ~name args ?err_ppf argv >>= fun () ->
-    generate_install ~name args ?err_ppf argv >>= fun () ->
+    let* () = handle_parse_args ~save_args:true args ?ppf ?err_ppf argv in
+    let* name = query_name args ?err_ppf argv in
+    let* () = generate_opam ~name args ?err_ppf argv in
+    let* () = generate_install ~name args ?err_ppf argv in
     generate_makefile ~depext name
 
   let clean args ?ppf ?err_ppf argv =
     let config = args.Cli.config_file in
-    (Action.is_file config >>= function
-     | false -> Action.ok ()
-     | true ->
-         check_project args ?ppf ?err_ppf () >>= fun () ->
-         re_exec args ?ppf ?err_ppf argv)
-    >>= fun () -> clean_files args
+    let* () =
+      let* is_file = Action.is_file config in
+      if is_file then
+        let* () = check_project args ?ppf ?err_ppf () in
+        re_exec args ?ppf ?err_ppf argv
+      else Action.ok ()
+    in
+    clean_files args
 
   let run args action = action |> action_run args |> exit_err args
 

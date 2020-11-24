@@ -17,7 +17,7 @@
  *)
 
 open Astring
-open Action.Infix
+open Action.Syntax
 
 module type PROJECT = sig
   val name : string
@@ -64,14 +64,15 @@ module Make (P : PROJECT) = struct
             String.is_infix ~affix contents )
 
   let can_overwrite file =
-    Action.is_file file >>= function
-    | false -> Action.ok true
-    | true -> Action.read_file file >|= has_headers file
+    let* is_file = Action.is_file file in
+    if is_file then
+      let+ content = Action.read_file file in
+      has_headers file content
+    else Action.ok true
 
   let rm file =
-    can_overwrite file >>= function
-    | false -> Action.ok ()
-    | true -> Action.rm file
+    let* can_overwrite = can_overwrite file in
+    if not can_overwrite then Action.ok () else Action.rm file
 
   let with_headers file contents =
     if has_headers file contents then contents
@@ -85,7 +86,7 @@ module Make (P : PROJECT) = struct
           | Some lang -> Fmt.str "%s\n\n%s" (headers lang) contents )
 
   let write file contents =
-    can_overwrite file >>= function
-    | false -> Action.ok ()
-    | true -> Action.write_file file (with_headers file contents)
+    let* can_overwrite = can_overwrite file in
+    if not can_overwrite then Action.ok ()
+    else Action.write_file file (with_headers file contents)
 end

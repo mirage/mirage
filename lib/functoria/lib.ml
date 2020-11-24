@@ -16,7 +16,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Action.Infix
+open Action.Syntax
 open Astring
 open DSL
 module Name = Misc.Name
@@ -140,8 +140,8 @@ module Make (P : S) = struct
       | None when t.dot ->
           f Format.str_formatter;
           let data = Format.flush_str_formatter () in
-          Action.tmp_file ~mode:0o644 "graph%s.dot" >>= fun tmp ->
-          Action.write_file tmp data >>= fun () ->
+          let* tmp = Action.tmp_file ~mode:0o644 "graph%s.dot" in
+          let* () = Action.write_file tmp data in
           Action.run_cmd Bos.Cmd.(v t.dotcmd % p tmp)
       | None -> Action.ok (f Fmt.stdout)
       | Some s -> Action.with_output ~path:(Fpath.v s) ~purpose:"dot file" f
@@ -152,13 +152,16 @@ module Make (P : S) = struct
     let main = Info.main i in
     let purpose = Fmt.strf "configure: create %a" Fpath.pp main in
     Log.info (fun m -> m "Generating: %a (main file)" Fpath.pp main);
-    Action.with_output ~path:main ~append:false ~purpose (fun ppf ->
-        Fmt.pf ppf "%a@.@." Fmt.text P.prelude)
-    >>= fun () ->
-    Engine.configure i jobs >>= fun () -> Engine.connect i ~init jobs
+    let* () =
+      Action.with_output ~path:main ~append:false ~purpose (fun ppf ->
+          Fmt.pf ppf "%a@.@." Fmt.text P.prelude)
+    in
+    let* () = Engine.configure i jobs in
+    Engine.connect i ~init jobs
 
   let clean_main i jobs =
-    Engine.clean i jobs >>= fun () -> Action.rm (Info.main i)
+    let* () = Engine.clean i jobs in
+    Action.rm (Info.main i)
 
   let configure args =
     let { Config.init; info; device_graph; _ } = args.Cli.context in
@@ -206,10 +209,10 @@ module Make (P : S) = struct
     let { Config.info; device_graph; _ } = args.Cli.context in
     Log.info (fun m -> m "Cleaning: %a" Fpath.pp args.Cli.config_file);
     Action.with_dir (build_dir args) (fun () ->
-        clean_main info device_graph >>= fun () ->
-        Filegen.rm Fpath.(v "dune") >>= fun () ->
-        Filegen.rm Fpath.(v "dune.config") >>= fun () ->
-        Filegen.rm Fpath.(v "dune.build") >>= fun () ->
+        let* () = clean_main info device_graph in
+        let* () = Filegen.rm Fpath.(v "dune") in
+        let* () = Filegen.rm Fpath.(v "dune.config") in
+        let* () = Filegen.rm Fpath.(v "dune.build") in
         Action.rm Fpath.(v ".merlin"))
 
   let ok () = Action.ok ()
@@ -275,16 +278,16 @@ module Make (P : S) = struct
   let read_context args =
     match args.Cli.context_file with
     | None -> Action.ok Context_cache.empty
-    | Some file -> (
-        Action.is_file file >>= function
-        | false -> Action.errorf "cannot find file `%a'" Fpath.pp file
-        | true -> Context_cache.read file >|= fun t -> t )
+    | Some file ->
+        let* is_file = Action.is_file file in
+        if is_file then Context_cache.read file
+        else Action.errorf "cannot find file `%a'" Fpath.pp file
 
   let run_configure_with_argv argv args config =
     (*   whether to fully evaluate the graph *)
     let full_eval = Cli.peek_full_eval argv in
 
-    read_context args >>= fun cache ->
+    let* cache = read_context args in
     let base_context =
       (* Consider only the non-required keys. *)
       let non_required_term =

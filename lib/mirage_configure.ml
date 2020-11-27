@@ -143,10 +143,13 @@ let configure_makefile ~no_depext ~opam_name =
                   \t$(OPAM) depext --yes --update %s ;\\\n\
                   \t$(OPAM) pin remove --no-action %s\n\
                   \n\
+                  CHECK_ONE_OPAM_FILE=`/bin/sh -c 'if [ $$(ls *opam | wc -l) -ne 1 ]; then exit 1; fi'`\n\
+                  \n\
                   .PHONY: all depend depends clean build\n\
                   all:: build\n\
                   \n\
                   depend depends::%s\n\
+                  \t$(CHECK_ONE_OPAM_FILE)\n\
                   \t$(OPAM) install -y --deps-only .\n\
                   \n\
                   build::\n\

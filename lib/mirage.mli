@@ -391,7 +391,7 @@ val qubes_ipv4_stack: ?group:string -> ?qubesdb:qubesdb impl -> ?arp:(ethernet i
 
 (** Build a stackv4 by obtaining a DHCP lease, using the lease to
  *  build an ipv4, then building a stack on top of that. *)
-val dhcp_ipv4_stack: ?group:string -> ?random:random impl -> ?time:time impl -> ?arp:(ethernet impl -> arpv4 impl) -> network impl -> stackv4 impl
+val dhcp_ipv4_stack: ?group:string -> ?random:random impl -> ?clock:mclock impl -> ?time:time impl -> ?arp:(ethernet impl -> arpv4 impl) -> network impl -> stackv4 impl
 
 (** Build a stackv4 by checking the {!Key.V4.network}, and {!Key.V4.gateway} keys
  *  for ipv4 configuration information, filling in unspecified information from [?config],

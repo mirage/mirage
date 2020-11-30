@@ -48,3 +48,31 @@ val generic_stackv4 :
   ?net_key:[ `Direct | `Socket ] option Functoria.value ->
   Mirage_impl_network.network Functoria.impl ->
   stackv4 Functoria.impl
+
+type stackv6
+
+val stackv6 : stackv6 Functoria.typ
+
+val direct_stackv6 :
+  ?mclock:Mirage_impl_mclock.mclock Functoria.impl ->
+  ?random:Mirage_impl_random.random Functoria.impl ->
+  ?time:Mirage_impl_time.time Functoria.impl ->
+  Mirage_impl_network.network Functoria.impl ->
+  Mirage_impl_ethernet.ethernet Functoria.impl ->
+  Mirage_impl_ip.ipv6 Functoria.impl ->
+  stackv6 Functoria.impl
+
+val socket_stackv6 : ?group:string -> Ipaddr.V6.t list -> stackv6 Functoria.impl
+
+val static_ipv6_stack :
+  ?group:string ->
+  ?config:Mirage_impl_ip.ipv6_config ->
+  Mirage_impl_network.network Functoria.impl ->
+  stackv6 Functoria.impl
+
+val generic_stackv6 :
+  ?group:string ->
+  ?config:Mirage_impl_ip.ipv6_config ->
+  ?net_key:[ `Direct | `Socket ] option Functoria.value ->
+  Mirage_impl_network.network Functoria.impl ->
+  stackv6 Functoria.impl

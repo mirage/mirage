@@ -466,6 +466,7 @@ val socket_tcpv4 : ?group:string -> Ipaddr.V4.t option -> tcpv4 impl
 (** {2 Network stack configuration} *)
 
 type stackv4
+(** {3 IPv4} *)
 
 val stackv4 : stackv4 typ
 (** Implementation of the [Mirage_types.STACKV4] signature. *)
@@ -529,6 +530,47 @@ val generic_stackv4 :
 
     If a key is not provided, it uses {!Key.net} or {!Key.dhcp} (with the
     [group] argument) to create it. *)
+
+(** {3 IPv6} *)
+
+type stackv6
+
+val stackv6 : stackv6 typ
+(** Implementation of the [Mirage_stack.V6] signature. *)
+
+val direct_stackv6 :
+  ?mclock:mclock impl ->
+  ?random:random impl ->
+  ?time:time impl ->
+  network impl ->
+  ethernet impl ->
+  ipv6 impl ->
+  stackv6 impl
+(** Direct network stack with given ip. *)
+
+val socket_stackv6 : ?group:string -> Ipaddr.V6.t list -> stackv6 impl
+(** Network stack with sockets. Exposes the key {!Key.V6.ips}. *)
+
+val static_ipv6_stack :
+  ?group:string -> ?config:ipv6_config -> network impl -> stackv6 impl
+(** Build a stackv6 by checking the {!Key.V6.network}, and {!Key.V6.gateway}
+    keys for ipv6 configuration information, filling in unspecified information
+    from [?config], then building a stack on top of that. *)
+
+val generic_stackv6 :
+  ?group:string ->
+  ?config:ipv6_config ->
+  ?net_key:[ `Direct | `Socket ] option value ->
+  network impl ->
+  stackv6 impl
+(** Generic stack using a [net] keys: {!Key.net}.
+
+    - If [net] = [socket] then {!socket_stackv6} is used
+    - Else, if [unix or macosx] then {!socket_stackv6} is used
+    - Else, {!static_ipv6_stack} is used.
+
+    If a key is not provided, it uses {!Key.net} (with the [group] argument) to
+    create it. *)
 
 (** {2 Resolver configuration} *)
 

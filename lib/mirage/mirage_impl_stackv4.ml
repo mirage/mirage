@@ -103,3 +103,69 @@ let generic_stackv4 ?group ?config ?(dhcp_key = Key.value @@ Key.dhcp ?group ())
       (`Qubes, qubes_ipv4_stack tap);
     ]
     ~default:(static_ipv4_stack ?config ?group tap)
+
+(** IPv6 *)
+type stackv6 = STACKV6
+
+let stackv6 = Type.v STACKV6
+
+let stackv6_direct_conf () =
+  let packages_v = right_tcpip_library ~sublibs:[ "stack-direct" ] "tcpip" in
+  let connect _i modname = function
+    | [ _t; _r; interface; ethif; ip; udp; tcp ] ->
+        Fmt.strf "%s.connect %s %s %s %s %s" modname interface ethif ip udp tcp
+    | _ -> failwith (connect_err "direct stackv6" 9)
+  in
+  impl ~packages_v ~connect "Tcpip_stack_direct.MakeV6"
+    ( time
+    @-> random
+    @-> network
+    @-> ethernet
+    @-> ipv6
+    @-> udpv6
+    @-> tcpv6
+    @-> stackv6 )
+
+let direct_stackv6 ?(mclock = default_monotonic_clock)
+    ?(random = default_random) ?(time = default_time) network eth ip =
+  stackv6_direct_conf ()
+  $ time
+  $ random
+  $ network
+  $ eth
+  $ ip
+  $ direct_udp ~random ip
+  $ direct_tcp ~mclock ~random ~time ip
+
+let static_ipv6_stack ?group
+    ?(config = { addresses = []; netmasks = []; gateways = [] }) tap =
+  let e = etif tap in
+  let i = create_ipv6 ?group tap e config in
+  direct_stackv6 tap e i
+
+let stackv6_socket_conf ips =
+  let keys = [ Key.v ips ] in
+  let packages_v = right_tcpip_library ~sublibs:[ "stack-socket" ] "tcpip" in
+  let extra_deps = [ dep (socket_udpv4 None); dep (socket_tcpv4 None) ] in
+  let connect _i modname = function
+    | [ udp; tcp ] -> Fmt.strf "%s.connect %a %s %s" modname pp_key ips udp tcp
+    | _ -> failwith (connect_err "socket stack" 2)
+  in
+  impl ~keys ~packages_v ~extra_deps ~connect "Tcpip_stack_socket.V6" stackv6
+
+let socket_stackv6 ?group ips = stackv6_socket_conf (Key.V6.ips ?group ips)
+
+(** Generic stack *)
+
+let generic_stackv6 ?group ?config ?(net_key = Key.value @@ Key.net ?group ())
+    (tap : network impl) : stackv6 impl =
+  let choose target net =
+    match (target, net) with
+    | _, Some `Socket -> `Socket
+    | (`Unix | `MacOSX), None -> `Socket
+    | _, _ -> `Static
+  in
+  let p = Key.(pure choose $ Key.(value target) $ net_key) in
+  match_impl p
+    [ (`Socket, socket_stackv6 ?group [ Ipaddr.V6.unspecified ]) ]
+    ~default:(static_ipv6_stack ?group ?config tap)

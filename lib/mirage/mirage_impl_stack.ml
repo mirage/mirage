@@ -60,7 +60,8 @@ let dhcp_ipv4_stack ?(random = default_random)
   let i = dhcp_ipv4 ~random ~clock ~time tap e a in
   direct_stackv4 tap e a i
 
-let static_ipv4 ?group ?config e a = create_ipv4 ?group ?config e a
+let static_ipv4 ?group ?config ?no_init e a =
+  create_ipv4 ?group ?config ?no_init e a
 
 let static_ipv4_stack ?group ?config ?(arp = arp ?time:None) tap =
   let e = etif tap in
@@ -202,9 +203,9 @@ let stackv4v6_direct_conf () =
     @-> stackv4v6 )
 
 let direct_stackv4v6 ?(mclock = default_monotonic_clock)
-    ?(random = default_random) ?(time = default_time) network eth arp ipv4 ipv6
-    =
-  let ip = create_ipv4v6 ipv4 ipv6 in
+    ?(random = default_random) ?(time = default_time) ~ipv4_only ~ipv6_only
+    network eth arp ipv4 ipv6 =
+  let ip = keyed_ipv4v6 ~ipv4_only ~ipv6_only ipv4 ipv6 in
   stackv4v6_direct_conf ()
   $ time
   $ random
@@ -218,23 +219,27 @@ let direct_stackv4v6 ?(mclock = default_monotonic_clock)
 
 let static_ipv4v6_stack ?group ?ipv6_config ?ipv4_config ?(arp = arp ?time:None)
     tap =
+  let ipv4_only = Key.ipv4_only ?group ()
+  and ipv6_only = Key.ipv6_only ?group () in
   let e = etif tap in
   let a = arp e in
-  let i4 = create_ipv4 ?group ?config:ipv4_config e a in
-  let i6 = create_ipv6 ?group ?config:ipv6_config tap e in
-  direct_stackv4v6 tap e a i4 i6
+  let i4 = create_ipv4 ?group ?config:ipv4_config ~no_init:ipv6_only e a in
+  let i6 = create_ipv6 ?group ?config:ipv6_config ~no_init:ipv4_only tap e in
+  direct_stackv4v6 ~ipv4_only ~ipv6_only tap e a i4 i6
 
 let generic_ipv4v6_stack p ?group ?ipv6_config ?ipv4_config
     ?(arp = arp ?time:None) tap =
+  let ipv4_only = Key.ipv4_only ?group ()
+  and ipv6_only = Key.ipv6_only ?group () in
   let e = etif tap in
   let a = arp e in
   let i4 =
     match_impl p
       [ (`Qubes, qubes_ipv4 e a); (`Dhcp, dhcp_ipv4 tap e a) ]
-      ~default:(static_ipv4 ?group ?config:ipv4_config e a)
+      ~default:(static_ipv4 ?group ?config:ipv4_config ~no_init:ipv6_only e a)
   in
-  let i6 = create_ipv6 ?group ?config:ipv6_config tap e in
-  direct_stackv4v6 tap e a i4 i6
+  let i6 = create_ipv6 ?group ?config:ipv6_config ~no_init:ipv4_only tap e in
+  direct_stackv4v6 ~ipv4_only ~ipv6_only tap e a i4 i6
 
 let socket_stackv4v6 ?(group = "") () =
   let v4key = Key.V4.network ~group Ipaddr.V4.Prefix.global in

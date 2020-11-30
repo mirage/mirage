@@ -56,12 +56,13 @@ let right_tcpip_library ?libs ~sublibs pkg =
   | #Mirage_key.mode_xen | #Mirage_key.mode_solo5 ->
       [ package ~min ~max ?libs ~sublibs pkg ]
 
-let ipv4_keyed_conf ~ip ?gateway () =
+let ipv4_keyed_conf ~ip ?gateway ?no_init () =
   let packages_v = right_tcpip_library ~sublibs:[ "ipv4" ] "tcpip" in
-  let keys = gateway @?? [ Key.v ip ] in
+  let keys = no_init @?? gateway @?? [ Key.v ip ] in
   let connect _ modname = function
     | [ _random; _mclock; etif; arp ] ->
-        Fmt.strf "%s.connect@[@ %a@ %a@ %s@ %s@]" modname
+        Fmt.strf "%s.connect@[@ %a@ %a@ %a@ %s@ %s@]" modname
+          (opt_key "no_init") no_init
           Fmt.(prefix (unit "~cidr:") pp_key)
           ip (opt_opt_key "gateway") gateway etif arp
     | _ -> failwith (connect_err "ipv4 keyed" 4)
@@ -85,7 +86,7 @@ let ipv4_of_dhcp ?(random = default_random) ?(clock = default_monotonic_clock)
     ?(time = default_time) net ethif arp =
   ipv4_dhcp_conf $ random $ clock $ time $ net $ ethif $ arp
 
-let create_ipv4 ?group ?config ?(random = default_random)
+let create_ipv4 ?group ?config ?no_init ?(random = default_random)
     ?(clock = default_monotonic_clock) etif arp =
   let network, gateway =
     match config with
@@ -94,7 +95,7 @@ let create_ipv4 ?group ?config ?(random = default_random)
   in
   let ip = Key.V4.network ?group network
   and gateway = Key.V4.gateway ?group gateway in
-  ipv4_keyed_conf ~ip ~gateway () $ random $ clock $ etif $ arp
+  ipv4_keyed_conf ~ip ~gateway ?no_init () $ random $ clock $ etif $ arp
 
 type ipv6_config = {
   network : Ipaddr.V6.Prefix.t;
@@ -116,21 +117,21 @@ let ipv4_qubes ?(random = default_random) ?(clock = default_monotonic_clock) db
     ethernet arp =
   ipv4_qubes_conf $ db $ random $ clock $ ethernet $ arp
 
-let ipv6_conf ?ip ?gateway ?handle_ra () =
+let ipv6_conf ?ip ?gateway ?handle_ra ?no_init () =
   let packages_v = right_tcpip_library ~sublibs:[ "ipv6" ] "tcpip" in
-  let keys = ip @?? gateway @?? handle_ra @?? [] in
+  let keys = ip @?? gateway @?? handle_ra @?? no_init @?? [] in
   let connect _ modname = function
     | [ netif; etif; _random; _time; _clock ] ->
-        Fmt.strf "%s.connect@[@ %a@ %a@ %a@ %s@ %s@]" modname
-          (opt_key "handle_ra") handle_ra (opt_opt_key "cidr") ip
-          (opt_opt_key "gateway") gateway netif etif
+        Fmt.strf "%s.connect@[@ %a@ %a@ %a@ %a@ %s@ %s@]" modname
+          (opt_key "no_init") no_init (opt_key "handle_ra") handle_ra
+          (opt_opt_key "cidr") ip (opt_opt_key "gateway") gateway netif etif
     | _ -> failwith (connect_err "ipv6" 5)
   in
   impl ~packages_v ~keys ~connect "Ipv6.Make"
     (network @-> ethernet @-> random @-> time @-> mclock @-> ipv6)
 
 let create_ipv6 ?(random = default_random) ?(time = default_time)
-    ?(clock = default_monotonic_clock) ?group ?config netif etif =
+    ?(clock = default_monotonic_clock) ?group ?config ?no_init netif etif =
   let network, gateway =
     match config with
     | None -> (None, None)
@@ -139,7 +140,12 @@ let create_ipv6 ?(random = default_random) ?(time = default_time)
   let ip = Key.V6.network ?group network
   and gateway = Key.V6.gateway ?group gateway
   and handle_ra = Key.V6.accept_router_advertisements ?group () in
-  ipv6_conf ~ip ~gateway ~handle_ra () $ netif $ etif $ random $ time $ clock
+  ipv6_conf ~ip ~gateway ~handle_ra ?no_init ()
+  $ netif
+  $ etif
+  $ random
+  $ time
+  $ clock
 
 let ipv4v6_conf ?ipv4_only ?ipv6_only () =
   let packages_v = right_tcpip_library ~sublibs:[ "stack-direct" ] "tcpip" in
@@ -153,7 +159,10 @@ let ipv4v6_conf ?ipv4_only ?ipv6_only () =
   impl ~packages_v ~keys ~connect "Tcpip_stack_direct.IPV4V6"
     (ipv4 @-> ipv6 @-> ipv4v6)
 
+let keyed_ipv4v6 ~ipv4_only ~ipv6_only ipv4 ipv6 =
+  ipv4v6_conf ~ipv4_only ~ipv6_only () $ ipv4 $ ipv6
+
 let create_ipv4v6 ?group ipv4 ipv6 =
   let ipv4_only = Key.ipv4_only ?group ()
   and ipv6_only = Key.ipv6_only ?group () in
-  ipv4v6_conf ~ipv4_only ~ipv6_only () $ ipv4 $ ipv6
+  keyed_ipv4v6 ~ipv4_only ~ipv6_only ipv4 ipv6

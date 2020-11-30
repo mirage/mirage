@@ -41,6 +41,7 @@ type ipv6_config = {
 val create_ipv4 :
   ?group:string ->
   ?config:ipv4_config ->
+  ?no_init:bool Mirage_key.key ->
   ?random:random impl ->
   ?clock:mclock impl ->
   ethernet impl ->
@@ -53,6 +54,7 @@ val create_ipv6 :
   ?clock:mclock impl ->
   ?group:string ->
   ?config:ipv6_config ->
+  ?no_init:bool Mirage_key.key ->
   network impl ->
   ethernet impl ->
   ipv6 impl
@@ -75,6 +77,13 @@ val ipv4_qubes :
   ipv4 impl
 
 val create_ipv4v6 : ?group:string -> ipv4 impl -> ipv6 impl -> ipv4v6 impl
+
+val keyed_ipv4v6 :
+  ipv4_only:bool Mirage_key.key ->
+  ipv6_only:bool Mirage_key.key ->
+  ipv4 impl ->
+  ipv6 impl ->
+  ipv4v6 impl
 
 val right_tcpip_library :
   ?libs:string list -> sublibs:string list -> string -> package list value

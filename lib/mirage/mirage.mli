@@ -395,6 +395,7 @@ type ipv6_config = {
 val create_ipv4 :
   ?group:string ->
   ?config:ipv4_config ->
+  ?no_init:bool Key.key ->
   ?random:random impl ->
   ?clock:mclock impl ->
   ethernet impl ->
@@ -420,6 +421,7 @@ val create_ipv6 :
   ?clock:mclock impl ->
   ?group:string ->
   ?config:ipv6_config ->
+  ?no_init:bool Key.key ->
   network impl ->
   ethernet impl ->
   ipv6 impl
@@ -608,6 +610,8 @@ val direct_stackv4v6 :
   ?mclock:mclock impl ->
   ?random:random impl ->
   ?time:time impl ->
+  ipv4_only:bool Key.key ->
+  ipv6_only:bool Key.key ->
   network impl ->
   ethernet impl ->
   arpv4 impl ->

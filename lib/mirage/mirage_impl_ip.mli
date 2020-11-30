@@ -47,6 +47,7 @@ val create_ipv6 :
   ?time:Mirage_impl_time.time impl ->
   ?clock:mclock impl ->
   ?group:string ->
+  network impl ->
   ethernet impl ->
   ipv6_config ->
   ipv6 impl

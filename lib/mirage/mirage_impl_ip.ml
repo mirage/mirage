@@ -118,19 +118,24 @@ let ipv6_conf ?addresses ?netmasks ?gateways () =
   let packages_v = right_tcpip_library ~sublibs:[ "ipv6" ] "tcpip" in
   let keys = addresses @?? netmasks @?? gateways @?? [] in
   let connect _ modname = function
-    | [ etif; _random; _time; _clock ] ->
-        Fmt.strf "%s.connect@[@ %a@ %a@ %a@ %s@]" modname (opt_key "ip")
+    | [ netif; etif; _random; _time; _clock ] ->
+        Fmt.strf "%s.connect@[@ %a@ %a@ %a@ %s@ %s@]" modname (opt_key "ip")
           addresses (opt_key "netmask") netmasks (opt_key "gateways") gateways
-          etif
-    | _ -> failwith (connect_err "ipv6" 3)
+          netif etif
+    | _ -> failwith (connect_err "ipv6" 5)
   in
   impl ~packages_v ~keys ~connect "Ipv6.Make"
-    (ethernet @-> random @-> time @-> mclock @-> ipv6)
+    (network @-> ethernet @-> random @-> time @-> mclock @-> ipv6)
 
 let create_ipv6 ?(random = default_random) ?(time = default_time)
-    ?(clock = default_monotonic_clock) ?group etif
+    ?(clock = default_monotonic_clock) ?group netif etif
     { addresses; netmasks; gateways } =
   let addresses = Key.V6.ips ?group addresses in
   let netmasks = Key.V6.netmasks ?group netmasks in
   let gateways = Key.V6.gateways ?group gateways in
-  ipv6_conf ~addresses ~netmasks ~gateways () $ etif $ random $ time $ clock
+  ipv6_conf ~addresses ~netmasks ~gateways ()
+  $ netif
+  $ etif
+  $ random
+  $ time
+  $ clock

@@ -413,6 +413,7 @@ val create_ipv6 :
   ?time:time impl ->
   ?clock:mclock impl ->
   ?group:string ->
+  network impl ->
   ethernet impl ->
   ipv6_config ->
   ipv6 impl

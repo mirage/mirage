@@ -28,7 +28,7 @@ UNIKERNEL PARAMETERS
            *:info,foo:debug means that that the log threshold is set to info
            for every log sources but the foo which is set to debug. 
 
-OCAML PARAMETERS
+OCAML RUNTIME PARAMETERS
        --allocation-policy=ALLOCATION (absent=next-fit)
            The policy used for allocating in the OCaml heap. Possible values
            are: next-fit, first-fit, best-fit. Best-fit is only supported

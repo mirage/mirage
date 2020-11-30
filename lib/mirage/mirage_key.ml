@@ -194,7 +194,7 @@ let tracing_size default =
 
 (** {2 OCaml runtime} *)
 
-let ocaml_section = "OCAML PARAMETERS"
+let ocaml_section = "OCAML RUNTIME PARAMETERS"
 
 let backtrace =
   let doc =

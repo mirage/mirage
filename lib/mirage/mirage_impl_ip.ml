@@ -39,8 +39,6 @@ type ipv4_config = {
 
 let opt_opt_key s = Fmt.(option @@ prefix (unit ("?" ^^ s ^^ ":")) pp_key)
 
-let opt_key s = Fmt.(option @@ prefix (unit ("~" ^^ s ^^ ":")) pp_key)
-
 let opt_map f = function Some x -> Some (f x) | None -> None
 
 let ( @? ) x l = match x with Some s -> s :: l | None -> l
@@ -87,22 +85,18 @@ let ipv4_of_dhcp ?(random = default_random) ?(clock = default_monotonic_clock)
 
 let create_ipv4 ?group ?config ?(random = default_random)
     ?(clock = default_monotonic_clock) etif arp =
-  let config =
+  let network, gateway =
     match config with
-    | None ->
-        let network = Ipaddr.V4.Prefix.of_string_exn "10.0.0.2/24"
-        and gateway = Some (Ipaddr.V4.of_string_exn "10.0.0.1") in
-        { network; gateway }
-    | Some config -> config
+    | None -> (Ipaddr.V4.Prefix.of_string_exn "10.0.0.2/24", None)
+    | Some { network; gateway } -> (network, gateway)
   in
-  let ip = Key.V4.network ?group config.network
-  and gateway = Key.V4.gateway ?group config.gateway in
+  let ip = Key.V4.network ?group network
+  and gateway = Key.V4.gateway ?group gateway in
   ipv4_keyed_conf ~ip ~gateway () $ random $ clock $ etif $ arp
 
 type ipv6_config = {
-  addresses : Ipaddr.V6.t list;
-  netmasks : Ipaddr.V6.Prefix.t list;
-  gateways : Ipaddr.V6.t list;
+  network : Ipaddr.V6.Prefix.t;
+  gateway : Ipaddr.V6.t option;
 }
 (** Types for IP manual configuration. *)
 
@@ -120,31 +114,28 @@ let ipv4_qubes ?(random = default_random) ?(clock = default_monotonic_clock) db
     ethernet arp =
   ipv4_qubes_conf $ db $ random $ clock $ ethernet $ arp
 
-let ipv6_conf ?addresses ?netmasks ?gateways () =
+let ipv6_conf ?ip ?gateway () =
   let packages_v = right_tcpip_library ~sublibs:[ "ipv6" ] "tcpip" in
-  let keys = addresses @?? netmasks @?? gateways @?? [] in
+  let keys = ip @?? gateway @?? [] in
   let connect _ modname = function
     | [ netif; etif; _random; _time; _clock ] ->
-        Fmt.strf "%s.connect@[@ %a@ %a@ %a@ %s@ %s@]" modname (opt_key "ip")
-          addresses (opt_key "netmask") netmasks (opt_key "gateways") gateways
-          netif etif
+        Fmt.strf "%s.connect@[@ %a@ %a@ %s@ %s@]" modname (opt_opt_key "cidr")
+          ip (opt_opt_key "gateway") gateway netif etif
     | _ -> failwith (connect_err "ipv6" 5)
   in
   impl ~packages_v ~keys ~connect "Ipv6.Make"
     (network @-> ethernet @-> random @-> time @-> mclock @-> ipv6)
 
 let create_ipv6 ?(random = default_random) ?(time = default_time)
-    ?(clock = default_monotonic_clock) ?group netif etif
-    { addresses; netmasks; gateways } =
-  let addresses = Key.V6.ips ?group addresses in
-  let netmasks = Key.V6.netmasks ?group netmasks in
-  let gateways = Key.V6.gateways ?group gateways in
-  ipv6_conf ~addresses ~netmasks ~gateways ()
-  $ netif
-  $ etif
-  $ random
-  $ time
-  $ clock
+    ?(clock = default_monotonic_clock) ?group ?config netif etif =
+  let network, gateway =
+    match config with
+    | None -> (None, None)
+    | Some { network; gateway } -> (Some network, gateway)
+  in
+  let ip = Key.V6.network ?group network in
+  let gateway = Key.V6.gateway ?group gateway in
+  ipv6_conf ~ip ~gateway () $ netif $ etif $ random $ time $ clock
 
 let ipv4v6_conf =
   let packages_v = right_tcpip_library ~sublibs:[ "stack-direct" ] "tcpip" in

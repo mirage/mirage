@@ -27,9 +27,9 @@ module Arg : sig
 
   val ipv4 : Ipaddr.V4.Prefix.t converter
 
-  val ipv6 : Ipaddr.V6.t converter
+  val ipv6_address : Ipaddr.V6.t converter
 
-  val ipv6_prefix : Ipaddr.V6.Prefix.t converter
+  val ipv6 : Ipaddr.V6.Prefix.t converter
 end
 
 include Functoria.KEY with module Arg := Arg
@@ -162,29 +162,17 @@ module V4 : sig
 
   val gateway : ?group:string -> t option -> t option key
   (** A default gateway option. *)
-
-  val socket : ?group:string -> t option -> t option key
-  (** An IPv4 address bound by a socket. Will be none if no address is provided. *)
-
-  val ips : ?group:string -> t list -> t list key
-  (** A list of IPv4 addresses bound by a socket. *)
 end
 
 (** Ipv6 keys. *)
 module V6 : sig
   open Ipaddr.V6
 
-  val ips : ?group:string -> t list -> t list key
-  (** An ip address. *)
+  val network : ?group:string -> Prefix.t option -> Prefix.t option key
+  (** A network defined by an address and netmask. *)
 
-  val netmasks : ?group:string -> Prefix.t list -> Prefix.t list key
-  (** A list of netmasks. *)
-
-  val gateways : ?group:string -> t list -> t list key
-  (** A list of gateways. *)
-
-  val socket : ?group:string -> t option -> t option key
-  (** An IPv6 address bound by a socket. Will be none if no address is provided. *)
+  val gateway : ?group:string -> t option -> t option key
+  (** A default gateway option. *)
 end
 
 val resolver : ?default:Ipaddr.V4.t -> unit -> Ipaddr.V4.t key

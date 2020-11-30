@@ -34,9 +34,8 @@ type ipv4_config = {
 }
 
 type ipv6_config = {
-  addresses : Ipaddr.V6.t list;
-  netmasks : Ipaddr.V6.Prefix.t list;
-  gateways : Ipaddr.V6.t list;
+  network : Ipaddr.V6.Prefix.t;
+  gateway : Ipaddr.V6.t option;
 }
 
 val create_ipv4 :
@@ -53,9 +52,9 @@ val create_ipv6 :
   ?time:Mirage_impl_time.time impl ->
   ?clock:mclock impl ->
   ?group:string ->
+  ?config:ipv6_config ->
   network impl ->
   ethernet impl ->
-  ipv6_config ->
   ipv6 impl
 
 val ipv4_of_dhcp :

@@ -21,4 +21,21 @@ val direct_udp :
 
 val socket_udpv4 : ?group:string -> Ipaddr.V4.t option -> udpv4 Functoria.impl
 
+val udpv4_socket_conf :
+  Ipaddr.V4.Prefix.t Mirage_key.key -> udpv4 Functoria.impl
+
 val socket_udpv6 : ?group:string -> Ipaddr.V6.t option -> udpv6 Functoria.impl
+
+val udpv6_socket_conf :
+  Ipaddr.V6.Prefix.t option Mirage_key.key -> udpv6 Functoria.impl
+
+val socket_udpv4v6 :
+  ?group:string ->
+  Ipaddr.V4.t option ->
+  Ipaddr.V6.t option ->
+  udpv4v6 Functoria.impl
+
+val udpv4v6_socket_conf :
+  Ipaddr.V4.Prefix.t Mirage_key.key ->
+  Ipaddr.V6.Prefix.t option Mirage_key.key ->
+  udpv4v6 Functoria.impl

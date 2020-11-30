@@ -384,14 +384,13 @@ type ipv4_config = {
   network : Ipaddr.V4.Prefix.t;
   gateway : Ipaddr.V4.t option;
 }
-(** Types for IPv4 manual configuration. *)
+(** Types for manual IPv4 configuration. *)
 
 type ipv6_config = {
-  addresses : Ipaddr.V6.t list;
-  netmasks : Ipaddr.V6.Prefix.t list;
-  gateways : Ipaddr.V6.t list;
+  network : Ipaddr.V6.Prefix.t;
+  gateway : Ipaddr.V6.t option;
 }
-(** Types for IP manual configuration. *)
+(** Types for manual IPv6 configuration. *)
 
 val create_ipv4 :
   ?group:string ->
@@ -420,12 +419,11 @@ val create_ipv6 :
   ?time:time impl ->
   ?clock:mclock impl ->
   ?group:string ->
+  ?config:ipv6_config ->
   network impl ->
   ethernet impl ->
-  ipv6_config ->
   ipv6 impl
-(** Use an IPv6 address. Exposes the keys {!Key.V6.ips}, {!Key.V6.netmasks} and
-    {!Key.V6.gateways}. *)
+(** Use an IPv6 address. Exposes the keys {!Key.V6.network}, {!Key.V6.gateway}. *)
 
 val create_ipv4v6 : ipv4 impl -> ipv6 impl -> ipv4v6 impl
 
@@ -453,6 +451,9 @@ val direct_udp : ?random:random impl -> 'a ip impl -> 'a udp impl
 val socket_udpv4 : ?group:string -> Ipaddr.V4.t option -> udpv4 impl
 
 val socket_udpv6 : ?group:string -> Ipaddr.V6.t option -> udpv6 impl
+
+val socket_udpv4v6 :
+  ?group:string -> Ipaddr.V4.t option -> Ipaddr.V6.t option -> udpv4v6 impl
 
 (** {2 TCP configuration} *)
 
@@ -484,6 +485,9 @@ val socket_tcpv4 : ?group:string -> Ipaddr.V4.t option -> tcpv4 impl
 
 val socket_tcpv6 : ?group:string -> Ipaddr.V6.t option -> tcpv6 impl
 
+val socket_tcpv4v6 :
+  ?group:string -> Ipaddr.V4.t option -> Ipaddr.V6.t option -> tcpv4v6 impl
+
 (** {2 Network stack configuration} *)
 
 type stackv4
@@ -503,8 +507,8 @@ val direct_stackv4 :
   stackv4 impl
 (** Direct network stack with given ip. *)
 
-val socket_stackv4 : ?group:string -> Ipaddr.V4.t list -> stackv4 impl
-(** Network stack with sockets. Exposes the key {!Key.V4.interfaces}. *)
+val socket_stackv4 : ?group:string -> unit -> stackv4 impl
+(** Network stack with sockets. *)
 
 val qubes_ipv4_stack :
   ?qubesdb:qubesdb impl ->
@@ -569,8 +573,8 @@ val direct_stackv6 :
   stackv6 impl
 (** Direct network stack with given ip. *)
 
-val socket_stackv6 : ?group:string -> Ipaddr.V6.t list -> stackv6 impl
-(** Network stack with sockets. Exposes the key {!Key.V6.ips}. *)
+val socket_stackv6 : ?group:string -> unit -> stackv6 impl
+(** Network stack with sockets. *)
 
 val static_ipv6_stack :
   ?group:string -> ?config:ipv6_config -> network impl -> stackv6 impl
@@ -611,6 +615,9 @@ val direct_stackv4v6 :
   ipv6 impl ->
   stackv4v6 impl
 (** Direct network stack with given ip. *)
+
+val socket_stackv4v6 : ?group:string -> unit -> stackv4v6 impl
+(** Network stack with sockets. *)
 
 val static_ipv4v6_stack :
   ?group:string ->

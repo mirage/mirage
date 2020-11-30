@@ -76,18 +76,17 @@ let qubes_ipv4_stack ?(qubesdb = default_qubesdb) ?(arp = arp ?time:None) tap =
   let i = qubes_ipv4 ~qubesdb e a in
   direct_stackv4 tap e a i
 
-let stackv4_socket_conf ips =
-  let keys = [ Key.v ips ] in
+let socket_stackv4 ?(group = "") () =
+  let key = Key.V4.network ~group Ipaddr.V4.Prefix.global in
   let packages_v = right_tcpip_library ~sublibs:[ "stack-socket" ] "tcpip" in
-  let extra_deps = [ dep (socket_udpv4 None); dep (socket_tcpv4 None) ] in
+  let extra_deps =
+    [ dep (udpv4_socket_conf key); dep (tcpv4_socket_conf key) ]
+  in
   let connect _i modname = function
-    | [ udpv4; tcpv4 ] ->
-        Fmt.strf "%s.connect %a %s %s" modname pp_key ips udpv4 tcpv4
+    | [ udpv4; tcpv4 ] -> Fmt.strf "%s.connect %s %s" modname udpv4 tcpv4
     | _ -> failwith (connect_err "socket stack" 2)
   in
-  impl ~keys ~packages_v ~extra_deps ~connect "Tcpip_stack_socket.V4" stackv4
-
-let socket_stackv4 ?group ipv4s = stackv4_socket_conf (Key.V4.ips ?group ipv4s)
+  impl ~packages_v ~extra_deps ~connect "Tcpip_stack_socket.V4" stackv4
 
 (** Generic stack *)
 
@@ -106,7 +105,7 @@ let generic_stackv4 ?group ?config ?(dhcp_key = Key.value @@ Key.dhcp ?group ())
   match_impl p
     [
       (`Dhcp, dhcp_ipv4_stack tap);
-      (`Socket, socket_stackv4 ?group [ Ipaddr.V4.any ]);
+      (`Socket, socket_stackv4 ?group ());
       (`Qubes, qubes_ipv4_stack tap);
     ]
     ~default:(static_ipv4_stack ?config ?group tap)
@@ -144,23 +143,22 @@ let direct_stackv6 ?(mclock = default_monotonic_clock)
   $ direct_udp ~random ip
   $ direct_tcp ~mclock ~random ~time ip
 
-let static_ipv6_stack ?group
-    ?(config = { addresses = []; netmasks = []; gateways = [] }) tap =
+let static_ipv6_stack ?group ?config tap =
   let e = etif tap in
-  let i = create_ipv6 ?group tap e config in
+  let i = create_ipv6 ?group ?config tap e in
   direct_stackv6 tap e i
 
-let stackv6_socket_conf ips =
-  let keys = [ Key.v ips ] in
+let socket_stackv6 ?(group = "") () =
+  let key = Key.V6.network ~group None in
   let packages_v = right_tcpip_library ~sublibs:[ "stack-socket" ] "tcpip" in
-  let extra_deps = [ dep (socket_udpv4 None); dep (socket_tcpv4 None) ] in
+  let extra_deps =
+    [ dep (udpv6_socket_conf key); dep (tcpv6_socket_conf key) ]
+  in
   let connect _i modname = function
-    | [ udp; tcp ] -> Fmt.strf "%s.connect %a %s %s" modname pp_key ips udp tcp
+    | [ udp; tcp ] -> Fmt.strf "%s.connect %s %s" modname udp tcp
     | _ -> failwith (connect_err "socket stack" 2)
   in
-  impl ~keys ~packages_v ~extra_deps ~connect "Tcpip_stack_socket.V6" stackv6
-
-let socket_stackv6 ?group ips = stackv6_socket_conf (Key.V6.ips ?group ips)
+  impl ~packages_v ~extra_deps ~connect "Tcpip_stack_socket.V6" stackv6
 
 (** Generic stack *)
 
@@ -174,7 +172,7 @@ let generic_stackv6 ?group ?config ?(net_key = Key.value @@ Key.net ?group ())
   in
   let p = Key.(pure choose $ Key.(value target) $ net_key) in
   match_impl p
-    [ (`Socket, socket_stackv6 ?group [ Ipaddr.V6.unspecified ]) ]
+    [ (`Socket, socket_stackv6 ?group ()) ]
     ~default:(static_ipv6_stack ?group ?config tap)
 
 (** dual stack *)
@@ -218,18 +216,16 @@ let direct_stackv4v6 ?(mclock = default_monotonic_clock)
   $ direct_udp ~random ip
   $ direct_tcp ~mclock ~random ~time ip
 
-let static_ipv4v6_stack ?group
-    ?(ipv6_config = { addresses = []; netmasks = []; gateways = [] })
-    ?ipv4_config ?(arp = arp ?time:None) tap =
+let static_ipv4v6_stack ?group ?ipv6_config ?ipv4_config ?(arp = arp ?time:None)
+    tap =
   let e = etif tap in
   let a = arp e in
   let i4 = create_ipv4 ?group ?config:ipv4_config e a in
-  let i6 = create_ipv6 ?group tap e ipv6_config in
+  let i6 = create_ipv6 ?group ?config:ipv6_config tap e in
   direct_stackv4v6 tap e a i4 i6
 
-let generic_ipv4v6_stack p ?group
-    ?(ipv6_config = { addresses = []; netmasks = []; gateways = [] })
-    ?ipv4_config ?(arp = arp ?time:None) tap =
+let generic_ipv4v6_stack p ?group ?ipv6_config ?ipv4_config
+    ?(arp = arp ?time:None) tap =
   let e = etif tap in
   let a = arp e in
   let i4 =
@@ -237,8 +233,24 @@ let generic_ipv4v6_stack p ?group
       [ (`Qubes, qubes_ipv4 e a); (`Dhcp, dhcp_ipv4 tap e a) ]
       ~default:(static_ipv4 ?group ?config:ipv4_config e a)
   in
-  let i6 = create_ipv6 ?group tap e ipv6_config in
+  let i6 = create_ipv6 ?group ?config:ipv6_config tap e in
   direct_stackv4v6 tap e a i4 i6
+
+let socket_stackv4v6 ?(group = "") () =
+  let v4key = Key.V4.network ~group Ipaddr.V4.Prefix.global in
+  let v6key = Key.V6.network ~group None in
+  let packages_v = right_tcpip_library ~sublibs:[ "stack-socket" ] "tcpip" in
+  let extra_deps =
+    [
+      dep (udpv4v6_socket_conf v4key v6key);
+      dep (tcpv4v6_socket_conf v4key v6key);
+    ]
+  in
+  let connect _i modname = function
+    | [ udp; tcp ] -> Fmt.strf "%s.connect %s %s" modname udp tcp
+    | _ -> failwith (connect_err "socket stack" 2)
+  in
+  impl ~packages_v ~extra_deps ~connect "Tcpip_stack_socket.V4V6" stackv4v6
 
 (** Generic stack *)
 let generic_stackv4v6 ?group ?ipv6_config ?ipv4_config
@@ -255,5 +267,5 @@ let generic_stackv4v6 ?group ?ipv6_config ?ipv4_config
   in
   let p = Key.(pure choose $ Key.(value target) $ net_key $ dhcp_key) in
   match_impl p
-    [ (*    `Socket, socket_stackv4v6 ?group [Ipaddr.V6.unspecified]; *) ]
+    [ (`Socket, socket_stackv4v6 ?group ()) ]
     ~default:(generic_ipv4v6_stack p ?group ?ipv6_config ?ipv4_config tap)

@@ -12,7 +12,7 @@ val direct_stackv4 :
   Mirage_impl_ip.ipv4 Functoria.impl ->
   stackv4 Functoria.impl
 
-val socket_stackv4 : ?group:string -> Ipaddr.V4.t list -> stackv4 Functoria.impl
+val socket_stackv4 : ?group:string -> unit -> stackv4 Functoria.impl
 
 val qubes_ipv4_stack :
   ?qubesdb:Mirage_impl_qubesdb.qubesdb Functoria.impl ->
@@ -62,7 +62,7 @@ val direct_stackv6 :
   Mirage_impl_ip.ipv6 Functoria.impl ->
   stackv6 Functoria.impl
 
-val socket_stackv6 : ?group:string -> Ipaddr.V6.t list -> stackv6 Functoria.impl
+val socket_stackv6 : ?group:string -> unit -> stackv6 Functoria.impl
 
 val static_ipv6_stack :
   ?group:string ->
@@ -91,6 +91,8 @@ val direct_stackv4v6 :
   Mirage_impl_ip.ipv4 Functoria.impl ->
   Mirage_impl_ip.ipv6 Functoria.impl ->
   stackv4v6 Functoria.impl
+
+val socket_stackv4v6 : ?group:string -> unit -> stackv4v6 Functoria.impl
 
 val static_ipv4v6_stack :
   ?group:string ->

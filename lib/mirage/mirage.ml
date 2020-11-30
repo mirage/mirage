@@ -142,11 +142,15 @@ type v4 = Mirage_impl_ip.v4
 
 type v6 = Mirage_impl_ip.v6
 
+type v4v6 = Mirage_impl_ip.v4v6
+
 type 'a ip = 'a Mirage_impl_ip.ip
 
 type ipv4 = Mirage_impl_ip.ipv4
 
 type ipv6 = Mirage_impl_ip.ipv6
+
+type ipv4v6 = Mirage_impl_ip.ipv4v6
 
 let ipv4 = Mirage_impl_ip.ipv4
 
@@ -154,9 +158,13 @@ let ipv6 = Mirage_impl_ip.ipv6
 
 let ipv4_qubes = Mirage_impl_ip.ipv4_qubes
 
+let ipv4v6 = Mirage_impl_ip.ipv4v6
+
 let create_ipv4 = Mirage_impl_ip.create_ipv4
 
 let create_ipv6 = Mirage_impl_ip.create_ipv6
+
+let create_ipv4v6 = Mirage_impl_ip.create_ipv4v6
 
 type ipv4_config = Mirage_impl_ip.ipv4_config = {
   network : Ipaddr.V4.Prefix.t;
@@ -177,13 +185,19 @@ type udpv4 = Mirage_impl_udp.udpv4
 
 type udpv6 = Mirage_impl_udp.udpv6
 
+type udpv4v6 = Mirage_impl_udp.udpv4v6
+
 let udpv4 = Mirage_impl_udp.udpv4
 
 let udpv6 = Mirage_impl_udp.udpv6
 
+let udpv4v6 = Mirage_impl_udp.udpv4v6
+
 let direct_udp = Mirage_impl_udp.direct_udp
 
 let socket_udpv4 = Mirage_impl_udp.socket_udpv4
+
+let socket_udpv6 = Mirage_impl_udp.socket_udpv6
 
 type 'a tcp = 'a Mirage_impl_tcp.tcp
 
@@ -193,13 +207,19 @@ type tcpv4 = Mirage_impl_tcp.tcpv4
 
 type tcpv6 = Mirage_impl_tcp.tcpv6
 
+type tcpv4v6 = Mirage_impl_tcp.tcpv4v6
+
 let tcpv4 = Mirage_impl_tcp.tcpv4
 
 let tcpv6 = Mirage_impl_tcp.tcpv6
 
+let tcpv4v6 = Mirage_impl_tcp.tcpv4v6
+
 let direct_tcp = Mirage_impl_tcp.direct_tcp
 
 let socket_tcpv4 = Mirage_impl_tcp.socket_tcpv4
+
+let socket_tcpv6 = Mirage_impl_tcp.socket_tcpv6
 
 type stackv4 = Mirage_impl_stackv4.stackv4
 
@@ -228,6 +248,16 @@ let static_ipv6_stack = Mirage_impl_stackv4.static_ipv6_stack
 let direct_stackv6 = Mirage_impl_stackv4.direct_stackv6
 
 let socket_stackv6 = Mirage_impl_stackv4.socket_stackv6
+
+type stackv4v6 = Mirage_impl_stackv4.stackv4v6
+
+let stackv4v6 = Mirage_impl_stackv4.stackv4v6
+
+let generic_stackv4v6 = Mirage_impl_stackv4.generic_stackv4v6
+
+let static_ipv4v6_stack = Mirage_impl_stackv4.static_ipv4v6_stack
+
+let direct_stackv4v6 = Mirage_impl_stackv4.direct_stackv4v6
 
 type conduit = Mirage_impl_conduit.conduit
 

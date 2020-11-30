@@ -13,17 +13,23 @@ type v4
 
 type v6
 
+type v4v6
+
 type 'a ip = IP
 
 type ipv4 = v4 ip
 
 type ipv6 = v6 ip
 
+type ipv4v6 = v4v6 ip
+
 let ip = Type.Type IP
 
 let ipv4 : ipv4 typ = ip
 
 let ipv6 : ipv6 typ = ip
+
+let ipv4v6 : ipv4v6 typ = ip
 
 type ipv4_config = {
   network : Ipaddr.V4.Prefix.t;
@@ -139,3 +145,14 @@ let create_ipv6 ?(random = default_random) ?(time = default_time)
   $ random
   $ time
   $ clock
+
+let ipv4v6_conf =
+  let packages_v = right_tcpip_library ~sublibs:[ "stack-direct" ] "tcpip" in
+  let connect _ modname = function
+    | [ ipv4; ipv6 ] -> Fmt.strf "%s.connect@[@ %s@ %s@]" modname ipv4 ipv6
+    | _ -> failwith (connect_err "ipv4v6" 2)
+  in
+  impl ~packages_v ~connect "Tcpip_stack_direct.IPV4V6"
+    (ipv4 @-> ipv6 @-> ipv4v6)
+
+let create_ipv4v6 ipv4 ipv6 = ipv4v6_conf $ ipv4 $ ipv6

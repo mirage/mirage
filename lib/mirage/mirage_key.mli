@@ -192,7 +192,7 @@ val resolver : ?default:Ipaddr.V4.t -> unit -> Ipaddr.V4.t key
 val resolver_port : ?default:int -> unit -> int key
 (** The port of the DNS resolver. *)
 
-val syslog : Ipaddr.V4.t option -> Ipaddr.V4.t option key
+val syslog : Ipaddr.t option -> Ipaddr.t option key
 (** The address to send syslog frames to. *)
 
 val syslog_port : int option -> int option key

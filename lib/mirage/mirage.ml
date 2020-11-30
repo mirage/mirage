@@ -290,7 +290,7 @@ let syslog_udp = Mirage_impl_syslog.syslog_udp
 
 type syslog_config = Mirage_impl_syslog.syslog_config = {
   hostname : string;
-  server : Ipaddr.V4.t option;
+  server : Ipaddr.t option;
   port : int option;
   truncate : int option;
 }

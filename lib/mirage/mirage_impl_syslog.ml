@@ -2,7 +2,7 @@ open Functoria
 open Mirage_impl_console
 open Mirage_impl_misc
 open Mirage_impl_pclock
-open Mirage_impl_stackv4
+open Mirage_impl_stack
 module Key = Mirage_key
 
 type syslog_config = {

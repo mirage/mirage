@@ -16,14 +16,14 @@ val syslog_udp :
   ?config:syslog_config ->
   ?console:Mirage_impl_console.console Functoria.impl ->
   ?clock:Mirage_impl_pclock.pclock Functoria.impl ->
-  Mirage_impl_stackv4.stackv4 Functoria.impl ->
+  Mirage_impl_stack.stackv4 Functoria.impl ->
   syslog Functoria.impl
 
 val syslog_tcp :
   ?config:syslog_config ->
   ?console:Mirage_impl_console.console Functoria.impl ->
   ?clock:Mirage_impl_pclock.pclock Functoria.impl ->
-  Mirage_impl_stackv4.stackv4 Functoria.impl ->
+  Mirage_impl_stack.stackv4 Functoria.impl ->
   syslog Functoria.impl
 
 val syslog_tls :
@@ -31,6 +31,6 @@ val syslog_tls :
   ?keyname:string ->
   ?console:Mirage_impl_console.console Functoria.impl ->
   ?clock:Mirage_impl_pclock.pclock Functoria.impl ->
-  Mirage_impl_stackv4.stackv4 Functoria.impl ->
+  Mirage_impl_stack.stackv4 Functoria.impl ->
   Mirage_impl_kv.ro Functoria.impl ->
   syslog Functoria.impl

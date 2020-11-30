@@ -13,7 +13,7 @@ val resolver_dns :
   ?time:time impl ->
   ?mclock:mclock impl ->
   ?random:random impl ->
-  Mirage_impl_stackv4.stackv4 impl ->
+  Mirage_impl_stack.stackv4 impl ->
   resolver impl
 
 val resolver_unix_system : resolver Functoria.impl

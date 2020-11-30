@@ -36,6 +36,8 @@ val socket_udpv4v6 :
   udpv4v6 Functoria.impl
 
 val udpv4v6_socket_conf :
+  ipv4_only:bool Mirage_key.key ->
+  ipv6_only:bool Mirage_key.key ->
   Ipaddr.V4.Prefix.t Mirage_key.key ->
   Ipaddr.V6.Prefix.t option Mirage_key.key ->
   udpv4v6 Functoria.impl

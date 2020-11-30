@@ -74,7 +74,7 @@ val ipv4_qubes :
   arpv4 impl ->
   ipv4 impl
 
-val create_ipv4v6 : ipv4 impl -> ipv6 impl -> ipv4v6 impl
+val create_ipv4v6 : ?group:string -> ipv4 impl -> ipv6 impl -> ipv4v6 impl
 
 val right_tcpip_library :
   ?libs:string list -> sublibs:string list -> string -> package list value

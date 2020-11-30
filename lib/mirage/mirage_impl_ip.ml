@@ -39,6 +39,8 @@ type ipv4_config = {
 
 let opt_opt_key s = Fmt.(option @@ prefix (unit ("?" ^^ s ^^ ":")) pp_key)
 
+let opt_key s = Fmt.(option @@ prefix (unit ("~" ^^ s ^^ ":")) pp_key)
+
 let opt_map f = function Some x -> Some (f x) | None -> None
 
 let ( @? ) x l = match x with Some s -> s :: l | None -> l
@@ -114,13 +116,14 @@ let ipv4_qubes ?(random = default_random) ?(clock = default_monotonic_clock) db
     ethernet arp =
   ipv4_qubes_conf $ db $ random $ clock $ ethernet $ arp
 
-let ipv6_conf ?ip ?gateway () =
+let ipv6_conf ?ip ?gateway ?handle_ra () =
   let packages_v = right_tcpip_library ~sublibs:[ "ipv6" ] "tcpip" in
-  let keys = ip @?? gateway @?? [] in
+  let keys = ip @?? gateway @?? handle_ra @?? [] in
   let connect _ modname = function
     | [ netif; etif; _random; _time; _clock ] ->
-        Fmt.strf "%s.connect@[@ %a@ %a@ %s@ %s@]" modname (opt_opt_key "cidr")
-          ip (opt_opt_key "gateway") gateway netif etif
+        Fmt.strf "%s.connect@[@ %a@ %a@ %a@ %s@ %s@]" modname
+          (opt_key "handle_ra") handle_ra (opt_opt_key "cidr") ip
+          (opt_opt_key "gateway") gateway netif etif
     | _ -> failwith (connect_err "ipv6" 5)
   in
   impl ~packages_v ~keys ~connect "Ipv6.Make"
@@ -133,17 +136,24 @@ let create_ipv6 ?(random = default_random) ?(time = default_time)
     | None -> (None, None)
     | Some { network; gateway } -> (Some network, gateway)
   in
-  let ip = Key.V6.network ?group network in
-  let gateway = Key.V6.gateway ?group gateway in
-  ipv6_conf ~ip ~gateway () $ netif $ etif $ random $ time $ clock
+  let ip = Key.V6.network ?group network
+  and gateway = Key.V6.gateway ?group gateway
+  and handle_ra = Key.V6.accept_router_advertisements ?group () in
+  ipv6_conf ~ip ~gateway ~handle_ra () $ netif $ etif $ random $ time $ clock
 
-let ipv4v6_conf =
+let ipv4v6_conf ?ipv4_only ?ipv6_only () =
   let packages_v = right_tcpip_library ~sublibs:[ "stack-direct" ] "tcpip" in
+  let keys = ipv4_only @?? ipv6_only @?? [] in
   let connect _ modname = function
-    | [ ipv4; ipv6 ] -> Fmt.strf "%s.connect@[@ %s@ %s@]" modname ipv4 ipv6
+    | [ ipv4; ipv6 ] ->
+        Fmt.strf "%s.connect@[@ %a@ %a@ %s@ %s@]" modname (opt_key "ipv4_only")
+          ipv4_only (opt_key "ipv6_only") ipv6_only ipv4 ipv6
     | _ -> failwith (connect_err "ipv4v6" 2)
   in
-  impl ~packages_v ~connect "Tcpip_stack_direct.IPV4V6"
+  impl ~packages_v ~keys ~connect "Tcpip_stack_direct.IPV4V6"
     (ipv4 @-> ipv6 @-> ipv4v6)
 
-let create_ipv4v6 ipv4 ipv6 = ipv4v6_conf $ ipv4 $ ipv6
+let create_ipv4v6 ?group ipv4 ipv6 =
+  let ipv4_only = Key.ipv4_only ?group ()
+  and ipv6_only = Key.ipv6_only ?group () in
+  ipv4v6_conf ~ipv4_only ~ipv6_only () $ ipv4 $ ipv6

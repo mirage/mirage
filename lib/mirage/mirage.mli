@@ -425,7 +425,7 @@ val create_ipv6 :
   ipv6 impl
 (** Use an IPv6 address. Exposes the keys {!Key.V6.network}, {!Key.V6.gateway}. *)
 
-val create_ipv4v6 : ipv4 impl -> ipv6 impl -> ipv4v6 impl
+val create_ipv4v6 : ?group:string -> ipv4 impl -> ipv6 impl -> ipv4v6 impl
 
 (** {2 UDP configuration} *)
 

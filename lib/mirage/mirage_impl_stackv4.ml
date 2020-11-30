@@ -239,11 +239,13 @@ let generic_ipv4v6_stack p ?group ?ipv6_config ?ipv4_config
 let socket_stackv4v6 ?(group = "") () =
   let v4key = Key.V4.network ~group Ipaddr.V4.Prefix.global in
   let v6key = Key.V6.network ~group None in
+  let ipv4_only = Key.ipv4_only ~group () in
+  let ipv6_only = Key.ipv6_only ~group () in
   let packages_v = right_tcpip_library ~sublibs:[ "stack-socket" ] "tcpip" in
   let extra_deps =
     [
-      dep (udpv4v6_socket_conf v4key v6key);
-      dep (tcpv4v6_socket_conf v4key v6key);
+      dep (udpv4v6_socket_conf ~ipv4_only ~ipv6_only v4key v6key);
+      dep (tcpv4v6_socket_conf ~ipv4_only ~ipv6_only v4key v6key);
     ]
   in
   let connect _i modname = function

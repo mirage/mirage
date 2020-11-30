@@ -38,6 +38,8 @@ val socket_tcpv4v6 :
   tcpv4v6 Functoria.impl
 
 val tcpv4v6_socket_conf :
+  ipv4_only:bool Mirage_key.key ->
+  ipv6_only:bool Mirage_key.key ->
   Ipaddr.V4.Prefix.t Mirage_key.key ->
   Ipaddr.V6.Prefix.t option Mirage_key.key ->
   tcpv4v6 Functoria.impl

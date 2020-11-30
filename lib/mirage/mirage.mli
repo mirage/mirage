@@ -493,6 +493,7 @@ val qubes_ipv4_stack :
 
 val dhcp_ipv4_stack :
   ?random:random impl ->
+  ?clock:mclock impl ->
   ?time:time impl ->
   ?arp:(ethernet impl -> arpv4 impl) ->
   network impl ->

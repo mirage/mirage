@@ -24,6 +24,7 @@ val qubes_ipv4_stack :
 
 val dhcp_ipv4_stack :
   ?random:Mirage_impl_random.random Functoria.impl ->
+  ?clock:Mirage_impl_mclock.mclock Functoria.impl ->
   ?time:Mirage_impl_time.time Functoria.impl ->
   ?arp:
     (Mirage_impl_ethernet.ethernet Functoria.impl ->

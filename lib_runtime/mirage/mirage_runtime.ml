@@ -59,7 +59,7 @@ module Arg = struct
   let of_module (type t) (module M : S with type t = t) =
     make M.of_string M.to_string
 
-  let ip = of_module (module Ipaddr)
+  let ip_address = of_module (module Ipaddr)
 
   let ipv4_address = of_module (module Ipaddr.V4)
 

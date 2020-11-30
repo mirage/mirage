@@ -54,6 +54,8 @@ module Arg = struct
   let ipv6_address = of_module "ipv6_address" "V6" (module Ipaddr.V6)
 
   let ipv6 = of_module "ipv6_prefix" "V6.Prefix" (module Ipaddr.V6.Prefix)
+
+  let ip_address = of_module "ip_address" "" (module Ipaddr)
 end
 
 (** {2 Documentation helper} *)

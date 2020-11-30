@@ -30,6 +30,8 @@ module Arg : sig
   val ipv6_address : Ipaddr.V6.t converter
 
   val ipv6 : Ipaddr.V6.Prefix.t converter
+
+  val ip_address : Ipaddr.t converter
 end
 
 include Functoria.KEY with module Arg := Arg

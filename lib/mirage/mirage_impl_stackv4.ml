@@ -78,7 +78,7 @@ let stackv4_socket_conf ips =
         Fmt.strf "%s.connect %a %s %s" modname pp_key ips udpv4 tcpv4
     | _ -> failwith (connect_err "socket stack" 2)
   in
-  impl ~keys ~packages_v ~extra_deps ~connect "Tcpip_stack_socket" stackv4
+  impl ~keys ~packages_v ~extra_deps ~connect "Tcpip_stack_socket.V4" stackv4
 
 let socket_stackv4 ?group ipv4s = stackv4_socket_conf (Key.V4.ips ?group ipv4s)
 

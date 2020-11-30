@@ -48,11 +48,10 @@ let direct_stackv4
   $ direct_udp ~random ip
   $ direct_tcp ~clock ~random ~time ip
 
-let dhcp_ipv4_stack ?group ?(random = default_random) ?(time = default_time) ?(arp = arp ?time:None) tap =
-  let config = dhcp random time tap in
+let dhcp_ipv4_stack ?group ?(random = default_random) ?(clock = default_monotonic_clock) ?(time = default_time) ?(arp = arp ?time:None) tap =
   let e = etif tap in
   let a = arp e in
-  let i = ipv4_of_dhcp config e a in
+  let i = ipv4_of_dhcp ~random ~clock ~time tap e a in
   direct_stackv4 ?group tap e a i
 
 let static_ipv4_stack ?group ?config ?(arp = arp ?time:None) tap =

@@ -59,39 +59,26 @@ let ipv4_keyed_conf ~ip ?gateway () = impl @@ object
       | _ -> failwith (connect_err "ipv4 keyed" 4)
   end
 
-let charrua_pkg =
-  Key.pure [ package ~min:"1.2.0" ~max:"2.0.0" "charrua-client-mirage" ]
-
-let dhcp_conf = impl @@ object
-    inherit base_configurable
-    method ty = random @-> time @-> network @-> Mirage_impl_dhcp.dhcp
-    method name = "dhcp_client"
-    method module_name = "Dhcp_client_mirage.Make"
-    method! packages = charrua_pkg
-    method! connect _ modname = function
-      | [ _random; _time; network ] -> Fmt.strf "%s.connect %s " modname network
-      | _ -> failwith (connect_err "dhcp" 3)
-  end
-
 let ipv4_dhcp_conf = impl @@ object
     inherit base_configurable
-    method ty = Mirage_impl_dhcp.dhcp @-> random @-> mclock @-> ethernet @-> arpv4 @-> ipv4
+    method ty = random @-> mclock @-> time @-> network @-> ethernet @-> arpv4 @-> ipv4
     method name = Name.create "dhcp_ipv4" ~prefix:"dhcp_ipv4"
     method module_name = "Dhcp_ipv4.Make"
-    method! packages = charrua_pkg
+    method! packages =
+      Key.pure [ package ~min:"1.3.0" ~max:"2.0.0" ~sublibs:["mirage"] "charrua-client" ]
     method! connect _ modname = function
-      | [ dhcp ; _random ; _mclock ; ethernet ; arp ] ->
+      | [ _random ; _mclock ; _time ; network ; ethernet ; arp ] ->
         Fmt.strf "%s.connect@[@ %s@ %s@ %s@]"
-          modname dhcp ethernet arp
+          modname network ethernet arp
       | _ -> failwith (connect_err "ipv4 dhcp" 5)
   end
 
-
-let dhcp random time net = dhcp_conf $ random $ time $ net
 let ipv4_of_dhcp
     ?(random = default_random)
-    ?(clock = default_monotonic_clock) dhcp ethif arp =
-  ipv4_dhcp_conf $ dhcp $ random $ clock $ ethif $ arp
+    ?(clock = default_monotonic_clock)
+    ?(time = default_time)
+    net ethif arp =
+  ipv4_dhcp_conf $ random $ clock $ time $ net $ ethif $ arp
 
 let create_ipv4 ?group ?config
     ?(random = default_random) ?(clock = default_monotonic_clock) etif arp =

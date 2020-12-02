@@ -49,26 +49,13 @@ module Arg = struct
 
   let ipv4_address = of_module "ipv4_address" "V4" (module Ipaddr.V4)
 
-  let ipv4 =
-    let serialize fmt cidr =
-      Format.fprintf fmt "(Ipaddr.V4.Prefix.of_string_exn %S)"
-      @@ Ipaddr.V4.Prefix.to_string cidr
-    in
-    let print fmt cidr =
-      Format.fprintf fmt "%s" @@ Ipaddr.V4.Prefix.to_string cidr
-    in
-    let parse str =
-      match Ipaddr.V4.Prefix.of_string str with
-      | Error (`Msg m) ->
-          `Error (str ^ " is not a valid IPv4 address and netmask: " ^ m)
-      | Ok n -> `Ok n
-    in
-    let runtime_conv = "Mirage_runtime.Arg.ipv4" in
-    Key.Arg.conv ~conv:(parse, print) ~serialize ~runtime_conv
+  let ipv4 = of_module "ipv4" "V4.Prefix" (module Ipaddr.V4.Prefix)
 
-  let ipv6 = of_module "ipv6" "V6" (module Ipaddr.V6)
+  let ipv6_address = of_module "ipv6_address" "V6" (module Ipaddr.V6)
 
-  let ipv6_prefix = of_module "ipv6_prefix" "V6.Prefix" (module Ipaddr.V6.Prefix)
+  let ipv6 = of_module "ipv6_prefix" "V6.Prefix" (module Ipaddr.V6.Prefix)
+
+  let ip_address = of_module "ip_address" "" (module Ipaddr)
 end
 
 (** {2 Documentation helper} *)
@@ -207,7 +194,7 @@ let tracing_size default =
 
 (** {2 OCaml runtime} *)
 
-let ocaml_section = "OCAML PARAMETERS"
+let ocaml_section = "OCAML RUNTIME PARAMETERS"
 
 let backtrace =
   let doc =
@@ -472,33 +459,33 @@ module V4 = struct
   let gateway ?group default =
     let doc = Fmt.strf "The gateway of %a." pp_group group in
     create_simple ~doc ~default ?group Arg.(some ipv4_address) "ipv4-gateway"
-
-  let socket ?group default =
-    let doc =
-      Fmt.strf "The IPv4 address bound by the socket in %a." pp_group group
-    in
-    create_simple ~doc ~default ?group Arg.(some ipv4_address) "socket"
-
-  let ips ?group default =
-    let doc =
-      Fmt.strf "The IPv4 addresses bound by the socket in %a." pp_group group
-    in
-    create_simple ~doc ~default ?group Arg.(list ipv4_address) "ips"
 end
 
 module V6 = struct
-  let ips ?group default =
-    let doc = Fmt.strf "The ip addresses of %a." pp_group group in
-    create_simple ~doc ~default ?group Arg.(list ipv6) "ips"
+  let network ?group default =
+    let doc =
+      Fmt.strf "The network of %a specified as IPv6 address and prefix length."
+        pp_group group
+    in
+    create_simple ~doc ~default ?group Arg.(some ipv6) "ipv6"
 
-  let netmasks ?group default =
-    let doc = Fmt.strf "The netmasks of %a." pp_group group in
-    create_simple ~doc ~default ?group Arg.(list ipv6_prefix) "netmasks"
+  let gateway ?group default =
+    let doc = Fmt.strf "The gateway of %a." pp_group group in
+    create_simple ~doc ~default ?group Arg.(some ipv6_address) "ipv6-gateway"
 
-  let gateways ?group default =
-    let doc = Fmt.strf "The gateways of %a." pp_group group in
-    create_simple ~doc ~default ?group Arg.(list ipv6) "gateways"
+  let accept_router_advertisements ?group () =
+    let doc = Fmt.strf "Accept router advertisements for %a." pp_group group in
+    create_simple ~doc ?group ~default:true Arg.bool
+      "accept-router-advertisements"
 end
+
+let ipv4_only ?group () =
+  let doc = Fmt.strf "Only use IPv4 for %a." pp_group group in
+  create_simple ~doc ?group ~default:false Arg.bool "ipv4-only"
+
+let ipv6_only ?group () =
+  let doc = Fmt.strf "Only use IPv6 for %a." pp_group group in
+  create_simple ~doc ?group ~default:false Arg.bool "ipv6-only"
 
 let resolver ?(default = Ipaddr.V4.of_string_exn "91.239.100.100") () =
   let doc = Fmt.strf "DNS resolver (default to anycast.censurfridns.dk)" in
@@ -510,7 +497,7 @@ let resolver_port ?(default = 53) () =
 
 let syslog default =
   let doc = Fmt.strf "syslog server" in
-  create_simple ~doc ~default Arg.(some ipv4_address) "syslog"
+  create_simple ~doc ~default Arg.(some ip_address) "syslog"
 
 let syslog_port default =
   let doc = Fmt.strf "syslog server port" in

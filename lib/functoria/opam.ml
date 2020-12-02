@@ -35,9 +35,9 @@ let find_git () =
       let git_branch =
         Bos.Cmd.(v "git" % "rev-parse" % "--abbrev-ref" % "HEAD")
       in
-      Action.(run_cmd_out git_branch) >>= fun branch ->
+      Action.(run_cmd_out ~err:`Null git_branch) >>= fun branch ->
       let git_remote = Bos.Cmd.(v "git" % "remote" % "get-url" % "origin") in
-      Action.(run_cmd_out git_remote) >|= fun git_url ->
+      Action.(run_cmd_out ~err:`Null git_remote) >|= fun git_url ->
       Some (subdir, branch, git_url)
 
 type t = {

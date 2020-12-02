@@ -20,7 +20,7 @@ QUERY OPTIONS
        --no-depext
            Disable call to `opam depext' in the project Makefile.
 
-OCAML PARAMETERS
+OCAML RUNTIME PARAMETERS
        --allocation-policy=ALLOCATION (absent=next-fit)
            The policy used for allocating in the OCaml heap. Possible values
            are: next-fit, first-fit, best-fit. Best-fit is only supported

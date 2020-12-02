@@ -27,9 +27,11 @@ module Arg : sig
 
   val ipv4 : Ipaddr.V4.Prefix.t converter
 
-  val ipv6 : Ipaddr.V6.t converter
+  val ipv6_address : Ipaddr.V6.t converter
 
-  val ipv6_prefix : Ipaddr.V6.Prefix.t converter
+  val ipv6 : Ipaddr.V6.Prefix.t converter
+
+  val ip_address : Ipaddr.t converter
 end
 
 include Functoria.KEY with module Arg := Arg
@@ -162,27 +164,27 @@ module V4 : sig
 
   val gateway : ?group:string -> t option -> t option key
   (** A default gateway option. *)
-
-  val socket : ?group:string -> t option -> t option key
-  (** An IPv4 address bound by a socket. Will be none if no address is provided. *)
-
-  val ips : ?group:string -> t list -> t list key
-  (** A list of IPv4 addresses bound by a socket. *)
 end
 
 (** Ipv6 keys. *)
 module V6 : sig
   open Ipaddr.V6
 
-  val ips : ?group:string -> t list -> t list key
-  (** An ip address. *)
+  val network : ?group:string -> Prefix.t option -> Prefix.t option key
+  (** A network defined by an address and netmask. *)
 
-  val netmasks : ?group:string -> Prefix.t list -> Prefix.t list key
-  (** A list of netmasks. *)
+  val gateway : ?group:string -> t option -> t option key
+  (** A default gateway option. *)
 
-  val gateways : ?group:string -> t list -> t list key
-  (** A list of gateways. *)
+  val accept_router_advertisements : ?group:string -> unit -> bool key
+  (** An option whether to accept router advertisements. *)
 end
+
+val ipv4_only : ?group:string -> unit -> bool key
+(** An option for dual stack to only use IPv4. *)
+
+val ipv6_only : ?group:string -> unit -> bool key
+(** An option for dual stack to only use IPv6. *)
 
 val resolver : ?default:Ipaddr.V4.t -> unit -> Ipaddr.V4.t key
 (** The address of the DNS resolver to use. *)
@@ -190,7 +192,7 @@ val resolver : ?default:Ipaddr.V4.t -> unit -> Ipaddr.V4.t key
 val resolver_port : ?default:int -> unit -> int key
 (** The port of the DNS resolver. *)
 
-val syslog : Ipaddr.V4.t option -> Ipaddr.V4.t option key
+val syslog : Ipaddr.t option -> Ipaddr.t option key
 (** The address to send syslog frames to. *)
 
 val syslog_port : int option -> int option key

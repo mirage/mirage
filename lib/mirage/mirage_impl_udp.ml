@@ -10,11 +10,15 @@ type udpv4 = v4 udp
 
 type udpv6 = v6 udp
 
+type udpv4v6 = v4v6 udp
+
 let udp = Type.Type UDP
 
 let udpv4 : udpv4 typ = udp
 
 let udpv6 : udpv6 typ = udp
+
+let udpv4v6 : udpv4v6 typ = udp
 
 (* Value restriction ... *)
 let udp_direct_func () =
@@ -38,4 +42,60 @@ let udpv4_socket_conf ipv4_key =
   let connect _ modname _ = Fmt.strf "%s.connect %a" modname pp_key ipv4_key in
   impl ~keys ~packages_v ~configure ~connect "Udpv4_socket" udpv4
 
-let socket_udpv4 ?group ip = udpv4_socket_conf @@ Key.V4.socket ?group ip
+let socket_udpv4 ?group ip =
+  let ip =
+    match ip with
+    | None -> Ipaddr.V4.Prefix.global
+    | Some ip -> Ipaddr.V4.Prefix.make 32 ip
+  in
+  udpv4_socket_conf @@ Key.V4.network ?group ip
+
+let udpv6_socket_conf ipv6_key =
+  let keys = [ Key.v ipv6_key ] in
+  let packages_v = right_tcpip_library ~sublibs:[ "udpv6-socket" ] "tcpip" in
+  let configure i =
+    match get_target i with
+    | `Unix | `MacOSX -> Action.ok ()
+    | _ -> Action.error "UDPv6 socket not supported on non-UNIX targets."
+  in
+  let connect _ modname _ = Fmt.strf "%s.connect %a" modname pp_key ipv6_key in
+  impl ~keys ~packages_v ~configure ~connect "Udpv6_socket" udpv6
+
+let socket_udpv6 ?group ip =
+  let ip =
+    match ip with
+    | None -> None
+    | Some ip -> Some (Ipaddr.V6.Prefix.make 128 ip)
+  in
+  udpv6_socket_conf @@ Key.V6.network ?group ip
+
+let udpv4v6_socket_conf ~ipv4_only ~ipv6_only ipv4_key ipv6_key =
+  let keys =
+    [ Key.v ipv4_only; Key.v ipv6_only; Key.v ipv4_key; Key.v ipv6_key ]
+  in
+  let packages_v = right_tcpip_library ~sublibs:[ "udpv4v6-socket" ] "tcpip" in
+  let configure i =
+    match get_target i with
+    | `Unix | `MacOSX -> Action.ok ()
+    | _ -> Action.error "UDPv4v6 socket not supported on non-UNIX targets."
+  in
+  let connect _ modname _ =
+    Fmt.strf "%s.connect ~ipv4_only:%a ~ipv6_only:%a %a %a" modname pp_key
+      ipv4_only pp_key ipv6_only pp_key ipv4_key pp_key ipv6_key
+  in
+  impl ~keys ~packages_v ~configure ~connect "Udpv4v6_socket" udpv4v6
+
+let socket_udpv4v6 ?group ipv4 ipv6 =
+  let ipv4 =
+    match ipv4 with
+    | None -> Ipaddr.V4.Prefix.global
+    | Some ip -> Ipaddr.V4.Prefix.make 32 ip
+  and ipv6 =
+    match ipv6 with
+    | None -> None
+    | Some ip -> Some (Ipaddr.V6.Prefix.make 128 ip)
+  and ipv4_only = Key.ipv4_only ?group ()
+  and ipv6_only = Key.ipv6_only ?group () in
+  udpv4v6_socket_conf ~ipv4_only ~ipv6_only
+    (Key.V4.network ?group ipv4)
+    (Key.V6.network ?group ipv6)

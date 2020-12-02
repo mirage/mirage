@@ -3,11 +3,11 @@ open Functoria
 open Mirage_impl_console
 open Mirage_impl_misc
 open Mirage_impl_pclock
-open Mirage_impl_stackv4
+open Mirage_impl_stack
 
 type syslog_config = {
   hostname : string;
-  server   : Ipaddr.V4.t option;
+  server   : Ipaddr.t option;
   port     : int option;
   truncate : int option;
 }
@@ -32,7 +32,7 @@ let opt_int = opt Fmt.int
 let opt_string = opt (fun pp v -> Format.fprintf pp "%S" v)
 
 let pkg sublibs =
-  Key.pure [ package ~min:"0.2.2" ~max:"0.3.0" ~sublibs "logs-syslog" ]
+  Key.pure [ package ~min:"0.3.0" ~max:"0.4.0" ~sublibs "logs-syslog" ]
 
 let syslog_udp_conf config =
   let endpoint = Key.syslog config.server
@@ -41,7 +41,7 @@ let syslog_udp_conf config =
   in
   impl @@ object
     inherit base_configurable
-    method ty = console @-> pclock @-> stackv4 @-> syslog
+    method ty = console @-> pclock @-> stackv4v6 @-> syslog
     method name = "udp_syslog"
     method module_name = "Logs_syslog_mirage.Udp"
     method! packages = pkg ["mirage"]
@@ -78,7 +78,7 @@ let syslog_tcp_conf config =
   in
   impl @@ object
     inherit base_configurable
-    method ty = console @-> pclock @-> stackv4 @-> syslog
+    method ty = console @-> pclock @-> stackv4v6 @-> syslog
     method name = "tcp_syslog"
     method module_name = "Logs_syslog_mirage.Tcp"
     method! packages = pkg ["mirage"]
@@ -113,7 +113,7 @@ let syslog_tls_conf ?keyname config =
   in
   impl @@ object
     inherit base_configurable
-    method ty = console @-> pclock @-> stackv4 @-> Mirage_impl_kv.ro @-> syslog
+    method ty = console @-> pclock @-> stackv4v6 @-> Mirage_impl_kv.ro @-> syslog
     method name = "tls_syslog"
     method module_name = "Logs_syslog_mirage_tls.Tls"
     method! packages = pkg ["mirage" ; "mirage.tls"]

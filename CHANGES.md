@@ -1,3 +1,8 @@
+### v3.10.1 (2020-12-04)
+
+* Fix serialising of Mirage_key.Arg.ip_address: remove superfluous '.'
+  character (#1205 @hannesm)
+
 ### v3.10.0 (2020-12-02)
 
 IPv6 and dual (IPv4 and IPv6) stack support #1187

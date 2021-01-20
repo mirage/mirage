@@ -54,8 +54,22 @@ let pkg_config pkgs args =
   in
   Bos.OS.Env.set_var var (Some value) >>= fun () ->
   let cmd = Bos.Cmd.(v "pkg-config" % pkgs %% of_list args) in
-  Bos.OS.Cmd.(run_out cmd |> out_string |> success) >>| fun data ->
-  String.cuts ~sep:" " ~empty:false data
+  Bos.OS.Cmd.(run_out cmd |> out_string |> success)
+
+(* Invoke solo5-config for target and return output if successful. *)
+let solo5_config target args =
+  let target_string = match target with
+    | `Virtio -> "--target=virtio"
+    | `Muen -> "--target=muen"
+    | `Hvt -> "--target=hvt"
+    | `Genode -> "--target=genode"
+    | `Spt -> "--target=spt"
+    | `Xen | `Qubes -> "--target=xen"
+    | _ ->
+      invalid_arg "solo5_config only defined for solo5 targets"
+  in
+  let cmd = Bos.Cmd.(v "solo5-config" % target_string %% of_list args) in
+  Bos.OS.Cmd.(run_out cmd |> out_string |> success)
 
 (* Implement something similar to the @name/file extended names of findlib. *)
 let rec expand_name ~lib param =

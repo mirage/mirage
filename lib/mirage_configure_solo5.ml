@@ -73,14 +73,20 @@ let solo5_platform_pkg = function
   | _ ->
     invalid_arg "solo5 platform package only defined for solo5 targets"
 
-let cflags pkg = pkg_config pkg ["--cflags"]
+let cc target =
+  solo5_config target ["--cc"] >>= fun s ->
+  Rresult.R.open_error_msg (Bos.Cmd.of_string s)
+
+let cflags target =
+  solo5_config target ["--cflags"] >>= fun s ->
+  Rresult.R.open_error_msg (Bos.Cmd.of_string s)
 
 let compile_manifest target =
-  let bindings = solo5_bindings_pkg target in
   let c = "_build/manifest.c" in
   let obj = "_build/manifest.o" in
-  cflags bindings >>= fun cflags ->
-  let cmd = Bos.Cmd.(v "cc" %% of_list cflags % "-c" % c % "-o" % obj)
+  cc target >>= fun cc ->
+  cflags target >>= fun cflags ->
+  let cmd = Bos.Cmd.(cc %% cflags % "-c" % c % "-o" % obj)
   in
   Log.info (fun m -> m "executing %a" Bos.Cmd.pp cmd);
   Bos.OS.Cmd.run cmd

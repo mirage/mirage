@@ -13,7 +13,7 @@ let pp_level ppf = function
   | Logs.Debug    -> Fmt.string ppf "Logs.Debug"
   | Logs.App      -> Fmt.string ppf "Logs.App"
 
-let mirage_log ?ring_size ~default =
+let mirage_log ?ring_size default =
   let logs = Key.logs in
   impl @@ object
     inherit base_configurable
@@ -42,7 +42,7 @@ let mirage_log ?ring_size ~default =
 
 let default_reporter
     ?(clock=default_posix_clock) ?ring_size ?(level=Logs.Info) () =
-  mirage_log ?ring_size ~default:level $ clock
+  mirage_log ?ring_size level $ clock
 
 let no_reporter = impl @@ object
     inherit base_configurable

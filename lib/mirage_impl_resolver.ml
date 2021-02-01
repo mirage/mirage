@@ -17,7 +17,7 @@ let resolver_unix_system = impl @@ object
     method module_name = "Resolver_lwt"
     method! packages =
       Key.(if_ is_unix)
-        [ Mirage_impl_conduit_connector.pkg ;
+        [ Mirage_impl_conduit.pkg ;
           package ~min:"2.0.2" ~max:"3.0.0" "conduit-lwt-unix"; ]
         []
     method! configure i =
@@ -31,16 +31,16 @@ let resolver_dns_conf ~ns ~ns_port = impl @@ object
     inherit base_configurable
     method ty = random @-> time @-> mclock @-> stackv4 @-> resolver
     method name = "resolver"
-    method module_name = "Resolver_mirage.Make_with_stack"
+    method module_name = "Resolver_mirage.Make"
     method! packages =
-      Key.pure [ Mirage_impl_conduit_connector.pkg ]
+      Key.pure [ Mirage_impl_conduit.pkg ]
     method! keys = [ Key.abstract ns ; Key.abstract ns_port ]
     method! connect _ modname = function
       | [ _r ; _t ; _m ; stack ] ->
         Fmt.strf
           "let ns = %a in@;\
            let ns_port = %a in@;\
-           let res = %s.R.init ~ns ~ns_port ~stack:%s () in@;\
+           let res = %s.v ~ns ~ns_port %s in@;\
            Lwt.return res@;"
           pp_key ns pp_key ns_port modname stack
       | _ -> failwith (connect_err "resolver" 3)

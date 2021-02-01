@@ -195,6 +195,10 @@ let http_server = Mirage_impl_http.cohttp_server
 let cohttp_server = Mirage_impl_http.cohttp_server
 let httpaf_server = Mirage_impl_http.httpaf_server
 
+type http_client = Mirage_impl_http.http_client
+let http_client = Mirage_impl_http.http_client
+let cohttp_client = Mirage_impl_http.cohttp_client
+
 let default_argv = Mirage_impl_argv.default_argv
 let no_argv = Mirage_impl_argv.no_argv
 

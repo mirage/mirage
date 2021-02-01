@@ -567,7 +567,8 @@ val nocrypto: job impl
 
 type conduit
 val conduit: conduit typ
-val conduit_direct: ?tls:bool -> stackv4 impl -> conduit impl
+val conduit_direct:
+  ?tls:bool -> ?random:random impl -> stackv4 impl -> conduit impl
 
 (** {2 HTTP configuration} *)
 
@@ -582,6 +583,13 @@ val cohttp_server: conduit impl -> http impl
 
 val httpaf_server: conduit impl -> http impl
 (** [httpaf_server] starts a http/af server. *)
+
+type http_client
+val http_client: http_client typ
+
+val cohttp_client:
+  ?pclock:pclock impl -> resolver impl -> conduit impl -> http_client impl
+(** [cohttp_server] starts a Cohttp server. *)
 
 (** {2 Argv configuration} *)
 

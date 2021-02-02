@@ -30,18 +30,18 @@ let impl_name x = apply Graph.impl_name x
 
 let id () = Scanf.sscanf (var_name zero) "z__%d" (fun i -> i)
 
-let ident s i x = Fmt.strf "%s__%d" s (i + x)
+let ident s i = Fmt.strf "%s__%d" s i
 
 let test_var_name () =
   let id = id () in
-  Alcotest.(check string) "x" (ident "foo_bar" id 1) (var_name x);
-  Alcotest.(check string) "y" (ident "x_y" id 2) (var_name y);
-  Alcotest.(check string) "z" (ident "bar" id 3) (var_name z)
+  Alcotest.(check string) "x" (ident "foo_bar" id) (var_name x);
+  Alcotest.(check string) "y" (ident "x_y" id) (var_name y);
+  Alcotest.(check string) "z" (ident "bar" id) (var_name z)
 
 let test_impl_name () =
   let id = id () in
   Alcotest.(check string) "x" "Foo.Bar" (impl_name x);
-  Alcotest.(check string) "y" (ident "X_y" id 2) (impl_name y);
+  Alcotest.(check string) "y" (ident "X_y" id) (impl_name y);
   Alcotest.(check string) "z" "Bar" (impl_name z)
 
 let d1 = Device.v ~packages:[ package "a" ] "Foo.Bar" job

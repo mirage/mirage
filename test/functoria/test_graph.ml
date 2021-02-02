@@ -14,7 +14,7 @@ let apply f d =
   let g = Option.get @@ Graph.dtree g in
   let v =
     let f x l = match x with
-      | { Graph. dev = D d ; _ } when Device.id d = id ->
+      | Graph.D { dev; _ } when Device.id dev = id ->
         f x :: l
       | _ -> l
     in 

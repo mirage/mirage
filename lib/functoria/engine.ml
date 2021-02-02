@@ -89,8 +89,8 @@ let find_all_devices info g i =
   let ctx = Info.context info in
   let id = Impl.with_left_most_device ctx i { f = Device.id } in
   let f x l =
-    let {Device_graph. dev = D d ; _ } = x in
-    if Device.id d = id then x :: l else l
+    let Device_graph.D { dev ; _ } = x in
+    if Device.id dev = id then x :: l else l
   in
   Device_graph.fold_dtree f g []
 
@@ -99,7 +99,7 @@ let iter_actions f t =
   Device_graph.fold_dtree f t (Action.ok ())
 
 let build info t =
-  let f {Device_graph.dev = D c ; _ } = Device.build c info in
+  let f (Device_graph.D {dev; _ }) = Device.build dev info in
   iter_actions f t
 
 let append_main i msg fmt =
@@ -113,12 +113,12 @@ let append_main i msg fmt =
 
 let configure info t =
   let f (v : Device_graph.dtree) =
-    let { dev = D c; args; _} = v in
-    Device.configure c info >>= fun () ->
+    let D { dev; args; _} = v in
+    Device.configure dev info >>= fun () ->
     if args = [] then Action.ok ()
     else
       append_main info "configure" "@[<2>module %s =@ %a@]@."
-        (Device_graph.impl_name v) module_expression (c, args)
+        (Device_graph.impl_name v) module_expression (dev, args)
   in
   iter_actions f t
 
@@ -146,12 +146,12 @@ let emit_run info init main =
 
 let connect ?(init = []) info t =
   let f (v : Device_graph.dtree) =
-    let { dev = D c; args; deps; _} = v in
+    let D { dev; args; deps; _} = v in
     let var_name = Device_graph.var_name v in
     let impl_name = Device_graph.impl_name v in
     let arg_names = List.map Device_graph.var_name (args @ deps) in
     append_main info "connect" "%a" emit_connect
-      (var_name, arg_names, Device.connect c info impl_name)
+      (var_name, arg_names, Device.connect dev info impl_name)
   in
   iter_actions f t >>= fun () ->
   let main_name = Device_graph.var_name t in
@@ -168,7 +168,7 @@ let connect ?(init = []) info t =
 
 let clean i t =
   let f (v : Device_graph.dtree) =
-    let { dev = D c; _} = v in
-    Device.clean c i
+    let D { dev; _} = v in
+    Device.clean dev i
   in
   iter_actions f t

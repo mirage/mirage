@@ -90,8 +90,6 @@ module M = struct
 end
 include M
 
-type label = If of If.path Key.value | Dev : 'a device -> label | App
-
 let mk_dev (type a) ~args ~deps (dev : a device) : t =
   Dev {dev; args; deps}
 
@@ -186,12 +184,6 @@ let eval_if ~partial ~context t =
 let eval ?(partial = false) ~context t =
   normalize @@ eval_if ~partial ~context t
 
-let rec is_fully_reduced (t : t) = match t with
-  | Dev { args; deps; _ } ->
-    List.for_all is_fully_reduced args &&
-    List.for_all is_fully_reduced deps
-  | If _ -> false | App _ -> false
-
 let nice_name d =
   Device.module_name d
   |> String.cuts ~sep:"."
@@ -201,12 +193,7 @@ let nice_name d =
 
 (* {2 Destruction/extraction} *)
 
-type a_device = D : 'a device -> a_device
-
-let explode : t -> _ = function
-  | Dev {dev; args; deps} -> `Dev (D dev, `Args args, `Deps deps)
-  | If {cond; branches} -> `If (cond, branches)
-  | App {f; args} -> `App (f, args)
+type label = If : 'i value -> label | Dev : 'a device -> label | App
 
 let collect
   : type ty. (module Misc.Monoid with type t = ty) -> (label -> ty) -> t -> ty
@@ -221,21 +208,12 @@ let collect
     in
     map ~mk_switch ~mk_app ~mk_dev t
 
-let devices t =
-  let r = ref [] in
-  let mk_app ~f:_ ~args:_ = ()
-  and mk_dev = { f = fun ~id:_ ~args:_ ~deps:_ dev -> r := D dev :: !r }
-  and mk_switch ~cond:_ _ = ()
-  in
-  map ~mk_switch ~mk_app ~mk_dev t;
-  !r
-
-type dtree = {
-  dev : a_device ;
+type dtree = D : {
+  dev : 'a device ;
   args : dtree list ;
   deps : dtree list ;
   id : int ;
-}
+} -> dtree
 
 exception Not_reduced
 
@@ -243,7 +221,7 @@ let dtree t =
   let mk_app ~f:_ ~args:_ = raise Not_reduced
   and mk_switch ~cond:_ _ = raise Not_reduced
   and mk_dev = { f = fun ~id ~args ~deps dev ->
-      { dev = D dev; args; deps; id}
+      D { dev; args; deps; id}
     }
   in
   try Some (map ~mk_switch ~mk_app ~mk_dev t)
@@ -251,8 +229,8 @@ let dtree t =
 
 module IdTbl = Hashtbl.Make(struct
     type t = dtree
-    let hash t = t.id
-    let equal t1 t2 = Int.equal t1.id t2.id
+    let hash (D t) = t.id
+    let equal (D t1) (D t2) = Int.equal t1.id t2.id
   end)
 
 (* We iter in *reversed* topological order. *)
@@ -262,7 +240,7 @@ let fold_dtree f t z =
   let rec aux v =
     if IdTbl.mem tbl v then ()
     else
-      let { args; deps; _} = v in
+      let D { args; deps; _} = v in
       IdTbl.add tbl v ();
       List.iter aux @@ List.rev deps;
       List.iter aux @@ List.rev args;
@@ -271,14 +249,14 @@ let fold_dtree f t z =
   aux t;
   !state
 
-let impl_name { dev = D dev; args = _; deps = _ ; id } =
+let impl_name (D { dev; args = _; deps = _ ; id }) =
   match Type.is_functor (Device.module_type dev) with
   | false -> Device.module_name dev
   | true ->
     let prefix = String.Ascii.capitalize (nice_name dev) in
     Fmt.strf "%s__%d" prefix id
 
-let var_name { dev = D dev; args = _; deps = _ ; id} =
+let var_name (D { dev; args = _; deps = _ ; id}) =
   let prefix = nice_name dev in
   Fmt.strf "%s__%i" prefix id
 

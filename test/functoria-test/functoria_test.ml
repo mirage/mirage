@@ -21,6 +21,7 @@ let run ?(keys = []) ?init context device =
     Functoria.Info.v ~packages ~context ~keys ~build_cmd:[ "build"; "me" ]
       ~src:`None "foo"
   in
+  let t = Option.get @@ Graph.dtree t in
   prelude info >>= fun () ->
   Engine.configure info t >>= fun () ->
   Engine.connect ?init info t >>= fun () -> Engine.build info t

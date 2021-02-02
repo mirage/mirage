@@ -68,7 +68,7 @@ module Config = struct
 
   let keys t = t.keys
 
-  let gen_pp pp fmt jobs = pp fmt @@ Device_graph.simplify jobs
+  let gen_pp pp fmt jobs = pp fmt @@ Device_graph.normalize jobs
 
   let pp = gen_pp Device_graph.pp
 
@@ -144,6 +144,7 @@ module Make (P : S) = struct
     with_fmt f
 
   let configure_main i (init, jobs) =
+    let jobs = Option.get @@ Device_graph.dtree jobs in (* TODO Error reporting *)
     let main = Info.main i in
     let purpose = Fmt.strf "configure: create %a" Fpath.pp main in
     Log.info (fun m -> m "Generating: %a (main file)" Fpath.pp main);
@@ -173,6 +174,7 @@ module Make (P : S) = struct
 
   let build args =
     let (_, jobs), i = args.Cli.context in
+    let jobs = Option.get @@ Device_graph.dtree jobs in (* TODO Error reporting *)
     Log.info (fun m -> m "Building: %a" Fpath.pp args.Cli.config_file);
     Action.with_dir (build_dir args) (fun () -> Engine.build i jobs)
 
@@ -198,6 +200,7 @@ module Make (P : S) = struct
 
   let clean args =
     let (_, jobs), i = args.Cli.context in
+    let jobs = Option.get @@ Device_graph.dtree jobs in (* TODO Error reporting *)
     Log.info (fun m -> m "Cleaning: %a" Fpath.pp args.Cli.config_file);
     Action.with_dir (build_dir args) (fun () ->
         clean_main i jobs >>= fun () ->

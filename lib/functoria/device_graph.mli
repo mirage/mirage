@@ -22,9 +22,7 @@ open DSL
 
 type t
 
-type vertex
-
-val pp_vertex : vertex Fmt.t
+(* val pp_vertex : vertex Fmt.t *)
 
 module If : sig
   type path
@@ -33,7 +31,7 @@ end
 (** The description of a vertex *)
 type label = If of If.path value | Dev : 'a device -> label | App
 
-module Tbl : Hashtbl.S with type key = vertex
+module Tbl : Hashtbl.S with type key = t
 
 val create : _ impl -> t
 (** [create impl] creates a graph based [impl]. *)
@@ -41,8 +39,8 @@ val create : _ impl -> t
 val normalize : t -> t
 (** [normalize g] normalize the graph [g] by removing the [App] vertices. *)
 
-val simplify : t -> t
-(** [simplify g] simplifies the graph so that it's easier to read for humans. *)
+(* val simplify : t -> t
+ * (\** [simplify g] simplifies the graph so that it's easier to read for humans. *\) *)
 
 val eval : ?partial:bool -> context:context -> t -> t
 (** [eval ~keys g] will removes all the [If] vertices by resolving the keys
@@ -54,29 +52,34 @@ val eval : ?partial:bool -> context:context -> t -> t
 val is_fully_reduced : t -> bool
 (** [is_fully_reduced g] is true if [g] contains only [Dev] vertices. *)
 
-val fold : (vertex -> 'a -> 'a) -> t -> 'a -> 'a
-(** [fold f g z] applies [f] on each vertex of [g] in topological order. *)
-
-val find_all : t -> (label -> bool) -> vertex list
-(** [find_all g p] returns all the vertices in [g] such as [p v] is true. *)
-
-val find_root : t -> vertex
-(** [find_root g] returns the only vertex of [g] that has no predecessors. *)
+(* val find_all : t -> (label -> bool) -> vertex list
+ * (\** [find_all g p] returns all the vertices in [g] such as [p v] is true. *\) *)
 
 type a_device = D : 'a device -> a_device
 
-val device : vertex -> a_device option
+val devices : t -> a_device list
 
-val var_name : vertex -> string
+type dtree = {
+  dev : a_device ;
+  args : dtree list ;
+  deps : dtree list ;
+  id : int ;
+}
 
-val impl_name : vertex -> string
+val dtree : t -> dtree option
+
+val fold_dtree : (dtree -> 'a -> 'a) -> dtree -> 'a -> 'a
+(** [fold_dtree f g z] applies [f] on each device in topological order. *)
+
+val var_name : dtree -> string
+
+val impl_name : dtree -> string
 
 val explode :
   t ->
-  vertex ->
-  [ `App of vertex * vertex list
-  | `If of If.path value * (If.path * vertex) list
-  | `Dev of a_device * [> `Args of vertex list ] * [> `Deps of vertex list ] ]
+  [ `App of t * t list
+  | `If of If.path value * (If.path * t) list
+  | `Dev of a_device * [> `Args of t list ] * [> `Deps of t list ] ]
 (** [explode g v] deconstructs the vertex [v] in the graph [g] into it's
     possible components. It also checks that the local invariants are respected. *)
 
@@ -85,7 +88,7 @@ val collect :
 (** [collect (module M) f g] collects the content of [f v] for each vertex [v]
     in [g]. *)
 
-val hash : vertex -> int
+val hash : t -> int
 
 val pp : t Fmt.t
 (** Textual representation of the graph. *)

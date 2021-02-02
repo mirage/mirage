@@ -11,14 +11,18 @@ let z = Device.v "Bar" job
 let apply f d =
   let id = Device.id d in
   let g = Graph.create (of_device d) in
+  let g = Option.get @@ Graph.dtree g in
   let v =
-    match
-      Graph.find_all g (function Graph.Dev d -> Device.id d = id | _ -> false)
-    with
+    let f x l = match x with
+      | { Graph. dev = D d ; _ } when Device.id d = id ->
+        f x :: l
+      | _ -> l
+    in 
+    match Graph.fold_dtree f g [] with
     | [ x ] -> x
     | _ -> assert false
   in
-  f v
+  v
 
 let var_name x = apply Graph.var_name x
 

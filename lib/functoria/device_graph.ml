@@ -25,17 +25,7 @@
 *)
 
 open Astring
-open Graph
 open DSL
-
-(* {2 Utility} *)
-
-let fold_lefti f l z =
-  fst @@ List.fold_left (fun (s, i) x -> (f i x s, i + 1)) (z, 0) l
-
-(* Check if [l] is an increasing sequence from [O] to [len-1]. *)
-let is_sequence l =
-  snd @@ List.fold_left (fun (i, b) (j, _) -> (i + 1, b && i = j)) (0, true) l
 
 (* {2 Graph} *)
 
@@ -56,37 +46,151 @@ module If = struct
   let reduce f ~path ~add : path Key.value = Key.(pure (fuse path) $ f $ add)
 end
 
+module M = struct
+
+  type t =
+    | If : {
+        cond : If.path Key.value ;
+        branches : (If.path * t) list ;
+      } -> t
+    | Dev : {
+        dev : 'a device;
+        args : t list ;
+        deps : t list ;
+      } -> t
+    | App : {
+        f : t ;
+        args : t list ;
+      } -> t
+
+  let rec hash : t -> int = function
+    | Dev { dev; args; deps } ->
+      Hashtbl.hash (Device.hash dev, List.map hash args, List.map hash deps)
+    | App { f; args } -> Hashtbl.hash (hash f, List.map hash args)
+    | If {cond; branches} ->
+      Hashtbl.hash
+        (cond, List.map (fun (p,t) -> Hashtbl.hash (p, hash t)) branches)
+
+  let rec equal : t -> t -> bool =
+    fun x y ->
+    match x, y with
+    | Dev c, Dev c' ->
+      Device.equal c.dev c'.dev &&
+      List.for_all2 equal c.args c'.args &&
+      List.for_all2 equal c.deps c'.deps
+    | App a, App b -> equal a.f b.f && List.for_all2 equal a.args b.args
+    | If x1, If x2 ->
+      (* Key.value is a functional value (it contains a closure for eval).
+         There is no prettier way than physical equality. *)
+      x1.cond == x2.cond &&
+      List.for_all2 (fun (p1,t1) (p2,t2) -> p1 = p2 && equal t1 t2)
+        x1.branches x2.branches
+    | _ -> false
+
+end
+include M
+
 type label = If of If.path Key.value | Dev : 'a device -> label | App
 
-type edge_label =
-  | Parameter of int
-  | Dependency of int
-  | Condition of If.path
-  | Functor
+let mk_dev (type a) ~args ~deps (dev : a device) : t =
+  Dev {dev; args; deps}
 
-module V_ = struct
-  type t = label
-end
+let mk_switch ~cond branches : t =
+  If {cond; branches}
 
-module E_ = struct
-  type t = edge_label
+let mk_if ~cond ~else_ ~then_ : t =
+  mk_switch ~cond:(Key.map If.dir cond)
+    [ If.(singleton Else), else_; If.(singleton Then), then_ ]
 
-  let default = Parameter 0
+let mk_app ~f ~args : t =
+  App {f ; args}
 
-  let compare = compare
-end
+let create impl : t =
+  let dev = { Impl.f = (fun d ~deps -> mk_dev ~args:[] ~deps d) } in
+  let if_ ~cond ~then_ ~else_ = mk_if ~cond ~then_ ~else_ in
+  let app ~f ~x = mk_app ~f ~args:[ x ] in
+  Impl.map ~dev ~if_ ~app impl
 
-module G = Persistent.Digraph.AbstractLabeled (V_) (E_)
-module Tbl = Hashtbl.Make (G.V)
+module Tbl = Hashtbl.Make (M)
 
-let pp_device ppf t = Device.pp Impl.pp_abstract ppf t
 
-let pp_label ppf = function
-  | If _ -> Fmt.string ppf "if"
-  | App -> Fmt.string ppf "app"
-  | Dev d -> Fmt.pf ppf "dev %a" pp_device d
+type 'b f_dev =
+  { f : 'a. id:int -> args:'b list -> deps:'b list -> 'a device -> 'b }
+let mk_dev' = { f = fun ~id:_ -> mk_dev }
 
-let pp_vertex ppf v = Fmt.pf ppf "%d:%a" (G.V.hash v) pp_label (G.V.label v)
+let map (type r) ~mk_switch ~mk_app ~mk_dev t =
+  let tbl = Tbl.create 50 in
+  let rec aux : t -> r =
+   fun impl ->
+    if Tbl.mem tbl impl then Tbl.find tbl impl
+    else
+      let acc =
+        match impl with
+        | Dev { dev; args; deps } ->
+            let deps = List.map aux deps in
+            let args = List.map aux args in
+            mk_dev.f dev ~deps ~args ~id:(M.hash impl)
+        | App { f; args } ->
+          let args = List.map aux args in
+          let f = aux f in
+          mk_app ~f ~args
+        | If {cond ; branches } ->
+          let branches = List.map (fun (p,t) -> (p, aux t)) branches in
+          mk_switch ~cond branches
+      in
+      Tbl.add tbl impl acc;
+      acc
+  in
+  aux t
+
+
+let set_equal l1 l2 = Key.Set.equal (Key.deps l1) (Key.deps l2)
+let normalize t =
+  let rec apply_app ~(f : t) ~args:args1 = 
+    match f with
+    | Dev {dev; args = args2; deps} ->
+      mk_dev ~args:(args2 @ args1) ~deps dev
+    | App {f; args = args2} ->
+      apply_app ~f ~args:(args2 @ args1)
+    | _ ->
+      mk_app ~f ~args:args1
+  in
+  let reduce_if ~cond branches =
+    let f (new_cond, new_l) (path, (t : t)) =
+      match t with
+      | If c when set_equal cond c.cond ->
+        let new_cond = If.reduce cond ~path ~add:c.cond in
+        let new_branches =
+          List.map (fun (p, v) -> (If.append path p, v)) c.branches @ new_l
+        in
+        new_cond, new_branches
+      | _ ->
+        new_cond, (path, t) :: new_l
+    in
+    let cond, branches = List.fold_left f (cond, []) branches in
+    mk_switch ~cond branches
+  in
+  map ~mk_app:apply_app ~mk_switch:reduce_if ~mk_dev:mk_dev' t
+
+let eval_if ~partial ~context t =
+  let eval_if ~cond branches =
+    if not partial || Key.mem context cond then
+      let path = Key.eval context cond in
+      let t = List.assoc path branches in
+      t
+    else
+      mk_switch ~cond branches
+  in
+  map ~mk_app ~mk_switch:eval_if ~mk_dev:mk_dev' t
+
+let eval ?(partial = false) ~context t =
+  normalize @@ eval_if ~partial ~context t
+
+let rec is_fully_reduced (t : t) = match t with
+  | Dev { args; deps; _ } ->
+    List.for_all is_fully_reduced args &&
+    List.for_all is_fully_reduced deps
+  | If _ -> false | App _ -> false
 
 let nice_name d =
   Device.module_name d
@@ -95,357 +199,136 @@ let nice_name d =
   |> String.Ascii.lowercase
   |> Misc.Name.ocamlify
 
-let impl_name v =
-  match G.V.label v with
-  | If _ | App -> assert false
-  | Dev d -> (
-      match Type.is_functor (Device.module_type d) with
-      | false -> Device.module_name d
-      | true ->
-          let id = G.V.hash v in
-          let prefix = String.Ascii.capitalize (nice_name d) in
-          Fmt.strf "%s__%d" prefix id )
-
-let var_name v =
-  match G.V.label v with
-  | If _ | App -> assert false
-  | Dev d ->
-      let id = G.V.hash v in
-      let prefix = nice_name d in
-      Fmt.strf "%s__%i" prefix id
-
-type t = G.t
-
-type vertex = G.V.t
-
-module Dfs = Traverse.Dfs (G)
-module Topo = Topological.Make (G)
-
-(* The invariants of graphs manipulated here are:
-
-    - [If] vertices have exactly [n] [Condition] children.
-
-    - [Impl] vertices have [n] [Parameter] children and [m]
-      [Dependency] children. [Parameter] (resp. [Dependency]) children
-      are labeled from [0] to [n-1] (resp. [m-1]).  They do not have
-      [Condition] nor [Functor] children.
-
-    - [App] vertices have one [Functor] child and [n] [Parameter]
-      children (with [n >= 1]) following the [Impl] convention. They
-      have neither [Condition] nor [Dependency] children.
-
-    - There are no cycles.
-
-    - There is only one root (vertex with a degree 1). There are no orphans.
-
-*)
-
-(* {3 Graph utilities} *)
-
-let hash = G.V.hash
-
-let add_edge e1 label e2 graph = G.add_edge_e graph @@ G.E.create e1 label e2
-
-let for_all_vertex f g = G.fold_vertex (fun v b -> b && f v) g true
-
-(* Remove a vertex and all its orphan successors, recursively. *)
-let rec remove_rec g v =
-  let children = G.succ g v in
-  let g = G.remove_vertex g v in
-  List.fold_right (fun c g -> remove_rec_if_orphan g c) children g
-
-and remove_rec_if_orphan g c =
-  if G.mem_vertex g c && G.in_degree g c = 0 then remove_rec g c else g
-
-(* [add_pred_with_subst g preds v] add the edges [pred] to [g]
-   with the destination replaced by [v]. *)
-let add_pred_with_subst g preds v =
-  List.fold_left
-    (fun g e -> G.add_edge_e g @@ G.E.(create (src e) (label e) v))
-    g preds
-
-(* {2 Graph construction} *)
-
-let add graph ~args ~deps d =
-  let v = G.V.create (Dev d) in
-  ( v,
-    G.add_vertex graph v
-    |> fold_lefti (fun i -> add_edge v (Parameter i)) args
-    |> fold_lefti (fun i -> add_edge v (Dependency i)) deps )
-
-let add_switch graph ~cond l =
-  let v = G.V.create (If cond) in
-  ( v,
-    List.fold_right (fun (p, v') -> add_edge v (Condition p) v') l
-    @@ G.add_vertex graph v )
-
-let add_if graph ~cond ~else_ ~then_ =
-  add_switch graph ~cond:(Key.map If.dir cond)
-    [ (If.(singleton Else), else_); (If.(singleton Then), then_) ]
-
-let add_app graph ~f ~args =
-  let v = G.V.create App in
-  ( v,
-    G.add_vertex graph v
-    |> add_edge v Functor f
-    |> fold_lefti (fun i -> add_edge v (Parameter i)) args )
-
-let create impl =
-  let g = ref G.empty in
-  let return (v, gr) =
-    g := gr;
-    v
-  in
-  let dev = { Impl.f = (fun d ~deps -> return @@ add !g ~args:[] ~deps d) } in
-  let if_ ~cond ~then_ ~else_ = return @@ add_if !g ~cond ~then_ ~else_ in
-  let app ~f ~x = return @@ add_app !g ~f ~args:[ x ] in
-  let _ = Impl.map ~dev ~if_ ~app impl in
-  !g
-
-let is_impl v = match G.V.label v with Dev _ -> true | App | If _ -> false
-
-(* {2 Graph destruction/extraction} *)
-
-let collect :
-    type ty. (module Misc.Monoid with type t = ty) -> (label -> ty) -> G.t -> ty
-    =
- fun (module M) f g ->
-  G.fold_vertex (fun v s -> M.union s @@ f (G.V.label v)) g M.empty
-
-let get_children g v =
-  let split l =
-    List.fold_right
-      (fun e (args, deps, conds, funct) ->
-        let v = G.E.dst e in
-        match G.E.label e with
-        | Parameter i -> ((i, v) :: args, deps, conds, funct)
-        | Dependency i -> (args, (i, v) :: deps, conds, funct)
-        | Condition path -> (args, deps, (path, v) :: conds, funct)
-        | Functor -> (args, deps, conds, v :: funct))
-      l ([], [], [], [])
-  in
-  let args, deps, cond, funct = split @@ G.succ_e g v in
-  let args = List.sort (fun (i, _) (j, _) -> compare i j) args in
-  let deps = List.sort (fun (i, _) (j, _) -> compare i j) deps in
-  let funct =
-    match funct with [] -> None | [ x ] -> Some x | _ -> assert false
-  in
-  assert (is_sequence args);
-  assert (is_sequence deps);
-  (`Args (List.map snd args), `Deps (List.map snd deps), cond, funct)
+(* {2 Destruction/extraction} *)
 
 type a_device = D : 'a device -> a_device
 
-let explode g v =
-  match (G.V.label v, get_children g v) with
-  | Dev i, (args, deps, [], None) -> `Dev (D i, args, deps)
-  | If cond, (`Args [], `Deps [], l, None) -> `If (cond, l)
-  | App, (`Args args, `Deps [], [], Some f) -> `App (f, args)
-  | (Dev _ | If _ | App), _ -> assert false
+let explode : t -> _ = function
+  | Dev {dev; args; deps} -> `Dev (D dev, `Args args, `Deps deps)
+  | If {cond; branches} -> `If (cond, branches)
+  | App {f; args} -> `App (f, args)
 
-let device v = match G.V.label v with Dev v -> Some (D v) | _ -> None
-
-let fold f g z =
-  if Dfs.has_cycle g then
-    invalid_arg "Device_graph.iter: A graph should not have cycles.";
-  (* We iter in *reversed* topological order. *)
-  let l = Topo.fold (fun x l -> x :: l) g [] in
-  List.fold_left (fun z l -> f l z) z l
-
-let find_all_v g p = G.fold_vertex (fun v l -> if p v then v :: l else l) g []
-
-let find_all g p = find_all_v g (fun x -> p @@ G.V.label x)
-
-let find_root g =
-  let l = find_all_v g (fun v -> G.in_degree g v = 0) in
-  match l with
-  | [ x ] -> x
-  | _ ->
-      invalid_arg "Device_graph.find_root: A graph should have only one root."
-
-(* {2 Graph manipulation} *)
-
-(* Find a pattern in a graph. *)
-exception Found
-
-let find g predicate =
-  let r = ref None in
-  try
-    G.iter_vertex
-      (fun v ->
-        match predicate g v with
-        | Some _ as x ->
-            r := x;
-            raise Found
-        | None -> ())
-      g;
-    None
-  with Found -> !r
-
-(* Find a pattern and apply the transformation, repeatedly. This could
-   probably be made more efficient, but it would be complicated. *)
-let rec transform ~predicate ~apply g =
-  match find g predicate with
-  | Some v_if -> transform ~predicate ~apply @@ apply g v_if
-  | None -> g
-
-module RemovePartialApp = struct
-  (* Remove [App] vertices.
-
-     The goal here is to remove partial application of functor.  If we
-     find an [App] vertex with an implementation as first children, We
-     fuse them and create one [Impl] vertex.
-
-     If we find successive [App] vertices, we merge them.
-  *)
-
-  let predicate g v =
-    match explode g v with
-    | `App (v', args) -> (
-        match explode g v' with
-        | `Dev (D d, `Args args', `Deps deps) ->
-            let add g = add g ~args:(args' @ args) ~deps d in
-            Some (v, v', add)
-        | `App (f, args') ->
-            let add g = add_app g ~f ~args:(args' @ args) in
-            Some (v, v', add)
-        | _ -> None )
-    | _ -> None
-
-  let apply g (v_app, v_f, add) =
-    let preds = G.pred_e g v_app in
-    let g = G.remove_vertex g v_app in
-    let v_impl', g = add g in
-    let g = add_pred_with_subst g preds v_impl' in
-    remove_rec_if_orphan g v_f
-end
-
-module MergeNode = struct
-  (* Merge successive If nodes with the same set of dependencies.
-
-     This is completely useless for evaluation but very helpful for
-     graph visualization by humans.
-  *)
-
-  let set_equal l1 l2 = Key.Set.equal (Key.deps l1) (Key.deps l2)
-
-  let predicate g v =
-    match explode g v with
-    | `If (cond, l) ->
-        if
-          List.exists
-            (fun (_, v) ->
-              match G.V.label v with
-              | If cond' -> set_equal cond cond'
-              | App | Dev _ -> false)
-            l
-        then Some (v, cond, l)
-        else None
-    | _ -> None
-
-  let apply g (v_if, cond, l) =
-    let f (new_cond, new_l) (path, v) =
-      match explode g v with
-      | `If (cond', l') when set_equal cond cond' ->
-          ( If.reduce cond ~path ~add:cond',
-            List.map (fun (p, v) -> (If.append path p, v)) l' @ new_l )
-      | _ -> (new_cond, (path, v) :: new_l)
+let collect
+  : type ty. (module Misc.Monoid with type t = ty) -> (label -> ty) -> t -> ty
+  = fun (module M) op t ->
+    let (+) = M.union in
+    let union_l = List.fold_left M.union M.empty in
+    let mk_switch ~cond branches = op (If cond) + union_l (List.map snd branches)
+    and mk_app ~f ~args = op App + f + union_l args
+    and mk_dev =
+      { f = (fun ~id:_ ~args ~deps dev ->
+            op (Dev dev) + union_l args + union_l deps) }
     in
-    let new_cond, new_l = List.fold_left f (cond, []) l in
-    let preds = G.pred_e g v_if in
-    let g = G.remove_vertex g v_if in
-    let v_new, g = add_switch g ~cond:new_cond new_l in
-    let g = add_pred_with_subst g preds v_new in
-    List.fold_left remove_rec_if_orphan g @@ List.map snd l
-end
+    map ~mk_switch ~mk_app ~mk_dev t
 
-module EvalIf = struct
-  (* Evaluate the [If] vertices and remove them. *)
+let devices t =
+  let r = ref [] in
+  let mk_app ~f:_ ~args:_ = ()
+  and mk_dev = { f = fun ~id:_ ~args:_ ~deps:_ dev -> r := D dev :: !r }
+  and mk_switch ~cond:_ _ = ()
+  in
+  map ~mk_switch ~mk_app ~mk_dev t;
+  !r
 
-  let predicate ~partial ~context _ v =
-    match G.V.label v with
-    | If cond when (not partial) || Key.mem context cond -> Some v
-    | If _ | App | Dev _ -> None
+type dtree = {
+  dev : a_device ;
+  args : dtree list ;
+  deps : dtree list ;
+  id : int ;
+}
 
-  let extract path l =
-    let rec aux = function
-      | [] -> invalid_arg "Path is not present."
-      | (path', v) :: t when path = path' -> (v, List.map snd t)
-      | (_, v) :: t ->
-          let v_found, l = aux t in
-          (v_found, v :: l)
-    in
-    aux l
+exception Not_reduced
 
-  let apply ~partial ~context g v_if =
-    let path, l = match explode g v_if with `If x -> x | _ -> assert false in
-    let preds = G.pred_e g v_if in
-    if partial && (not @@ Key.mem context path) then g
+let dtree t =
+  let mk_app ~f:_ ~args:_ = raise Not_reduced
+  and mk_switch ~cond:_ _ = raise Not_reduced
+  and mk_dev = { f = fun ~id ~args ~deps dev ->
+      { dev = D dev; args; deps; id}
+    }
+  in
+  try Some (map ~mk_switch ~mk_app ~mk_dev t)
+  with Not_reduced -> None
+
+module IdTbl = Hashtbl.Make(struct
+    type t = dtree
+    let hash t = t.id
+    let equal t1 t2 = Int.equal t1.id t2.id
+  end)
+
+(* We iter in *reversed* topological order. *)
+let fold_dtree f t z =
+  let tbl = IdTbl.create 50 in
+  let state = ref z in
+  let rec aux v =
+    if IdTbl.mem tbl v then ()
     else
-      let v_new, v_others = extract (Key.eval context path) l in
-      let g = G.remove_vertex g v_if in
-      let g = List.fold_left remove_rec_if_orphan g v_others in
-      add_pred_with_subst g preds v_new
-end
+      let { args; deps; _} = v in
+      IdTbl.add tbl v ();
+      List.iter aux @@ List.rev deps;
+      List.iter aux @@ List.rev args;
+      state := f v !state
+  in
+  aux t;
+  !state
 
-let simplify = MergeNode.(transform ~predicate ~apply)
+let impl_name { dev = D dev; args = _; deps = _ ; id } =
+  match Type.is_functor (Device.module_type dev) with
+  | false -> Device.module_name dev
+  | true ->
+    let prefix = String.Ascii.capitalize (nice_name dev) in
+    Fmt.strf "%s__%d" prefix id
 
-let normalize = RemovePartialApp.(transform ~predicate ~apply)
+let var_name { dev = D dev; args = _; deps = _ ; id} =
+  let prefix = nice_name dev in
+  Fmt.strf "%s__%i" prefix id
 
-let eval ?(partial = false) ~context g =
-  normalize
-  @@ EvalIf.(
-       transform
-         ~predicate:(predicate ~partial ~context)
-         ~apply:(apply ~partial ~context) g)
 
-let is_fully_reduced g = for_all_vertex (fun v -> is_impl v) g
 
 (* {2 Dot output} *)
 
-module Dot = Graphviz.Dot (struct
-  include G
+(* module Dot = Graphviz.Dot (struct
+ *   include G
+ * 
+ *   (\* If you change the styling, please update the documentation of the
+ *        describe command in {!Functorial_tool}. *\)
+ * 
+ *   let graph_attributes _g = [ `OrderingOut ]
+ * 
+ *   let default_vertex_attributes _g = []
+ * 
+ *   let vertex_name v = string_of_int @@ V.hash v
+ * 
+ *   let vertex_attributes v =
+ *     match V.label v with
+ *     | App -> [ `Label "$"; `Shape `Diamond ]
+ *     | If cond -> [ `Label (Fmt.strf "If\n%a" Key.pp_deps cond) ]
+ *     | Dev f ->
+ *         let label =
+ *           Fmt.strf "%s\n%s\n%a" (var_name v) (Device.module_name f)
+ *             Fmt.(list ~sep:(unit ", ") Key.pp)
+ *             (Device.keys f)
+ *         in
+ *         [ `Label label; `Shape `Box ]
+ * 
+ *   let get_subgraph _g = None
+ * 
+ *   let default_edge_attributes _g = []
+ * 
+ *   let edge_attributes e =
+ *     match E.label e with
+ *     | Functor -> [ `Style `Bold; `Tailport `SW ]
+ *     | Parameter _ -> []
+ *     | Dependency _ -> [ `Style `Dashed ]
+ *     | Condition path ->
+ *         let cond =
+ *           match V.label @@ E.src e with
+ *           | If cond -> cond
+ *           | App | Dev _ -> assert false
+ *         in
+ *         let l = [ `Style `Dotted; `Headport `N ] in
+ *         if Key.default cond = path then `Style `Bold :: l else l
+ * end) *)
 
-  (* If you change the styling, please update the documentation of the
-       describe command in {!Functorial_tool}. *)
-
-  let graph_attributes _g = [ `OrderingOut ]
-
-  let default_vertex_attributes _g = []
-
-  let vertex_name v = string_of_int @@ V.hash v
-
-  let vertex_attributes v =
-    match V.label v with
-    | App -> [ `Label "$"; `Shape `Diamond ]
-    | If cond -> [ `Label (Fmt.strf "If\n%a" Key.pp_deps cond) ]
-    | Dev f ->
-        let label =
-          Fmt.strf "%s\n%s\n%a" (var_name v) (Device.module_name f)
-            Fmt.(list ~sep:(unit ", ") Key.pp)
-            (Device.keys f)
-        in
-        [ `Label label; `Shape `Box ]
-
-  let get_subgraph _g = None
-
-  let default_edge_attributes _g = []
-
-  let edge_attributes e =
-    match E.label e with
-    | Functor -> [ `Style `Bold; `Tailport `SW ]
-    | Parameter _ -> []
-    | Dependency _ -> [ `Style `Dashed ]
-    | Condition path ->
-        let cond =
-          match V.label @@ E.src e with
-          | If cond -> cond
-          | App | Dev _ -> assert false
-        in
-        let l = [ `Style `Dotted; `Headport `N ] in
-        if Key.default cond = path then `Style `Bold :: l else l
-end)
-
-let pp_dot = Dot.fprint_graph
+let pp_dot = Fmt.nop
 
 let pp = Fmt.nop

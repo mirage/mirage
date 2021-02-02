@@ -4,6 +4,8 @@ let info = Mirage_runtime.{
     ]
   ;
   libraries = [
+    "mirage-bootvar-solo5";
     "mirage-bootvar-unix";
+    "mirage-bootvar-xen";
     "mirage-runtime"]
   }

@@ -10,8 +10,8 @@ let z = Device.v "Bar" job
 
 let apply f d =
   let id = Device.id d in
-  let g = Graph.create (of_device d) in
-  let g = Option.get @@ Graph.dtree g in
+  let g = Impl.abstract (of_device d) in
+  let g = Impl.eval ~context:Key.empty_context g in
   let v =
     let f x l = match x with
       | Graph.D { dev; _ } when Device.id dev = id ->
@@ -66,7 +66,7 @@ let normalise_lines str =
   in
   String.concat ~sep:"\n" lines
 
-let graph_str g = normalise_lines (Fmt.to_to_string Graph.pp_dot g)
+let graph_str g = normalise_lines (Fmt.to_to_string Impl.pp_dot g)
 
 let digraph i =
   let j = i + 1 and k = i + 2 in
@@ -91,9 +91,9 @@ Foo.Bar
 
 let test_graph () =
   let id = id () in
-  let t1 = Graph.create if1 in
+  let t1 = Impl.abstract if1 in
   Alcotest.(check string) "t1.dot" (digraph (id + 1)) (graph_str t1);
-  let t2 = Graph.create if2 in
+  let t2 = Impl.abstract if2 in
   Alcotest.(check string) "t2.dot" (digraph (id + 4)) (graph_str t2);
   let module M = struct
     type t = (string * string list) list
@@ -104,14 +104,14 @@ let test_graph () =
   end in
   let packages t =
     let ctx = Key.empty_context in
-    Graph.collect
+    Impl.collect
       (module M)
       (function
         | If _ | App -> []
-        | Graph.Dev d ->
+        | Dev d ->
             let pkgs = Key.(eval ctx (Device.packages d)) in
             List.map (fun pkg -> (Package.name pkg, Package.libraries pkg)) pkgs)
-      (Graph.eval ~context:ctx t)
+      (Impl.simplify ~partial:false ~context:ctx t)
   in
   let label = Alcotest.(list (pair string (list string))) in
   Alcotest.(check label) "t1" [ ("a", [ "a" ]) ] (packages t1);

@@ -113,8 +113,8 @@ module Tbl = Hashtbl.Make (M)
 
 
 type 'b f_dev =
-  { f : 'a. id:int -> args:'b list -> deps:'b list -> 'a device -> 'b }
-let mk_dev' = { f = fun ~id:_ -> mk_dev }
+  { f : 'a. args:'b list -> deps:'b list -> 'a device -> 'b }
+let mk_dev' = { f = mk_dev }
 
 let map (type r) ~mk_switch ~mk_app ~mk_dev t =
   let tbl = Tbl.create 50 in
@@ -127,7 +127,7 @@ let map (type r) ~mk_switch ~mk_app ~mk_dev t =
         | Dev { dev; args; deps } ->
             let deps = List.map aux deps in
             let args = List.map aux args in
-            mk_dev.f dev ~deps ~args ~id:(M.hash impl)
+            mk_dev.f dev ~deps ~args
         | App { f; args } ->
           let args = List.map aux args in
           let f = aux f in
@@ -203,7 +203,7 @@ let collect
     let mk_switch ~cond branches = op (If cond) + union_l (List.map snd branches)
     and mk_app ~f ~args = op App + f + union_l args
     and mk_dev =
-      { f = (fun ~id:_ ~args ~deps dev ->
+      { f = (fun ~args ~deps dev ->
             op (Dev dev) + union_l args + union_l deps) }
     in
     map ~mk_switch ~mk_app ~mk_dev t
@@ -218,10 +218,12 @@ type dtree = D : {
 exception Not_reduced
 
 let dtree t =
+  let r = ref 0 in
   let mk_app ~f:_ ~args:_ = raise Not_reduced
   and mk_switch ~cond:_ _ = raise Not_reduced
-  and mk_dev = { f = fun ~id ~args ~deps dev ->
-      D { dev; args; deps; id}
+  and mk_dev = { f = fun ~args ~deps dev ->
+      incr r;
+      D { dev; args; deps; id = !r}
     }
   in
   try Some (map ~mk_switch ~mk_app ~mk_dev t)
@@ -242,8 +244,8 @@ let fold_dtree f t z =
     else
       let D { args; deps; _} = v in
       IdTbl.add tbl v ();
-      List.iter aux @@ List.rev deps;
-      List.iter aux @@ List.rev args;
+      List.iter aux deps;
+      List.iter aux args;
       state := f v !state
   in
   aux t;

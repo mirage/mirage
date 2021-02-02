@@ -18,53 +18,44 @@
 
 (** Implementation Graphs. *)
 
-open DSL
+(* val create : _ impl -> t
+ * (\** [create impl] creates a graph based [impl]. *\) *)
 
-type t
+(* val normalize : t -> t
+ * (\** [normalize g] normalize the graph [g] by removing the [App] vertices. *\) *)
 
-val create : _ impl -> t
-(** [create impl] creates a graph based [impl]. *)
+(* val eval : ?partial:bool -> context:context -> t -> t
+ * (\** [eval ~keys g] will removes all the [If] vertices by resolving the keys
+ *     using [keys]. It will then call {!normalize}
+ * 
+ *     If [partial] is [true], then it will only evaluate [If] vertices which
+ *     condition is resolved. *\) *)
 
-val normalize : t -> t
-(** [normalize g] normalize the graph [g] by removing the [App] vertices. *)
 
-val eval : ?partial:bool -> context:context -> t -> t
-(** [eval ~keys g] will removes all the [If] vertices by resolving the keys
-    using [keys]. It will then call {!normalize}
+(* (\** Collections *\)
+ * 
+ * (\** The description of a vertex *\)
+ * type label = If : _ Key.value -> label | Dev : _ Device.t -> label | App
+ * 
+ * val collect :
+ *   (module Misc.Monoid with type t = 'ty) -> (label -> 'ty) -> t -> 'ty
+ * (\** [collect (module M) f g] collects the content of [f v] for each vertex [v]
+ *     in [g]. *\)
+ * 
+ * (\** Evaluated device trees *\) *)
 
-    If [partial] is [true], then it will only evaluate [If] vertices which
-    condition is resolved. *)
-
-val pp : t Fmt.t
-(** Textual representation of the graph. *)
-
-val pp_dot : t Fmt.t
-(** Dot representation of the graph. *)
-
-(** Collections *)
-
-(** The description of a vertex *)
-type label = If : 'i value -> label | Dev : 'a device -> label | App
-
-val collect :
-  (module Misc.Monoid with type t = 'ty) -> (label -> 'ty) -> t -> 'ty
-(** [collect (module M) f g] collects the content of [f v] for each vertex [v]
-    in [g]. *)
-
-(** Evaluated device trees *)
-
-type dtree = D : {
-  dev : 'a device ;
-  args : dtree list ;
-  deps : dtree list ;
+type t = D : {
+  dev : _ Device.t ;
+  args : t list ;
+  deps : t list ;
   id : int ;
-} -> dtree
+} -> t
 
-val dtree : t -> dtree option
+(* val dtree : t -> dtree option *)
 
-val fold_dtree : (dtree -> 'a -> 'a) -> dtree -> 'a -> 'a
+val fold_dtree : (t -> 'a -> 'a) -> t -> 'a -> 'a
 (** [fold_dtree f g z] applies [f] on each device in topological order. *)
 
-val var_name : dtree -> string
+val var_name : t -> string
 
-val impl_name : dtree -> string
+val impl_name : t -> string

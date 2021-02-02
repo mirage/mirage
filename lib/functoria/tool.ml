@@ -181,7 +181,7 @@ module Make (P : S) = struct
     let context =
       (* Extract all the keys directly. Useful to pre-resolve the keys
          provided by the specialized DSL. *)
-      let base_keys = Engine.all_keys @@ Device_graph.create (P.create []) in
+      let base_keys = Engine.all_keys @@ Impl.abstract @@ P.create [] in
       Cmdliner.Term.(
         pure (fun _ -> Action.ok ())
         $ Key.context base_keys ~with_required:false ~stage:`Configure)

@@ -32,7 +32,10 @@ val pp : 'a t Fmt.t
 (** [pp] is the pretty-printer for module implementations. *)
 
 val pp_abstract : abstract Fmt.t
-(** [pp_asbtrat] is the pretty-printer the abstract module implementations. *)
+(** [pp_abstract] is the pretty-printer for abstract module implementations. *)
+
+val pp_dot : abstract Fmt.t
+(** [pp_dot] outputs the dot representation of module implementations. *)
 
 val ( $ ) : ('a -> 'b) t -> 'a t -> 'b t
 (** [m $ a] applies the functor [m] to the module [a]. *)
@@ -81,17 +84,32 @@ module Tbl : Hashtbl.S with type key = abstract
 type 'b f_dev = { f : 'a. 'a device -> 'b }
 (** The type for iterators on devices. *)
 
-type 'a f_if = cond:bool Key.value -> then_:'a -> else_:'a -> 'a
-(** The type for iterators in [if] nodes. *)
-
-type 'a f_app = f:'a -> x:'a -> 'a
-(** the type for iterators on [app] nodes. *)
+(* type 'a f_switch = cond:bool Key.value -> then_:'a -> else_:'a -> 'a
+ * (\** The type for iterators in [if] nodes. *\)
+ * 
+ * type 'a f_app = f:'a -> x:'a -> 'a
+ * (\** the type for iterators on [app] nodes. *\) *)
 
 val with_left_most_device : Key.context -> _ t -> 'a f_dev -> 'a
 (** [with_left_most_device ctx t f] applies [f] on the left-most device in [f].
     [If] node are resolved using [ctx]. *)
 
-val map :
-  if_:'a f_if -> app:'a f_app -> dev:(deps:'a list -> 'a) f_dev -> 'b t -> 'a
-(** [fold ~if ~app ~dev acc t] fold over [t]'s sub-components, by applying [if],
-    [app] and [dev] to each corresponding kind of constructions. *)
+(* val map :
+ *   if_:'a f_switch -> app:'a f_app -> dev:(deps:'a list -> 'a) f_dev -> 'b t -> 'a
+ * (\** [fold ~if ~app ~dev acc t] fold over [t]'s sub-components, by applying [if],
+ *     [app] and [dev] to each corresponding kind of constructions. *\) *)
+
+val simplify : partial:bool -> context:Key.context -> abstract -> abstract
+val eval : context:Key.context -> abstract -> Device_graph.t
+
+(** Collections *)
+
+(** The description of a vertex *)
+type label = If : _ Key.value -> label | Dev : _ Device.t -> label | App
+
+val collect :
+  (module Misc.Monoid with type t = 'ty) -> (label -> 'ty) -> abstract -> 'ty
+(** [collect (module M) f g] collects the content of [f v] for each vertex [v]
+    in [g]. *)
+
+(** Evaluated device trees *)

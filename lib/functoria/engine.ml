@@ -20,20 +20,19 @@ open Astring
 open Action.Infix
 
 type t = Device_graph.t
-type dtree = Device_graph.dtree
 
-let if_keys =
-  let open Device_graph in
-  Device_graph.collect (module Key.Set) @@ function
-  | If cond -> Key.deps cond
-  | App | Dev _ -> Key.Set.empty
+let if_keys x =
+  Impl.collect (module Key.Set) (function
+      | If cond -> Key.deps cond
+      | App | Dev _ -> Key.Set.empty)
+    x
 
-let all_keys =
-  let open Device_graph in
-  Device_graph.collect (module Key.Set) @@ function
-  | Dev c -> Key.Set.of_list (Device.keys c)
-  | If cond -> Key.deps cond
-  | App -> Key.Set.empty
+let all_keys x =
+  Impl.collect (module Key.Set) (function
+      | Dev c -> Key.Set.of_list (Device.keys c)
+      | If cond -> Key.deps cond
+      | App -> Key.Set.empty)
+    x
 
 module Packages = struct
   type t = Package.t String.Map.t Key.value
@@ -44,7 +43,7 @@ module Packages = struct
 end
 
 let packages t =
-  let open Device_graph in
+  let open Impl in
   let aux = function
     | Dev c ->
         let pkgs = Device.packages c in
@@ -55,7 +54,7 @@ let packages t =
     | If _ | App -> Packages.empty
   in
   let return x = List.map snd (String.Map.bindings x) in
-  Key.(pure return $ Device_graph.collect (module Packages) aux t)
+  Key.(pure return $ Impl.collect (module Packages) aux t)
 
 module Installs = struct
   type t = Install.t Key.value
@@ -65,14 +64,14 @@ module Installs = struct
   let empty = Key.pure Install.empty
 end
 
-let install i =
-  let open Device_graph in
-  Device_graph.collect (module Installs) @@ function
-  | Dev c -> Device.install c i
-  | If _ | App -> Installs.empty
+let install i x =
+  Impl.collect (module Installs) (function
+      | Dev c -> Device.install c i
+      | If _ | App -> Installs.empty)
+    x
 
 let files info t stage =
-  Device_graph.collect
+  Impl.collect
     (module Fpath.Set)
     (function
       | Dev c -> Device.files c info stage | If _ | App -> Fpath.Set.empty)
@@ -112,7 +111,7 @@ let append_main i msg fmt =
     fmt
 
 let configure info t =
-  let f (v : Device_graph.dtree) =
+  let f (v : t) =
     let D { dev; args; _} = v in
     Device.configure dev info >>= fun () ->
     if args = [] then Action.ok ()
@@ -145,7 +144,7 @@ let emit_run info init main =
     init main
 
 let connect ?(init = []) info t =
-  let f (v : Device_graph.dtree) =
+  let f (v : t) =
     let D { dev; args; deps; _} = v in
     let var_name = Device_graph.var_name v in
     let impl_name = Device_graph.impl_name v in
@@ -167,7 +166,7 @@ let connect ?(init = []) info t =
   emit_run info init_names main_name
 
 let clean i t =
-  let f (v : Device_graph.dtree) =
+  let f (v : t) =
     let D { dev; _} = v in
     Device.clean dev i
   in

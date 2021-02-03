@@ -73,28 +73,22 @@ let digraph i =
   Fmt.str
     {|digraph G {
   ordering=out;
-  %d [shape=box, label="foo_bar__%d
-Foo.Bar
-", ];
-  %d [shape=box, label="foo_bar__%d
-Foo.Bar
-", ];
-  %d [label="If
-", ];
+  %d [label="foo_bar__%d\nFoo.Bar\n", shape="box"];
+  %d [label="foo_bar__%d\nFoo.Bar\n", shape="box"];
+  %d [label="If\n"];
 
-
-  %d -> %d [headport=n, style="dotted,bold", ];
-  %d -> %d [headport=n, style="dotted", ];
-
+  %d -> %d [style="dotted", headport="n"];
+  %d -> %d [style="dotted", headport="n"];
+  %d -> %d [style="bold", style="dotted", headport="n"];
   }|}
-    i i j j k k i k j
+    i i j j k k i k j k i
 
 let test_graph () =
   let id = id () in
   let t1 = Impl.abstract if1 in
-  Alcotest.(check string) "t1.dot" (digraph (id + 1)) (graph_str t1);
+  Alcotest.(check string) "t1.dot" (digraph id) (graph_str t1);
   let t2 = Impl.abstract if2 in
-  Alcotest.(check string) "t2.dot" (digraph (id + 4)) (graph_str t2);
+  Alcotest.(check string) "t2.dot" (digraph id) (graph_str t2);
   let module M = struct
     type t = (string * string list) list
 

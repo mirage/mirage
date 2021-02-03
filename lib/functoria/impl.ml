@@ -351,47 +351,92 @@ let collect
 
 (* {2 Dot output} *)
 
-(* module Dot = Graphviz.Dot (struct
- *   include G
- * 
- *   (\* If you change the styling, please update the documentation of the
- *        describe command in {!Functorial_tool}. *\)
- * 
- *   let graph_attributes _g = [ `OrderingOut ]
- * 
- *   let default_vertex_attributes _g = []
- * 
- *   let vertex_name v = string_of_int @@ V.hash v
- * 
- *   let vertex_attributes v =
- *     match V.label v with
- *     | App -> [ `Label "$"; `Shape `Diamond ]
- *     | If cond -> [ `Label (Fmt.strf "If\n%a" Key.pp_deps cond) ]
- *     | Dev f ->
- *         let label =
- *           Fmt.strf "%s\n%s\n%a" (var_name v) (Device.module_name f)
- *             Fmt.(list ~sep:(unit ", ") Key.pp)
- *             (Device.keys f)
- *         in
- *         [ `Label label; `Shape `Box ]
- * 
- *   let get_subgraph _g = None
- * 
- *   let default_edge_attributes _g = []
- * 
- *   let edge_attributes e =
- *     match E.label e with
- *     | Functor -> [ `Style `Bold; `Tailport `SW ]
- *     | Parameter _ -> []
- *     | Dependency _ -> [ `Style `Dashed ]
- *     | Condition path ->
- *         let cond =
- *           match V.label @@ E.src e with
- *           | If cond -> cond
- *           | App | Dev _ -> assert false
- *         in
- *         let l = [ `Style `Dotted; `Headport `N ] in
- *         if Key.default cond = path then `Style `Bold :: l else l
- * end) *)
 
-let pp_dot = Fmt.nop
+
+module Dot = struct
+
+  type edge_label =
+    | Functor
+    | Argument
+    | Dependency
+    | Branch of { default : bool }
+  
+  let as_dot_graph (Abstract t) =
+    let r = ref 0 in
+    let new_id () = incr r; !r in
+    let vertices = ref [] in
+    let edges = ref [] in
+    let add r x = r := x :: !r in
+    let mk_switch = {if_= fun ~cond ~branches ~default ->
+        let id = new_id () in
+        add vertices (id, If cond);
+        List.iter (fun (_,id') -> add edges (id, id', Branch {default = false}))
+          branches;
+        add edges (id, default, Branch {default = true});
+        id
+      }
+    and mk_app ~f ~args = 
+      let id = new_id () in
+      add vertices (id, App);
+      add edges (id, f, Functor);
+      List.iter (fun id' -> add edges (id, id', Argument)) args;
+      id                  
+    and mk_dev = { f = fun ~args ~deps dev ->
+        let id = new_id () in
+        add vertices (id, Dev dev);
+        List.iter (fun id' -> add edges (id, id', Argument)) args;
+        List.iter (fun id' -> add edges (id, id', Dependency)) deps;
+        id          
+      }
+    in
+    let _ = map ~mk_switch ~mk_app ~mk_dev t in
+    List.rev !vertices, List.rev !edges
+
+  let nice_name d =
+    let open Astring in
+    Device.module_name d
+    |> String.cuts ~sep:"."
+    |> String.concat ~sep:"_"
+    |> String.Ascii.lowercase
+    |> Misc.Name.ocamlify
+
+  let pp_vertice ppf (id, label) =
+    let attrs = match label with
+      | App ->
+        [ "label", "$"; "shape", "diamond" ]
+      | If cond ->
+        [ "label", Fmt.strf "If\n%a" Key.pp_deps cond ]
+      | Dev dev ->
+        let name = Fmt.strf "%s__%i" (nice_name dev) id in
+        let label =
+          Fmt.strf "%s\n%s\n%a" name (Device.module_name dev)
+            Fmt.(list ~sep:(unit ", ") Key.pp)
+            (Device.keys dev)
+        in
+        [ "label", label; "shape", "box" ]
+    in
+    let pp_attr ppf (field,v) = Fmt.pf ppf "%s=%S" field v in
+    Fmt.pf ppf "%d [%a];" id (Fmt.list ~sep:(Fmt.unit ", ") pp_attr) attrs
+
+  let pp_edges ppf (id, id', label) =
+    let attrs = match label with
+      | Functor -> [ "style", "bold"; "tailport", "sw" ]
+      | Argument -> []
+      | Dependency -> [ "style", "dashed" ]
+      | Branch { default } ->
+        let l = [ "style", "dotted"; "headport", "n" ] in
+        if default then ("style", "bold") :: l else l
+    in
+    let pp_attr ppf (field,v) = Fmt.pf ppf "%s=%S" field v in
+    Fmt.pf ppf "%d -> %d [%a];" id id'
+      (Fmt.list ~sep:(Fmt.unit ", ") pp_attr) attrs
+
+  let pp ppf t =
+    let vertices, edges = as_dot_graph t in
+    Fmt.pf ppf {|@[<v2>digraph G {@,ordering=out;@,%a@,@,%a@,}@]|}
+      (Fmt.list ~sep:Fmt.cut pp_vertice) vertices
+      (Fmt.list ~sep:Fmt.cut pp_edges) edges
+    
+end
+
+let pp_dot = Dot.pp

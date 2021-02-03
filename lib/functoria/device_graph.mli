@@ -16,33 +16,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Implementation Graphs. *)
-
-(* val create : _ impl -> t
- * (\** [create impl] creates a graph based [impl]. *\) *)
-
-(* val normalize : t -> t
- * (\** [normalize g] normalize the graph [g] by removing the [App] vertices. *\) *)
-
-(* val eval : ?partial:bool -> context:context -> t -> t
- * (\** [eval ~keys g] will removes all the [If] vertices by resolving the keys
- *     using [keys]. It will then call {!normalize}
- * 
- *     If [partial] is [true], then it will only evaluate [If] vertices which
- *     condition is resolved. *\) *)
-
-
-(* (\** Collections *\)
- * 
- * (\** The description of a vertex *\)
- * type label = If : _ Key.value -> label | Dev : _ Device.t -> label | App
- * 
- * val collect :
- *   (module Misc.Monoid with type t = 'ty) -> (label -> 'ty) -> t -> 'ty
- * (\** [collect (module M) f g] collects the content of [f v] for each vertex [v]
- *     in [g]. *\)
- * 
- * (\** Evaluated device trees *\) *)
+(** Device Graphs. *)
 
 type t = D : {
   dev : _ Device.t ;
@@ -50,8 +24,6 @@ type t = D : {
   deps : t list ;
   id : int ;
 } -> t
-
-(* val dtree : t -> dtree option *)
 
 val fold_dtree : (t -> 'a -> 'a) -> t -> 'a -> 'a
 (** [fold_dtree f g z] applies [f] on each device in topological order. *)

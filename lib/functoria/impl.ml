@@ -20,24 +20,6 @@ let src = Logs.Src.create "functoria" ~doc:"functoria library"
 
 module Log = (val Logs.src_log src : Logs.LOG)
 
-
-(* (\* Helpers for If nodes. *\)
- * module If = struct
- *   type dir = Else | Then
- * 
- *   (\* type path = dir list * dir
- *    * 
- *    * let append (l, z) (l', z') = (l @ (z :: l'), z') *\)
- * 
- *   let singleton z = ([], z)
- * 
- *   let dir b = if b then singleton Then else singleton Else
- * 
- *   (\* let reduce k ~path ~add : path Key.value =
- *    *   let fuse v l = if v = path then append path l else path in
- *    *   Key.(pure fuse $ k $ add) *\)
- * end *)
-
 type 'a t =
   | If : {
       cond : 't Key.value ;
@@ -348,11 +330,7 @@ let collect
     let () = map ~mk_switch ~mk_app ~mk_dev t in
     !r
 
-
 (* {2 Dot output} *)
-
-
-
 module Dot = struct
 
   type edge_label =

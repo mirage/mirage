@@ -18,15 +18,6 @@
 
 (* {1 Graph engine} *)
 
-(* This module is not optimized for speed, it's optimized for correctness
-   and readability. If you need to make it faster:
-     - Good luck.
-     - Please update the invariant section.
-*)
-
-open Astring
-
-
 type t = D : {
   dev : ('a, _) Device.t ;
   args : t list ;
@@ -34,18 +25,6 @@ type t = D : {
   id : int ;
 } -> t
 type dtree = t
-
-(* let dtree t =
- *   let r = ref 0 in
- *   let mk_app ~f:_ ~args:_ = raise Not_reduced
- *   and mk_switch ~cond:_ _ = raise Not_reduced
- *   and mk_dev = { f = fun ~args ~deps dev ->
- *       incr r;
- *       D { dev; args; deps; id = !r}
- *     }
- *   in
- *   try Some (map ~mk_switch ~mk_app ~mk_dev t)
- *   with Not_reduced -> None *)
 
 module IdTbl = Hashtbl.Make(struct
     type t = dtree
@@ -73,7 +52,7 @@ let impl_name (D { dev; args = _; deps = _ ; id }) =
   match Type.is_functor (Device.module_type dev) with
   | false -> Device.module_name dev
   | true ->
-    let prefix = String.Ascii.capitalize (Device.nice_name dev) in
+    let prefix = Astring.String.Ascii.capitalize (Device.nice_name dev) in
     Fmt.strf "%s__%d" prefix id
 
 let var_name (D { dev; args = _; deps = _ ; id}) =

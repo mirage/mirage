@@ -89,7 +89,8 @@ val with_left_most_device : Key.context -> _ t -> 'a f_dev -> 'a
     [If] node are resolved using [ctx]. *)
 
 val simplify : partial:bool -> context:Key.context -> abstract -> abstract
-val eval : context:Key.context -> abstract -> Device_graph.t
+
+val eval : context:Key.context -> abstract -> Device.Graph.t
 
 (** Collections *)
 

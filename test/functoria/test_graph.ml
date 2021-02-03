@@ -14,19 +14,19 @@ let apply f d =
   let g = Impl.eval ~context:Key.empty_context g in
   let v =
     let f x l = match x with
-      | Graph.D { dev; _ } when Device.id dev = id ->
+      | Device.Graph.D { dev; _ } when Device.id dev = id ->
         f x :: l
       | _ -> l
     in 
-    match Graph.fold_dtree f g [] with
+    match Device.Graph.fold f g [] with
     | [ x ] -> x
     | _ -> assert false
   in
   v
 
-let var_name x = apply Graph.var_name x
+let var_name x = apply Device.Graph.var_name x
 
-let impl_name x = apply Graph.impl_name x
+let impl_name x = apply Device.Graph.impl_name x
 
 let id () = Scanf.sscanf (var_name zero) "z__%d" (fun i -> i)
 

@@ -27,7 +27,6 @@ module Install = Install
 module Opam = Opam
 module Lib = Lib
 module Tool = Tool
-module Graph = Device_graph
 module Engine = Engine
 module DSL = DSL
 module Cli = Cli

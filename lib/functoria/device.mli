@@ -130,3 +130,23 @@ val extend :
   ?post_clean:(Info.t -> unit Action.t) ->
   ('a, 'b) t ->
   ('a, 'b) t
+
+(** {1 Device graphs} *)
+
+module Graph : sig
+  type ('a,'i) device
+  type t = D : {
+      dev : (_, _) device ;
+      args : t list ;
+      deps : t list ;
+      id : int ;
+    } -> t
+
+  val fold : (t -> 'a -> 'a) -> t -> 'a -> 'a
+  (** [fold f g z] applies [f] on each device in topological order. *)
+
+  val var_name : t -> string
+
+  val impl_name : t -> string
+
+end with type ('a,'i) device := ('a, 'i) t

@@ -35,7 +35,7 @@ val files : Info.t -> Impl.abstract -> [ `Configure | `Build ] -> Fpath.Set.t
 
 (** {2 Triggering Hooks} *)
 
-type t = Device_graph.t
+type t = Device.Graph.t
 (** The type for key graphs. *)
 
 val configure : Info.t -> t -> unit Action.t

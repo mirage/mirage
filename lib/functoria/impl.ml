@@ -245,7 +245,7 @@ let simplify ~partial ~context (Abstract t) =
 let eval ~context (Abstract t) =
   let new_id = let r = ref 0 in fun () -> incr r; !r in
   let tbl = Tbl.create 50 in
-  let rec aux : type a. a t -> Device_graph.t = fun impl ->
+  let rec aux : type a. a t -> Device.Graph.t = fun impl ->
     if Tbl.mem tbl @@ abstract impl then Tbl.find tbl (abstract impl)
     else
       let acc =
@@ -253,7 +253,7 @@ let eval ~context (Abstract t) =
         | Dev { dev; args; deps } ->
           let args = aux_tl args in
           let deps = List.map aux_abstract deps in
-          Device_graph.D { dev ; args ; deps ; id = new_id ()} 
+          Device.Graph.D { dev ; args ; deps ; id = new_id ()} 
         | App { f; args = extra_args } ->
           let D { dev; args; deps; id = _ } = aux f in
           let extra_args = aux_tl extra_args in

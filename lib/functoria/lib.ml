@@ -40,7 +40,7 @@ module Config = struct
     init : job impl list;
     jobs : Impl.abstract;
     info : Info.t;
-    device_graph : Device_graph.t;
+    device_graph : Device.Graph.t;
   }
 
   (* In practice, we get all the keys associated to [if] cases, and

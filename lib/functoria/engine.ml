@@ -19,7 +19,7 @@
 open Astring
 open Action.Infix
 
-type t = Device_graph.t
+type t = Device.Graph.t
 
 let if_keys x =
   Impl.collect (module Key.Set) (function
@@ -81,24 +81,24 @@ let files info t stage =
    the functor [c] applies to [args]. *)
 let module_expression fmt (c, args) =
   Fmt.pf fmt "%s%a" (Device.module_name c)
-    Fmt.(list (parens @@ of_to_string @@ Device_graph.impl_name))
+    Fmt.(list (parens @@ of_to_string @@ Device.Graph.impl_name))
     args
 
 let find_all_devices info g i =
   let ctx = Info.context info in
   let id = Impl.with_left_most_device ctx i { f = Device.id } in
   let f x l =
-    let Device_graph.D { dev ; _ } = x in
+    let Device.Graph.D { dev ; _ } = x in
     if Device.id dev = id then x :: l else l
   in
-  Device_graph.fold_dtree f g []
+  Device.Graph.fold f g []
 
 let iter_actions f t =
   let f v res = res >>= fun () -> f v in
-  Device_graph.fold_dtree f t (Action.ok ())
+  Device.Graph.fold f t (Action.ok ())
 
 let build info t =
-  let f (Device_graph.D {dev; _ }) = Device.build dev info in
+  let f (Device.Graph.D {dev; _ }) = Device.build dev info in
   iter_actions f t
 
 let append_main i msg fmt =
@@ -117,7 +117,7 @@ let configure info t =
     if args = [] then Action.ok ()
     else
       append_main info "configure" "@[<2>module %s =@ %a@]@."
-        (Device_graph.impl_name v) module_expression (dev, args)
+        (Device.Graph.impl_name v) module_expression (dev, args)
   in
   iter_actions f t
 
@@ -146,20 +146,20 @@ let emit_run info init main =
 let connect ?(init = []) info t =
   let f (v : t) =
     let D { dev; args; deps; _} = v in
-    let var_name = Device_graph.var_name v in
-    let impl_name = Device_graph.impl_name v in
-    let arg_names = List.map Device_graph.var_name (args @ deps) in
+    let var_name = Device.Graph.var_name v in
+    let impl_name = Device.Graph.impl_name v in
+    let arg_names = List.map Device.Graph.var_name (args @ deps) in
     append_main info "connect" "%a" emit_connect
       (var_name, arg_names, Device.connect dev info impl_name)
   in
   iter_actions f t >>= fun () ->
-  let main_name = Device_graph.var_name t in
+  let main_name = Device.Graph.var_name t in
   let init_names =
     List.fold_left
       (fun acc i ->
          match find_all_devices info t i with
          | [] -> assert false
-         | ds -> List.map Device_graph.var_name ds @ acc)
+         | ds -> List.map Device.Graph.var_name ds @ acc)
       [] init
     |> List.rev
   in

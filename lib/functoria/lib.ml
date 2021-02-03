@@ -54,8 +54,7 @@ module Config = struct
     in
     Key.Set.fold f all_keys skeys
 
-  let v ?(keys = []) ?(packages = []) ?(init = []) ~build_cmd ~src name jobs
-      =
+  let v ?(keys = []) ?(packages = []) ?(init = []) ~build_cmd ~src name jobs =
     let name = Name.ocamlify name in
     let packages = Key.pure @@ packages in
     let jobs = Impl.abstract jobs in
@@ -70,7 +69,7 @@ module Config = struct
     let keys = Key.Set.elements (Key.Set.union keys @@ Engine.all_keys jobs) in
     let mk packages _ context =
       let info = Info.v ~packages ~keys ~context ~build_cmd ~src n in
-      { init ; jobs ; info ; device_graph }
+      { init; jobs; info; device_graph }
     in
     Key.(pure mk $ packages $ of_deps (Set.of_list keys))
 
@@ -126,13 +125,13 @@ module Make (P : S) = struct
       let config = Key.eval context info context in
       match output with
       | None -> config
-      | Some o -> {config with info = Info.with_output config.info o }
+      | Some o -> { config with info = Info.with_output config.info o }
     in
     Cmdliner.Term.(pure f $ context)
 
   (* FIXME: describe init *)
   let describe (t : _ Cli.describe_args) =
-    let {Config. jobs ; _ } = t.args.Cli.context in
+    let { Config.jobs; _ } = t.args.Cli.context in
     let f fmt =
       Fmt.pf fmt "%a\n%!" (if t.dot then Config.pp_dot else Fmt.nop) jobs
     in
@@ -162,15 +161,15 @@ module Make (P : S) = struct
     Engine.clean i jobs >>= fun () -> Action.rm (Info.main i)
 
   let configure args =
-    let {Config. init ; info ; device_graph ; _ } = args.Cli.context in
+    let { Config.init; info; device_graph; _ } = args.Cli.context in
     Log.info (fun m -> m "Configuration: %a" Fpath.pp args.Cli.config_file);
     let () =
       match Info.output info with
       | None -> ()
       | Some o -> Log.info (fun m -> m "Output       : %a" Fmt.(string) o)
     in
-    Action.with_dir (build_dir args)
-      (fun () -> configure_main info init device_graph)
+    Action.with_dir (build_dir args) (fun () ->
+        configure_main info init device_graph)
 
   let files i jobs s =
     let main = Info.main i in
@@ -179,12 +178,12 @@ module Make (P : S) = struct
     Fpath.Set.(elements files)
 
   let build args =
-    let {Config. info ; device_graph ; _ } = args.Cli.context in
+    let { Config.info; device_graph; _ } = args.Cli.context in
     Log.info (fun m -> m "Building: %a" Fpath.pp args.Cli.config_file);
     Action.with_dir (build_dir args) (fun () -> Engine.build info device_graph)
 
   let query ({ args; kind; depext } : _ Cli.query_args) =
-    let {Config. jobs ; info ; _ } = args.Cli.context in
+    let { Config.jobs; info; _ } = args.Cli.context in
     match kind with
     | `Name -> Fmt.pr "%s\n%!" (Info.name info)
     | `Packages ->
@@ -204,7 +203,7 @@ module Make (P : S) = struct
         Fmt.pr "%a\n%!" Makefile.pp file
 
   let clean args =
-    let {Config. info ; device_graph ; _ } = args.Cli.context in
+    let { Config.info; device_graph; _ } = args.Cli.context in
     Log.info (fun m -> m "Cleaning: %a" Fpath.pp args.Cli.config_file);
     Action.with_dir (build_dir args) (fun () ->
         clean_main info device_graph >>= fun () ->
@@ -223,7 +222,7 @@ module Make (P : S) = struct
     | Some o ->
         let r = args.Cli.context in
         let info = Info.with_output r.Config.info o in
-        { args with context = {r with info} }
+        { args with context = { r with info } }
 
   let pp_info (f : ('a, Format.formatter, unit) format -> 'a) level args =
     let verbose = Logs.level () >= level in
@@ -305,8 +304,8 @@ module Make (P : S) = struct
 
     (* 3. Parse the command-line and handle the result. *)
     let configure =
-      simplify_cached ~with_required:true ~partial:false ~output ~cache base_context
-        config
+      simplify_cached ~with_required:true ~partial:false ~output ~cache
+        base_context config
     in
 
     let describe =

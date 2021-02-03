@@ -13,14 +13,12 @@ let apply f d =
   let g = Impl.abstract (of_device d) in
   let g = Impl.eval ~context:Key.empty_context g in
   let v =
-    let f x l = match x with
-      | Device.Graph.D { dev; _ } when Device.id dev = id ->
-        f x :: l
+    let f x l =
+      match x with
+      | Device.Graph.D { dev; _ } when Device.id dev = id -> f x :: l
       | _ -> l
-    in 
-    match Device.Graph.fold f g [] with
-    | [ x ] -> x
-    | _ -> assert false
+    in
+    match Device.Graph.fold f g [] with [ x ] -> x | _ -> assert false
   in
   v
 

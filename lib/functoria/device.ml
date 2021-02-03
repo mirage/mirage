@@ -60,6 +60,7 @@ let pp : type a b. b Fmt.t -> (a, b) t Fmt.t =
   record fields ppf t
 
 let equal x y = Eq.equal' x.id y.id
+
 let witness x y = Eq.equal x.id y.id
 
 let hash x = Eq.hash x.id
@@ -172,22 +173,21 @@ let nice_name d =
   |> String.Ascii.lowercase
   |> Misc.Name.ocamlify
 
-type ('a,'i) device = ('a, 'i) t
+type ('a, 'i) device = ('a, 'i) t
+
 module Graph = struct
-  
-  type t = D : {
-      dev : ('a, _) device ;
-      args : t list ;
-      deps : t list ;
-      id : int ;
-    } -> t
+  type t =
+    | D : { dev : ('a, _) device; args : t list; deps : t list; id : int } -> t
+
   type dtree = t
 
-  module IdTbl = Hashtbl.Make(struct
-      type t = dtree
-      let hash (D t) = t.id
-      let equal (D t1) (D t2) = Int.equal t1.id t2.id
-    end)
+  module IdTbl = Hashtbl.Make (struct
+    type t = dtree
+
+    let hash (D t) = t.id
+
+    let equal (D t1) (D t2) = Int.equal t1.id t2.id
+  end)
 
   (* We iter in *reversed* topological order. *)
   let fold f t z =
@@ -196,7 +196,7 @@ module Graph = struct
     let rec aux v =
       if IdTbl.mem tbl v then ()
       else
-        let D { args; deps; _} = v in
+        let (D { args; deps; _ }) = v in
         IdTbl.add tbl v ();
         List.iter aux deps;
         List.iter aux args;
@@ -205,15 +205,14 @@ module Graph = struct
     aux t;
     !state
 
-  let impl_name (D { dev; args = _; deps = _ ; id }) =
+  let impl_name (D { dev; args = _; deps = _; id }) =
     match Type.is_functor (module_type dev) with
     | false -> module_name dev
     | true ->
-      let prefix = Astring.String.Ascii.capitalize (nice_name dev) in
-      Fmt.strf "%s__%d" prefix id
+        let prefix = Astring.String.Ascii.capitalize (nice_name dev) in
+        Fmt.strf "%s__%d" prefix id
 
-  let var_name (D { dev; args = _; deps = _ ; id}) =
+  let var_name (D { dev; args = _; deps = _; id }) =
     let prefix = nice_name dev in
     Fmt.strf "%s__%i" prefix id
-
 end

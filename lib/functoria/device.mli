@@ -81,8 +81,8 @@ val start : string -> string list -> 'a code
 (** [start impl_name args] is the code [<impl_name>.start <args>]. *)
 
 val nice_name : _ t -> string
-(** [nice_name d] provides a identifier unique to [d] which is
-    a valid OCaml identifier. *)
+(** [nice_name d] provides a identifier unique to [d] which is a valid OCaml
+    identifier. *)
 
 (** {1 Actions} *)
 
@@ -134,13 +134,10 @@ val extend :
 (** {1 Device graphs} *)
 
 module Graph : sig
-  type ('a,'i) device
-  type t = D : {
-      dev : (_, _) device ;
-      args : t list ;
-      deps : t list ;
-      id : int ;
-    } -> t
+  type ('a, 'i) device
+
+  type t =
+    | D : { dev : (_, _) device; args : t list; deps : t list; id : int } -> t
 
   val fold : (t -> 'a -> 'a) -> t -> 'a -> 'a
   (** [fold f g z] applies [f] on each device in topological order. *)
@@ -148,5 +145,5 @@ module Graph : sig
   val var_name : t -> string
 
   val impl_name : t -> string
-
-end with type ('a,'i) device := ('a, 'i) t
+end
+with type ('a, 'i) device := ('a, 'i) t

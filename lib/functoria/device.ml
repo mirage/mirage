@@ -16,6 +16,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+open Misc
 open Action.Infix
 open Astring
 
@@ -28,7 +29,7 @@ type info = Info.t
 type 'a value = 'a Key.value
 
 type ('a, 'impl) t = {
-  id : int;
+  id : 'a Eq.t;
   module_name : string;
   module_type : 'a Type.t;
   keys : abstract_key list;
@@ -47,7 +48,7 @@ let pp : type a b. b Fmt.t -> (a, b) t Fmt.t =
   let open Fmt.Dump in
   let fields =
     [
-      field "id" (fun t -> t.id) Fmt.int;
+      field "id" (fun t -> t.id) Eq.pp;
       field "module_name" (fun t -> t.module_name) string;
       field "module_type" (fun t -> t.module_type) Type.pp;
       field "keys" (fun t -> t.keys) (list Key.pp);
@@ -58,9 +59,10 @@ let pp : type a b. b Fmt.t -> (a, b) t Fmt.t =
   in
   record fields ppf t
 
-let equal x y = x.id = y.id
+let equal x y = Eq.equal' x.id y.id
+let witness x y = Eq.equal x.id y.id
 
-let hash x = x.id
+let hash x = Eq.hash x.id
 
 let default_connect _ _ l =
   Printf.sprintf "return (%s)" (String.concat ~sep:", " l)
@@ -80,16 +82,10 @@ let merge_packages = merge [] List.append
 
 let merge_install = merge Install.empty Install.union
 
-let count =
-  let i = ref 0 in
-  fun () ->
-    incr i;
-    !i
-
 let v ?packages ?packages_v ?install ?install_v ?(keys = []) ?(extra_deps = [])
     ?(connect = default_connect) ?(configure = niet) ?files ?(build = niet)
     ?(clean = niet) module_name module_type =
-  let id = count () in
+  let id = Eq.id () in
   let packages = merge_packages packages packages_v in
   let install i =
     let aux = function None -> None | Some f -> Some (f i) in
@@ -110,7 +106,7 @@ let v ?packages ?packages_v ?install ?install_v ?(keys = []) ?(extra_deps = [])
     extra_deps;
   }
 
-let id t = t.id
+let id t = Eq.hash t.id
 
 let module_name t = t.module_name
 

@@ -51,6 +51,9 @@ val pp : 'b Fmt.t -> ('a, 'b) t Fmt.t
 val equal : ('a, 'b) t -> ('c, 'd) t -> bool
 (** [equal] is the equality function for devices. *)
 
+val witness : ('a, _) t -> ('b, _) t -> ('a, 'b) Misc.Eq.eq
+(** [witness a b] provides an equality witness. *)
+
 val hash : ('a, 'b) t -> int
 (** [hash t] is [t]'s hash. *)
 

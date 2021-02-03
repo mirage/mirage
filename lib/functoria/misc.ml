@@ -48,3 +48,44 @@ module Name = struct
       raise (Invalid_argument s);
     s'
 end
+
+module Eq = struct
+  type (_,_) eq = Eq : ('a,'a) eq | NotEq : ('a,'b) eq
+  let andeq :
+    type a b c d. (a,b) eq -> (c,d) eq -> (a*c,b*d) eq =
+    fun a b -> match a, b with
+    | Eq, Eq -> Eq
+    | _ -> NotEq
+  let andb b q = if b then q else NotEq
+  let to_bool : type a b. (a,b) eq -> bool = function Eq -> true | NotEq -> false
+
+  module Id = struct type _ t = .. end
+  module type ID = sig
+    type t
+    type _  Id.t += Tid : t Id.t
+    val id : int
+  end
+
+  type 'a t = (module ID with type t = 'a)
+
+  let id = let r = ref 0 in fun () -> incr r ; !r
+  let id () (type s) =
+    let module M = struct
+      type t = s
+      type _ Id.t += Tid : t Id.t
+      let id = id ()
+    end
+    in
+    (module M : ID with type t = s)
+
+  let equal : type r s. r t -> s t -> (r, s) eq =
+    fun r s ->
+    let module R = (val r : ID with type t = r) in
+    let module S = (val s : ID with type t = s) in
+    match R.Tid with
+    | S.Tid -> Eq
+    | _ -> NotEq
+  let equal' a b = to_bool @@ equal a b
+  let pp (type a) ppf ((module M) : a t) = Fmt.int ppf M.id
+  let hash (type a) ((module M) : a t) = M.id
+end

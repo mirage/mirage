@@ -16,6 +16,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+open Misc
+
 let src = Logs.Src.create "functoria" ~doc:"functoria library"
 
 module Log = (val Logs.src_log src : Logs.LOG)
@@ -131,32 +133,49 @@ and hash_tl : type a v. (a,v) tl -> int = fun x -> match x with
     Hashtbl.hash (`Cons, hash h, hash_tl t)
 
 type ex = Ex : 'a -> ex
-let rec equal : type t1 t2. t1 t -> t2 t -> bool =
+let equal_list p l1 l2 =
+  List.length l1 = List.length l2 && List.for_all2 p l1 l2
+let rec equal : type t1 t2. t1 t -> t2 t -> (t1,t2) Eq.eq =
   fun x y ->
+  let (&&!) a b = Eq.andb b a in
   match x, y with
   | Dev c, Dev c' ->
-    Device.equal c.dev c'.dev &&
-    equal_tl c.args c'.args &&
-    List.for_all2 equal_abstract c.deps c'.deps
+    let b =
+      equal_tl c.args c'.args (Device.witness c.dev c'.dev) &&!
+      equal_list equal_abstract c.deps c'.deps
+    in
+    (match b with Eq -> Eq | NotEq -> NotEq)
   | App a, App b ->
-    equal a.f b.f && equal_tl a.args b.args
+    let b =
+      equal_tl a.args b.args (equal a.f b.f)
+    in
+    (match b with Eq -> Eq | NotEq -> NotEq)
   | If x1, If x2 ->
-    (* Key.value is a functional value (it contains a closure for eval).
-       There is no prettier way than physical equality. *)
-    Obj.repr x1.cond == Obj.repr x2.cond &&
-    List.for_all2
-      (fun (p1,t1) (p2,t2) -> Ex p1 = Ex p2 && equal t1 t2)
-      x1.branches x2.branches &&
-    equal x1.default x2.default
-  | _ -> false
-and equal_abstract (Abstract x) (Abstract y) = equal x y
-and equal_tl : type t1 t2 v1 v2. (t1,v1) tl -> (t2,v2) tl -> bool =
-  fun x y ->
-  match x, y with
-  | Nil, Nil -> true
-  | Cons (h1, t1), Cons (h2, t2) ->
-    equal h1 h2 && equal_tl t1 t2
-  | _ -> false
+    let b =
+      (* Key.value is a functional value (it contains a closure for eval).
+         There is no prettier way than physical equality. *)
+      equal x1.default x2.default &&!
+      (Obj.repr x1.cond == Obj.repr x2.cond) &&!
+      equal_list
+        (fun (p1,t1) (p2,t2) ->
+           Ex p1 = Ex p2 &&
+           equal_abstract (abstract t1) (abstract t2))
+        x1.branches x2.branches
+    in
+    (match b with Eq -> Eq | NotEq -> NotEq)
+  | _ -> NotEq
+and equal_abstract (Abstract x) (Abstract y) = Eq.to_bool @@ equal x y
+and equal_tl :
+  type t1 t2 v1 v2. (t1,v1) tl -> (t2,v2) tl -> (t1, t2) Eq.eq -> (v1,v2) Eq.eq =
+  fun x y eq ->
+  match x, y, eq with
+  | Nil, Nil, Eq -> Eq
+  | Cons (h1, t1), Cons (h2, t2), Eq ->
+    let b =
+      Eq.andeq (equal h1 h2) (equal_tl t1 t2 Eq)
+    in
+    (match b with Eq -> Eq | NotEq -> NotEq)
+  | _ -> NotEq
 
 module Tbl = Hashtbl.Make (struct
   type t = abstract
@@ -166,7 +185,6 @@ module Tbl = Hashtbl.Make (struct
   let equal = equal_abstract
 end)
 
-(* Safe, but annoying to code safely, so we cheat *)
 module HC : sig
   type tbl
   val create : unit -> tbl
@@ -176,10 +194,12 @@ end = struct
   type tbl = abstract Tbl.t
   let create () = Tbl.create 50
   let add tbl a b = Tbl.add tbl (abstract a) (abstract b)
-  let get (type a) tbl (a : a t) =
-    if Tbl.mem tbl @@ abstract a then
-      let Abstract b = Tbl.find tbl (abstract a) in
-      Some (Obj.magic b : a t)
+  let get (type a) tbl (oldv : a t) : a t option =
+    if Tbl.mem tbl @@ abstract oldv then
+      let Abstract newv = Tbl.find tbl (abstract oldv) in
+      match equal oldv newv with
+      | Eq -> Some newv
+      | NotEq -> None
     else
       None
 end

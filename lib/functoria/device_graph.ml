@@ -69,20 +69,13 @@ let fold_dtree f t z =
   aux t;
   !state
 
-let nice_name d =
-  Device.module_name d
-  |> String.cuts ~sep:"."
-  |> String.concat ~sep:"_"
-  |> String.Ascii.lowercase
-  |> Misc.Name.ocamlify
-
 let impl_name (D { dev; args = _; deps = _ ; id }) =
   match Type.is_functor (Device.module_type dev) with
   | false -> Device.module_name dev
   | true ->
-    let prefix = String.Ascii.capitalize (nice_name dev) in
+    let prefix = String.Ascii.capitalize (Device.nice_name dev) in
     Fmt.strf "%s__%d" prefix id
 
 let var_name (D { dev; args = _; deps = _ ; id}) =
-  let prefix = nice_name dev in
+  let prefix = Device.nice_name dev in
   Fmt.strf "%s__%i" prefix id

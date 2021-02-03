@@ -392,14 +392,6 @@ module Dot = struct
     let _ = map ~mk_switch ~mk_app ~mk_dev t in
     List.rev !vertices, List.rev !edges
 
-  let nice_name d =
-    let open Astring in
-    Device.module_name d
-    |> String.cuts ~sep:"."
-    |> String.concat ~sep:"_"
-    |> String.Ascii.lowercase
-    |> Misc.Name.ocamlify
-
   let pp_vertice ppf (id, label) =
     let attrs = match label with
       | App ->
@@ -407,7 +399,7 @@ module Dot = struct
       | If cond ->
         [ "label", Fmt.strf "If\n%a" Key.pp_deps cond ]
       | Dev dev ->
-        let name = Fmt.strf "%s__%i" (nice_name dev) id in
+        let name = Fmt.strf "%s__%i" (Device.nice_name dev) id in
         let label =
           Fmt.strf "%s\n%s\n%a" name (Device.module_name dev)
             Fmt.(list ~sep:(unit ", ") Key.pp)

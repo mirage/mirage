@@ -77,6 +77,10 @@ val connect : ('a, 'b) t -> Info.t -> string -> string list -> 'a code
 val start : string -> string list -> 'a code
 (** [start impl_name args] is the code [<impl_name>.start <args>]. *)
 
+val nice_name : _ t -> string
+(** [nice_name d] provides a identifier unique to [d] which is
+    a valid OCaml identifier. *)
+
 (** {1 Actions} *)
 
 val configure : ('a, 'b) t -> Info.t -> unit Action.t

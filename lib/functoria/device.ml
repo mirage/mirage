@@ -168,3 +168,10 @@ let extend ?packages ?packages_v ?files ?pre_configure ?post_configure
   let build = exec pre_build t.build post_build in
   let clean = exec pre_clean t.clean post_clean in
   { t with packages; files; configure; build; clean }
+
+let nice_name d =
+  module_name d
+  |> String.cuts ~sep:"."
+  |> String.concat ~sep:"_"
+  |> String.Ascii.lowercase
+  |> Misc.Name.ocamlify

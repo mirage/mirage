@@ -1,45 +1,32 @@
 open Functoria
 
-let zero = Device.v "z" Functoria.job
+let x = Impl.v "Foo.Bar" Functoria.job
 
-let x = Device.v "Foo.Bar" Functoria.job
+let y = Impl.v "X.Y" Functoria.(job @-> job) ~extra_deps:[ Impl.abstract x ]
 
-let y = Device.v "X.Y" Functoria.(job @-> job)
+let z = Impl.v "Bar" job ~extra_deps:[ Impl.abstract y ]
 
-let z = Device.v "Bar" job
-
-let apply f d =
-  let id = Device.id d in
-  let g = Impl.abstract (of_device d) in
+let z, y, x =
+  let g = Impl.abstract z in
   let g = Impl.eval ~context:Key.empty_context g in
-  let v =
-    let f x l =
-      match x with
-      | Device.Graph.D { dev; _ } when Device.id dev = id -> f x :: l
-      | _ -> l
-    in
-    match Device.Graph.fold f g [] with [ x ] -> x | _ -> assert false
-  in
-  v
+  match Device.Graph.fold List.cons g [] with
+  | [ x; y; z ] -> (x, y, z)
+  | _ -> assert false
 
-let var_name x = apply Device.Graph.var_name x
+let var_name x = Device.Graph.var_name x
 
-let impl_name x = apply Device.Graph.impl_name x
-
-let id () = Scanf.sscanf (var_name zero) "z__%d" (fun i -> i)
+let impl_name x = Device.Graph.impl_name x
 
 let ident s i = Fmt.strf "%s__%d" s i
 
 let test_var_name () =
-  let id = id () in
-  Alcotest.(check string) "x" (ident "foo_bar" id) (var_name x);
-  Alcotest.(check string) "y" (ident "x_y" id) (var_name y);
-  Alcotest.(check string) "z" (ident "bar" id) (var_name z)
+  Alcotest.(check string) "x" (ident "foo_bar" 1) (var_name x);
+  Alcotest.(check string) "y" (ident "x_y" 2) (var_name y);
+  Alcotest.(check string) "z" (ident "bar" 3) (var_name z)
 
 let test_impl_name () =
-  let id = id () in
   Alcotest.(check string) "x" "Foo.Bar" (impl_name x);
-  Alcotest.(check string) "y" (ident "X_y" id) (impl_name y);
+  Alcotest.(check string) "y" (ident "X_y" 2) (impl_name y);
   Alcotest.(check string) "z" "Bar" (impl_name z)
 
 let d1 = Device.v ~packages:[ package "a" ] "Foo.Bar" job
@@ -82,11 +69,10 @@ let digraph i =
     i i j j k k i k j k i
 
 let test_graph () =
-  let id = id () in
   let t1 = Impl.abstract if1 in
-  Alcotest.(check string) "t1.dot" (digraph id) (graph_str t1);
+  Alcotest.(check string) "t1.dot" (digraph 1) (graph_str t1);
   let t2 = Impl.abstract if2 in
-  Alcotest.(check string) "t2.dot" (digraph id) (graph_str t2);
+  Alcotest.(check string) "t2.dot" (digraph 1) (graph_str t2);
   let module M = struct
     type t = (string * string list) list
 

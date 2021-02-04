@@ -35,25 +35,3 @@ end
 module Name : sig
   val ocamlify : string -> string
 end
-
-module Eq : sig
-  type (_, _) eq = Eq : ('a, 'a) eq | NotEq : ('a, 'b) eq
-
-  val andeq : ('a, 'b) eq -> ('c, 'd) eq -> ('a * 'c, 'b * 'd) eq
-
-  val andb : bool -> ('a, 'b) eq -> ('a, 'b) eq
-
-  val to_bool : ('a, 'b) eq -> bool
-
-  type 'a t
-
-  val id : unit -> 'a t
-
-  val equal : 'r t -> 's t -> ('r, 's) eq
-
-  val equal' : 'r t -> 's t -> bool
-
-  val pp : Format.formatter -> 'a t -> unit
-
-  val hash : 'a t -> int
-end

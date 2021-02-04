@@ -16,8 +16,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Misc
-
 let src = Logs.Src.create "functoria" ~doc:"functoria library"
 
 module Log = (val Logs.src_log src : Logs.LOG)
@@ -128,44 +126,46 @@ type ex = Ex : 'a -> ex
 let equal_list p l1 l2 =
   List.length l1 = List.length l2 && List.for_all2 p l1 l2
 
-let rec equal : type t1 t2. t1 t -> t2 t -> (t1, t2) Eq.eq =
+let rec equal : type t1 t2. t1 t -> t2 t -> (t1, t2) Typeid.witness =
  fun x y ->
-  let ( &&! ) a b = Eq.andb b a in
   match (x, y) with
   | Dev c, Dev c' -> (
-      let b =
-        equal_tl c.args c'.args (Device.witness c.dev c'.dev)
-        &&! equal_list equal_abstract c.deps c'.deps
-      in
-      match b with Eq -> Eq | NotEq -> NotEq )
+      match
+        ( equal_list equal_abstract c.deps c'.deps,
+          equal_tl c.args c'.args (Device.witness c.dev c'.dev) )
+      with
+      | true, Eq -> Eq
+      | _ -> NotEq )
   | App a, App b -> (
-      let b = equal_tl a.args b.args (equal a.f b.f) in
-      match b with Eq -> Eq | NotEq -> NotEq )
+      match equal_tl a.args b.args (equal a.f b.f) with
+      | Eq -> Eq
+      | NotEq -> NotEq )
   | If x1, If x2 -> (
-      let b =
-        (* Key.value is a functional value (it contains a closure for eval).
-           There is no prettier way than physical equality. *)
-        equal x1.default x2.default
-        &&! (Obj.repr x1.cond == Obj.repr x2.cond)
-        &&! equal_list
-              (fun (p1, t1) (p2, t2) ->
-                Ex p1 = Ex p2 && equal_abstract (abstract t1) (abstract t2))
-              x1.branches x2.branches
-      in
-      match b with Eq -> Eq | NotEq -> NotEq )
+      match
+        ( equal x1.default x2.default,
+          Obj.repr x1.cond == Obj.repr x2.cond,
+          equal_list
+            (fun (p1, t1) (p2, t2) ->
+              Ex p1 = Ex p2 && equal_abstract (abstract t1) (abstract t2))
+            x1.branches x2.branches )
+      with
+      | Eq, true, true -> Eq
+      | _ -> NotEq )
   | _ -> NotEq
 
-and equal_abstract (Abstract x) (Abstract y) = Eq.to_bool @@ equal x y
+and equal_abstract (Abstract x) (Abstract y) = Typeid.to_bool @@ equal x y
 
 and equal_tl :
     type t1 t2 v1 v2.
-    (t1, v1) tl -> (t2, v2) tl -> (t1, t2) Eq.eq -> (v1, v2) Eq.eq =
+    (t1, v1) tl ->
+    (t2, v2) tl ->
+    (t1, t2) Typeid.witness ->
+    (v1, v2) Typeid.witness =
  fun x y eq ->
   match (x, y, eq) with
   | Nil, Nil, Eq -> Eq
   | Cons (h1, t1), Cons (h2, t2), Eq -> (
-      let b = Eq.andeq (equal h1 h2) (equal_tl t1 t2 Eq) in
-      match b with Eq -> Eq | NotEq -> NotEq )
+      match (equal h1 h2, equal_tl t1 t2 Eq) with Eq, Eq -> Eq | _ -> NotEq )
   | _ -> NotEq
 
 module Tbl = Hashtbl.Make (struct

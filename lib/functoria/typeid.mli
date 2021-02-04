@@ -16,35 +16,29 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Rresult
-open Astring
+(** Typed identifiers and equality witnesses *)
 
-let err_cmdliner ?(usage = false) = function
-  | Ok x -> `Ok x
-  | Error s -> `Error (usage, s)
+type 'a t
+(** A typed unique identifiers *)
 
-module type Monoid = sig
-  type t
+val gen : unit -> 'a t
+(** [gen ()] creates a new unique identifier. *)
 
-  val empty : t
+val equal : 'r t -> 's t -> bool
+(** [equal tid1 tid2] tests if [tid1] and [tid2] are equal. *)
 
-  val union : t -> t -> t
-end
+val id : 'a t -> int
+(** [id tid] returns a integer that uniquely identify [tid]. *)
 
-(* {Misc informations} *)
+val pp : Format.formatter -> 'a t -> unit
+(** [pp ppf tid] prints [id tif]. *)
 
-module Name = struct
-  let ocamlify s =
-    let b = Buffer.create (String.length s) in
-    String.iter
-      (function
-        | ('a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_') as c ->
-            Buffer.add_char b c
-        | '-' | '.' -> Buffer.add_char b '_'
-        | _ -> ())
-      s;
-    let s' = Buffer.contents b in
-    if String.length s' = 0 || ('0' <= s'.[0] && s'.[0] <= '9') then
-      raise (Invalid_argument s);
-    s'
-end
+(** A annotated boolean that also witness the equality between two types. *)
+type (_, _) witness = Eq : ('a, 'a) witness | NotEq : ('a, 'b) witness
+
+val witness : 'r t -> 's t -> ('r, 's) witness
+(** [witness tid1 tid2] is equivalent to [equal tid1 tid2], but exposes the
+    equality between their types. *)
+
+val to_bool : ('a, 'b) witness -> bool
+(** [to_bool w] converts the witness into a boolean. *)

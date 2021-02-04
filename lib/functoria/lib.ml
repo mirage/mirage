@@ -61,7 +61,7 @@ module Config = struct
     let keys = Key.Set.(union (of_list keys) (get_if_context jobs)) in
     { packages; keys; name; init; jobs; build_cmd; src }
 
-  let simplify ~partial context
+  let eval ~partial context
       { name = n; build_cmd; packages; keys; jobs; init; src } =
     let jobs = Impl.simplify ~partial ~context jobs in
     let device_graph = Impl.eval ~context jobs in
@@ -111,8 +111,8 @@ module Make (P : S) = struct
 
   module Log = (val Logs.src_log src : Logs.LOG)
 
-  let simplify_cached ~partial ~with_required ~output ~cache context t =
-    let info = Config.simplify ~partial context t in
+  let eval_cached ~partial ~with_required ~output ~cache context t =
+    let info = Config.eval ~partial context t in
     let keys = Key.deps info in
     let output =
       match (output, Context_cache.peek_output cache) with
@@ -304,8 +304,8 @@ module Make (P : S) = struct
 
     (* 3. Parse the command-line and handle the result. *)
     let configure =
-      simplify_cached ~with_required:true ~partial:false ~output ~cache
-        base_context config
+      eval_cached ~with_required:true ~partial:false ~output ~cache base_context
+        config
     in
 
     let describe =
@@ -315,12 +315,12 @@ module Make (P : S) = struct
         | Some false -> true
         | None -> Context_cache.is_empty cache
       in
-      simplify_cached ~with_required:false ~partial ~output ~cache base_context
+      eval_cached ~with_required:false ~partial ~output ~cache base_context
         config
     in
 
     let build =
-      simplify_cached ~with_required:false ~partial:false ~output ~cache
+      eval_cached ~with_required:false ~partial:false ~output ~cache
         base_context config
     in
     let clean = build in

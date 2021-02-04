@@ -136,6 +136,11 @@ val extend :
 module Graph : sig
   type ('a, 'i) device
 
+  (** A graph of devices, annotated with their arguments, dependencies, and a
+      unique identifier.
+
+      Warning: this is truly a DAG: sharing {b must} be preserved. Manual walks
+      are discouraged, please use {!fold} instead. *)
   type t =
     | D : { dev : (_, _) device; args : t list; deps : t list; id : int } -> t
 
@@ -143,7 +148,10 @@ module Graph : sig
   (** [fold f g z] applies [f] on each device in topological order. *)
 
   val var_name : t -> string
+  (** [var_name t] returns the name identifying [t] which is a valid OCaml
+      variable identifier. *)
 
   val impl_name : t -> string
+  (** [impl_name t] returns the name identifying [t]'s module implementation. *)
 end
 with type ('a, 'i) device := ('a, 'i) t

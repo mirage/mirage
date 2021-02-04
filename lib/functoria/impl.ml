@@ -101,6 +101,22 @@ and pp_tl : type a b. (a, b) tl Fmt.t =
 
 and pp_abstract ppf (Abstract i) = pp ppf i
 
+(** Tables and traversals *)
+
+(* **** WARNING ******
+
+   The [impl] type forms a DAG, implemented as terms with sharing.
+
+   It is *essential* to preserve sharing while walking the terms.
+   Otherwise 
+   - We risk double initialization of devices
+   - The DOT graph is a mess
+   - We might collect information twice
+
+   As such, the equality, hashing, and tables must be tuned to share
+   [impl]s appropriately and the various traversals must use appropriate tables.
+*)
+
 let rec hash : type a. a t -> int = function
   | Dev { dev; args; deps } ->
       Hashtbl.hash
@@ -176,7 +192,7 @@ module Tbl = Hashtbl.Make (struct
   let equal = equal_abstract
 end)
 
-module HC : sig
+module Hashcons : sig
   type tbl
 
   val create : unit -> tbl
@@ -199,10 +215,10 @@ end = struct
 end
 
 let simplify ~full ~context (Abstract t) =
-  let tbl = HC.create () in
+  let tbl = Hashcons.create () in
   let rec aux : type a. a t -> a t =
    fun impl ->
-    match HC.get tbl impl with
+    match Hashcons.get tbl impl with
     | Some impl' -> impl'
     | None ->
         let acc =
@@ -230,7 +246,7 @@ let simplify ~full ~context (Abstract t) =
               let args = aux_tl args in
               mk_app ~f ~args
         in
-        HC.add tbl impl acc;
+        Hashcons.add tbl impl acc;
         acc
   and aux_abstract (Abstract a) = Abstract (aux a)
   and aux_tl : type a v. (a, v) tl -> (a, v) tl = function

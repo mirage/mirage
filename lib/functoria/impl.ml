@@ -198,7 +198,7 @@ end = struct
     else None
 end
 
-let simplify ~partial ~context (Abstract t) =
+let simplify ~full ~context (Abstract t) =
   let tbl = HC.create () in
   let rec aux : type a. a t -> a t =
    fun impl ->
@@ -208,7 +208,11 @@ let simplify ~partial ~context (Abstract t) =
         let acc =
           match impl with
           | If { cond; branches; default } ->
-              if (not partial) || Key.mem context cond then
+              (* Either
+                 - A key is present in the context
+                 - We are in full mode, and we use its default value
+              *)
+              if full || Key.mem context cond then
                 let path = Key.eval context cond in
                 let t =
                   try List.assoc path branches with Not_found -> default

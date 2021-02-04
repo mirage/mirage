@@ -103,7 +103,7 @@ let test_graph () =
         | Dev d ->
             let pkgs = Key.(eval ctx (Device.packages d)) in
             List.map (fun pkg -> (Package.name pkg, Package.libraries pkg)) pkgs)
-      (Impl.simplify ~partial:false ~context:ctx t)
+      (Impl.simplify ~full:true ~context:ctx t)
   in
   let label = Alcotest.(list (pair string (list string))) in
   Alcotest.(check label) "t1" [ ("a", [ "a" ]) ] (packages t1);

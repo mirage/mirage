@@ -88,9 +88,16 @@ val with_left_most_device : Key.context -> _ t -> 'a f_dev -> 'a
 (** [with_left_most_device ctx t f] applies [f] on the left-most device in [f].
     [If] node are resolved using [ctx]. *)
 
-val simplify : partial:bool -> context:Key.context -> abstract -> abstract
+val simplify : full:bool -> context:Key.context -> abstract -> abstract
+(** [simplify ~full ~context impl] simplifies the implementation [impl]
+    according to keys present in the [context].
+
+    If [full] is [true], then the default values of keys are used in their
+    absence. Otherwise, absent keys are left un-simplified. *)
 
 val eval : context:Key.context -> abstract -> Device.Graph.t
+(** [eval ~context impl] fully evaluates the implementation [impl] according to
+    keys present in the [context]. It returns a graph composed only of devices. *)
 
 (** Collections *)
 

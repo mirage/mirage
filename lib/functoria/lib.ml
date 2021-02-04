@@ -61,9 +61,9 @@ module Config = struct
     let keys = Key.Set.(union (of_list keys) (get_if_context jobs)) in
     { packages; keys; name; init; jobs; build_cmd; src }
 
-  let eval ~partial context
+  let eval ~full context
       { name = n; build_cmd; packages; keys; jobs; init; src } =
-    let jobs = Impl.simplify ~partial ~context jobs in
+    let jobs = Impl.simplify ~full ~context jobs in
     let device_graph = Impl.eval ~context jobs in
     let packages = Key.(pure List.append $ packages $ Engine.packages jobs) in
     let keys = Key.Set.elements (Key.Set.union keys @@ Engine.all_keys jobs) in
@@ -111,8 +111,8 @@ module Make (P : S) = struct
 
   module Log = (val Logs.src_log src : Logs.LOG)
 
-  let eval_cached ~partial ~with_required ~output ~cache context t =
-    let info = Config.eval ~partial context t in
+  let eval_cached ~full ~with_required ~output ~cache context t =
+    let info = Config.eval ~full context t in
     let keys = Key.deps info in
     let output =
       match (output, Context_cache.peek_output cache) with
@@ -304,24 +304,22 @@ module Make (P : S) = struct
 
     (* 3. Parse the command-line and handle the result. *)
     let configure =
-      eval_cached ~with_required:true ~partial:false ~output ~cache base_context
+      eval_cached ~with_required:true ~full:true ~output ~cache base_context
         config
     in
 
     let describe =
-      let partial =
+      let full =
         match full_eval with
-        | Some true -> false
-        | Some false -> true
-        | None -> Context_cache.is_empty cache
+        | None -> not (Context_cache.is_empty cache)
+        | Some b -> b
       in
-      eval_cached ~with_required:false ~partial ~output ~cache base_context
-        config
+      eval_cached ~with_required:false ~full ~output ~cache base_context config
     in
 
     let build =
-      eval_cached ~with_required:false ~partial:false ~output ~cache
-        base_context config
+      eval_cached ~with_required:false ~full:true ~output ~cache base_context
+        config
     in
     let clean = build in
     let query = build in

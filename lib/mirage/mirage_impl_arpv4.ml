@@ -10,7 +10,7 @@ let arpv4 = Type.v Arpv4
 
 let arp_conf =
   let packages =
-    [ package ~min:"2.3.0" ~max:"3.0.0" ~sublibs:[ "mirage" ] "arp-mirage" ]
+    [ package ~min:"2.3.0" ~max:"3.0.0" ~sublibs:[ "mirage" ] "arp" ]
   in
   let connect _ modname = function
     | [ eth; _time ] -> Fmt.strf "%s.connect %s" modname eth

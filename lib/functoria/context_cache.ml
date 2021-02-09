@@ -62,7 +62,7 @@ let read file =
             args
         in
         Action.ok args
-      with Failure e -> Action.error e )
+      with Failure e -> Action.error e)
 
 let peek t term =
   match Cmdliner.Term.eval_peek_opts ~argv:t term with

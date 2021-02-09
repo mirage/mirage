@@ -56,7 +56,7 @@ let rec expand_name ~lib param =
       | None -> prefix ^ Fpath.(to_string (v lib / name))
       | Some (name, rest) ->
           let rest = expand_name ~lib rest in
-          prefix ^ Fpath.(to_string (v lib / name / rest)) )
+          prefix ^ Fpath.(to_string (v lib / name / rest)))
 
 (* Get the linker flags for any extra C objects we depend on.
  * This is needed when building a Xen/Solo5 image as we do the link manually. *)

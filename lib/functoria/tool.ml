@@ -53,7 +53,7 @@ module Make (P : S) = struct
         let file = context_file t in
         Action.is_file file >|= function
         | false -> argv (* should only happen when doing configure --help *)
-        | true -> Array.append argv [| "--context"; Fpath.to_string file |] )
+        | true -> Array.append argv [| "--context"; Fpath.to_string file |])
 
   let run_cmd ?ppf ?err_ppf command =
     let err = match err_ppf with None -> None | Some f -> Some (`Fmt f) in
@@ -276,7 +276,7 @@ module Make (P : S) = struct
         | _ ->
             run args
             @@ handle_parse_args ~save_args:false args ?ppf:help_ppf ?err_ppf
-                 argv )
+                 argv)
 
   let run () = run_with_argv Sys.argv
 end

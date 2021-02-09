@@ -104,8 +104,8 @@ let target_conv : mode Cmdliner.Arg.converter =
       if s = "ukvm" then (
         if !first_ukvm_mention then (
           Logs.warn (fun m -> m "%s" ukvm_warning);
-          first_ukvm_mention := false );
-        "hvt" )
+          first_ukvm_mention := false);
+        "hvt")
       else s
     in
     parser str
@@ -132,7 +132,7 @@ let default_target =
   | exception Not_found -> (
       match Action.run @@ Action.run_cmd_out Bos.Cmd.(v "uname" % "-s") with
       | Ok "Darwin" -> `MacOSX
-      | _ -> `Unix )
+      | _ -> `Unix)
 
 let target =
   let doc =

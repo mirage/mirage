@@ -34,7 +34,7 @@ let set_level ~default l =
             Fmt.(pf stdout)
               "%a %s is not a valid log source.\n%!"
               Fmt.(styled `Yellow string)
-              "Warning:" src ))
+              "Warning:" src))
     l
 
 module Arg = struct
@@ -109,7 +109,7 @@ module Arg = struct
 end
 
 include (
-  Functoria_runtime : module type of Functoria_runtime with module Arg := Arg )
+  Functoria_runtime : module type of Functoria_runtime with module Arg := Arg)
 
 let exit_hooks = ref []
 

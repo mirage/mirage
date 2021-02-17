@@ -99,13 +99,12 @@ let test_configure () =
     [
       "app.ml";
       "config.ml";
-      "key_gen.ml";
-      "main.ml";
-      "test.context";
-      ".merlin";
       "dune";
       "dune.config";
       "dune.build";
+      "key_gen.ml";
+      "main.ml";
+      "test.context";
     ]
     (list_files root);
   clean ();

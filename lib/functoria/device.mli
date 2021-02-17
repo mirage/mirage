@@ -51,6 +51,9 @@ val pp : 'b Fmt.t -> ('a, 'b) t Fmt.t
 val equal : ('a, 'b) t -> ('c, 'd) t -> bool
 (** [equal] is the equality function for devices. *)
 
+val witness : ('a, _) t -> ('b, _) t -> ('a, 'b) Typeid.witness
+(** [witness a b] provides an equality witness. *)
+
 val hash : ('a, 'b) t -> int
 (** [hash t] is [t]'s hash. *)
 
@@ -76,6 +79,10 @@ val connect : ('a, 'b) t -> Info.t -> string -> string list -> 'a code
 
 val start : string -> string list -> 'a code
 (** [start impl_name args] is the code [<impl_name>.start <args>]. *)
+
+val nice_name : _ t -> string
+(** [nice_name d] provides a identifier unique to [d] which is a valid OCaml
+    identifier. *)
 
 (** {1 Actions} *)
 
@@ -123,3 +130,28 @@ val extend :
   ?post_clean:(Info.t -> unit Action.t) ->
   ('a, 'b) t ->
   ('a, 'b) t
+
+(** {1 Device graphs} *)
+
+module Graph : sig
+  type ('a, 'i) device
+
+  (** A graph of devices, annotated with their arguments, dependencies, and a
+      unique identifier.
+
+      Warning: this is truly a DAG: sharing {b must} be preserved. Manual walks
+      are discouraged, please use {!fold} instead. *)
+  type t =
+    | D : { dev : (_, _) device; args : t list; deps : t list; id : int } -> t
+
+  val fold : (t -> 'a -> 'a) -> t -> 'a -> 'a
+  (** [fold f g z] applies [f] on each device in topological order. *)
+
+  val var_name : t -> string
+  (** [var_name t] returns the name identifying [t] which is a valid OCaml
+      variable identifier. *)
+
+  val impl_name : t -> string
+  (** [impl_name t] returns the name identifying [t]'s module implementation. *)
+end
+with type ('a, 'i) device := ('a, 'i) t

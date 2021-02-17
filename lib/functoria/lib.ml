@@ -32,8 +32,15 @@ module Config = struct
     packages : package list Key.value;
     keys : Key.Set.t;
     init : job impl list;
-    jobs : Device_graph.t;
+    jobs : Impl.abstract;
     src : [ `Auto | `None | `Some of string ];
+  }
+
+  type out = {
+    init : job impl list;
+    jobs : Impl.abstract;
+    info : Info.t;
+    device_graph : Device.Graph.t;
   }
 
   (* In practice, we get all the keys associated to [if] cases, and
@@ -47,32 +54,28 @@ module Config = struct
     in
     Key.Set.fold f all_keys skeys
 
-  let v ?(keys = []) ?(packages = []) ?(init = []) ~build_cmd ~src name main_dev
-      =
+  let v ?(keys = []) ?(packages = []) ?(init = []) ~build_cmd ~src name jobs =
     let name = Name.ocamlify name in
-    let jobs = Device_graph.create main_dev in
     let packages = Key.pure @@ packages in
+    let jobs = Impl.abstract jobs in
     let keys = Key.Set.(union (of_list keys) (get_if_context jobs)) in
     { packages; keys; name; init; jobs; build_cmd; src }
 
-  let eval ~partial context
+  let eval ~full context
       { name = n; build_cmd; packages; keys; jobs; init; src } =
-    let e = Device_graph.eval ~partial ~context jobs in
-    let packages = Key.(pure List.append $ packages $ Engine.packages e) in
-    let keys = Key.Set.elements (Key.Set.union keys @@ Engine.all_keys e) in
-    Key.(
-      pure (fun packages _ context ->
-          ((init, e), Info.v ~packages ~keys ~context ~build_cmd ~src n))
-      $ packages
-      $ of_deps (Set.of_list keys))
+    let jobs = Impl.simplify ~full ~context jobs in
+    let device_graph = Impl.eval ~context jobs in
+    let packages = Key.(pure List.append $ packages $ Engine.packages jobs) in
+    let keys = Key.Set.elements (Key.Set.union keys @@ Engine.all_keys jobs) in
+    let mk packages _ context =
+      let info = Info.v ~packages ~keys ~context ~build_cmd ~src n in
+      { init; jobs; info; device_graph }
+    in
+    Key.(pure mk $ packages $ of_deps (Set.of_list keys))
 
   let keys t = t.keys
 
-  let gen_pp pp fmt jobs = pp fmt @@ Device_graph.simplify jobs
-
-  let pp = gen_pp Device_graph.pp
-
-  let pp_dot = gen_pp Device_graph.pp_dot
+  let pp_dot = Impl.pp_dot
 end
 
 module type S = sig
@@ -108,8 +111,8 @@ module Make (P : S) = struct
 
   module Log = (val Logs.src_log src : Logs.LOG)
 
-  let eval_cached ~partial ~with_required ~output ~cache context t =
-    let info = Config.eval ~partial context t in
+  let eval_cached ~full ~with_required ~output ~cache context t =
+    let info = Config.eval ~full context t in
     let keys = Key.deps info in
     let output =
       match (output, Context_cache.peek_output cache) with
@@ -119,16 +122,18 @@ module Make (P : S) = struct
     let context = Key.context ~stage:`Configure ~with_required keys in
     let context = Context_cache.merge cache context in
     let f context =
-      let r, i = Key.eval context info context in
-      match output with None -> (r, i) | Some o -> (r, Info.with_output i o)
+      let config = Key.eval context info context in
+      match output with
+      | None -> config
+      | Some o -> { config with info = Info.with_output config.info o }
     in
     Cmdliner.Term.(pure f $ context)
 
   (* FIXME: describe init *)
   let describe (t : _ Cli.describe_args) =
-    let (_, jobs), _ = t.Cli.args.context in
+    let { Config.jobs; _ } = t.args.Cli.context in
     let f fmt =
-      Fmt.pf fmt "%a\n%!" (if t.dot then Config.pp_dot else Config.pp) jobs
+      Fmt.pf fmt "%a\n%!" (if t.dot then Config.pp_dot else Fmt.nop) jobs
     in
     let with_fmt f =
       match t.args.output with
@@ -143,7 +148,7 @@ module Make (P : S) = struct
     in
     with_fmt f
 
-  let configure_main i (init, jobs) =
+  let configure_main i init jobs =
     let main = Info.main i in
     let purpose = Fmt.strf "configure: create %a" Fpath.pp main in
     Log.info (fun m -> m "Generating: %a (main file)" Fpath.pp main);
@@ -156,14 +161,15 @@ module Make (P : S) = struct
     Engine.clean i jobs >>= fun () -> Action.rm (Info.main i)
 
   let configure args =
-    let jobs, i = args.Cli.context in
+    let { Config.init; info; device_graph; _ } = args.Cli.context in
     Log.info (fun m -> m "Configuration: %a" Fpath.pp args.Cli.config_file);
     let () =
-      match Info.output i with
+      match Info.output info with
       | None -> ()
       | Some o -> Log.info (fun m -> m "Output       : %a" Fmt.(string) o)
     in
-    Action.with_dir (build_dir args) (fun () -> configure_main i jobs)
+    Action.with_dir (build_dir args) (fun () ->
+        configure_main info init device_graph)
 
   let files i jobs s =
     let main = Info.main i in
@@ -172,35 +178,35 @@ module Make (P : S) = struct
     Fpath.Set.(elements files)
 
   let build args =
-    let (_, jobs), i = args.Cli.context in
+    let { Config.info; device_graph; _ } = args.Cli.context in
     Log.info (fun m -> m "Building: %a" Fpath.pp args.Cli.config_file);
-    Action.with_dir (build_dir args) (fun () -> Engine.build i jobs)
+    Action.with_dir (build_dir args) (fun () -> Engine.build info device_graph)
 
   let query ({ args; kind; depext } : _ Cli.query_args) =
-    let jobs, i = args.Cli.context in
+    let { Config.jobs; info; _ } = args.Cli.context in
     match kind with
-    | `Name -> Fmt.pr "%s\n%!" (Info.name i)
+    | `Name -> Fmt.pr "%s\n%!" (Info.name info)
     | `Packages ->
-        let pkgs = Info.packages i in
+        let pkgs = Info.packages info in
         List.iter (Fmt.pr "%a\n%!" (Package.pp ~surround:"\"")) pkgs
     | `Opam ->
-        let opam = Info.opam i in
+        let opam = Info.opam info in
         Fmt.pr "%a\n%!" Opam.pp opam
     | `Install ->
-        let install = Key.eval (Info.context i) (Engine.install i (snd jobs)) in
+        let install = Key.eval (Info.context info) (Engine.install info jobs) in
         Fmt.pr "%a\n%!" Install.pp install
     | `Files stage ->
-        let files = files i (snd jobs) stage in
+        let files = files info jobs stage in
         Fmt.pr "%a\n%!" Fmt.(list ~sep:(unit " ") Fpath.pp) files
     | `Makefile ->
-        let file = Makefile.v ~depext (Info.name i) in
+        let file = Makefile.v ~depext (Info.name info) in
         Fmt.pr "%a\n%!" Makefile.pp file
 
   let clean args =
-    let (_, jobs), i = args.Cli.context in
+    let { Config.info; device_graph; _ } = args.Cli.context in
     Log.info (fun m -> m "Cleaning: %a" Fpath.pp args.Cli.config_file);
     Action.with_dir (build_dir args) (fun () ->
-        clean_main i jobs >>= fun () ->
+        clean_main info device_graph >>= fun () ->
         Filegen.rm Fpath.(v "dune") >>= fun () ->
         Filegen.rm Fpath.(v "dune.config") >>= fun () ->
         Filegen.rm Fpath.(v "dune.build") >>= fun () ->
@@ -214,14 +220,13 @@ module Make (P : S) = struct
     match args.Cli.output with
     | None -> args
     | Some o ->
-        let jobs, i = args.Cli.context in
-        let i = Info.with_output i o in
-        { args with context = (jobs, i) }
+        let r = args.Cli.context in
+        let info = Info.with_output r.Config.info o in
+        { args with context = { r with info } }
 
   let pp_info (f : ('a, Format.formatter, unit) format -> 'a) level args =
     let verbose = Logs.level () >= level in
-    let _, i = args.Cli.context in
-    f "@[<v>%a@]" (Info.pp verbose) i
+    f "@[<v>%a@]" (Info.pp verbose) args.Cli.context.Config.info
 
   let handle_parse_args_result = function
     | `Error _ -> exit ()
@@ -299,24 +304,22 @@ module Make (P : S) = struct
 
     (* 3. Parse the command-line and handle the result. *)
     let configure =
-      eval_cached ~with_required:true ~partial:false ~output ~cache base_context
+      eval_cached ~with_required:true ~full:true ~output ~cache base_context
         config
     in
 
     let describe =
-      let partial =
+      let full =
         match full_eval with
-        | Some true -> false
-        | Some false -> true
-        | None -> Context_cache.is_empty cache
+        | None -> not (Context_cache.is_empty cache)
+        | Some b -> b
       in
-      eval_cached ~with_required:false ~partial ~output ~cache base_context
-        config
+      eval_cached ~with_required:false ~full ~output ~cache base_context config
     in
 
     let build =
-      eval_cached ~with_required:false ~partial:false ~output ~cache
-        base_context config
+      eval_cached ~with_required:false ~full:true ~output ~cache base_context
+        config
     in
     let clean = build in
     let query = build in

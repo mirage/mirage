@@ -19,20 +19,22 @@
 open Astring
 open Action.Infix
 
-type t = Device_graph.t
+type t = Device.Graph.t
 
-let if_keys =
-  let open Device_graph in
-  Device_graph.collect (module Key.Set) @@ function
-  | If cond -> Key.deps cond
-  | App | Dev _ -> Key.Set.empty
+let if_keys x =
+  Impl.collect
+    (module Key.Set)
+    (function If cond -> Key.deps cond | App | Dev _ -> Key.Set.empty)
+    x
 
-let all_keys =
-  let open Device_graph in
-  Device_graph.collect (module Key.Set) @@ function
-  | Dev c -> Key.Set.of_list (Device.keys c)
-  | If cond -> Key.deps cond
-  | App -> Key.Set.empty
+let all_keys x =
+  Impl.collect
+    (module Key.Set)
+    (function
+      | Dev c -> Key.Set.of_list (Device.keys c)
+      | If cond -> Key.deps cond
+      | App -> Key.Set.empty)
+    x
 
 module Packages = struct
   type t = Package.t String.Map.t Key.value
@@ -43,7 +45,7 @@ module Packages = struct
 end
 
 let packages t =
-  let open Device_graph in
+  let open Impl in
   let aux = function
     | Dev c ->
         let pkgs = Device.packages c in
@@ -54,7 +56,7 @@ let packages t =
     | If _ | App -> Packages.empty
   in
   let return x = List.map snd (String.Map.bindings x) in
-  Key.(pure return $ Device_graph.collect (module Packages) aux t)
+  Key.(pure return $ Impl.collect (module Packages) aux t)
 
 module Installs = struct
   type t = Install.t Key.value
@@ -64,14 +66,14 @@ module Installs = struct
   let empty = Key.pure Install.empty
 end
 
-let install i =
-  let open Device_graph in
-  Device_graph.collect (module Installs) @@ function
-  | Dev c -> Device.install c i
-  | If _ | App -> Installs.empty
+let install i x =
+  Impl.collect
+    (module Installs)
+    (function Dev c -> Device.install c i | If _ | App -> Installs.empty)
+    x
 
 let files info t stage =
-  Device_graph.collect
+  Impl.collect
     (module Fpath.Set)
     (function
       | Dev c -> Device.files c info stage | If _ | App -> Fpath.Set.empty)
@@ -81,28 +83,24 @@ let files info t stage =
    the functor [c] applies to [args]. *)
 let module_expression fmt (c, args) =
   Fmt.pf fmt "%s%a" (Device.module_name c)
-    Fmt.(list (parens @@ of_to_string @@ Device_graph.impl_name))
+    Fmt.(list (parens @@ of_to_string @@ Device.Graph.impl_name))
     args
 
 let find_all_devices info g i =
   let ctx = Info.context info in
   let id = Impl.with_left_most_device ctx i { f = Device.id } in
-  let p = function
-    | Device_graph.Dev d -> Device.id d = id
-    | App | If _ -> false
+  let f x l =
+    let (Device.Graph.D { dev; _ }) = x in
+    if Device.id dev = id then x :: l else l
   in
-  Device_graph.find_all g p
+  Device.Graph.fold f g []
 
 let iter_actions f t =
   let f v res = res >>= fun () -> f v in
-  Device_graph.fold f t (Action.ok ())
+  Device.Graph.fold f t (Action.ok ())
 
 let build info t =
-  let f v =
-    match Device_graph.explode t v with
-    | `App _ | `If _ -> assert false
-    | `Dev (Device_graph.D c, _, _) -> Device.build c info
-  in
+  let f (Device.Graph.D { dev; _ }) = Device.build dev info in
   iter_actions f t
 
 let append_main i msg fmt =
@@ -115,15 +113,13 @@ let append_main i msg fmt =
     fmt
 
 let configure info t =
-  let f v =
-    match Device_graph.explode t v with
-    | `App _ | `If _ -> assert false
-    | `Dev (Device_graph.D c, `Args args, `Deps _) ->
-        Device.configure c info >>= fun () ->
-        if args = [] then Action.ok ()
-        else
-          append_main info "configure" "@[<2>module %s =@ %a@]@."
-            (Device_graph.impl_name v) module_expression (c, args)
+  let f (v : t) =
+    let (D { dev; args; _ }) = v in
+    Device.configure dev info >>= fun () ->
+    if args = [] then Action.ok ()
+    else
+      append_main info "configure" "@[<2>module %s =@ %a@]@."
+        (Device.Graph.impl_name v) module_expression (dev, args)
   in
   iter_actions f t
 
@@ -150,33 +146,30 @@ let emit_run info init main =
     init main
 
 let connect ?(init = []) info t =
-  let f v =
-    match Device_graph.explode t v with
-    | `App _ | `If _ -> assert false
-    | `Dev (Device_graph.D c, `Args args, `Deps deps) ->
-        let var_name = Device_graph.var_name v in
-        let impl_name = Device_graph.impl_name v in
-        let arg_names = List.map Device_graph.var_name (args @ deps) in
-        append_main info "connect" "%a" emit_connect
-          (var_name, arg_names, Device.connect c info impl_name)
+  let f (v : t) =
+    let (D { dev; args; deps; _ }) = v in
+    let var_name = Device.Graph.var_name v in
+    let impl_name = Device.Graph.impl_name v in
+    let arg_names = List.map Device.Graph.var_name (args @ deps) in
+    append_main info "connect" "%a" emit_connect
+      (var_name, arg_names, Device.connect dev info impl_name)
   in
   iter_actions f t >>= fun () ->
-  let main_name = Device_graph.var_name (Device_graph.find_root t) in
+  let main_name = Device.Graph.var_name t in
   let init_names =
     List.fold_left
       (fun acc i ->
         match find_all_devices info t i with
         | [] -> assert false
-        | ds -> List.map Device_graph.var_name ds @ acc)
+        | ds -> List.map Device.Graph.var_name ds @ acc)
       [] init
     |> List.rev
   in
   emit_run info init_names main_name
 
 let clean i t =
-  let f v =
-    match Device_graph.explode t v with
-    | `App _ | `If _ -> assert false
-    | `Dev (Device_graph.D c, _, _) -> Device.clean c i
+  let f (v : t) =
+    let (D { dev; _ }) = v in
+    Device.clean dev i
   in
   iter_actions f t

@@ -28,7 +28,7 @@ type info = Info.t
 type 'a value = 'a Key.value
 
 type ('a, 'impl) t = {
-  id : int;
+  id : 'a Typeid.t;
   module_name : string;
   module_type : 'a Type.t;
   keys : abstract_key list;
@@ -47,7 +47,7 @@ let pp : type a b. b Fmt.t -> (a, b) t Fmt.t =
   let open Fmt.Dump in
   let fields =
     [
-      field "id" (fun t -> t.id) Fmt.int;
+      field "id" (fun t -> t.id) Typeid.pp;
       field "module_name" (fun t -> t.module_name) string;
       field "module_type" (fun t -> t.module_type) Type.pp;
       field "keys" (fun t -> t.keys) (list Key.pp);
@@ -58,9 +58,11 @@ let pp : type a b. b Fmt.t -> (a, b) t Fmt.t =
   in
   record fields ppf t
 
-let equal x y = x.id = y.id
+let equal x y = Typeid.equal x.id y.id
 
-let hash x = x.id
+let witness x y = Typeid.witness x.id y.id
+
+let hash x = Typeid.id x.id
 
 let default_connect _ _ l =
   Printf.sprintf "return (%s)" (String.concat ~sep:", " l)
@@ -80,16 +82,10 @@ let merge_packages = merge [] List.append
 
 let merge_install = merge Install.empty Install.union
 
-let count =
-  let i = ref 0 in
-  fun () ->
-    incr i;
-    !i
-
 let v ?packages ?packages_v ?install ?install_v ?(keys = []) ?(extra_deps = [])
     ?(connect = default_connect) ?(configure = niet) ?files ?(build = niet)
     ?(clean = niet) module_name module_type =
-  let id = count () in
+  let id = Typeid.gen () in
   let packages = merge_packages packages packages_v in
   let install i =
     let aux = function None -> None | Some f -> Some (f i) in
@@ -110,7 +106,7 @@ let v ?packages ?packages_v ?install ?install_v ?(keys = []) ?(extra_deps = [])
     extra_deps;
   }
 
-let id t = t.id
+let id t = Typeid.id t.id
 
 let module_name t = t.module_name
 
@@ -168,3 +164,54 @@ let extend ?packages ?packages_v ?files ?pre_configure ?post_configure
   let build = exec pre_build t.build post_build in
   let clean = exec pre_clean t.clean post_clean in
   { t with packages; files; configure; build; clean }
+
+let nice_name d =
+  module_name d
+  |> String.cuts ~sep:"."
+  |> String.concat ~sep:"_"
+  |> String.Ascii.lowercase
+  |> Misc.Name.ocamlify
+
+type ('a, 'i) device = ('a, 'i) t
+
+module Graph = struct
+  type t =
+    | D : { dev : ('a, _) device; args : t list; deps : t list; id : int } -> t
+
+  type dtree = t
+
+  module IdTbl = Hashtbl.Make (struct
+    type t = dtree
+
+    let hash (D t) = t.id
+
+    let equal (D t1) (D t2) = Int.equal t1.id t2.id
+  end)
+
+  (* We iter in *reversed* topological order. *)
+  let fold f t z =
+    let tbl = IdTbl.create 50 in
+    let state = ref z in
+    let rec aux v =
+      if IdTbl.mem tbl v then ()
+      else
+        let (D { args; deps; _ }) = v in
+        IdTbl.add tbl v ();
+        List.iter aux deps;
+        List.iter aux args;
+        state := f v !state
+    in
+    aux t;
+    !state
+
+  let impl_name (D { dev; args = _; deps = _; id }) =
+    match Type.is_functor (module_type dev) with
+    | false -> module_name dev
+    | true ->
+        let prefix = Astring.String.Ascii.capitalize (nice_name dev) in
+        Fmt.strf "%s__%d" prefix id
+
+  let var_name (D { dev; args = _; deps = _; id }) =
+    let prefix = nice_name dev in
+    Fmt.strf "%s__%i" prefix id
+end

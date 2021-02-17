@@ -13,14 +13,14 @@ let run x = x
 |}
 
 let run ?(keys = []) ?init context device =
-  let t = Graph.create device in
-  let t = Graph.eval ~context t in
+  let t = Impl.abstract device in
   let keys = keys @ Key.Set.elements (Engine.all_keys t) in
   let packages = Key.eval context (Engine.packages t) in
   let info =
     Functoria.Info.v ~packages ~context ~keys ~build_cmd:[ "build"; "me" ]
       ~src:`None "foo"
   in
+  let t = Impl.eval ~context t in
   prelude info >>= fun () ->
   Engine.configure info t >>= fun () ->
   Engine.connect ?init info t >>= fun () -> Engine.build info t

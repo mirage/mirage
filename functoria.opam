@@ -26,7 +26,6 @@ depends: [
   "rresult"
   "astring"
   "fmt"
-  "ocamlgraph"
   "logs"
   "bos"
   "fpath"

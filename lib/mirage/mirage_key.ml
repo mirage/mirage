@@ -52,7 +52,7 @@ module Arg = struct
 
   let ipv6_address = of_module "ipv6_address" "Ipaddr.V6" (module Ipaddr.V6)
 
-  let ipv6 = of_module "ipv6_prefix" "Ipaddr.V6.Prefix" (module Ipaddr.V6.Prefix)
+  let ipv6 = of_module "ipv6" "Ipaddr.V6.Prefix" (module Ipaddr.V6.Prefix)
 
   let ip_address = of_module "ip_address" "Ipaddr" (module Ipaddr)
 end

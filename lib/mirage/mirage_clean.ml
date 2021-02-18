@@ -6,12 +6,8 @@ let clean_binary name suffix = Action.rm Fpath.(v name + suffix)
 
 let clean i =
   let name = Info.name i in
-  Mirage_configure_xen.clean_main_xl ~name ~ext:"xl" >>= fun () ->
-  Mirage_configure_xen.clean_main_xl ~name ~ext:"xl.in" >>= fun () ->
-  Mirage_configure_xen.clean_main_xe ~name >>= fun () ->
-  Mirage_configure_libvirt.clean ~name >>= fun () ->
+  Mirage_target.clean i >>= fun () ->
   Mirage_configure.clean_myocamlbuild () >>= fun () ->
-  Mirage_configure_solo5.clean_manifest () >>= fun () ->
   Action.rm Fpath.(v "main.native.o") >>= fun () ->
   Action.rm Fpath.(v "main.native") >>= fun () ->
   Action.rm Fpath.(v name) >>= fun () ->

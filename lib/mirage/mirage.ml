@@ -364,25 +364,6 @@ module Project = struct
   (* The ocamlfind packages to use when compiling config.ml *)
   let packages = [ package "mirage" ]
 
-  let bin ~name = function
-    | (#Mirage_key.mode_solo5 | #Mirage_key.mode_xen) as tgt ->
-        let ext = Mirage_configure_solo5.bin_extension tgt in
-        let file = Fpath.v (name ^ ext) in
-        (file, file)
-    | #Mirage_key.mode_unix ->
-        (Fpath.((v "_build" / "main") + "native"), Fpath.v name)
-
-  let etc ~name =
-    let libvirt = Mirage_configure_libvirt.filename ~name in
-    function
-    | `Xen -> Fpath.[ v name + "xl"; v name + "xl.in"; libvirt ]
-    | `Virtio -> [ libvirt ]
-    | _ -> []
-
-  let install i k =
-    let name = match Info.output i with None -> Info.name i | Some n -> n in
-    Install.v ~bin:[ bin ~name k ] ~etc:(etc ~name k) ()
-
   let files t = function
     | `Build -> Mirage_build.files t
     | `Configure -> Mirage_configure.files t
@@ -403,25 +384,13 @@ module Project = struct
           package ~build:true "ocamlbuild";
         ]
       in
-      Key.match_ Key.(value target) @@ function
-      | #Mirage_key.mode_unix ->
-          package ~min:"4.0.0" ~max:"5.0.0" "mirage-unix" :: common
-      | #Mirage_key.mode_xen ->
-          (* The Mirage/Xen PVH platform package has different version numbers
-             than Mirage/Solo5, so needs its own case here. *)
-          package ~min:"0.6.0" ~max:"0.7.0" ~libs:[] "solo5-bindings-xen"
-          :: package ~min:"6.0.0" ~max:"7.0.0" "mirage-xen"
-          :: common
-      | #Mirage_key.mode_solo5 as tgt ->
-          package ~min:"0.6.0" ~max:"0.7.0" ~libs:[]
-            (Mirage_configure_solo5.solo5_bindings_pkg tgt)
-          :: package ~min:"0.6.1" ~max:"0.7.0" "mirage-solo5"
-          :: common
+      Key.match_ Key.(value target) @@ fun target ->
+      Mirage_target.packages target @ common
     in
-    let install_v i = Key.match_ Key.(value target) (install i) in
+    let install = Mirage_target.install in
     let extra_deps = List.map dep jobs in
     let connect _ _ _ = "return ()" in
-    impl ~files ~keys ~packages_v ~install_v ~build ~configure ~clean ~connect
+    impl ~files ~keys ~packages_v ~install ~build ~configure ~clean ~connect
       ~extra_deps "Mirage_runtime" job
 end
 

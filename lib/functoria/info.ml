@@ -37,6 +37,8 @@ let opam t = t.opam
 
 let output t = t.output
 
+let get t k = Key.get t.context k
+
 let with_output t output = { t with output = Some output }
 
 let libraries ps =

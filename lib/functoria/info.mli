@@ -36,6 +36,8 @@ val with_output : t -> string -> t
 val libraries : t -> string list
 (** [libraries t] are the direct OCamlfind dependencies. *)
 
+val get : t -> 'a Key.key -> 'a
+
 val package_names : t -> string list
 (** [package_names t] are the opam package dependencies. *)
 

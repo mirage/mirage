@@ -8,7 +8,7 @@ let conduit_connector = Type Conduit_connector
 let pkg = package ~min:"2.2.0" ~max:"3.0.0" "conduit-mirage"
 
 let tcp_conduit_connector = impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = stackv4 @-> conduit_connector
     method name = "tcp_conduit_connector"
     method module_name = "Conduit_mirage.With_tcp"
@@ -19,7 +19,7 @@ let tcp_conduit_connector = impl @@ object
   end
 
 let tls_conduit_connector = impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = conduit_connector
     method name = "tls_conduit_connector"
     method module_name = "Conduit_mirage"

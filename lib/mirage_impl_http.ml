@@ -5,7 +5,7 @@ type http = HTTP
 let http = Type HTTP
 
 let cohttp_server conduit = impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = http
     method name = "http"
     method module_name = "Cohttp_mirage.Server_with_conduit"
@@ -18,7 +18,7 @@ let cohttp_server conduit = impl @@ object
   end
 
 let httpaf_server conduit = impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = http
     method name = "httpaf"
     method module_name = "Httpaf_mirage.Server_with_conduit"

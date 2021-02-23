@@ -6,7 +6,7 @@ type console = CONSOLE
 let console = Type CONSOLE
 
 let console_unix str = impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = console
     val name = Name.ocamlify @@ "console_unix_" ^ str
     method name = name
@@ -17,7 +17,7 @@ let console_unix str = impl @@ object
   end
 
 let console_xen str = impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = console
     val name = Name.ocamlify @@ "console_xen_" ^ str
     method name = name
@@ -28,7 +28,7 @@ let console_xen str = impl @@ object
   end
 
 let console_solo5 str = impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = console
     val name = Name.ocamlify @@ "console_solo5_" ^ str
     method name = name

@@ -22,7 +22,7 @@ val block_of_file : string -> block Functoria.impl
 class block_conf :
   string
   -> object
-       inherit Functoria.base_configurable
+       inherit [block] Functoria.base_configurable
 
        method module_name : string
 

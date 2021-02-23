@@ -8,7 +8,7 @@ type arpv4 = Arpv4
 let arpv4 = Type Arpv4
 
 let arp_conf = object
-  inherit base_configurable
+  inherit [_] base_configurable
   method ty = ethernet @-> time @-> arpv4
   method name = "arp"
   method module_name = "Arp.Make"

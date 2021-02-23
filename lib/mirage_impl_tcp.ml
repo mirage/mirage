@@ -20,7 +20,7 @@ let tcpv4v6 : tcpv4v6 typ = tcp
 
 (* Value restriction ... *)
 let tcp_direct_conf () = object
-  inherit base_configurable
+  inherit [_] base_configurable
   method ty = (ip: 'a ip typ) @-> time @-> mclock @-> random @-> (tcp: 'a tcp typ)
   method name = "tcp"
   method module_name = "Tcp.Flow.Make"
@@ -40,7 +40,7 @@ let direct_tcp
   tcp_direct_func () $ ip $ time $ clock $ random
 
 let tcpv4_socket_conf ipv4_key = object
-  inherit base_configurable
+  inherit [_] base_configurable
   method ty = tcpv4
   val name = Name.create "tcpv4_socket" ~prefix:"tcpv4_socket"
   method name = name
@@ -64,7 +64,7 @@ let socket_tcpv4 ?group ip =
   keyed_socket_tcpv4 @@ Key.V4.network ?group ip
 
 let tcpv6_socket_conf ipv6_key = object
-  inherit base_configurable
+  inherit [_] base_configurable
   method ty = tcpv6
   val name = Name.create "tcpv6_socket" ~prefix:"tcpv4_socket"
   method name = name
@@ -88,7 +88,7 @@ let socket_tcpv6 ?group ip =
   keyed_socket_tcpv6 @@ Key.V6.network ?group ip
 
 let tcpv4v6_socket_conf ~ipv4_only ~ipv6_only ipv4_key ipv6_key = object
-  inherit base_configurable
+  inherit [_] base_configurable
   method ty = tcpv4v6
   val name = Name.create "tcpv4v6_socket" ~prefix:"tcpv4v6_socket"
   method name = name

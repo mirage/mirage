@@ -33,7 +33,7 @@ let xen_block_packages =
 class xenstore_conf id =
   let name = Name.create id ~prefix:"block" in
   object
-    inherit base_configurable
+    inherit [block] base_configurable
     method ty = block
     method name = name
     method module_name = "Block"
@@ -60,7 +60,7 @@ let xenstore_id_of_index number =
 class block_conf file =
   let name = Name.create file ~prefix:"block" in
   object (self)
-    inherit base_configurable
+    inherit [block] base_configurable
     method ty = block
     method name = name
     method module_name = "Block"
@@ -100,7 +100,7 @@ let block_of_file file = impl (new block_conf file)
 
 class ramdisk_conf rname =
   object
-    inherit base_configurable
+    inherit [block] base_configurable
     method ty = block
     method name = "ramdisk"
     method module_name = "Ramdisk"
@@ -132,7 +132,7 @@ let tar_block dir =
   end
 
 let archive_conf = impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = block @-> Mirage_impl_kv.ro
     method name = "archive"
     method module_name = "Tar_mirage.Make_KV_RO"

@@ -13,7 +13,7 @@ let typ = Type FS
 let fat_pkg = package ~min:"0.14.0" ~max:"0.15.0" "fat-filesystem"
 
 let fat_conf = impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = block @-> typ
     method! packages = Mirage_key.pure [ fat_pkg ]
     method name = "fat"
@@ -86,7 +86,7 @@ let fat_of_files ?dir ?regexp () = fat @@ fat_block ?dir ?regexp ()
 
 let kv_ro_of_fs_conf =
   impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = typ @-> Mirage_impl_kv.ro
     method name = "kv_ro_of_fs"
     method module_name = "Mirage_fs.To_KV_RO"

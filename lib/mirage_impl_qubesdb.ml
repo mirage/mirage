@@ -9,7 +9,7 @@ let qubesdb = Type QUBES_DB
 let pkg = package ~min:"0.9.0" ~max:"0.10.0" "mirage-qubes"
 
 let qubesdb_conf = object
-  inherit base_configurable
+  inherit [_] base_configurable
   method ty = qubesdb
   method name = "qubesdb"
   method module_name = "Qubes.DB"

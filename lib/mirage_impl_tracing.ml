@@ -10,7 +10,7 @@ let mprof_trace ~size () =
   let unix_trace_file = "trace.ctf" in
   let key = Key.tracing_size size in
   impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = job
     method name = "mprof_trace"
     method module_name = "MProf"

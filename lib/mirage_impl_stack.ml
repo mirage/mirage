@@ -18,7 +18,7 @@ let stackv4 = Type STACKV4
 let add_suffix s ~suffix = if suffix = "" then s else s^"_"^suffix
 
 let stackv4_direct_conf ?(group="") () = impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty =
       time @-> random @-> network @->
       ethernet @-> arpv4 @-> ipv4 @-> Mirage_impl_icmp.icmpv4 @-> udpv4 @-> tcpv4 @->
@@ -76,7 +76,7 @@ let qubes_ipv4_stack ?group ?(qubesdb = default_qubesdb) ?(arp = arp ?time:None)
   direct_stackv4 ?group tap e a i
 
 let socket_stackv4 ?(group="") () = impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = stackv4
     val name = add_suffix "stackv4_socket" ~suffix:group
     val key = Key.V4.network ~group Ipaddr.V4.Prefix.global
@@ -119,7 +119,7 @@ type stackv6 = STACKV6
 let stackv6 = Type STACKV6
 
 let stackv6_direct_conf ?(group="") () = impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty =
       time @-> random @-> network @->
       ethernet @-> ipv6 @-> udpv6 @-> tcpv6 @->
@@ -154,7 +154,7 @@ let static_ipv6_stack ?group ?config tap =
   direct_stackv6 ?group tap e i
 
 let socket_stackv6 ?(group="") () = impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = stackv6
     val name = add_suffix "stackv6_socket" ~suffix:group
     val key = Key.V6.network ~group None
@@ -192,7 +192,7 @@ type stackv4v6 = STACKV4V6
 let stackv4v6 = Type STACKV4V6
 
 let stackv4v6_direct_conf ?(group="") () = impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty =
       time @-> random @-> network @->
       ethernet @-> arpv4 @-> ipv4v6 @-> Mirage_impl_icmp.icmpv4 @->
@@ -262,7 +262,7 @@ let generic_ipv4v6_stack
   direct_stackv4v6 ?group ~ipv4_only ~ipv6_only tap e a i4 i6
 
 let socket_stackv4v6 ?(group="") () = impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = stackv4v6
     val name = add_suffix "stackv4v6_socket" ~suffix:group
     val v4key = Key.V4.network ~group Ipaddr.V4.Prefix.global

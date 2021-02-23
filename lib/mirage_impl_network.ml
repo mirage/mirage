@@ -9,7 +9,7 @@ let all_networks = ref []
 let network_conf (intf : string Key.key) =
   let key = Key.abstract intf in
   object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = network
     val name = Functoria_app.Name.create "net" ~prefix:"net"
     method name = name

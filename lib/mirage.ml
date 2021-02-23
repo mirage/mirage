@@ -232,7 +232,7 @@ module Project = struct
   let ignore_dirs = Mirage_build.ignore_dirs
 
   let create jobs = impl @@ object
-      inherit base_configurable
+      inherit [_] base_configurable
       method ty = job
       method name = "mirage"
       method module_name = "Mirage_runtime"
@@ -281,7 +281,7 @@ end
 include Functoria_app.Make (Project)
 
 let backtrace = impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = job
     method name = "ocaml_backtrace"
     method module_name = "Printexc"
@@ -292,7 +292,7 @@ let backtrace = impl @@ object
   end
 
 let randomize_hashtables = impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = job
     method name = "ocaml_hashtable_randomize"
     method module_name = "Hashtbl"
@@ -313,7 +313,7 @@ let gc_control =
            (suffix (unit m_body) (prefix (unit "(match ") Mirage_impl_misc.pp_key)))
   in
   impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = job
     method name = "ocaml_gc_control"
     method module_name = "Gc"

@@ -18,7 +18,7 @@ let udpv4v6: udpv4v6 typ = udp
 
 (* Value restriction ... *)
 let udp_direct_conf () = object
-  inherit base_configurable
+  inherit [_] base_configurable
   method ty = (ip: 'a ip typ) @-> random @-> (udp: 'a udp typ)
   method name = "udp"
   method module_name = "Udp.Make"
@@ -33,7 +33,7 @@ let udp_direct_func () = impl (udp_direct_conf ())
 let direct_udp ?(random=default_random) ip = udp_direct_func () $ ip $ random
 
 let udpv4_socket_conf ipv4_key = object
-  inherit base_configurable
+  inherit [_] base_configurable
   method ty = udpv4
   val name = Name.create "udpv4_socket" ~prefix:"udpv4_socket"
   method name = name
@@ -58,7 +58,7 @@ let socket_udpv4 ?group ip =
   keyed_socket_udpv4 @@ Key.V4.network ?group ip
 
 let udpv6_socket_conf ipv6_key = object
-  inherit base_configurable
+  inherit [_] base_configurable
   method ty = udpv6
   val name = Name.create "udpv6_socket" ~prefix:"udpv6_socket"
   method name = name
@@ -83,7 +83,7 @@ let socket_udpv6 ?group ip =
   keyed_socket_udpv6 @@ Key.V6.network ?group ip
 
 let udpv4v6_socket_conf ~ipv4_only ~ipv6_only ipv4_key ipv6_key = object
-  inherit base_configurable
+  inherit [_] base_configurable
   method ty = udpv4v6
   val name = Name.create "udpv4v6_socket" ~prefix:"udpv4v6_socket"
   method name = name

@@ -5,7 +5,7 @@ type conduit = Conduit
 let conduit = Type Conduit
 
 let conduit_with_connectors connectors = impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = conduit
     method name = Functoria_app.Name.create "conduit" ~prefix:"conduit"
     method module_name = "Conduit_mirage"

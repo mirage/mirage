@@ -8,7 +8,7 @@ type ro = RO
 let ro = Type RO
 
 let crunch dirname = impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = ro
     val name = Name.create ("static" ^ dirname) ~prefix:"static"
     method name = name
@@ -34,7 +34,7 @@ let crunch dirname = impl @@ object
   end
 
 let direct_kv_ro dirname = impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = ro
     val name = Name.create ("direct-kv-ro-" ^ dirname) ~prefix:"direct"
     method name = name
@@ -61,7 +61,7 @@ type rw = RW
 let rw = Type RW
 
 let direct_kv_rw dirname = impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = rw
     val name = Name.create ("direct-kv-rw-" ^ dirname) ~prefix:"direct"
     method name = name
@@ -74,7 +74,7 @@ let direct_kv_rw dirname = impl @@ object
   end
 
 let mem_kv_rw_config = impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = Mirage_impl_pclock.pclock @-> rw
     method name = "mirage-kv-mem"
     method module_name = "Mirage_kv_mem.Make"

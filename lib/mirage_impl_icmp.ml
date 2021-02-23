@@ -9,7 +9,7 @@ let icmp = Type ICMP
 let icmpv4: icmpv4 typ = icmp
 
 let icmpv4_direct_conf () = object
-  inherit base_configurable
+  inherit [_] base_configurable
   method ty : ('a ip -> 'a icmp) typ = ip @-> icmp
   method name = "icmpv4"
   method module_name = "Icmpv4.Make"

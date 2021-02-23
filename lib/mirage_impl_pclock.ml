@@ -4,7 +4,7 @@ type pclock = PCLOCK
 let pclock = Type PCLOCK
 
 let posix_clock_conf = object
-  inherit base_configurable
+  inherit [_] base_configurable
   method ty = pclock
   method name = "pclock"
   method module_name = "Pclock"

@@ -11,7 +11,7 @@ type resolver = Resolver
 let resolver = Type Resolver
 
 let resolver_unix_system = impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = resolver
     method name = "resolver_unix"
     method module_name = "Resolver_lwt"
@@ -28,7 +28,7 @@ let resolver_unix_system = impl @@ object
   end
 
 let resolver_dns_conf ~ns ~ns_port = impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = random @-> time @-> mclock @-> stackv4 @-> resolver
     method name = "resolver"
     method module_name = "Resolver_mirage.Make_with_stack"

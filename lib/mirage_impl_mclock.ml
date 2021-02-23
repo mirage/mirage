@@ -4,7 +4,7 @@ type mclock = MCLOCK
 let mclock = Type MCLOCK
 
 let monotonic_clock_conf = object
-  inherit base_configurable
+  inherit [_] base_configurable
   method ty = mclock
   method name = "mclock"
   method module_name = "Mclock"

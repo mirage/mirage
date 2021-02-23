@@ -40,7 +40,7 @@ let syslog_udp_conf config =
   and hostname = Key.syslog_hostname config.hostname
   in
   impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = console @-> pclock @-> stackv4v6 @-> syslog
     method name = "udp_syslog"
     method module_name = "Logs_syslog_mirage.Udp"
@@ -77,7 +77,7 @@ let syslog_tcp_conf config =
   and hostname = Key.syslog_hostname config.hostname
   in
   impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = console @-> pclock @-> stackv4v6 @-> syslog
     method name = "tcp_syslog"
     method module_name = "Logs_syslog_mirage.Tcp"
@@ -112,7 +112,7 @@ let syslog_tls_conf ?keyname config =
   and hostname = Key.syslog_hostname config.hostname
   in
   impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = console @-> pclock @-> stackv4v6 @-> Mirage_impl_kv.ro @-> syslog
     method name = "tls_syslog"
     method module_name = "Logs_syslog_mirage_tls.Tls"

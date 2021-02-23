@@ -16,7 +16,7 @@ let pp_level ppf = function
 let mirage_log ?ring_size ~default =
   let logs = Key.logs in
   impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = pclock @-> reporter
     method name = "mirage_logs"
     method module_name = "Mirage_logs.Make"
@@ -45,7 +45,7 @@ let default_reporter
   mirage_log ?ring_size ~default:level $ clock
 
 let no_reporter = impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = reporter
     method name = "no_reporter"
     method module_name = "Mirage_runtime"

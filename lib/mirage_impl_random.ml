@@ -6,7 +6,7 @@ type random = RANDOM
 let random = Type RANDOM
 
 let random_conf = object
-  inherit base_configurable
+  inherit [_] base_configurable
   method ty = time @-> mclock @-> random
   method name = "random"
   method module_name = "Mirage_crypto_rng_mirage.Make"

@@ -7,7 +7,7 @@ type ethernet = ETHERNET
 let ethernet = Type ETHERNET
 
 let ethernet_conf = object
-  inherit base_configurable
+  inherit [_] base_configurable
   method ty = network @-> ethernet
   method name = "ethernet"
   method module_name = "Ethernet.Make"

@@ -45,7 +45,7 @@ let right_tcpip_library ?ocamlfind ~sublibs pkg =
     [ package ~min ~max ?ocamlfind ~sublibs pkg ]
 
 let ipv4_keyed_conf ~ip ?gateway ?no_init () = impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = random @-> mclock @-> ethernet @-> arpv4 @-> ipv4
     method name = Name.create "ipv4" ~prefix:"ipv4"
     method module_name = "Static_ipv4.Make"
@@ -64,7 +64,7 @@ let ipv4_keyed_conf ~ip ?gateway ?no_init () = impl @@ object
   end
 
 let ipv4_dhcp_conf = impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = random @-> mclock @-> time @-> network @-> ethernet @-> arpv4 @-> ipv4
     method name = Name.create "dhcp_ipv4" ~prefix:"dhcp_ipv4"
     method module_name = "Dhcp_ipv4.Make"
@@ -103,7 +103,7 @@ type ipv6_config = {
 (** Types for IP manual configuration. *)
 
 let ipv4_qubes_conf = impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = qubesdb @-> random @-> mclock @-> ethernet @-> arpv4 @-> ipv4
     method name = Name.create "qubes_ipv4" ~prefix:"qubes_ipv4"
     method module_name = "Qubesdb_ipv4.Make"
@@ -121,7 +121,7 @@ let ipv4_qubes
   ipv4_qubes_conf $ db $ random $ clock $ ethernet $ arp
 
 let ipv6_conf ?ip ?gateway ?handle_ra ?no_init () = impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = network @-> ethernet @-> random @-> time @-> mclock @-> ipv6
     method name = Name.create "ipv6" ~prefix:"ipv6"
     method module_name = "Ipv6.Make"
@@ -156,7 +156,7 @@ let create_ipv6
   ipv6_conf ~ip ~gateway ~handle_ra ?no_init () $ netif $ etif $ random $ time $ clock
 
 let ipv4v6_conf ?ipv4_only ?ipv6_only () = impl @@ object
-    inherit base_configurable
+    inherit [_] base_configurable
     method ty = ipv4 @-> ipv6 @-> ipv4v6
     method name = Name.create "ipv4v6" ~prefix:"ipv4v6"
     method module_name = "Tcpip_stack_direct.IPV4V6"

@@ -18,6 +18,7 @@ depends:   [
   "ocaml" {>= "4.08.0"}
   "dune" {>= "2.0.0"}
   "mirage-types" {= version}
+  "alcotest" {with-test}
 ]
 
 synopsis: "Lwt module type definitions for MirageOS applications"

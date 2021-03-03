@@ -27,6 +27,7 @@ depends: [
   "stdlib-shims"
   "mirage-runtime"     {>= "3.10.0" & <= version}
   "alcotest" {with-test}
+  "fmt" {with-test}
 ]
 synopsis: "The MirageOS library operating system"
 description: """

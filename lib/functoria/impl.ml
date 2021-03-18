@@ -151,11 +151,11 @@ let rec equal : type t1 t2. t1 t -> t2 t -> (t1, t2) Typeid.witness =
           equal_tl c.args c'.args (Device.witness c.dev c'.dev) )
       with
       | true, Eq -> Eq
-      | _ -> NotEq )
+      | _ -> NotEq)
   | App a, App b -> (
       match equal_tl a.args b.args (equal a.f b.f) with
       | Eq -> Eq
-      | NotEq -> NotEq )
+      | NotEq -> NotEq)
   | If x1, If x2 -> (
       match
         ( equal x1.default x2.default,
@@ -166,7 +166,7 @@ let rec equal : type t1 t2. t1 t -> t2 t -> (t1, t2) Typeid.witness =
             x1.branches x2.branches )
       with
       | Eq, true, true -> Eq
-      | _ -> NotEq )
+      | _ -> NotEq)
   | _ -> NotEq
 
 and equal_abstract (Abstract x) (Abstract y) = Typeid.to_bool @@ equal x y
@@ -181,7 +181,7 @@ and equal_tl :
   match (x, y, eq) with
   | Nil, Nil, Eq -> Eq
   | Cons (h1, t1), Cons (h2, t2), Eq -> (
-      match (equal h1 h2, equal_tl t1 t2 Eq) with Eq, Eq -> Eq | _ -> NotEq )
+      match (equal h1 h2, equal_tl t1 t2 Eq) with Eq, Eq -> Eq | _ -> NotEq)
   | _ -> NotEq
 
 module Tbl = Hashtbl.Make (struct

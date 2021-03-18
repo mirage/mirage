@@ -25,7 +25,7 @@ let stackv4_direct_conf () =
     | _ -> failwith (connect_err "direct stackv4" 9)
   in
   impl ~packages_v ~connect "Tcpip_stack_direct.Make"
-    ( time
+    (time
     @-> random
     @-> network
     @-> ethernet
@@ -34,7 +34,7 @@ let stackv4_direct_conf () =
     @-> Mirage_impl_icmp.icmpv4
     @-> udpv4
     @-> tcpv4
-    @-> stackv4 )
+    @-> stackv4)
 
 let direct_stackv4 ?(mclock = default_monotonic_clock) ?(time = default_time)
     ?(random = rng ~time ~mclock ()) network eth arp ip =
@@ -124,14 +124,14 @@ let stackv6_direct_conf () =
     | _ -> failwith (connect_err "direct stackv6" 9)
   in
   impl ~packages_v ~connect "Tcpip_stack_direct.MakeV6"
-    ( time
+    (time
     @-> random
     @-> network
     @-> ethernet
     @-> ipv6
     @-> udpv6
     @-> tcpv6
-    @-> stackv6 )
+    @-> stackv6)
 
 let direct_stackv6 ?(mclock = default_monotonic_clock)
     ?(random = default_random) ?(time = default_time) network eth ip =
@@ -191,7 +191,7 @@ let stackv4v6_direct_conf () =
     | _ -> failwith (connect_err "direct stack" 8)
   in
   impl ~packages_v ~connect "Tcpip_stack_direct.MakeV4V6"
-    ( time
+    (time
     @-> random
     @-> network
     @-> ethernet
@@ -200,7 +200,7 @@ let stackv4v6_direct_conf () =
     @-> Mirage_impl_icmp.icmpv4
     @-> udp
     @-> tcp
-    @-> stackv4v6 )
+    @-> stackv4v6)
 
 let direct_stackv4v6 ?(mclock = default_monotonic_clock)
     ?(random = default_random) ?(time = default_time) ~ipv4_only ~ipv6_only

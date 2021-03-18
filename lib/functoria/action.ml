@@ -168,7 +168,7 @@ let rec interpret_command : type r. r command -> r or_err = function
       Log.debug (fun l -> l "size-of %a" Fpath.pp path);
       match Bos.OS.Path.stat path with
       | Ok s -> Ok (Some s.Unix.st_size)
-      | _ -> Ok None )
+      | _ -> Ok None)
   | Run_cmd cmd -> Rresult.(interpret_cmd cmd >>| fun _ -> ())
   | Run_cmd_out cmd -> interpret_cmd cmd
   | Set_var (c, v) ->
@@ -215,7 +215,7 @@ let rec interpret_command : type r. r command -> r or_err = function
         Ok r
       with e ->
         Rresult.R.error_msgf "couldn't open output channel for %s: %a" purpose
-          Fmt.exn e )
+          Fmt.exn e)
 
 and run : type r. r t -> r or_err = function
   | Done r -> Ok r
@@ -393,7 +393,7 @@ end = struct
           t.files []
         |> function
         | [] -> None
-        | x -> Some (List.rev x) )
+        | x -> Some (List.rev x))
 
   let write t path f =
     let path = mk_path t path in
@@ -497,7 +497,7 @@ let rec interpret_dry : type r. env:Env.t -> r command -> r domain =
       | None ->
           dom
             (error_msg "a file named '%a' already exists" Fpath.pp path)
-            env [ log "error" ] )
+            env [ log "error" ])
   | Rmdir path ->
       Log.debug (fun l -> l "Rmdir %a" Fpath.pp path);
       let log s = Fmt.str "Rmdir %a (%s)" Fpath.pp path s in
@@ -516,7 +516,7 @@ let rec interpret_dry : type r. env:Env.t -> r command -> r domain =
           match List.filter filter es with
           | ([] | [ _ ]) as e ->
               dom (Ok e) env [ logs "%d entry" (List.length e) ]
-          | es -> dom (Ok es) env [ logs "%d entries" (List.length es) ] ) )
+          | es -> dom (Ok es) env [ logs "%d entries" (List.length es) ]))
   | Rm path -> (
       Log.debug (fun l -> l "Rm %a" Fpath.pp path);
       let log s = Fmt.str "Rm %a (%s)" Fpath.pp path s in
@@ -524,8 +524,7 @@ let rec interpret_dry : type r. env:Env.t -> r command -> r domain =
       | Some (env, b) ->
           dom (Ok ()) env [ log (if b then "removed" else "no-op") ]
       | None ->
-          dom (error_msg "%a is a directory" Fpath.pp path) env [ log "error" ]
-      )
+          dom (error_msg "%a is a directory" Fpath.pp path) env [ log "error" ])
   | Is_file path ->
       Log.debug (fun l -> l "Is_file %a" Fpath.pp path);
       let r = Env.is_file env path in
@@ -547,7 +546,7 @@ let rec interpret_dry : type r. env:Env.t -> r command -> r domain =
       let domain = interpret_dry_cmd env cmd in
       match domain.result with
       | Ok _ -> { domain with result = Ok () }
-      | Error _ as r -> { domain with result = r } )
+      | Error _ as r -> { domain with result = r })
   | Run_cmd_out cmd -> interpret_dry_cmd env cmd
   | Write_file (path, s) ->
       Log.debug (fun l -> l "Write_file %a" Fpath.pp path);
@@ -563,7 +562,7 @@ let rec interpret_dry : type r. env:Env.t -> r command -> r domain =
           let log =
             Fmt.str "Read %a (%d bytes)" Fpath.pp path (String.length r)
           in
-          dom (Ok r) env [ log ] )
+          dom (Ok r) env [ log ])
   | Tmp_file (_, pat) ->
       Log.debug (fun l -> l "Tmp_file %s" Fmt.(str pat "*"));
       let r = Env.tmp_file env pat in
@@ -631,7 +630,7 @@ and dry_run : type r. env:Env.t -> r t -> r domain =
         let new_log = List.rev domain.logs @ log in
         match domain.result with
         | Ok x -> go (k x) ~env:domain.env new_log
-        | Error _ as e -> dom e domain.env new_log )
+        | Error _ as e -> dom e domain.env new_log)
   in
   let domain = go t ~env [] in
   { domain with logs = List.rev domain.logs }

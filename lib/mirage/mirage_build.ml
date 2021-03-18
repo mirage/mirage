@@ -75,11 +75,11 @@ let build i =
   let libs = Info.libraries i in
   let target_debug = Key.(get ctx target_debug) in
   compile ignore_dirs libs warn_error target >>= fun () ->
-  ( match target with
+  (match target with
   | #Mirage_key.mode_solo5 | #Mirage_key.mode_xen ->
       Mirage_configure_solo5.generate_manifest_c () >>= fun () ->
       Mirage_configure_solo5.compile_manifest target
-  | _ -> Action.ok () )
+  | _ -> Action.ok ())
   >>= fun () ->
   link i name target target_debug >|= fun out ->
   Log.info (fun m -> m "Build succeeded: %s" out)

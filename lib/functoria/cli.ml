@@ -357,7 +357,7 @@ module Subcommands = struct
           | `Ok t when t = "topics" ->
               List.iter print_endline cmds;
               `Ok ()
-          | `Ok t -> `Help (man_format, Some t) )
+          | `Ok t -> `Help (man_format, Some t))
     in
     ( Term.(
         const (fun args _ _ () -> Help args)
@@ -469,7 +469,7 @@ let rec find_next_kind argv i =
           Fmt.invalid_arg "ambiguous sub-command: %a\n%!"
             Fmt.Dump.(list string)
             (List.map fst cs)
-      | [ (_, k) ] -> (Some k, remove_argv argv i) )
+      | [ (_, k) ] -> (Some k, remove_argv argv i))
 
 let rec find_next_choice argv i =
   match next_pos_arg argv i with
@@ -487,7 +487,7 @@ let rec find_next_choice argv i =
               (Some c, remove_argv argv i)
           | `Query ->
               let k, argv = find_next_kind argv (i + 1) in
-              (Some (`Query k), remove_argv argv i) ) )
+              (Some (`Query k), remove_argv argv i)))
 
 let peek_choice argv =
   try match find_next_choice argv 1 with Some c, _ -> `Ok c | _ -> `Default

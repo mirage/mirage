@@ -14,7 +14,7 @@ let pp_level ppf = function
   | Logs.Debug -> Fmt.string ppf "Logs.Debug"
   | Logs.App -> Fmt.string ppf "Logs.App"
 
-let mirage_log ?ring_size ~default =
+let mirage_log ?ring_size ~default () =
   let logs = Key.logs in
   let packages = [ package ~min:"1.2.0" ~max:"2.0.0" "mirage-logs" ] in
   let keys = [ Key.v logs ] in
@@ -32,7 +32,7 @@ let mirage_log ?ring_size ~default =
 
 let default_reporter ?(clock = default_posix_clock) ?ring_size
     ?(level = Logs.Info) () =
-  mirage_log ?ring_size ~default:level $ clock
+  mirage_log ?ring_size ~default:level () $ clock
 
 let no_reporter =
   let connect _ _ _ = "assert false" in

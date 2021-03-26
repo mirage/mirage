@@ -2,7 +2,6 @@ open Functoria
 open Action.Infix
 open Astring
 open Mirage_impl_misc
-open Mirage_link
 module Key = Mirage_key
 module Info = Functoria.Info
 
@@ -17,20 +16,12 @@ let compile ignore_dirs libs warn_error target =
       "safe_string";
     ]
     @ (if warn_error then [ "warn_error(+1..49)" ] else [])
-    @ (match target with `MacOSX | `Unix -> [ "thread" ] | _ -> [])
+    @ Mirage_target.ocamlbuild_tags target
     @ if terminal () then [ "color(always)" ] else []
-  and result =
-    match target with
-    | #Mirage_key.mode_unix -> "main.native"
-    | #Mirage_key.mode_xen | #Mirage_key.mode_solo5 -> "main.native.o"
+  and result = Mirage_target.result target
   and cflags = [ "-g" ]
   and lflags =
-    let dontlink =
-      match target with
-      | #Mirage_key.mode_xen | #Mirage_key.mode_solo5 ->
-          [ "unix"; "str"; "num"; "threads" ]
-      | #Mirage_key.mode_unix -> []
-    in
+    let dontlink = Mirage_target.dontlink target in
     let dont = List.map (fun k -> [ "-dontlink"; k ]) dontlink in
     "-g" :: List.flatten dont
   in
@@ -73,20 +64,12 @@ let build i =
   let warn_error = Key.(get ctx warn_error) in
   let target = Key.(get ctx target) in
   let libs = Info.libraries i in
-  let target_debug = Key.(get ctx target_debug) in
   compile ignore_dirs libs warn_error target >>= fun () ->
-  ( match target with
-  | #Mirage_key.mode_solo5 | #Mirage_key.mode_xen ->
-      Mirage_configure_solo5.generate_manifest_c () >>= fun () ->
-      Mirage_configure_solo5.compile_manifest target
-  | _ -> Action.ok () )
-  >>= fun () ->
-  link i name target target_debug >|= fun out ->
+  Mirage_target.build i >>= fun () ->
+  Mirage_target.link ~name i >|= fun out ->
   Log.info (fun m -> m "Build succeeded: %s" out)
 
 let files i =
   let ctx = Info.context i in
   let target = Key.(get ctx target) in
-  match target with
-  | #Mirage_key.mode_unix -> [ Fpath.v "main.native" ]
-  | #Mirage_key.mode_xen | #Mirage_key.mode_solo5 -> [ Fpath.v "main.native.o" ]
+  [ Fpath.v (Mirage_target.result target) ]

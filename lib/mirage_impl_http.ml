@@ -16,7 +16,7 @@ let cohttp_server = impl @@ object
     method name = "http"
     method module_name = "Cohttp_mirage.Server.Make"
     method! packages =
-      Mirage_key.pure [ package ~min:"3.0.0" ~max:"4.0.0" "cohttp-mirage" ]
+      Mirage_key.pure [ package ~min:"4.0.0" ~max:"5.0.0" "cohttp-mirage" ]
     method! connect _i modname = function
       | [ conduit ] -> Fmt.strf "Lwt.return (%s.listen %s)" modname conduit
       | _ -> failwith (connect_err "http" 1)
@@ -30,7 +30,7 @@ let cohttp_client = impl @@ object
     method name = "http_client"
     method module_name = "Cohttp_mirage.Client.Make"
     method! packages =
-      Mirage_key.pure [ package ~min:"3.0.0" ~max:"4.0.0" "cohttp-mirage" ]
+      Mirage_key.pure [ package ~min:"4.0.0" ~max:"5.0.0" "cohttp-mirage" ]
     method! connect _i modname = function
       | [ _pclock; resolver; conduit ] ->
          Fmt.strf "Lwt.return (%s.ctx %s %s)" modname resolver conduit

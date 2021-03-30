@@ -1,8 +1,13 @@
+open Functoria
+
 type conduit
 
-val conduit : conduit Functoria.typ
+val pkg : package
+
+val conduit : conduit typ
 
 val conduit_direct :
-     ?tls:bool
-  -> Mirage_impl_stack.stackv4 Functoria.impl
-  -> conduit Functoria.impl
+  ?tls:bool ->
+  ?random:Mirage_impl_random.random impl
+  -> Mirage_impl_stack.stackv4 impl
+  -> conduit impl

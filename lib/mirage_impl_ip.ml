@@ -37,12 +37,8 @@ let (@??) x y = opt_map Key.abstract x @? y
 
 (* convenience function for linking tcpip.unix for checksums *)
 let right_tcpip_library ?ocamlfind ~sublibs pkg =
-  let min = "6.0.0" and max = "7.0.0" in
-  Key.match_ Key.(value target) @@ function
-  | #Mirage_key.mode_unix ->
-    [ package ~min ~max ?ocamlfind ~sublibs:("unix"::sublibs) pkg ]
-  | #Mirage_key.mode_xen | #Mirage_key.mode_solo5 ->
-    [ package ~min ~max ?ocamlfind ~sublibs pkg ]
+  let min = "6.1.0" and max = "7.0.0" in
+  [ package ~min ~max ?ocamlfind ~sublibs pkg ]
 
 let ipv4_keyed_conf ~ip ?gateway ?no_init () = impl @@ object
     inherit base_configurable

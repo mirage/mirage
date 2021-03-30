@@ -2,6 +2,7 @@
 
 * Adapt to conduit 2.3 and cohttp 4.0 (@samoht @dinosaure #1209)
 * Allow mirage-crypto-rng-mirage 0.9 (@hannesm #1218)
+* Adapt to tcpip 6.1.0 release (the unix sublibrary is no longer needed)
 
 ### v3.10.1 (2020-12-04)
 

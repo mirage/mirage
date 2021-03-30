@@ -13,7 +13,7 @@ let random_conf = object
   method! keys = [ Mirage_key.(abstract prng) ]
   method! packages =
     Mirage_key.pure [
-      package ~min:"0.8.0" ~max:"0.9.0" "mirage-crypto-rng-mirage"
+      package ~min:"0.8.0" ~max:"0.10.0" "mirage-crypto-rng-mirage"
     ]
   method! connect _i modname _ =
     (* here we could use the boot argument (--prng) to select the RNG! *)

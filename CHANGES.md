@@ -1,3 +1,8 @@
+### v3.10.2 (2021-03-30)
+
+* Adapt to conduit 2.3 and cohttp 4.0 (@samoht @dinosaure #1209)
+* Allow mirage-crypto-rng-mirage 0.9 (@hannesm #1218)
+
 ### v3.10.1 (2020-12-04)
 
 * Fix serialising of Mirage_key.Arg.ip_address: remove superfluous '.'

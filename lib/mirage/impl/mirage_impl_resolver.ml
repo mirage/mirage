@@ -44,7 +44,7 @@ let resolver_dns_conf ~ns ~ns_port =
     (random @-> time @-> mclock @-> stackv4 @-> resolver)
 
 let resolver_dns ?ns ?ns_port ?(time = default_time)
-    ?(mclock = default_monotonic_clock) ?(random = rng ~time ~mclock ()) stack =
+    ?(mclock = default_monotonic_clock) ?(random = default_random) stack =
   let ns = Key.resolver ?default:ns ()
   and ns_port = Key.resolver_port ?default:ns_port () in
   resolver_dns_conf ~ns ~ns_port $ random $ time $ mclock $ stack

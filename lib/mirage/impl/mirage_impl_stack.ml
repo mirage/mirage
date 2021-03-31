@@ -37,7 +37,7 @@ let stackv4_direct_conf () =
     @-> stackv4 )
 
 let direct_stackv4 ?(mclock = default_monotonic_clock) ?(time = default_time)
-    ?(random = rng ~time ~mclock ()) network eth arp ip =
+    ?(random = default_random) network eth arp ip =
   stackv4_direct_conf ()
   $ time
   $ random

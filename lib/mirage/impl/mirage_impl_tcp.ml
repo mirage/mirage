@@ -33,7 +33,7 @@ let tcp_direct_func () =
     (ip @-> time @-> mclock @-> random @-> tcp)
 
 let direct_tcp ?(mclock = default_monotonic_clock) ?(time = default_time)
-    ?(random = rng ~time ~mclock ()) ip =
+    ?(random = default_random) ip =
   tcp_direct_func () $ ip $ time $ mclock $ random
 
 let tcpv4_socket_conf ipv4_key =

@@ -1,5 +1,5 @@
 open Functoria
-open Action.Infix
+open Action.Syntax
 open Astring
 module Key = Mirage_key
 
@@ -19,14 +19,14 @@ let crunch dirname =
   let build _i =
     let dir = Fpath.(v dirname) in
     let file = Fpath.(v (String.Ascii.lowercase name) + "ml") in
-    Action.is_dir dir >>= function
-    | true ->
-        Mirage_impl_misc.Log.info (fun m -> m "Generating: %a" Fpath.pp file);
-        Action.run_cmd Bos.Cmd.(v "ocaml-crunch" % "-o" % p file % p dir)
-    | false -> Action.errorf "The directory %s does not exist." dirname
+    let* is_dir = Action.is_dir dir in
+    if is_dir then (
+      Mirage_impl_misc.Log.info (fun m -> m "Generating: %a" Fpath.pp file);
+      Action.run_cmd Bos.Cmd.(v "ocaml-crunch" % "-o" % p file % p dir) )
+    else Action.errorf "The directory %s does not exist." dirname
   in
   let clean _i =
-    Action.rm Fpath.(v name + "ml") >>= fun () ->
+    let* () = Action.rm Fpath.(v name + "ml") in
     Action.rm Fpath.(v name + "mli")
   in
   impl ~packages ~connect ~build ~clean name ro

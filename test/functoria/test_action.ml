@@ -1,5 +1,5 @@
 open Functoria
-open Action.Infix
+open Action.Syntax
 
 let pp_unit ppf () = Fmt.string ppf "()"
 
@@ -23,7 +23,8 @@ let test_bind () =
   let got =
     Action.dry_run
       ~env:![ (path, file); (other_path, file) ]
-      (Action.rm path >>= fun () -> Action.rm other_path)
+      (let* () = Action.rm path in
+       Action.rm other_path)
   in
   Alcotest.check (domain pp_unit) "sequence"
     (dom (Ok ()) ![] [ "Rm path (removed)"; "Rm other_path (removed)" ])
@@ -32,7 +33,8 @@ let test_bind () =
   let got =
     Action.dry_run
       ~env:![ (other_path, dir) ]
-      (Action.rm path >>= fun () -> Action.rm other_path)
+      (let* () = Action.rm path in
+       Action.rm other_path)
   in
   Alcotest.check (domain pp_unit) "sequence after error"
     (dom
@@ -44,9 +46,9 @@ let test_bind () =
   let got =
     let value = 5 in
     Action.dry_run ~env:![]
-      ( Action.ok value >>= fun got_value ->
-        Alcotest.check Alcotest.int "value matches" value got_value;
-        Action.ok () )
+      (let* got_value = Action.ok value in
+       Alcotest.check Alcotest.int "value matches" value got_value;
+       Action.ok ())
   in
   Alcotest.check (domain pp_unit) "bind passes the correct value to caller code"
     (dom (Ok ()) ![] []) got
@@ -70,9 +72,11 @@ let test_seq () =
     Action.
       [
         write_file path "";
-        is_file path >|= test_file true;
+        (let+ is_file = is_file path in
+         test_file true is_file);
         rm path;
-        is_file path >|= test_file false;
+        (let+ is_file = is_file path in
+         test_file false is_file);
       ]
 
 let test_rm () =

@@ -1,5 +1,5 @@
 open Functoria
-open Action.Infix
+open Action.Syntax
 
 let prelude i =
   Action.with_output ~path:(Info.main i) ~purpose:"init tests" @@ fun ppf ->
@@ -21,6 +21,7 @@ let run ?(keys = []) ?init context device =
       ~src:`None "foo"
   in
   let t = Impl.eval ~context t in
-  prelude info >>= fun () ->
-  Engine.configure info t >>= fun () ->
-  Engine.connect ?init info t >>= fun () -> Engine.build info t
+  let* () = prelude info in
+  let* () = Engine.configure info t in
+  let* () = Engine.connect ?init info t in
+  Engine.build info t

@@ -1,5 +1,5 @@
 open Functoria
-open Action.Infix
+open Action.Syntax
 
 type t = [ `Unix | `MacOSX ]
 
@@ -15,7 +15,8 @@ let build _ = Action.ok ()
 
 let link ~name _ =
   let link = Bos.Cmd.(v "ln" % "-nfs" % "_build/main.native" % name) in
-  Action.run_cmd link >|= fun () -> name
+  let+ () = Action.run_cmd link in
+  name
 
 let install i =
   let name = match Info.output i with None -> Info.name i | Some n -> n in

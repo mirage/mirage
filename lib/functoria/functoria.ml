@@ -16,6 +16,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+open Action.Syntax
 open Astring
 module Key = Key
 module Package = Package
@@ -67,8 +68,6 @@ let argv = Argv.argv
 
 (* Info device *)
 
-open Action.Infix
-
 let src = Logs.Src.create "functoria" ~doc:"functoria library"
 
 module Log = (val Logs.src_log src : Logs.LOG)
@@ -114,7 +113,7 @@ let default_opam_deps pkgs =
       % "--columns"
       % "name,version")
   in
-  Action.run_cmd_out cmd >>= fun deps ->
+  let* deps = Action.run_cmd_out cmd in
   let deps = String.cuts ~empty:false ~sep:"\n" deps in
   let deps =
     List.fold_left
@@ -139,12 +138,11 @@ let app_info ?(runtime_package = "functoria-runtime") ?opam_list
   let clean _ = Action.rm file in
   let build i =
     Log.info (fun m -> m "Generating: %a (info)" Fpath.pp file);
-    let packages =
+    let* opam =
       match opam_list with
       | None -> default_opam_deps (package_names i)
       | Some pkgs -> Action.ok (String.Map.of_list pkgs)
     in
-    packages >>= fun opam ->
     let ocl = String.Set.of_list (Info.libraries i) in
     Fmt.kstr (Action.write_file file) "@[<v 2>let info = %a@]"
       (pp_dump_pkgs modname)

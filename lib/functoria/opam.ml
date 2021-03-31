@@ -16,7 +16,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Action.Infix
+open Action.Syntax
 
 let find_git () =
   let is_git p = Action.is_dir Fpath.(p / ".git") in
@@ -24,20 +24,21 @@ let find_git () =
   let rec find p path =
     if Fpath.is_root p then Action.ok None
     else
-      is_git p >>= fun has_git ->
+      let* has_git = is_git p in
       if has_git then Action.ok (Some path)
       else find (Fpath.parent p) (Some (app_opt path (Fpath.base p)))
   in
-  Action.pwd () >>= fun cwd ->
-  find cwd None >>= function
+  let* cwd = Action.pwd () in
+  let* cwd = find cwd None in
+  match cwd with
   | None -> Action.ok None
   | Some subdir ->
       let git_branch =
         Bos.Cmd.(v "git" % "rev-parse" % "--abbrev-ref" % "HEAD")
       in
-      Action.(run_cmd_out ~err:`Null git_branch) >>= fun branch ->
+      let* branch = Action.(run_cmd_out ~err:`Null git_branch) in
       let git_remote = Bos.Cmd.(v "git" % "remote" % "get-url" % "origin") in
-      Action.(run_cmd_out ~err:`Null git_remote) >|= fun git_url ->
+      let+ git_url = Action.(run_cmd_out ~err:`Null git_remote) in
       Some (subdir, branch, git_url)
 
 type t = {

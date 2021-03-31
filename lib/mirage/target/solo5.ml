@@ -1,6 +1,6 @@
 open Astring
 open Functoria
-open Action.Infix
+open Action.Syntax
 open Mirage_impl_misc
 module Key = Mirage_key
 
@@ -87,24 +87,25 @@ let generate_manifest_c () =
   let cmd =
     Bos.Cmd.(v "solo5-elftool" % "gen-manifest" % Fpath.to_string json % c)
   in
-  Action.mkdir Fpath.(v "_build") >>= fun _created ->
+  let* _created = Action.mkdir Fpath.(v "_build") in
   Log.info (fun m -> m "executing %a" Bos.Cmd.pp cmd);
   Action.run_cmd cmd
 
 let configure i =
   let name = Info.name i in
   let target = Info.get i Key.target |> cast in
-  ( match target with
-  | #solo5_target -> generate_manifest_json true ()
-  (* On Xen, a Solo5 manifest must be present to keep the build system and
-     Solo5 happy, but we intentionally do not generate any devices[] as
-     their naming does not follow the Solo5 rules. *)
-  | #xen_target -> generate_manifest_json false () )
-  >>= fun () ->
+  let* () =
+    match target with
+    | #solo5_target -> generate_manifest_json true ()
+    (* On Xen, a Solo5 manifest must be present to keep the build system and
+       Solo5 happy, but we intentionally do not generate any devices[] as
+       their naming does not follow the Solo5 rules. *)
+    | #xen_target -> generate_manifest_json false ()
+  in
   match target with
   | `Xen ->
-      Xen.configure_main_xl ~ext:"xl" i >>= fun () ->
-      Xen.configure_main_xl ~substitutions:[] ~ext:"xl.in" i >>= fun () ->
+      let* () = Xen.configure_main_xl ~ext:"xl" i in
+      let* () = Xen.configure_main_xl ~substitutions:[] ~ext:"xl.in" i in
       Libvirt.configure_main ~name
   | `Virtio -> Libvirt.configure_virtio ~name
   | _ -> Action.ok ()
@@ -125,14 +126,15 @@ let compile_manifest target =
   let bindings = solo5_bindings_pkg target in
   let c = "_build/manifest.c" in
   let obj = "_build/manifest.o" in
-  cflags bindings >>= fun cflags ->
+  let* cflags = cflags bindings in
   let cmd = Bos.Cmd.(v "cc" %% of_list cflags % "-c" % c % "-o" % obj) in
   Log.info (fun m -> m "executing %a" Bos.Cmd.pp cmd);
   Action.run_cmd cmd
 
 let build i =
   let target = Info.get i Key.target |> cast in
-  generate_manifest_c () >>= fun () -> compile_manifest target
+  let* () = generate_manifest_c () in
+  compile_manifest target
 
 (** LINK *)
 
@@ -144,7 +146,8 @@ let ldflags pkg = pkg_config pkg [ "--variable=ldflags" ]
 let ldpostflags pkg = pkg_config pkg [ "--variable=ldpostflags" ]
 
 let find_ld pkg =
-  pkg_config pkg [ "--variable=ld" ] >|= function
+  let+ ld = pkg_config pkg [ "--variable=ld" ] in
+  match ld with
   | ld :: _ ->
       Log.info (fun m ->
           m "using %s as ld (pkg-config %s --variable=ld)" ld pkg);
@@ -159,13 +162,13 @@ let link ~name info =
   let target = Info.get info Key.target |> cast in
   let bindings = solo5_bindings_pkg target in
   let platform = solo5_platform_pkg target in
-  extra_c_artifacts "freestanding" libs >>= fun c_artifacts ->
-  static_libs platform >>= fun static_libs ->
-  ldflags bindings >>= fun ldflags ->
-  ldpostflags bindings >>= fun ldpostflags ->
+  let* c_artifacts = extra_c_artifacts "freestanding" libs in
+  let* static_libs = static_libs platform in
+  let* ldflags = ldflags bindings in
+  let* ldpostflags = ldpostflags bindings in
   let extension = bin_extension target in
   let out = name ^ extension in
-  find_ld bindings >>= fun ld ->
+  let* ld = find_ld bindings in
   let linker =
     Bos.Cmd.(
       v ld
@@ -179,7 +182,8 @@ let link ~name info =
       %% of_list ldpostflags)
   in
   Log.info (fun m -> m "linking with %a" Bos.Cmd.pp linker);
-  Action.run_cmd linker >|= fun () -> out
+  let+ () = Action.run_cmd linker in
+  out
 
 (** INSTALL *)
 
@@ -208,7 +212,8 @@ let ocamlbuild_tags = []
 
 let clean i =
   let name = Info.name i in
-  Xen.clean_main_xl ~name ~ext:"xl" >>= fun () ->
-  Xen.clean_main_xl ~name ~ext:"xl.in" >>= fun () ->
-  Xen.clean_main_xe ~name >>= fun () ->
-  Libvirt.clean ~name >>= fun () -> clean_manifest ()
+  let* () = Xen.clean_main_xl ~name ~ext:"xl" in
+  let* () = Xen.clean_main_xl ~name ~ext:"xl.in" in
+  let* () = Xen.clean_main_xe ~name in
+  let* () = Libvirt.clean ~name in
+  clean_manifest ()

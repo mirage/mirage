@@ -11,14 +11,14 @@ tags:         ["org:mirage" "org:xapi-project"]
 doc:          "https://mirage.github.io/mirage/"
 
 build: [
-  ["dune" "subst"] {pinned}
+  ["dune" "subst"] {dev}
   ["dune" "build" "-p" name "-j" jobs]
   ["dune" "runtest" "-p" name "-j" jobs] {with-test}
 ]
 
 depends: [
   "ocaml" {>= "4.08.0"}
-  "dune" {>= "1.1.0"}
+  "dune" {>= "2.0"}
   "ipaddr"             {>= "5.0.0"}
   "functoria-runtime"  {>= "3.0.2"}
   "fmt"

@@ -14,7 +14,7 @@ let resolver_unix_system =
   let packages_v =
     Key.(if_ is_unix)
       [
-        Mirage_impl_conduit_connector.pkg;
+        Mirage_impl_conduit.pkg;
         package ~min:"2.0.2" ~max:"3.0.0" "conduit-lwt-unix";
       ]
       []
@@ -28,23 +28,23 @@ let resolver_unix_system =
   impl ~packages_v ~configure ~connect "Resolver_lwt" resolver
 
 let resolver_dns_conf ~ns ~ns_port =
-  let packages = [ Mirage_impl_conduit_connector.pkg ] in
+  let packages = [ Mirage_impl_conduit.pkg ] in
   let keys = Key.[ v ns; v ns_port ] in
   let connect _ modname = function
     | [ _r; _t; _m; stack ] ->
         Fmt.strf
           "let ns = %a in@;\
            let ns_port = %a in@;\
-           let res = %s.R.init ~ns ~ns_port ~stack:%s () in@;\
+           let res = %s.v ~ns ~ns_port %s in@;\
            Lwt.return res@;"
           pp_key ns pp_key ns_port modname stack
     | _ -> failwith (connect_err "resolver" 3)
   in
-  impl ~packages ~keys ~connect "Resolver_mirage.Make_with_stack"
+  impl ~packages ~keys ~connect "Resolver_mirage.Make"
     (random @-> time @-> mclock @-> stackv4 @-> resolver)
 
 let resolver_dns ?ns ?ns_port ?(time = default_time)
-    ?(mclock = default_monotonic_clock) ?(random = rng ~time ~mclock ()) stack =
+    ?(mclock = default_monotonic_clock) ?(random = default_random) stack =
   let ns = Key.resolver ?default:ns ()
   and ns_port = Key.resolver_port ?default:ns_port () in
   resolver_dns_conf ~ns ~ns_port $ random $ time $ mclock $ stack

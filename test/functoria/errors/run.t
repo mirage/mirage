@@ -20,7 +20,7 @@ Describe failure
   configuration file config.ml missing
   [1]
 
-Clean failure
+Clean does not fail
   $ ./test.exe clean --vote=dog
 
 Help does not fail

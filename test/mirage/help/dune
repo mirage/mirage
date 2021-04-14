@@ -2,17 +2,6 @@
  (name config)
  (libraries mirage))
 
-(include dune.inc)
-
-(rule
- (deps
-  (source_tree .))
- (action
-  (with-stdout-to
-   dune.gen
-   (run ocaml gen.ml))))
-
-(rule
- (alias runtest)
- (action
-  (diff dune.inc dune.gen)))
+(cram
+ (deps config.exe)
+)

@@ -1,0 +1,144 @@
+Help query --man-format=plain
+  $ ./config.exe help query --man-format=plain | tee d1
+  NAME
+         test-query - Query information about the test application.
+  
+  SYNOPSIS
+         test query [OPTION]... [INFO]
+  
+  DESCRIPTION
+         The query command queries information about the test application.
+  
+  QUERY OPTIONS
+         --depext
+             Enable call to `opam depext' in the project Makefile.
+  
+         --no-depext
+             Disable call to `opam depext' in the project Makefile.
+  
+  CONFIGURE OPTIONS
+         --context-file=FILE (absent=test.context)
+             The context file to use.
+  
+         --dry-run
+             Display I/O actions instead of executing them.
+  
+         -f FILE, --file=FILE, --config-file=FILE (absent=config.ml)
+             The configuration file to use.
+  
+         -o FILE, --output=FILE
+             Name of the output file.
+  
+         INFO (absent=packages)
+             The information to query. INFO must be one of `name', `packages',
+             `opam', `install', `files-configure', `files-build' or `Makefile'
+  
+  APPLICATION OPTIONS
+         --hello=VAL (absent=Hello World!)
+             How to say hello. 
+  
+         --vote=VOTE (absent=cat)
+             Vote. 
+  
+         --warn-error=BOOL (absent=false)
+             Enable -warn-error when compiling OCaml sources. 
+  
+  OPTIONS
+         --help[=FMT] (default=auto)
+             Show this help in format FMT. The value FMT must be one of `auto',
+             `pager', `groff' or `plain'. With `auto', the format is `pager` or
+             `plain' whenever the TERM env var is `dumb' or undefined.
+  
+         --version
+             Show version information.
+  
+  COMMON OPTIONS
+         --color=WHEN (absent=auto)
+             Colorize the output. WHEN must be one of `auto', `always' or
+             `never'.
+  
+         -q, --quiet
+             Be quiet. Takes over -v and --verbosity.
+  
+         -v, --verbose
+             Increase verbosity. Repeatable, but more than twice does not bring
+             more.
+  
+         --verbosity=LEVEL (absent=warning)
+             Be more or less verbose. LEVEL must be one of `quiet', `error',
+             `warning', `info' or `debug'. Takes over -v.
+  
+
+Help query --help=plain
+  $ ./config.exe query --help=plain | tee d2
+  NAME
+         test-query - Query information about the test application.
+  
+  SYNOPSIS
+         test query [OPTION]... [INFO]
+  
+  DESCRIPTION
+         The query command queries information about the test application.
+  
+  QUERY OPTIONS
+         --depext
+             Enable call to `opam depext' in the project Makefile.
+  
+         --no-depext
+             Disable call to `opam depext' in the project Makefile.
+  
+  CONFIGURE OPTIONS
+         --context-file=FILE (absent=test.context)
+             The context file to use.
+  
+         --dry-run
+             Display I/O actions instead of executing them.
+  
+         -f FILE, --file=FILE, --config-file=FILE (absent=config.ml)
+             The configuration file to use.
+  
+         -o FILE, --output=FILE
+             Name of the output file.
+  
+         INFO (absent=packages)
+             The information to query. INFO must be one of `name', `packages',
+             `opam', `install', `files-configure', `files-build' or `Makefile'
+  
+  APPLICATION OPTIONS
+         --hello=VAL (absent=Hello World!)
+             How to say hello. 
+  
+         --vote=VOTE (absent=cat)
+             Vote. 
+  
+         --warn-error=BOOL (absent=false)
+             Enable -warn-error when compiling OCaml sources. 
+  
+  OPTIONS
+         --help[=FMT] (default=auto)
+             Show this help in format FMT. The value FMT must be one of `auto',
+             `pager', `groff' or `plain'. With `auto', the format is `pager` or
+             `plain' whenever the TERM env var is `dumb' or undefined.
+  
+         --version
+             Show version information.
+  
+  COMMON OPTIONS
+         --color=WHEN (absent=auto)
+             Colorize the output. WHEN must be one of `auto', `always' or
+             `never'.
+  
+         -q, --quiet
+             Be quiet. Takes over -v and --verbosity.
+  
+         -v, --verbose
+             Increase verbosity. Repeatable, but more than twice does not bring
+             more.
+  
+         --verbosity=LEVEL (absent=warning)
+             Be more or less verbose. LEVEL must be one of `quiet', `error',
+             `warning', `info' or `debug'. Takes over -v.
+  
+
+No difference
+  $ diff d1 d2

@@ -1,2 +1,0 @@
-$(dune build ./config.exe)
-$(dune exec --root . -- ./config.exe describe a b c --dry-run)

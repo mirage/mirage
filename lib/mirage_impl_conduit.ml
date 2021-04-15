@@ -6,7 +6,7 @@ open Mirage_impl_random
 type conduit = Conduit
 let conduit = Type Conduit
 
-let pkg = package ~min:"2.3.0" ~max:"3.0.0" "conduit-mirage"
+let pkg = package ~min:"4.0.0" ~max:"5.0.0" "conduit-mirage"
 
 let tcp = impl @@ object
     inherit base_configurable
@@ -27,7 +27,7 @@ let tls random = impl @@ object
     method! deps = [ abstract random ]
     method! packages =
       Mirage_key.pure [
-          package ~min:"0.12.0" ~max:"0.13.0" "tls-mirage"; pkg]
+          package ~min:"0.13.0" ~max:"0.14.0" "tls-mirage"; pkg]
     method! connect _i _ = function
       | [ stack; _random ] -> Fmt.strf "Lwt.return %s@;" stack
       | _ -> failwith (connect_err "tls_conduit" 1)

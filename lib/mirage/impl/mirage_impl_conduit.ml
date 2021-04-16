@@ -15,7 +15,7 @@ let tcp =
     | [ stack ] -> Fmt.strf "Lwt.return %s@;" stack
     | _ -> failwith (connect_err "tcp_conduit" 1)
   in
-  impl ~packages ~connect "Conduit_mirage.TCP" (stackv4 @-> conduit)
+  impl ~packages ~connect "Conduit_mirage.TCP" (stackv4v6 @-> conduit)
 
 let tls random =
   let packages = [ pkg; package ~min:"0.13.0" ~max:"0.14.0" "tls-mirage" ] in

@@ -658,12 +658,12 @@ type resolver
 val resolver : resolver typ
 
 val resolver_dns :
-  ?ns:Ipaddr.V4.t ->
+  ?ns:Ipaddr.t ->
   ?ns_port:int ->
   ?time:time impl ->
   ?mclock:mclock impl ->
   ?random:random impl ->
-  stackv4 impl ->
+  stackv4v6 impl ->
   resolver impl
 
 val resolver_unix_system : resolver impl
@@ -733,7 +733,7 @@ type conduit
 val conduit : conduit typ
 
 val conduit_direct :
-  ?tls:bool -> ?random:random impl -> stackv4 impl -> conduit impl
+  ?tls:bool -> ?random:random impl -> stackv4v6 impl -> conduit impl
 
 (** {2 HTTP configuration} *)
 

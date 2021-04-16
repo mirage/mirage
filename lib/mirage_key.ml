@@ -412,9 +412,9 @@ let ipv6_only ?group () =
   let doc = Fmt.strf "Only use IPv6 for %a." pp_group group in
   create_simple ~doc ?group ~default:false Arg.bool "ipv6-only"
 
-let resolver ?(default = Ipaddr.V4.of_string_exn "91.239.100.100") () =
+let resolver ?(default = Ipaddr.of_string_exn "91.239.100.100") () =
   let doc = Fmt.strf "DNS resolver (default to anycast.censurfridns.dk)" in
-  create_simple ~doc ~default Arg.ipv4_address "resolver"
+  create_simple ~doc ~default Arg.ip_address "resolver"
 
 let resolver_port ?(default = 53) () =
   let doc = Fmt.strf "DNS resolver port" in

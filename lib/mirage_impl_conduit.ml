@@ -10,7 +10,7 @@ let pkg = package ~min:"4.0.0" ~max:"5.0.0" "conduit-mirage"
 
 let tcp = impl @@ object
     inherit base_configurable
-    method ty = stackv4 @-> conduit
+    method ty = stackv4v6 @-> conduit
     method name = Functoria_app.Name.create "conduit_tcp" ~prefix:"conduit_tcp"
     method module_name = "Conduit_mirage.TCP"
     method! packages = Mirage_key.pure [ pkg ]

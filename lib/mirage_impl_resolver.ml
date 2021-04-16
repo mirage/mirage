@@ -29,7 +29,7 @@ let resolver_unix_system = impl @@ object
 
 let resolver_dns_conf ~ns ~ns_port = impl @@ object
     inherit base_configurable
-    method ty = random @-> time @-> mclock @-> stackv4 @-> resolver
+    method ty = random @-> time @-> mclock @-> stackv4v6 @-> resolver
     method name = "resolver"
     method module_name = "Resolver_mirage.Make"
     method! packages =

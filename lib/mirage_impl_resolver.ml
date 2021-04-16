@@ -18,7 +18,7 @@ let resolver_unix_system = impl @@ object
     method! packages =
       Key.(if_ is_unix)
         [ Mirage_impl_conduit.pkg ;
-          package ~min:"2.0.2" ~max:"3.0.0" "conduit-lwt-unix"; ]
+          package ~min:"4.0.0" ~max:"5.0.0" "conduit-lwt-unix"; ]
         []
     method! configure i =
       match get_target i with
@@ -29,7 +29,7 @@ let resolver_unix_system = impl @@ object
 
 let resolver_dns_conf ~ns ~ns_port = impl @@ object
     inherit base_configurable
-    method ty = random @-> time @-> mclock @-> stackv4 @-> resolver
+    method ty = random @-> time @-> mclock @-> stackv4v6 @-> resolver
     method name = "resolver"
     method module_name = "Resolver_mirage.Make"
     method! packages =

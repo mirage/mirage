@@ -520,7 +520,7 @@ val generic_stackv4v6 :
 type resolver
 val resolver: resolver typ
 val resolver_dns:
-  ?ns:Ipaddr.V4.t -> ?ns_port:int -> ?random:random impl -> ?time:time impl -> ?mclock:mclock impl -> stackv4 impl -> resolver impl
+  ?ns:Ipaddr.t -> ?ns_port:int -> ?random:random impl -> ?time:time impl -> ?mclock:mclock impl -> stackv4v6 impl -> resolver impl
 val resolver_unix_system: resolver impl
 
 (** {2 Syslog configuration} *)
@@ -568,7 +568,7 @@ val nocrypto: job impl
 type conduit
 val conduit: conduit typ
 val conduit_direct:
-  ?tls:bool -> ?random:random impl -> stackv4 impl -> conduit impl
+  ?tls:bool -> ?random:random impl -> stackv4v6 impl -> conduit impl
 
 (** {2 HTTP configuration} *)
 

@@ -2,17 +2,5 @@
  (name test)
  (libraries f0))
 
-(include dune.inc)
-
-(rule
- (deps
-  (source_tree .))
- (action
-  (with-stdout-to
-   dune.gen
-   (run ocaml gen.ml))))
-
-(rule
- (alias runtest)
- (action
-  (diff dune.inc dune.gen)))
+(cram
+ (deps test.exe config.ml empty/empty))

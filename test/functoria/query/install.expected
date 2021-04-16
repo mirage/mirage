@@ -1,7 +1,0 @@
-bin: [
-  "test/functoria/query/main.exe" {"noop"}
-]
-etc: [
-  "test/functoria/query/vote" {"vote"}
-  "test/functoria/query/warn_error" {"warn_error"}
-]

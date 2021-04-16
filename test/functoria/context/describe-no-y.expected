@@ -1,4 +1,0 @@
-Name       noop
-Keys       target=y,
-           vote=cat (default),
-           warn_error=false (default)

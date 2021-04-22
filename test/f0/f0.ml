@@ -15,8 +15,6 @@ let vote =
   let key = Key.Arg.(opt ~stage:`Configure string "cat" doc) in
   Key.create "vote" key
 
-let output i = match Info.output i with None -> "main" | Some o -> o
-
 let file_of_key k = Fpath.v Key.(name @@ v k)
 
 let write_key i k f =
@@ -40,28 +38,40 @@ module C = struct
 
   let connect _ _ _ = "()"
 
-  let configure _ = Action.ok ()
+  let dune i =
+    let dune =
+      Dune.stanzaf
+        {|
+(executable
+  (public_name f0)
+  (package   functoria)
+  (name      %s)
+  (modules   (:standard \ config))
+  (promote   (until-clean))
+  (libraries cmdliner fmt functoria-runtime))
+|}
+        Fpath.(basename @@ rem_ext @@ Info.main i)
+    in
+    [ dune ]
 
-  let build i =
+  let configure i =
     let* () = write_key i vote (fun x -> x) in
-    let* () = write_key i warn_error string_of_bool in
-    Action.ok ()
-
-  let clean _ = Action.ok ()
-
-  let install i =
-    let src = Fpath.((v "src" / output i) + "exe") in
-    let dst = match Info.output i with None -> Info.name i | Some o -> o in
-    let dst = Fpath.v dst in
-    let vote = Fpath.(v "key" // file_of_key vote) in
-    let warn_error = Fpath.(v "key" // file_of_key warn_error) in
-    Install.v ~bin:[ (src, dst) ] ~etc:[ vote; warn_error ] ()
+    write_key i warn_error string_of_bool
 
   let create jobs =
     let packages = [ package "fmt" ] in
     let extra_deps = List.map dep jobs in
-    impl ~keys ~packages ~configure ~connect ~clean ~build ~extra_deps ~install
+    impl ~keys ~packages ~connect ~dune ~configure ~extra_deps
+      ~install:(fun _ -> Install.v ~bin:[ Fpath.(v "f0.exe", v "f0") ] ())
       "F0" job
+
+  let name_of_target i = Info.name i
+
+  let dune_project = []
+
+  let dune_workspace = None
+
+  let context_name _ = "default"
 end
 
 include Lib.Make (C)

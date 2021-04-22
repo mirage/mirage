@@ -103,6 +103,15 @@
     (using the custom registered predicates) to link the list of dependencies'
     objects files with the result of OCam compiler's [--output-obj] option.
 
+    {4 MirageOS 4.x}
+
+    MirageOS 4 solves this by relying on [dune]'s built-in support for
+    cross-compilation. This is done by gathering all the sources of the
+    dependencies locally with [opam-monorepo], and by creating a
+    `dune-workspace` file describing the C flags to use in each
+    cross-compilation "context". Once this is set-up, only one [dune build] can
+    cross-compile the unikernel target with all its local sources.
+
     {1 MirageOS eDSL}
 
     The rest of the document describes Functoria, the embedded domain-specific
@@ -828,6 +837,7 @@ val register :
 module Type = Functoria.Type
 module Impl = Functoria.Impl
 module Info = Functoria.Info
+module Dune = Functoria.Dune
 module Action = Functoria.Action
 
 module FS : sig
@@ -839,7 +849,9 @@ module FS : sig
     unit
 end
 
-module Configure : sig
+module Project : sig
+  val dune : Info.t -> Dune.stanza list
+
   val configure : Info.t -> unit Action.t
 end
 

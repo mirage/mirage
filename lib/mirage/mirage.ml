@@ -17,9 +17,10 @@
  *)
 
 open Functoria
-module Type = Functoria.Type
-module Impl = Functoria.Impl
-module Info = Functoria.Info
+module Type = Type
+module Impl = Impl
+module Info = Info
+module Dune = Dune
 module Key = Mirage_key
 module Log = Mirage_impl_misc.Log
 include Functoria.DSL
@@ -353,10 +354,6 @@ let app_info = app_info_partial ()
 
 let app_info_with_opam_deps opam_list = app_info_partial ~opam_list ()
 
-open Mirage_configure
-open Mirage_build
-open Mirage_clean
-
 module Project = struct
   let name = "mirage"
 
@@ -370,24 +367,50 @@ module Project = struct
   (* The ocamlfind packages to use when compiling config.ml *)
   let packages = [ package "mirage" ]
 
-  let files t = function
-    | `Build -> Mirage_build.files t
-    | `Configure -> Mirage_configure.files t
+  let name_of_target i =
+    match Info.output i with
+    | Some o -> o
+    | None ->
+        let name = Info.name i in
+        let target = Info.get i Key.target in
+        Fmt.str "%s-%a" name Key.pp_target target
+
+  let dune i = Mirage_target.dune i
+
+  let configure i = Mirage_target.configure i
+
+  let dune_project =
+    [ Dune.stanza {|
+    (implicit_transitive_deps true)
+    |} ]
+
+  let dune_workspace =
+    let f ?build_dir i =
+      let stanzas = Mirage_target.build_context ?build_dir i in
+      let main =
+        Dune.stanza {|
+(lang dune 2.0)
+
+(context (default))
+        |}
+      in
+      Dune.v (main :: stanzas)
+    in
+    Some f
+
+  let context_name i = Mirage_target.context_name i
 
   let create jobs =
     let keys = Key.[ v target; v warn_error; v target_debug ] in
     let packages_v =
       (* XXX: use %%VERSION_NUM%% here instead of hardcoding a version? *)
-      let min = "3.10.0" and max = "3.11.0" in
+      let min = "4.0.0" and max = "4.1.0" in
       let common =
         [
           package ~build:true ~min:"4.08.0" "ocaml";
           package "lwt";
-          package ~min ~max "mirage-types";
           package ~min ~max "mirage-runtime";
           package ~build:true ~min ~max "mirage";
-          package ~build:true "ocamlfind";
-          package ~build:true "ocamlbuild";
         ]
       in
       Key.match_ Key.(value target) @@ fun target ->
@@ -396,8 +419,8 @@ module Project = struct
     let install = Mirage_target.install in
     let extra_deps = List.map dep jobs in
     let connect _ _ _ = "return ()" in
-    impl ~files ~keys ~packages_v ~install ~build ~configure ~clean ~connect
-      ~extra_deps "Mirage_runtime" job
+    impl ~keys ~packages_v ~configure ~dune ~connect ~extra_deps ~install
+      "Mirage_runtime" job
 end
 
 include Lib.Make (Project)
@@ -496,5 +519,4 @@ let register ?(argv = default_argv) ?tracing ?(reporter = default_reporter ())
   register ?keys:extra_keys ?packages ?init ?src name jobs
 
 module FS = Mirage_impl_fs
-module Configure = Mirage_configure
 module Action = Functoria.Action

@@ -29,9 +29,6 @@ type 'a args = {
 }
 (** The type for global arguments. *)
 
-val peek_context_file : mname:string -> string array -> Fpath.t option
-(** [peek_context_file] reads the [--context-file] option on the command-line. *)
-
 val peek_args : ?with_setup:bool -> mname:string -> string array -> unit args
 (** [peek_args ?with_setup argv] parses the global command-line arguments. If
     [with_setup] is set (by default it is), interprets [-v] and [--color] to
@@ -46,7 +43,11 @@ val pp_args : 'a Fmt.t -> 'a args Fmt.t
 
 (** {1 Sub-commands} *)
 
-type 'a configure_args = { args : 'a args; depext : bool }
+type 'a configure_args = {
+  args : 'a args;
+  depext : bool;
+  extra_repo : string option;
+}
 (** The type for arguments of the [configure] sub-command. *)
 
 type 'a build_args = 'a args
@@ -61,15 +62,20 @@ type 'a help_args = 'a args
 type query_kind =
   [ `Name
   | `Packages
-  | `Opam
-  | `Install
-  | `Files of [ `Configure | `Build ]
+  | `Opam of [ `Monorepo | `Switch ]
+  | `Files
+  | `Dune of [ `Config | `Build | `Project | `Workspace | `Dist ]
   | `Makefile ]
 
 val pp_query_kind : query_kind Fmt.t
 (** [pp_query_kind] is the pretty-printer for query kinds. *)
 
-type 'a query_args = { args : 'a args; kind : query_kind; depext : bool }
+type 'a query_args = {
+  args : 'a args;
+  kind : query_kind;
+  depext : bool;
+  extra_repo : string option;
+}
 (** The type for arguments of the [query] sub-command. *)
 
 type 'a describe_args = {

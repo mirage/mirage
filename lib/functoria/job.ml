@@ -44,8 +44,6 @@ module Keys = struct
           runvars
           Fmt.Dump.(list pp_names)
           runvars)
-
-  let clean ~file _ = Action.rm file
 end
 
 let keys ?(runtime_package = "functoria-runtime")
@@ -54,12 +52,12 @@ let keys ?(runtime_package = "functoria-runtime")
   let extra_deps = [ Impl.abstract argv ] in
   let key_gen = Key.module_name in
   let file = Fpath.(v (String.Ascii.lowercase key_gen) + "ml") in
-  let configure = Keys.configure ~file and clean = Keys.clean ~file in
-  let files _ = function `Configure -> [ file ] | `Build -> [] in
+  let configure = Keys.configure ~file in
+  let files _ = [ file ] in
   let connect info impl_name = function
     | [ argv ] ->
         Fmt.str "return (%s.with_argv (List.map fst %s.runtime_keys) %S %s)"
           runtime_modname impl_name (Info.name info) argv
     | _ -> failwith "The keys connect should receive exactly one argument."
   in
-  Impl.v ~files ~configure ~clean ~packages ~extra_deps ~connect key_gen t
+  Impl.v ~files ~configure ~packages ~extra_deps ~connect key_gen t

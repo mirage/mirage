@@ -1,5 +1,4 @@
 open Functoria
-open Action.Syntax
 open Astring
 module Key = Mirage_key
 
@@ -8,7 +7,12 @@ type ro = RO
 let ro = Type.v RO
 
 let crunch dirname =
-  let name = "Static" in
+  let is_valid = function
+    | '0' .. '9' | 'a' .. 'z' | 'A' .. 'Z' -> true
+    | _ -> false
+  in
+  let modname = String.filter is_valid dirname in
+  let name = "Static_" ^ String.Ascii.lowercase modname in
   let packages =
     [
       package ~min:"3.0.0" ~max:"4.0.0" "mirage-kv-mem";
@@ -16,20 +20,25 @@ let crunch dirname =
     ]
   in
   let connect _ modname _ = Fmt.str "%s.connect ()" modname in
-  let build _i =
+  let dune _i =
     let dir = Fpath.(v dirname) in
-    let file = Fpath.(v (String.Ascii.lowercase name) + "ml") in
-    let* is_dir = Action.is_dir dir in
-    if is_dir then (
-      Mirage_impl_misc.Log.info (fun m -> m "Generating: %a" Fpath.pp file);
-      Action.run_cmd Bos.Cmd.(v "ocaml-crunch" % "-o" % p file % p dir))
-    else Action.errorf "The directory %s does not exist." dirname
+    let file ext = Fpath.(v (String.Ascii.lowercase name) + ext) in
+    let ml = file "ml" in
+    let mli = file "mli" in
+    let dune =
+      Dune.stanzaf
+        {|
+(rule
+  (targets %a %a)
+  (deps (source_tree %a))
+  (action
+    (run ocaml-crunch -o %a %a)))
+|}
+        Fpath.pp ml Fpath.pp mli Fpath.pp dir Fpath.pp ml Fpath.pp dir
+    in
+    [ dune ]
   in
-  let clean _i =
-    let* () = Action.rm Fpath.(v name + "ml") in
-    Action.rm Fpath.(v name + "mli")
-  in
-  impl ~packages ~connect ~build ~clean name ro
+  impl ~packages ~connect ~dune name ro
 
 let direct_kv_ro dirname =
   let packages = [ package ~min:"2.1.0" ~max:"3.0.0" "mirage-kv-unix" ] in

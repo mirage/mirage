@@ -103,5 +103,3 @@ let configure_virtio ~name =
       append fmt "        <memballoon model='none'/>";
       append fmt "    </devices>";
       append fmt "</domain>")
-
-let clean ~name = Action.rm (filename ~name)

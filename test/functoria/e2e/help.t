@@ -36,11 +36,20 @@ Test that the help command works without config file:
          --dry-run
              Display I/O actions instead of executing them.
   
+         --extra-repo=URL (absent=https://github.com/mirage/opam-overlays.git
+         or MIRAGE_EXTRA_REPO env)
+             Additional opam-repository to use when using `opam monorepo lock'
+             to gather local sources. Default:
+             https://github.com/mirage/opam-overlays.git.
+  
          -f FILE, --file=FILE, --config-file=FILE (absent=config.ml)
              The configuration file to use.
   
          --no-depext
              Disable call to `opam depext' in the project Makefile.
+  
+         --no-extra-repo
+             Disable the use of any overlay repository.
   
          -o FILE, --output=FILE
              Name of the output file.
@@ -85,6 +94,12 @@ Test that the help command works without config file:
          --verbosity=LEVEL (absent=warning)
              Be more or less verbose. LEVEL must be one of `quiet', `error',
              `warning', `info' or `debug'. Takes over -v.
+  
+  ENVIRONMENT
+         These environment variables affect the execution of help:
+  
+         MIRAGE_EXTRA_REPO
+             See option --extra-repo.
   
 
 

@@ -19,7 +19,7 @@ open Astring
 let list_files dir =
   let l = Bos.OS.Path.matches ~dotfiles:true Fpath.(dir / "$(file)") in
   match l with
-  | Error (`Msg e) -> Fmt.kstrf Alcotest.fail "list_files: %s" e
+  | Error (`Msg e) -> Alcotest.failf "list_files: %s" e
   | Ok l ->
       List.sort String.compare
       @@ List.rev_map

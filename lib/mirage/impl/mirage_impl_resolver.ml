@@ -15,7 +15,7 @@ let resolver_unix_system =
     Key.(if_ is_unix)
       [
         Mirage_impl_conduit.pkg;
-        package ~min:"2.0.2" ~max:"3.0.0" "conduit-lwt-unix";
+        package ~min:"4.0.0" ~max:"5.0.0" "conduit-lwt-unix"; 
       ]
       []
   in
@@ -41,7 +41,7 @@ let resolver_dns_conf ~ns ~ns_port =
     | _ -> failwith (connect_err "resolver" 3)
   in
   impl ~packages ~keys ~connect "Resolver_mirage.Make"
-    (random @-> time @-> mclock @-> stackv4 @-> resolver)
+    (random @-> time @-> mclock @-> stackv4v6 @-> resolver)
 
 let resolver_dns ?ns ?ns_port ?(time = default_time)
     ?(mclock = default_monotonic_clock) ?(random = default_random) stack =

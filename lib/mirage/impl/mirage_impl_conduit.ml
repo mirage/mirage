@@ -7,7 +7,7 @@ type conduit = Conduit
 
 let conduit = Type.v Conduit
 
-let pkg = package ~min:"2.3.0" ~max:"3.0.0" "conduit-mirage"
+let pkg = package ~min:"4.0.0" ~max:"5.0.0" "conduit-mirage"
 
 let tcp =
   let packages = [ pkg ] in
@@ -15,10 +15,10 @@ let tcp =
     | [ stack ] -> Fmt.strf "Lwt.return %s@;" stack
     | _ -> failwith (connect_err "tcp_conduit" 1)
   in
-  impl ~packages ~connect "Conduit_mirage.TCP" (stackv4 @-> conduit)
+  impl ~packages ~connect "Conduit_mirage.TCP" (stackv4v6 @-> conduit)
 
 let tls random =
-  let packages = [ pkg; package ~min:"0.12.0" ~max:"0.13.0" "tls-mirage" ] in
+  let packages = [ pkg; package ~min:"0.13.0" ~max:"0.14.0" "tls-mirage" ] in
   let extra_deps = [ dep random ] in
   let connect _ _ = function
     | [ stack; _random ] -> Fmt.strf "Lwt.return %s@;" stack

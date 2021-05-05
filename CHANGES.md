@@ -1,3 +1,11 @@
+### v3.10.4 (2021-04-20)
+
+- Allow mirage-crypto-rng-mirage 0.10 (@hannesm)
+
+### v3.10.3 (2021-04-19)
+
+- Adapt to conduit 4.0.0 and cohttp 4.0.0 (@dinosaure #1221)
+
 ### v3.10.2 (2021-03-30)
 
 * Adapt to conduit 2.3 and cohttp 4.0 (@samoht @dinosaure #1209)

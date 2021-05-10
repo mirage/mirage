@@ -20,9 +20,3 @@ val configure_main_xl :
   ext:string ->
   Functoria.Info.t ->
   unit Action.t
-
-val clean_main_xl : name:string -> ext:string -> unit Action.t
-
-val clean_main_xe : name:string -> unit Action.t
-
-val files : Info.t -> Fpath.t list

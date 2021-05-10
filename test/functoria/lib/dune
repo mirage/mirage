@@ -1,0 +1,6 @@
+(executable
+ (name config)
+ (libraries f0))
+
+(cram
+ (deps config.exe empty/empty))

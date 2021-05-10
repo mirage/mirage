@@ -106,6 +106,10 @@ val run_cmd_out : ?err:channel -> Bos.Cmd.t -> string t
 (** Run a command and return its trimmed stdout. By default [err] is
     [Fmt.stderr]. (See [Bos.OS.Cmd.run_out]) *)
 
+val run_cmd_cli : Bos.Cmd.t -> unit t
+(** Run a command as a command line interface, meaning stdout and stderr remain
+    untouched. *)
+
 val write_file : Fpath.t -> string -> unit t
 (** Write some data to a file. (see [Bos.OS.File.write]) *)
 

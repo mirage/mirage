@@ -1,10 +1,29 @@
 open Functoria
-open Action.Syntax
 module Key = Mirage_key
 
 let choose : Key.mode -> (module S.TARGET) = function
   | #Solo5.t -> (module Solo5)
   | #Unix.t -> (module Unix)
+
+let dune i =
+  let target = Info.get i Key.target in
+  let (module Target) = choose target in
+  Target.dune i
+
+let configure i =
+  let target = Info.get i Key.target in
+  let (module Target) = choose target in
+  Target.configure i
+
+let build_context ?build_dir i =
+  let target = Info.get i Key.target in
+  let (module Target) = choose target in
+  Target.build_context ?build_dir i
+
+let context_name i =
+  let target = Info.get i Key.target in
+  let (module Target) = choose target in
+  Target.context_name i
 
 let packages target =
   let (module Target) = choose target in
@@ -14,39 +33,3 @@ let install i =
   let target = Info.get i Key.target in
   let (module Target) = choose target in
   Target.install i
-
-let link ~name i =
-  let target = Info.get i Key.target in
-  let (module Target) = choose target in
-  Target.link ~name i
-
-let configure i =
-  let target = Info.get i Key.target in
-  let (module Target) = choose target in
-  Target.configure i
-
-let configure_files i =
-  let target = Info.get i Key.target in
-  let (module Target) = choose target in
-  Target.configure_files i
-
-let build i =
-  let target = Info.get i Key.target in
-  let (module Target) = choose target in
-  Target.build i
-
-let result target =
-  let (module Target) = choose target in
-  Target.result
-
-let dontlink target =
-  let (module Target) = choose target in
-  Target.dontlink
-
-let ocamlbuild_tags target =
-  let (module Target) = choose target in
-  Target.ocamlbuild_tags
-
-let clean i =
-  let* () = Solo5.clean i in
-  Unix.clean i

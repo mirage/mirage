@@ -19,11 +19,24 @@
 type t
 
 val v : ?bin:(Fpath.t * Fpath.t) list -> ?etc:Fpath.t list -> unit -> t
+(** [v ~bin:\[(src,dst),...\] ~etc ()] is the installation of [src] as [dst] as
+    binary files, and [etc] as configuration. *)
 
 val union : t -> t -> t
+(** [union a b] merge to sets of installation rules. *)
 
 val empty : t
+(** [empty] is the installation of nothing. *)
 
 val pp : t Fmt.t
+(** Print the .install rules to install [t] *)
+
+val pp_opam : t Fmt.t
+(** Print the opam rules to install [t] *)
+
+val dune : build_dir:Fpath.t -> context_name:string -> t -> Dune.t
+(** [dune ~build_dir ~context_name ()] is the dune rules to promote installed
+    files back in the source tree. *)
 
 val dump : t Fmt.t
+(** Dump installation rules. *)

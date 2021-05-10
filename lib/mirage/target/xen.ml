@@ -5,7 +5,6 @@ module Log = Mirage_impl_misc.Log
 (* We generate an example .xl with common defaults, and a generic
    .xl.in which has @VARIABLES@ which must be substituted by sed
    according to the preferences of the system administrator.
-
    The common defaults chosen for the .xl file will be based on values
    detected from the build host. We assume that the .xl file will
    mainly be used by developers where build and deployment are on the
@@ -116,16 +115,3 @@ let configure_main_xl ?substitutions ~ext i =
       append fmt
         "# or add \"script=vif-openvswitch,\" before the \"bridge=\" below:";
       append fmt "vif = [ %s ]" (String.concat ~sep:", " networks))
-
-let clean_main_xl ~name ~ext = Action.rm Fpath.(v name + ext)
-
-let clean_main_xe ~name = Action.rm Fpath.(v name + "xe")
-
-let files i =
-  let name = Info.name i in
-  [
-    Fpath.(v name + "xl");
-    Fpath.(v name + "xl.in");
-    Fpath.(v name + "xe");
-    Fpath.v "libvirt.xml";
-  ]

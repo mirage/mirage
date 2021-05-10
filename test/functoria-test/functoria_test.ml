@@ -23,5 +23,4 @@ let run ?(keys = []) ?init context device =
   let t = Impl.eval ~context t in
   let* () = prelude info in
   let* () = Engine.configure info t in
-  let* () = Engine.connect ?init info t in
-  Engine.build info t
+  Engine.connect ?init info t

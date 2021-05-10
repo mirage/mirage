@@ -108,11 +108,20 @@ let count =
 let tar_block dir =
   let name = "tar_block" ^ string_of_int (count ()) in
   let block_file = name ^ ".img" in
-  let files _ = function `Build -> [ Fpath.v block_file ] | _ -> [] in
-  let pre_build _ =
-    Action.run_cmd Bos.Cmd.(v "tar" % "-cvf" % block_file % dir)
+  let dune _ =
+    let dune =
+      Dune.stanzaf
+        {|
+(rule
+ (targets %s)
+ (deps (source_tree %s))
+ (action (run tar -cvf %%{targets} %%{deps})))
+|}
+        block_file dir
+    in
+    [ dune ]
   in
-  of_device @@ Device.extend ~files ~pre_build (block_conf block_file)
+  of_device @@ Device.extend ~dune (block_conf block_file)
 
 let archive_conf =
   let packages = [ package ~min:"1.0.0" ~max:"2.0.0" "tar-mirage" ] in

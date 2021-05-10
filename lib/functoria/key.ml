@@ -151,7 +151,7 @@ module Arg = struct
     | 0 -> (
         match compare x.info y.info with
         | 0 -> compare_kind x.kind y.kind
-        | i -> i )
+        | i -> i)
     | i -> i
 
   let hash x =
@@ -193,7 +193,7 @@ module Arg = struct
     | Flag -> (serialize bool) ppf v
     | Opt (_, c) -> (serialize c) ppf v
     | Required c -> (
-        match v with Some v -> (serialize c) ppf v | None -> assert false )
+        match v with Some v -> (serialize c) ppf v | None -> assert false)
 
   (* This is only called by serialize_ro, hence a configure time
            key, so the value is known. *)
@@ -245,7 +245,7 @@ let rec compare (Any x) (Any y) =
   | 0 -> (
       match Arg.compare x.arg y.arg with
       | 0 -> compare_setters x.setters y.setters
-      | i -> i )
+      | i -> i)
   | i -> i
 
 and compare_setters : type a b. a setter list -> b setter list -> int =
@@ -255,7 +255,7 @@ and compare_setters : type a b. a setter list -> b setter list -> int =
   | [], _ -> -1
   | _, [] -> 1
   | Setter (x, _) :: tx, Setter (y, _) :: ty -> (
-      match compare (Any x) (Any y) with 0 -> compare_setters tx ty | i -> i )
+      match compare (Any x) (Any y) with 0 -> compare_setters tx ty | i -> i)
 
 (* Set of keys, without runtime name conflicts. This is useful to create a
    valid cmdliner term. *)

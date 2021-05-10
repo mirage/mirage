@@ -257,7 +257,7 @@ module Make (P : S) = struct
         | Cli.Clean t ->
             let t = with_output t in
             Log.info (fun m -> pp_info m (Some Logs.Debug) t);
-            clean t )
+            clean t)
 
   let action_run args a =
     if not args.Cli.dry_run then Action.run a

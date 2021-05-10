@@ -81,7 +81,7 @@ let v ~packages ~keys ~context ~build_cmd ~src name =
         | Some p' -> (
             match Package.merge p p' with
             | Some p -> String.Map.add n p m
-            | None -> m ))
+            | None -> m))
       String.Map.empty packages
   in
   { name; keys; packages; context; output = None; opam }

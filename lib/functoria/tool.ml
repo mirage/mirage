@@ -284,7 +284,7 @@ module Make (P : S) = struct
         | _ ->
             run args
             @@ handle_parse_args ~save_args:false args ?ppf:help_ppf ?err_ppf
-                 argv )
+                 argv)
 
   let run () = run_with_argv Sys.argv
 end

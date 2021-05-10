@@ -754,9 +754,9 @@ val httpaf_server : conduit impl -> http impl
 
 type http_client
 
-val http_client: http_client typ
+val http_client : http_client typ
 
-val cohttp_client:
+val cohttp_client :
   ?pclock:pclock impl -> resolver impl -> conduit impl -> http_client impl
 (** [cohttp_server] starts a Cohttp server. *)
 

@@ -3,5 +3,4 @@
  (libraries f0))
 
 (cram
- (deps config.exe)
-)
+ (deps config.exe))

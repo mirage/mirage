@@ -3,5 +3,4 @@
  (libraries mirage))
 
 (cram
- (deps config.exe)
-)
+ (deps config.exe))

@@ -3,6 +3,4 @@
  (libraries f0))
 
 (cram
- (deps 
-  config.exe 
-  ../../../functoria-runtime.opam))
+ (deps config.exe ../../../functoria-runtime.opam))

@@ -55,13 +55,13 @@ module Make (P : PROJECT) = struct
         let lines = String.cuts ~sep:"\n" ~empty:true (String.trim contents) in
         match List.rev lines with
         | x :: _ -> String.is_infix ~affix:(short_headers `Sexp) x
-        | _ -> false )
+        | _ -> false)
     | _ -> (
         match lang file with
         | None -> false
         | Some lang ->
             let affix = short_headers lang in
-            String.is_infix ~affix contents )
+            String.is_infix ~affix contents)
 
   let can_overwrite file =
     let* is_file = Action.is_file file in
@@ -83,7 +83,7 @@ module Make (P : PROJECT) = struct
       | _ -> (
           match lang file with
           | None -> Fmt.invalid_arg "%a: invalide lang" Fpath.pp file
-          | Some lang -> Fmt.str "%s\n\n%s" (headers lang) contents )
+          | Some lang -> Fmt.str "%s\n\n%s" (headers lang) contents)
 
   let write file contents =
     let* can_overwrite = can_overwrite file in

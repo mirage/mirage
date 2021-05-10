@@ -22,7 +22,7 @@ let crunch dirname =
     let* is_dir = Action.is_dir dir in
     if is_dir then (
       Mirage_impl_misc.Log.info (fun m -> m "Generating: %a" Fpath.pp file);
-      Action.run_cmd Bos.Cmd.(v "ocaml-crunch" % "-o" % p file % p dir) )
+      Action.run_cmd Bos.Cmd.(v "ocaml-crunch" % "-o" % p file % p dir))
     else Action.errorf "The directory %s does not exist." dirname
   in
   let clean _i =

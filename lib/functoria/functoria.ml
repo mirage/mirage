@@ -97,7 +97,7 @@ let pp_dump_pkgs modname fmt (name, pkg, libs) =
    but that was not precise enough as this was 1/ computing the
    dependencies for all version of <pkgs> and 2/ keeping only the
    installed packages. `opam list --installed --resolve <pkgs>` will
-   compute the dependencies of the installed versions of <pkgs>.  *)
+   compute the dependencies of the installed versions of <pkgs>. *)
 let default_opam_deps pkgs =
   let pkgs_str = String.concat ~sep:"," pkgs in
   let cmd =

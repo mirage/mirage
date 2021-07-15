@@ -108,7 +108,7 @@ and pp_abstract ppf (Abstract i) = pp ppf i
    The [impl] type forms a DAG, implemented as terms with sharing.
 
    It is *essential* to preserve sharing while walking the terms.
-   Otherwise 
+   Otherwise
    - We risk double initialization of devices
    - The DOT graph is a mess
    - We might collect information twice

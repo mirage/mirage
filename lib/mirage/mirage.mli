@@ -786,8 +786,8 @@ val keys : argv impl -> job impl
 
 (* fix compilation on ocaml<4.08 *)
 (* type info
-(** [info] is the type for module implementing
-    {!Mirage_runtime.Info}. *) *)
+   (** [info] is the type for module implementing
+       {!Mirage_runtime.Info}. *) *)
 
 val info : info typ
 (** [info] is the combinator to generate {!info} values to use at runtime. *)
@@ -818,10 +818,12 @@ val register :
     @param packages The opam packages needed by this module.
     @param keys The keys related to this module.
     @param tracing Enable tracing.
-    @param reporter Configure logging. The default log reporter is
-    {!default_reporter}. To disable logging, use {!no_reporter}.
-    @param argv Configure command-line argument parsing. The default parser is
-    {!default_argv}. To disable command-line parsing, use {!no_argv}. *)
+    @param reporter
+      Configure logging. The default log reporter is {!default_reporter}. To
+      disable logging, use {!no_reporter}.
+    @param argv
+      Configure command-line argument parsing. The default parser is
+      {!default_argv}. To disable command-line parsing, use {!no_argv}. *)
 
 module Type = Functoria.Type
 module Impl = Functoria.Impl

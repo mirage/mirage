@@ -168,7 +168,10 @@ module Arg = struct
     { stage; info; kind = Required conv }
 
   let default (type a) (t : a t) =
-    match t.kind with Opt (d, _) -> d | Flag -> false | Required _ -> None
+    match t.kind with
+    | Opt (d, _) -> d
+    | Flag -> (false : bool)
+    | Required _ -> (None : _ option)
 
   let make_opt_cmdliner wrap i default desc =
     let none =

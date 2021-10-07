@@ -58,7 +58,7 @@ let keys ?(runtime_package = "functoria-runtime")
   let files _ = function `Configure -> [ file ] | `Build -> [] in
   let connect info impl_name = function
     | [ argv ] ->
-        Fmt.strf "return (%s.with_argv (List.map fst %s.runtime_keys) %S %s)"
+        Fmt.str "return (%s.with_argv (List.map fst %s.runtime_keys) %S %s)"
           runtime_modname impl_name (Info.name info) argv
     | _ -> failwith "The keys connect should receive exactly one argument."
   in

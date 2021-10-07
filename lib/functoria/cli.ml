@@ -147,7 +147,7 @@ let kind =
   let enums = Arg.doc_alts_enum ~quoted:true query_kinds in
   let doc =
     Arg.info ~docs:configuration_section ~docv:"INFO" []
-      ~doc:(Fmt.strf "The information to query. $(docv) must be %s" enums)
+      ~doc:(Fmt.str "The information to query. $(docv) must be %s" enums)
   in
   Arg.(value & pos 0 (enum query_kinds) `Packages & doc)
 

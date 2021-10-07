@@ -73,12 +73,12 @@ let src = Logs.Src.create "functoria" ~doc:"functoria library"
 module Log = (val Logs.src_log src : Logs.LOG)
 
 let pp_libraries fmt l =
-  Fmt.pf fmt "[@ %a]" Fmt.(iter ~sep:(unit ";@ ") List.iter @@ fmt "%S") l
+  Fmt.pf fmt "[@ %a]" Fmt.(iter ~sep:(any ";@ ") List.iter @@ fmt "%S") l
 
 let pp_packages fmt l =
   Fmt.pf fmt "[@ %a]"
     Fmt.(
-      iter ~sep:(unit ";@ ") List.iter @@ fun fmt (n, v) -> pf fmt "%S, %S" n v)
+      iter ~sep:(any ";@ ") List.iter @@ fun fmt (n, v) -> pf fmt "%S, %S" n v)
     l
 
 let pp_dump_pkgs modname fmt (name, pkg, libs) =
@@ -134,7 +134,7 @@ let app_info ?(runtime_package = "functoria-runtime") ?opam_list
     ?(gen_modname = "Info_gen") ?(modname = "Functoria_runtime") () =
   let file = Fpath.(v (String.Ascii.lowercase gen_modname) + "ml") in
   let module_name = gen_modname in
-  let connect _ impl_name _ = Fmt.strf "return %s.info" impl_name in
+  let connect _ impl_name _ = Fmt.str "return %s.info" impl_name in
   let clean _ = Action.rm file in
   let build i =
     Log.info (fun m -> m "Generating: %a (info)" Fpath.pp file);

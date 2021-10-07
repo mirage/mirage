@@ -108,7 +108,7 @@ let build info t =
 
 let append_main i msg fmt =
   let path = Info.main i in
-  let purpose = Fmt.strf "Append to main.ml (%s)" msg in
+  let purpose = Fmt.str "Append to main.ml (%s)" msg in
   Fmt.kstr
     (fun str ->
       Action.with_output ~path ~append:true ~purpose (fun ppf ->

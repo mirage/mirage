@@ -5,7 +5,7 @@ type console = CONSOLE
 
 let console = Type.v CONSOLE
 
-let connect str _ m _ = Fmt.strf "%s.connect %S" m str
+let connect str _ m _ = Fmt.str "%s.connect %S" m str
 
 let console_unix str =
   let packages = [ package ~min:"4.0.0" ~max:"5.0.0" "mirage-console-unix" ] in

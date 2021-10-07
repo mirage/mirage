@@ -150,7 +150,7 @@ module Make (P : S) = struct
 
   let configure_main i init jobs =
     let main = Info.main i in
-    let purpose = Fmt.strf "configure: create %a" Fpath.pp main in
+    let purpose = Fmt.str "configure: create %a" Fpath.pp main in
     Log.info (fun m -> m "Generating: %a (main file)" Fpath.pp main);
     let* () =
       Action.with_output ~path:main ~append:false ~purpose (fun ppf ->
@@ -200,7 +200,7 @@ module Make (P : S) = struct
         Fmt.pr "%a\n%!" Install.pp install
     | `Files stage ->
         let files = files info jobs stage in
-        Fmt.pr "%a\n%!" Fmt.(list ~sep:(unit " ") Fpath.pp) files
+        Fmt.pr "%a\n%!" Fmt.(list ~sep:(any " ") Fpath.pp) files
     | `Makefile ->
         let file = Makefile.v ~depext (Info.name info) in
         Fmt.pr "%a\n%!" Makefile.pp file

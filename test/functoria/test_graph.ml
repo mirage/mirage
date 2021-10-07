@@ -17,7 +17,7 @@ let var_name x = Device.Graph.var_name x
 
 let impl_name x = Device.Graph.impl_name x
 
-let ident s i = Fmt.strf "%s__%d" s i
+let ident s i = Fmt.str "%s__%d" s i
 
 let test_var_name () =
   Alcotest.(check string) "x" (ident "foo_bar" 1) (var_name x);

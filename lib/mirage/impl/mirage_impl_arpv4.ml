@@ -13,7 +13,7 @@ let arp_conf =
     [ package ~min:"2.3.0" ~max:"3.0.0" ~sublibs:[ "mirage" ] "arp" ]
   in
   let connect _ modname = function
-    | [ eth; _time ] -> Fmt.strf "%s.connect %s" modname eth
+    | [ eth; _time ] -> Fmt.str "%s.connect %s" modname eth
     | _ -> failwith (connect_err "arp" 3)
   in
   impl ~packages ~connect "Arp.Make" (ethernet @-> time @-> arpv4)

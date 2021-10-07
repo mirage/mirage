@@ -107,7 +107,7 @@ module Make (P : S) = struct
     in
     let config_file = Fpath.(basename (rem_ext t.Cli.config_file)) in
     let contents =
-      Fmt.strf
+      Fmt.str
         {|(executable
   (name config)
   (flags (:standard -warn-error -A))

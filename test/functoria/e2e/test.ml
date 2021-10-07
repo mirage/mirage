@@ -51,7 +51,7 @@ let clean () =
     files
 
 let test ?err_ppf ?help_ppf fmt =
-  Fmt.kstrf
+  Fmt.kstr
     (fun l ->
       let line = String.v ~len:80 (fun i -> if i mod 2 = 0 then '-' else '=') in
       let l = String.cuts ~empty:false ~sep:" " l @ [ "-vv" ] in
@@ -108,7 +108,6 @@ let test_configure () =
     ]
     (list_files root);
   clean ();
-
   (* check that configure is writting the correct test.context
      file *)
   let test_config root cfg =
@@ -123,11 +122,9 @@ let test_configure () =
       (String.Ascii.escape_string expected)
       (String.Ascii.escape_string got)
   in
-
   test_config (Fpath.to_string root)
     [ ""; "configure"; "-vv"; "--file=" ^ Fpath.to_string config_ml ];
   clean ();
-
   (* check that `test help configure` and `test configure --help` have
      the same output. *)
   let b1 = Buffer.create 128 and b2 = Buffer.create 128 in
@@ -138,7 +135,6 @@ let test_configure () =
     ~help_ppf:(Format.formatter_of_buffer b2)
     "configure --file=%a --help=plain" Fpath.pp config_ml;
   let s1 = Buffer.contents b1 and s2 = Buffer.contents b2 in
-
   let s1 = by_sections s1 and s2 = by_sections s2 in
   Alcotest.(check (list string))
     "help messages have the same configure options"
@@ -152,7 +148,6 @@ let test_configure () =
     "help messages have the same common options"
     (List.assoc "COMMON OPTIONS" s1)
     (List.assoc "COMMON OPTIONS" s2);
-
   (* check that `test help configure` works when no config.ml file
      is present. *)
   let b3 = Buffer.create 128 in
@@ -180,7 +175,6 @@ let test_build () =
     "main.exe should be built" true
     (Sys.file_exists Fpath.(to_string (root / "main.exe")));
   clean ();
-
   (* test --output *)
   test "configure --file %a -o toto" Fpath.pp config_ml;
   test "build --file %a" Fpath.pp config_ml;
@@ -196,7 +190,6 @@ let test_keys () =
     "vote contains the default value: cat" "cat"
     (read_file Fpath.(root / "vote"));
   clean ();
-
   test "configure --file %a --vote=dog" Fpath.pp config_ml;
   test "build --file %a" Fpath.pp config_ml;
   Alcotest.(check string)

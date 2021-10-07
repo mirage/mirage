@@ -173,7 +173,7 @@ let rec interpret_command : type r. r command -> r or_err = function
   | Run_cmd_out cmd -> interpret_cmd cmd
   | Set_var (c, v) ->
       Log.debug (fun l ->
-          l "set_var %s %a" c Fmt.(option ~none:(unit "<unset>") string) v);
+          l "set_var %s %a" c Fmt.(option ~none:(any "<unset>") string) v);
       Bos.OS.Env.set_var c v
   | Get_var c ->
       Log.debug (fun l -> l "get_var %s" c);
@@ -226,7 +226,7 @@ type files = [ `Passtrough of Fpath.t | `Files of (Fpath.t * string) list ]
 
 let default_exec cmd =
   let cmd =
-    Fmt.str "$(%a)\n" Fmt.(list ~sep:(unit " ") string) (Bos.Cmd.to_list cmd)
+    Fmt.str "$(%a)\n" Fmt.(list ~sep:(any " ") string) (Bos.Cmd.to_list cmd)
   in
   Some (cmd, "")
 
@@ -539,7 +539,7 @@ let rec interpret_dry : type r. env:Env.t -> r command -> r domain =
       dom (Ok r) env
         [
           Fmt.str "Size_of %a -> %a" Fpath.pp path
-            Fmt.(option ~none:(unit "error") int)
+            Fmt.(option ~none:(any "error") int)
             r;
         ]
   | Run_cmd cmd -> (
@@ -569,10 +569,10 @@ let rec interpret_dry : type r. env:Env.t -> r command -> r domain =
       dom (Ok r) env [ Fmt.str "Tmp_file -> %a" Fpath.pp r ]
   | Set_var (c, v) ->
       Log.debug (fun l ->
-          l "Set_var %s %a" c Fmt.(option ~none:(unit "<none>") string) v);
+          l "Set_var %s %a" c Fmt.(option ~none:(any "<none>") string) v);
       let env = Env.set_var env c v in
       let log =
-        Fmt.str "Set_var %s %a" c Fmt.(option ~none:(unit "<unset>") string) v
+        Fmt.str "Set_var %s %a" c Fmt.(option ~none:(any "<unset>") string) v
       in
       dom (Ok ()) env [ log ]
   | Get_var c ->
@@ -580,7 +580,7 @@ let rec interpret_dry : type r. env:Env.t -> r command -> r domain =
       let v = Env.get_var env c in
       let log =
         Fmt.str "Get_var %s -> %a" c
-          Fmt.(option ~none:(unit "<not set>") string)
+          Fmt.(option ~none:(any "<not set>") string)
           v
       in
       dom (Ok v) env [ log ]
@@ -592,7 +592,7 @@ let rec interpret_dry : type r. env:Env.t -> r command -> r domain =
       let env = Env.chdir domain.env old in
       let log =
         Fmt.str "With_dir %a [%a]" Fpath.pp dir
-          Fmt.(vbox ~indent:2 (list ~sep:(unit "@,") string))
+          Fmt.(vbox ~indent:2 (list ~sep:(any "@,") string))
           domain.logs
       in
       { domain with env; logs = [ log ] }

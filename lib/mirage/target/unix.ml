@@ -3,7 +3,7 @@ open Action.Syntax
 
 type t = [ `Unix | `MacOSX ]
 
-let cast = function `Unix -> `Unix | _ -> failwith "not an unix target"
+let cast = function #t as t -> t | _ -> failwith "not an unix target"
 
 let packages _ = [ package ~min:"4.0.0" ~max:"5.0.0" "mirage-unix" ]
 

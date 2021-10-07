@@ -139,7 +139,7 @@ let keys t = t.keys
 let extra_deps t = t.extra_deps
 
 let start impl_name args =
-  Fmt.strf "@[%s.start@ %a@]" impl_name Fmt.(list ~sep:sp string) args
+  Fmt.str "@[%s.start@ %a@]" impl_name Fmt.(list ~sep:sp string) args
 
 let exec_hook i = function None -> Action.ok () | Some h -> h i
 
@@ -210,9 +210,9 @@ module Graph = struct
     | false -> module_name dev
     | true ->
         let prefix = Astring.String.Ascii.capitalize (nice_name dev) in
-        Fmt.strf "%s__%d" prefix id
+        Fmt.str "%s__%d" prefix id
 
   let var_name (D { dev; args = _; deps = _; id }) =
     let prefix = nice_name dev in
-    Fmt.strf "%s__%i" prefix id
+    Fmt.str "%s__%i" prefix id
 end

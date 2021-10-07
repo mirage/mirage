@@ -74,7 +74,7 @@ let v ?(build = []) ?(depends = []) ?(pins = []) ~src name =
 
 let pp_packages ppf packages =
   Fmt.pf ppf "\n  %a\n"
-    Fmt.(list ~sep:(unit "\n  ") (Package.pp ~surround:"\""))
+    Fmt.(list ~sep:(any "\n  ") (Package.pp ~surround:"\""))
     packages
 
 let pp_pins ppf = function
@@ -84,7 +84,7 @@ let pp_pins ppf = function
         Fmt.pf ppf "[\"%s.dev\" %S]" package url
       in
       Fmt.pf ppf "@.pin-depends: [ @[<hv>%a@]@ ]@."
-        Fmt.(list ~sep:(unit "@ ") pp_pin)
+        Fmt.(list ~sep:(any "@ ") pp_pin)
         pins
 
 let pp_src ppf = function
@@ -92,7 +92,7 @@ let pp_src ppf = function
   | Some src -> Fmt.pf ppf {|@.url { src: %S }|} src
 
 let pp ppf t =
-  let pp_build = Fmt.list ~sep:(Fmt.unit " ") (Fmt.fmt "%S") in
+  let pp_build = Fmt.list ~sep:(Fmt.any " ") (Fmt.fmt "%S") in
   Fmt.pf ppf
     {|opam-version: "2.0"
 name: "%s"

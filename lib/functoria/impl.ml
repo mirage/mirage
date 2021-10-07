@@ -415,18 +415,18 @@ module Dot = struct
     let attrs =
       match label with
       | App -> [ ("label", "$"); ("shape", "diamond") ]
-      | If cond -> [ ("label", Fmt.strf "If\n%a" Key.pp_deps cond) ]
+      | If cond -> [ ("label", Fmt.str "If\n%a" Key.pp_deps cond) ]
       | Dev dev ->
-          let name = Fmt.strf "%s__%i" (Device.nice_name dev) id in
+          let name = Fmt.str "%s__%i" (Device.nice_name dev) id in
           let label =
-            Fmt.strf "%s\n%s\n%a" name (Device.module_name dev)
-              Fmt.(list ~sep:(unit ", ") Key.pp)
+            Fmt.str "%s\n%s\n%a" name (Device.module_name dev)
+              Fmt.(list ~sep:(any ", ") Key.pp)
               (Device.keys dev)
           in
           [ ("label", label); ("shape", "box") ]
     in
     let pp_attr ppf (field, v) = Fmt.pf ppf "%s=%S" field v in
-    Fmt.pf ppf "%d [%a];" id (Fmt.list ~sep:(Fmt.unit ", ") pp_attr) attrs
+    Fmt.pf ppf "%d [%a];" id (Fmt.list ~sep:(Fmt.any ", ") pp_attr) attrs
 
   let pp_edges ppf (id, id', label) =
     let attrs =
@@ -440,7 +440,7 @@ module Dot = struct
     in
     let pp_attr ppf (field, v) = Fmt.pf ppf "%s=%S" field v in
     Fmt.pf ppf "%d -> %d [%a];" id id'
-      (Fmt.list ~sep:(Fmt.unit ", ") pp_attr)
+      (Fmt.list ~sep:(Fmt.any ", ") pp_attr)
       attrs
 
   let pp ppf t =

@@ -130,7 +130,7 @@ module Make (P : S) = struct
   (* Generate a `dune-project` file at the project root. *)
   let generate_dune_project () =
     let file = Fpath.(v "dune-project") in
-    let contents = "(lang dune 1.1)\n" in
+    let contents = "(lang dune 2.0)\n" in
     Filegen.write file contents
 
   (* Generate the configuration files in the the build directory *)

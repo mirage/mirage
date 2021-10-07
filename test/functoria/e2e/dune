@@ -1,3 +1,19 @@
 (executable
  (name test)
- (libraries f0 alcotest cmdliner rresult astring))
+ (modules test)
+ (libraries e2e alcotest cmdliner rresult astring))
+
+(executable
+ (name help)
+ (modules help)
+ (libraries astring fmt))
+
+(cram
+ (deps
+  test.exe
+  help.exe
+  (source_tree app)
+  (source_tree lib)
+  (package functoria)
+  (package functoria-runtime))
+ (package functoria))

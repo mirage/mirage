@@ -29,16 +29,16 @@ Query packages
 Query install
   $ ./config.exe query install
   bin: [
-    "test/functoria/query/main.exe" {"noop"}
+    "src/main.exe" {"noop"}
   ]
   etc: [
-    "test/functoria/query/vote" {"vote"}
-    "test/functoria/query/warn_error" {"warn_error"}
+    "key/vote" {"vote"}
+    "key/warn_error" {"warn_error"}
   ]
 
 Query files-configure
   $ ./config.exe query files-configure
-  dune.build key_gen.ml main.ml
+  key_gen.ml main.ml
 
 Query files-build
   $ ./config.exe query files-build

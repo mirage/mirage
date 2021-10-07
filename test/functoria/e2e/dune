@@ -16,4 +16,6 @@
   (source_tree lib)
   (package functoria)
   (package functoria-runtime))
+ (enabled_if
+  (<> %{architecture} "i386"))
  (package functoria))

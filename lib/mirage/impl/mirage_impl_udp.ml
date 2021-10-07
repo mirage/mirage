@@ -24,7 +24,7 @@ let udpv4v6 : udpv4v6 typ = udp
 let udp_direct_func () =
   let packages_v = right_tcpip_library ~sublibs:[ "udp" ] "tcpip" in
   let connect _ modname = function
-    | [ ip; _random ] -> Fmt.strf "%s.connect %s" modname ip
+    | [ ip; _random ] -> Fmt.str "%s.connect %s" modname ip
     | _ -> failwith (connect_err "udp" 2)
   in
   impl ~packages_v ~connect "Udp.Make" (ip @-> random @-> udp)
@@ -39,7 +39,7 @@ let udpv4_socket_conf ipv4_key =
     | `Unix | `MacOSX -> Action.ok ()
     | _ -> Action.error "UDPv4 socket not supported on non-UNIX targets."
   in
-  let connect _ modname _ = Fmt.strf "%s.connect %a" modname pp_key ipv4_key in
+  let connect _ modname _ = Fmt.str "%s.connect %a" modname pp_key ipv4_key in
   impl ~keys ~packages_v ~configure ~connect "Udpv4_socket" udpv4
 
 let socket_udpv4 ?group ip =
@@ -58,7 +58,7 @@ let udpv6_socket_conf ipv6_key =
     | `Unix | `MacOSX -> Action.ok ()
     | _ -> Action.error "UDPv6 socket not supported on non-UNIX targets."
   in
-  let connect _ modname _ = Fmt.strf "%s.connect %a" modname pp_key ipv6_key in
+  let connect _ modname _ = Fmt.str "%s.connect %a" modname pp_key ipv6_key in
   impl ~keys ~packages_v ~configure ~connect "Udpv6_socket" udpv6
 
 let socket_udpv6 ?group ip =
@@ -80,7 +80,7 @@ let udpv4v6_socket_conf ~ipv4_only ~ipv6_only ipv4_key ipv6_key =
     | _ -> Action.error "UDPv4v6 socket not supported on non-UNIX targets."
   in
   let connect _ modname _ =
-    Fmt.strf "%s.connect ~ipv4_only:%a ~ipv6_only:%a %a %a" modname pp_key
+    Fmt.str "%s.connect ~ipv4_only:%a ~ipv6_only:%a %a %a" modname pp_key
       ipv4_only pp_key ipv6_only pp_key ipv4_key pp_key ipv6_key
   in
   impl ~keys ~packages_v ~configure ~connect "Udpv4v6_socket" udpv4v6

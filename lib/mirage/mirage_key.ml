@@ -63,7 +63,7 @@ let mirage_section = "MIRAGE PARAMETERS"
 
 let unikernel_section = "UNIKERNEL PARAMETERS"
 
-let pp_group = Fmt.(option ~none:(unit "the unikernel") @@ fmt "the %s group")
+let pp_group = Fmt.(option ~none:(any "the unikernel") @@ fmt "the %s group")
 
 (** {2 Special keys} *)
 
@@ -371,7 +371,7 @@ let kv_ro ?group () =
   in
   let conv = Arg.conv ~conv ~serialize ~runtime_conv:"kv_ro" in
   let doc =
-    Fmt.strf
+    Fmt.str
       "Use a $(i,fat), $(i,archive), $(i,crunch) or $(i,direct) pass-through \
        implementation for %a."
       pp_group group
@@ -392,7 +392,7 @@ let block ?group () =
   in
   let conv = Arg.conv ~conv ~serialize ~runtime_conv:"block" in
   let doc =
-    Fmt.strf
+    Fmt.str
       "Use a $(i,ramdisk), $(i,xenstore), or $(i,file) pass-through \
        implementation for %a."
       pp_group group
@@ -412,7 +412,7 @@ let prng =
   in
   let conv = Arg.conv ~conv ~serialize ~runtime_conv:"prng" in
   let doc =
-    Fmt.strf
+    Fmt.str
       "This boot parameter is deprecated. A Fortuna PRNG \
        (https://en.wikipedia.org/wiki/Fortuna_(PRNG)) will always be used. The \
        mirage-crypto-entropy (https://github.com/mirage/mirage-crypto) opam \
@@ -423,7 +423,7 @@ let prng =
 (** {3 Stack keys} *)
 
 let dhcp ?group () =
-  let doc = Fmt.strf "Enable dhcp for %a." pp_group group in
+  let doc = Fmt.str "Enable dhcp for %a." pp_group group in
   create_simple ~doc ?group ~stage:`Configure ~default:false Arg.bool "dhcp"
 
 let net ?group () : [ `Socket | `Direct ] option Key.key =
@@ -434,7 +434,7 @@ let net ?group () : [ `Socket | `Direct ] option Key.key =
   in
   let conv = Arg.conv ~conv ~runtime_conv:"net" ~serialize in
   let doc =
-    Fmt.strf "Use $(i,socket) or $(i,direct) group for %a." pp_group group
+    Fmt.str "Use $(i,socket) or $(i,direct) group for %a." pp_group group
   in
   create_simple ~doc ?group ~stage:`Configure ~default:None (Arg.some conv)
     "net"
@@ -442,13 +442,13 @@ let net ?group () : [ `Socket | `Direct ] option Key.key =
 (** {3 Network keys} *)
 
 let interface ?group default =
-  let doc = Fmt.strf "The network interface listened by %a." pp_group group in
+  let doc = Fmt.str "The network interface listened by %a." pp_group group in
   create_simple ~doc ~default ?group Arg.string "interface"
 
 module V4 = struct
   let network ?group default =
     let doc =
-      Fmt.strf
+      Fmt.str
         "The network of %a specified as an IP address and netmask, e.g. \
          192.168.0.1/16 ."
         pp_group group
@@ -456,54 +456,54 @@ module V4 = struct
     create_simple ~doc ~default ?group Arg.ipv4 "ipv4"
 
   let gateway ?group default =
-    let doc = Fmt.strf "The gateway of %a." pp_group group in
+    let doc = Fmt.str "The gateway of %a." pp_group group in
     create_simple ~doc ~default ?group Arg.(some ipv4_address) "ipv4-gateway"
 end
 
 module V6 = struct
   let network ?group default =
     let doc =
-      Fmt.strf "The network of %a specified as IPv6 address and prefix length."
+      Fmt.str "The network of %a specified as IPv6 address and prefix length."
         pp_group group
     in
     create_simple ~doc ~default ?group Arg.(some ipv6) "ipv6"
 
   let gateway ?group default =
-    let doc = Fmt.strf "The gateway of %a." pp_group group in
+    let doc = Fmt.str "The gateway of %a." pp_group group in
     create_simple ~doc ~default ?group Arg.(some ipv6_address) "ipv6-gateway"
 
   let accept_router_advertisements ?group () =
-    let doc = Fmt.strf "Accept router advertisements for %a." pp_group group in
+    let doc = Fmt.str "Accept router advertisements for %a." pp_group group in
     create_simple ~doc ?group ~default:true Arg.bool
       "accept-router-advertisements"
 end
 
 let ipv4_only ?group () =
-  let doc = Fmt.strf "Only use IPv4 for %a." pp_group group in
+  let doc = Fmt.str "Only use IPv4 for %a." pp_group group in
   create_simple ~doc ?group ~default:false Arg.bool "ipv4-only"
 
 let ipv6_only ?group () =
-  let doc = Fmt.strf "Only use IPv6 for %a." pp_group group in
+  let doc = Fmt.str "Only use IPv6 for %a." pp_group group in
   create_simple ~doc ?group ~default:false Arg.bool "ipv6-only"
 
 let resolver ?(default = Ipaddr.of_string_exn "91.239.100.100") () =
-  let doc = Fmt.strf "DNS resolver (default to anycast.censurfridns.dk)" in
+  let doc = Fmt.str "DNS resolver (default to anycast.censurfridns.dk)" in
   create_simple ~doc ~default Arg.ip_address "resolver"
 
 let resolver_port ?(default = 53) () =
-  let doc = Fmt.strf "DNS resolver port" in
+  let doc = Fmt.str "DNS resolver port" in
   create_simple ~doc ~default Arg.int "resolver-port"
 
 let syslog default =
-  let doc = Fmt.strf "syslog server" in
+  let doc = Fmt.str "syslog server" in
   create_simple ~doc ~default Arg.(some ip_address) "syslog"
 
 let syslog_port default =
-  let doc = Fmt.strf "syslog server port" in
+  let doc = Fmt.str "syslog server port" in
   create_simple ~doc ~default Arg.(some int) "syslog-port"
 
 let syslog_hostname default =
-  let doc = Fmt.strf "hostname to report to syslog" in
+  let doc = Fmt.str "hostname to report to syslog" in
   create_simple ~doc ~default Arg.string "syslog-hostname"
 
 let pp_level ppf = function

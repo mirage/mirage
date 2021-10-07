@@ -13,7 +13,7 @@ type http_client = HTTP_client
 let http_client = Type.v HTTP_client
 
 let connect err _i modname = function
-  | [ conduit ] -> Fmt.strf "Lwt.return (%s.listen %s)" modname conduit
+  | [ conduit ] -> Fmt.str "Lwt.return (%s.listen %s)" modname conduit
   | _ -> failwith (connect_err err 1)
 
 let cohttp_server =
@@ -27,7 +27,7 @@ let cohttp_client =
   let packages = [ package ~min:"4.0.0" ~max:"5.0.0" "cohttp-mirage" ] in
   let connect _i modname = function
     | [ _pclock; resolver; conduit ] ->
-        Fmt.strf "Lwt.return (%s.ctx %s %s)" modname resolver conduit
+        Fmt.str "Lwt.return (%s.ctx %s %s)" modname resolver conduit
     | _ -> failwith (connect_err "http" 2)
   in
   impl ~packages ~connect "Cohttp_mirage.Client.Make"

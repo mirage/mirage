@@ -26,7 +26,7 @@ let tcpv4v6 : tcpv4v6 typ = tcp
 let tcp_direct_func () =
   let packages_v = right_tcpip_library ~sublibs:[ "tcp" ] "tcpip" in
   let connect _ modname = function
-    | [ ip; _time; _clock; _random ] -> Fmt.strf "%s.connect %s" modname ip
+    | [ ip; _time; _clock; _random ] -> Fmt.str "%s.connect %s" modname ip
     | _ -> failwith (connect_err "direct tcp" 4)
   in
   impl ~packages_v ~connect "Tcp.Flow.Make"
@@ -44,7 +44,7 @@ let tcpv4_socket_conf ipv4_key =
     | `Unix | `MacOSX -> Action.ok ()
     | _ -> Action.error "TCPv4 socket not supported on non-UNIX targets."
   in
-  let connect _ modname _ = Fmt.strf "%s.connect %a" modname pp_key ipv4_key in
+  let connect _ modname _ = Fmt.str "%s.connect %a" modname pp_key ipv4_key in
   impl ~packages_v ~configure ~keys ~connect "Tcpv4_socket" tcpv4
 
 let socket_tcpv4 ?group ip =
@@ -63,7 +63,7 @@ let tcpv6_socket_conf ipv6_key =
     | `Unix | `MacOSX -> Action.ok ()
     | _ -> Action.error "TCPv6 socket not supported on non-UNIX targets."
   in
-  let connect _ modname _ = Fmt.strf "%s.connect %a" modname pp_key ipv6_key in
+  let connect _ modname _ = Fmt.str "%s.connect %a" modname pp_key ipv6_key in
   impl ~packages_v ~configure ~keys ~connect "Tcpv6_socket" tcpv6
 
 let socket_tcpv6 ?group ip =
@@ -85,7 +85,7 @@ let tcpv4v6_socket_conf ~ipv4_only ~ipv6_only ipv4_key ipv6_key =
     | _ -> Action.error "TCPv4v6 socket not supported on non-UNIX targets."
   in
   let connect _ modname _ =
-    Fmt.strf "%s.connect ~ipv4_only:%a ~ipv6_only:%a %a %a" modname pp_key
+    Fmt.str "%s.connect ~ipv4_only:%a ~ipv6_only:%a %a %a" modname pp_key
       ipv4_only pp_key ipv6_only pp_key ipv4_key pp_key ipv6_key
   in
   impl ~packages_v ~configure ~keys ~connect "Tcpv4v6_socket" tcpv4v6

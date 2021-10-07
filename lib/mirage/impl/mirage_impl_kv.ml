@@ -15,7 +15,7 @@ let crunch dirname =
       package ~min:"3.1.0" ~max:"4.0.0" ~build:true "crunch";
     ]
   in
-  let connect _ modname _ = Fmt.strf "%s.connect ()" modname in
+  let connect _ modname _ = Fmt.str "%s.connect ()" modname in
   let build _i =
     let dir = Fpath.(v dirname) in
     let file = Fpath.(v (String.Ascii.lowercase name) + "ml") in
@@ -33,7 +33,7 @@ let crunch dirname =
 
 let direct_kv_ro dirname =
   let packages = [ package ~min:"2.1.0" ~max:"3.0.0" "mirage-kv-unix" ] in
-  let connect _ modname _names = Fmt.strf "%s.connect \"%s\"" modname dirname in
+  let connect _ modname _names = Fmt.str "%s.connect \"%s\"" modname dirname in
   impl ~packages ~connect "Mirage_kv_unix" ro
 
 let direct_kv_ro dirname =
@@ -56,12 +56,12 @@ let rw = Type.v RW
 
 let direct_kv_rw dirname =
   let packages = [ package ~min:"2.1.0" ~max:"3.0.0" "mirage-kv-unix" ] in
-  let connect _ modname _names = Fmt.strf "%s.connect \"%s\"" modname dirname in
+  let connect _ modname _names = Fmt.str "%s.connect \"%s\"" modname dirname in
   impl ~packages ~connect "Mirage_kv_unix" rw
 
 let mem_kv_rw_config =
   let packages = [ package ~min:"3.0.0" ~max:"4.0.0" "mirage-kv-mem" ] in
-  let connect _ modname _names = Fmt.strf "%s.connect ()" modname in
+  let connect _ modname _names = Fmt.str "%s.connect ()" modname in
   impl ~packages ~connect "Mirage_kv_mem.Make" (Mirage_impl_pclock.pclock @-> rw)
 
 let mem_kv_rw ?(clock = Mirage_impl_pclock.default_posix_clock) () =

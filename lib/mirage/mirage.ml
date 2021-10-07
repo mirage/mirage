@@ -406,7 +406,7 @@ module Tool = Tool.Make (Project)
 let backtrace =
   let keys = [ Key.v Key.backtrace ] in
   let connect _ _ _ =
-    Fmt.strf "return (Printexc.record_backtrace %a)" Mirage_impl_misc.pp_key
+    Fmt.str "return (Printexc.record_backtrace %a)" Mirage_impl_misc.pp_key
       Key.backtrace
   in
   impl ~keys ~connect "Printexc" job
@@ -414,7 +414,7 @@ let backtrace =
 let randomize_hashtables =
   let keys = [ Key.v Key.randomize_hashtables ] in
   let connect _ _ _ =
-    Fmt.strf "return (if %a then Hashtbl.randomize ())" Mirage_impl_misc.pp_key
+    Fmt.str "return (if %a then Hashtbl.randomize ())" Mirage_impl_misc.pp_key
       Key.randomize_hashtables
   in
   impl ~keys ~connect "Hashtbl" job
@@ -422,34 +422,32 @@ let randomize_hashtables =
 let gc_control =
   let pp_pol ~name =
     Fmt.(
-      prefix
-        (unit (name ^^ " = "))
-        (suffix
-           (unit " with `Next_fit -> 0 | `First_fit -> 1 | `Best_fit -> 2)")
-           (prefix (unit "(match ") Mirage_impl_misc.pp_key)))
+      any (name ^^ " = ")
+      ++ (any " with `Next_fit -> 0 | `First_fit -> 1 | `Best_fit -> 2)"
+         ++ (any "(match " ++ Mirage_impl_misc.pp_key)))
   and pp_k ~name =
     let m_body = " with None -> ctrl." ^^ name ^^ " | Some x -> x)" in
     Fmt.(
-      prefix
-        (unit (name ^^ " = "))
-        (suffix (unit m_body) (prefix (unit "(match ") Mirage_impl_misc.pp_key)))
+      any (name ^^ " = ")
+      ++ (any m_body ++ (any "(match " ++ Mirage_impl_misc.pp_key)))
   in
   let keys =
-    [
-      Key.v Key.allocation_policy;
-      Key.v Key.minor_heap_size;
-      Key.v Key.major_heap_increment;
-      Key.v Key.space_overhead;
-      Key.v Key.max_space_overhead;
-      Key.v Key.gc_verbosity;
-      Key.v Key.gc_window_size;
-      Key.v Key.custom_major_ratio;
-      Key.v Key.custom_minor_ratio;
-      Key.v Key.custom_minor_max_size;
-    ]
+    Key.
+      [
+        v allocation_policy;
+        v minor_heap_size;
+        v major_heap_increment;
+        v space_overhead;
+        v max_space_overhead;
+        v gc_verbosity;
+        v gc_window_size;
+        v custom_major_ratio;
+        v custom_minor_ratio;
+        v custom_minor_max_size;
+      ]
   in
   let connect _ _ _ =
-    Fmt.strf
+    Fmt.str
       "return (@.@[<v 2>let open Gc in@ let ctrl = get () in@ set ({ ctrl with \
        %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a })@]@.)"
       (pp_pol ~name:"allocation_policy")

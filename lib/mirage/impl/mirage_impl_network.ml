@@ -25,7 +25,7 @@ let network_conf (intf : string Key.key) =
   in
   let connect _ modname _ =
     (* @samoht: why not just use the args paramater? *)
-    Fmt.strf "%s.connect %a" modname Key.serialize_call key
+    Fmt.str "%s.connect %a" modname Key.serialize_call key
   in
   let configure i =
     all_networks := Key.get (Info.context i) intf :: !all_networks;

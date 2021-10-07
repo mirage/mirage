@@ -40,7 +40,7 @@ let xenstore_conf id =
           "XenStore IDs are only valid ways of specifying block devices when \
            the target is Xen or Qubes."
   in
-  let connect _ impl_name _ = Fmt.strf "%s.connect %S" impl_name id in
+  let connect _ impl_name _ = Fmt.str "%s.connect %S" impl_name id in
   impl ~configure ~connect ~packages:xen_block_packages "Block" block
 
 let block_of_xenstore_id id = xenstore_conf id
@@ -79,7 +79,7 @@ let block_conf file =
   let connect i s _ =
     match get_target i with
     | `Muen -> failwith "Block devices not supported on Muen target."
-    | _ -> Fmt.strf "%s.connect %S" s (connect_name (get_target i))
+    | _ -> Fmt.str "%s.connect %S" s (connect_name (get_target i))
   in
   Device.v ~configure ~packages_v ~connect "Block" block
 
@@ -87,7 +87,7 @@ let block_of_file file = of_device (block_conf file)
 
 let ramdisk rname =
   let packages = [ package "mirage-block-ramdisk" ] in
-  let connect _ m _ = Fmt.strf "%s.connect ~name:%S" m rname in
+  let connect _ m _ = Fmt.str "%s.connect ~name:%S" m rname in
   impl ~connect ~packages "Ramdisk" block
 
 let generic_block ?group ?(key = Key.value @@ Key.block ?group ()) name =
@@ -117,7 +117,7 @@ let tar_block dir =
 let archive_conf =
   let packages = [ package ~min:"1.0.0" ~max:"2.0.0" "tar-mirage" ] in
   let connect _ modname = function
-    | [ block ] -> Fmt.strf "%s.connect %s" modname block
+    | [ block ] -> Fmt.str "%s.connect %s" modname block
     | _ -> failwith (connect_err "archive" 1)
   in
   impl ~packages ~connect "Tar_mirage.Make_KV_RO" (block @-> Mirage_impl_kv.ro)

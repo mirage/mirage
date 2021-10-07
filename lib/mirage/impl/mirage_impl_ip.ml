@@ -37,9 +37,9 @@ type ipv4_config = {
 }
 (** Types for IPv4 manual configuration. *)
 
-let opt_opt_key s = Fmt.(option @@ prefix (unit ("?" ^^ s ^^ ":")) pp_key)
+let opt_opt_key s = Fmt.(option @@ (any ("?" ^^ s ^^ ":") ++ pp_key))
 
-let opt_key s = Fmt.(option @@ prefix (unit ("~" ^^ s ^^ ":")) pp_key)
+let opt_key s = Fmt.(option @@ (any ("~" ^^ s ^^ ":") ++ pp_key))
 
 let opt_map f = function Some x -> Some (f x) | None -> None
 
@@ -57,9 +57,9 @@ let ipv4_keyed_conf ~ip ?gateway ?no_init () =
   let keys = no_init @?? gateway @?? [ Key.v ip ] in
   let connect _ modname = function
     | [ _random; _mclock; etif; arp ] ->
-        Fmt.strf "%s.connect@[@ %a@ %a@ %a@ %s@ %s@]" modname
-          (opt_key "no_init") no_init
-          Fmt.(prefix (unit "~cidr:") pp_key)
+        Fmt.str "%s.connect@[@ %a@ %a@ %a@ %s@ %s@]" modname (opt_key "no_init")
+          no_init
+          Fmt.(any "~cidr:" ++ pp_key)
           ip (opt_opt_key "gateway") gateway etif arp
     | _ -> failwith (connect_err "ipv4 keyed" 4)
   in
@@ -72,7 +72,7 @@ let ipv4_dhcp_conf =
   in
   let connect _ modname = function
     | [ _random; _mclock; _time; network; ethernet; arp ] ->
-        Fmt.strf "%s.connect@[@ %s@ %s@ %s@]" modname network ethernet arp
+        Fmt.str "%s.connect@[@ %s@ %s@ %s@]" modname network ethernet arp
     | _ -> failwith (connect_err "ipv4 dhcp" 5)
   in
   impl ~packages ~connect "Dhcp_ipv4.Make"
@@ -103,7 +103,7 @@ let ipv4_qubes_conf =
   let packages = [ package ~min:"0.9.0" ~max:"0.10.0" "mirage-qubes-ipv4" ] in
   let connect _ modname = function
     | [ db; _random; _mclock; etif; arp ] ->
-        Fmt.strf "%s.connect@[@ %s@ %s@ %s@]" modname db etif arp
+        Fmt.str "%s.connect@[@ %s@ %s@ %s@]" modname db etif arp
     | _ -> failwith (connect_err "qubes ipv4" 5)
   in
   impl ~packages ~connect "Qubesdb_ipv4.Make"
@@ -118,7 +118,7 @@ let ipv6_conf ?ip ?gateway ?handle_ra ?no_init () =
   let keys = ip @?? gateway @?? handle_ra @?? no_init @?? [] in
   let connect _ modname = function
     | [ netif; etif; _random; _time; _clock ] ->
-        Fmt.strf "%s.connect@[@ %a@ %a@ %a@ %a@ %s@ %s@]" modname
+        Fmt.str "%s.connect@[@ %a@ %a@ %a@ %a@ %s@ %s@]" modname
           (opt_key "no_init") no_init (opt_key "handle_ra") handle_ra
           (opt_opt_key "cidr") ip (opt_opt_key "gateway") gateway netif etif
     | _ -> failwith (connect_err "ipv6" 5)
@@ -148,7 +148,7 @@ let ipv4v6_conf ?ipv4_only ?ipv6_only () =
   let keys = ipv4_only @?? ipv6_only @?? [] in
   let connect _ modname = function
     | [ ipv4; ipv6 ] ->
-        Fmt.strf "%s.connect@[@ %a@ %a@ %s@ %s@]" modname (opt_key "ipv4_only")
+        Fmt.str "%s.connect@[@ %a@ %a@ %s@ %s@]" modname (opt_key "ipv4_only")
           ipv4_only (opt_key "ipv6_only") ipv6_only ipv4 ipv6
     | _ -> failwith (connect_err "ipv4v6" 2)
   in

@@ -32,7 +32,7 @@ let resolver_dns_conf ~ns ~ns_port =
   let keys = Key.[ v ns; v ns_port ] in
   let connect _ modname = function
     | [ _r; _t; _m; stack ] ->
-        Fmt.strf
+        Fmt.str
           "let ns = %a in@;\
            let ns_port = %a in@;\
            let res = %s.v ~ns ~ns_port %s in@;\

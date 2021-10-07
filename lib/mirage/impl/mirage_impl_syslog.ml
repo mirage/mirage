@@ -26,7 +26,7 @@ type syslog = SYSLOG
 
 let syslog = Type.v SYSLOG
 
-let opt p s = Fmt.(option @@ prefix (unit ("~" ^^ s ^^ ":")) p)
+let opt p s = Fmt.(option @@ (any ("~" ^^ s ^^ ":") ++ p))
 
 let opt_int = opt Fmt.int
 
@@ -42,7 +42,7 @@ let syslog_udp_conf config =
   let keys = Key.[ v endpoint; v hostname; v port ] in
   let connect _i modname = function
     | [ console; pclock; stack ] ->
-        Fmt.strf
+        Fmt.str
           "@[<v 2>match %a with@ | None -> Lwt.return_unit@ | Some server ->@ \
            let port = %a in@ let reporter =@ %s.create %s %s %s ~hostname:%a \
            ?port server %a ()@ in@ Logs.set_reporter reporter;@ \
@@ -66,7 +66,7 @@ let syslog_tcp_conf config =
   let keys = Key.[ v endpoint; v hostname; v port ] in
   let connect _i modname = function
     | [ console; pclock; stack ] ->
-        Fmt.strf
+        Fmt.str
           "@[<v 2>match %a with@ | None -> Lwt.return_unit@ | Some server ->@ \
            let port = %a in@ %s.create %s %s %s ~hostname:%a ?port server %a \
            () >>= function@ | Ok reporter -> Logs.set_reporter reporter; \
@@ -90,7 +90,7 @@ let syslog_tls_conf ?keyname config =
   let keys = Key.[ v endpoint; v hostname; v port ] in
   let connect _i modname = function
     | [ console; pclock; stack; kv ] ->
-        Fmt.strf
+        Fmt.str
           "@[<v 2>match %a with@ | None -> Lwt.return_unit@ | Some server ->@ \
            let port = %a in@ %s.create %s %s %s %s ~hostname:%a ?port server \
            %a %a () >>= function@ | Ok reporter -> Logs.set_reporter reporter; \

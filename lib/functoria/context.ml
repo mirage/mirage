@@ -45,7 +45,7 @@ let find k (t : t) =
 let dump : t Fmt.t =
   let pp_elt ppf (k, v) = Fmt.pf ppf "[%s: %a]" k Fmt.exn v in
   let map_iter f = Map.iter (fun k v -> f (k, v)) in
-  Fmt.box ~indent:2 @@ Fmt.(iter ~sep:(unit "@ ")) map_iter pp_elt
+  Fmt.box ~indent:2 @@ Fmt.(iter ~sep:(any "@ ")) map_iter pp_elt
 
 let merge ~default m =
   let aux _ _ v = Some v in

@@ -20,8 +20,8 @@ let stackv4_direct_conf () =
   let packages_v = right_tcpip_library ~sublibs:[ "stack-direct" ] "tcpip" in
   let connect _i modname = function
     | [ _t; _r; interface; ethif; arp; ip; icmp; udp; tcp ] ->
-        Fmt.strf "%s.connect %s %s %s %s %s %s %s" modname interface ethif arp
-          ip icmp udp tcp
+        Fmt.str "%s.connect %s %s %s %s %s %s %s" modname interface ethif arp ip
+          icmp udp tcp
     | _ -> failwith (connect_err "direct stackv4" 9)
   in
   impl ~packages_v ~connect "Tcpip_stack_direct.Make"
@@ -84,7 +84,7 @@ let socket_stackv4 ?(group = "") () =
     [ dep (udpv4_socket_conf key); dep (tcpv4_socket_conf key) ]
   in
   let connect _i modname = function
-    | [ udpv4; tcpv4 ] -> Fmt.strf "%s.connect %s %s" modname udpv4 tcpv4
+    | [ udpv4; tcpv4 ] -> Fmt.str "%s.connect %s %s" modname udpv4 tcpv4
     | _ -> failwith (connect_err "socket stack" 2)
   in
   impl ~packages_v ~extra_deps ~connect "Tcpip_stack_socket.V4" stackv4
@@ -120,7 +120,7 @@ let stackv6_direct_conf () =
   let packages_v = right_tcpip_library ~sublibs:[ "stack-direct" ] "tcpip" in
   let connect _i modname = function
     | [ _t; _r; interface; ethif; ip; udp; tcp ] ->
-        Fmt.strf "%s.connect %s %s %s %s %s" modname interface ethif ip udp tcp
+        Fmt.str "%s.connect %s %s %s %s %s" modname interface ethif ip udp tcp
     | _ -> failwith (connect_err "direct stackv6" 9)
   in
   impl ~packages_v ~connect "Tcpip_stack_direct.MakeV6"
@@ -156,7 +156,7 @@ let socket_stackv6 ?(group = "") () =
     [ dep (udpv6_socket_conf key); dep (tcpv6_socket_conf key) ]
   in
   let connect _i modname = function
-    | [ udp; tcp ] -> Fmt.strf "%s.connect %s %s" modname udp tcp
+    | [ udp; tcp ] -> Fmt.str "%s.connect %s %s" modname udp tcp
     | _ -> failwith (connect_err "socket stack" 2)
   in
   impl ~packages_v ~extra_deps ~connect "Tcpip_stack_socket.V6" stackv6
@@ -186,7 +186,7 @@ let stackv4v6_direct_conf () =
   let packages_v = right_tcpip_library ~sublibs:[ "stack-direct" ] "tcpip" in
   let connect _i modname = function
     | [ _t; _r; interface; ethif; arp; ipv4v6; icmpv4; udp; tcp ] ->
-        Fmt.strf "%s.connect %s %s %s %s %s %s %s" modname interface ethif arp
+        Fmt.str "%s.connect %s %s %s %s %s %s %s" modname interface ethif arp
           ipv4v6 icmpv4 udp tcp
     | _ -> failwith (connect_err "direct stack" 8)
   in
@@ -254,7 +254,7 @@ let socket_stackv4v6 ?(group = "") () =
     ]
   in
   let connect _i modname = function
-    | [ udp; tcp ] -> Fmt.strf "%s.connect %s %s" modname udp tcp
+    | [ udp; tcp ] -> Fmt.str "%s.connect %s %s" modname udp tcp
     | _ -> failwith (connect_err "socket stack" 2)
   in
   impl ~packages_v ~extra_deps ~connect "Tcpip_stack_socket.V4V6" stackv4v6

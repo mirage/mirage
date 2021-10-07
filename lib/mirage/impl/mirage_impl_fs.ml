@@ -12,7 +12,7 @@ let fat_pkg = package ~min:"0.14.0" ~max:"0.15.0" "fat-filesystem"
 
 let connect err _ modname l =
   match l with
-  | [ block_name ] -> Fmt.strf "%s.connect %s" modname block_name
+  | [ block_name ] -> Fmt.str "%s.connect %s" modname block_name
   | _ -> failwith (connect_err err 1)
 
 let fat_conf =
@@ -55,7 +55,7 @@ let fat_block ?(dir = ".") ?(regexp = "*") () =
   let name = "fat_block" ^ string_of_int (count ()) in
   let block_file = name ^ ".img" in
   let files _ = function `Build -> [ Fpath.v block_file ] | _ -> [] in
-  let file = Fmt.strf "make-%s-image.sh" name in
+  let file = Fmt.str "make-%s-image.sh" name in
   let pre_build _ =
     let dir = Fpath.of_string dir |> Rresult.R.error_msg_to_invalid_arg in
     Log.info (fun m -> m "Generating block generator script: %s" file);
@@ -80,7 +80,7 @@ let fat_of_files ?dir ?regexp () = fat @@ fat_block ?dir ?regexp ()
 let kv_ro_of_fs_conf =
   let packages = [ package ~min:"3.0.0" ~max:"4.0.0" "mirage-fs" ] in
   let connect _ modname = function
-    | [ fs ] -> Fmt.strf "%s.connect %s" modname fs
+    | [ fs ] -> Fmt.str "%s.connect %s" modname fs
     | _ -> failwith (connect_err "kv_ro_of_fs" 1)
   in
   impl ~packages ~connect "Mirage_fs.To_KV_RO" (typ @-> Mirage_impl_kv.ro)

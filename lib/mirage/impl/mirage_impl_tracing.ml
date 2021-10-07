@@ -39,14 +39,14 @@ let mprof_trace ~size () =
     | #Mirage_key.mode_solo5 ->
         failwith "tracing is not currently implemented for solo5 targets"
     | #Mirage_key.mode_unix ->
-        Fmt.strf
+        Fmt.str
           "Lwt.return ())@.let () = (@ @[<v 2> let buffer = \
            MProf_unix.mmap_buffer ~size:%a %S in@ let trace_config = \
            MProf.Trace.Control.make buffer MProf_unix.timestamper in@ \
            MProf.Trace.Control.start trace_config@]"
           Key.serialize_call (Key.v key) unix_trace_file
     | #Mirage_key.mode_xen ->
-        Fmt.strf
+        Fmt.str
           "Lwt.return ())@.let () = (@ @[<v 2> let trace_pages = \
            MProf_xen.make_shared_buffer ~size:%a in@ let buffer = trace_pages \
            |> Io_page.to_cstruct |> Cstruct.to_bigarray in@ let trace_config = \

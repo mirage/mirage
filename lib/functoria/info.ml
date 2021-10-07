@@ -93,7 +93,7 @@ let pp verbose ppf ({ name; keys; context; output; _ } as t) =
   let show ?(newline = true) name =
     Fmt.pf ppf ("@[<2>%-10s@ %a@]" ^^ if newline then "@," else "") name
   in
-  let list = Fmt.iter ~sep:(Fmt.unit ",@ ") List.iter Fmt.string in
+  let list = Fmt.iter ~sep:(Fmt.any ",@ ") List.iter Fmt.string in
   show "Name" Fmt.string name;
   show "Keys" ~newline:(verbose && output <> None) (Key.pps context) keys;
   let () =
@@ -104,7 +104,7 @@ let pp verbose ppf ({ name; keys; context; output; _ } as t) =
   if verbose then show "Libraries " list (libraries t);
   if verbose then
     show "Packages" ~newline:false
-      (pp_packages ?surround:None ~sep:(Fmt.unit ",@ "))
+      (pp_packages ?surround:None ~sep:(Fmt.any ",@ "))
       t
 
 let t =

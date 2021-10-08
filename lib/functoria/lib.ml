@@ -59,7 +59,7 @@ module Config = struct
     let packages = Key.pure @@ packages in
     let jobs = Impl.abstract jobs in
     let keys = Key.Set.(union (of_list keys) (get_if_context jobs)) in
-    { packages; keys; name; init; jobs; build_cmd; src }
+    { packages; keys; name; init; build_cmd; jobs; src }
 
   let eval ~full context
       { name = n; build_cmd; packages; keys; jobs; init; src } =
@@ -81,11 +81,21 @@ end
 module type S = sig
   val prelude : string
 
+  val packages : Package.t list
+
   val name : string
 
   val version : string
 
   val create : job impl list -> job impl
+
+  val name_of_target : Info.t -> string
+
+  val dune_project : Dune.stanza list
+
+  val dune_workspace : (?build_dir:Fpath.t -> info -> Dune.t) option
+
+  val context_name : Info.t -> string
 end
 
 module Make (P : S) = struct
@@ -95,8 +105,9 @@ module Make (P : S) = struct
 
   let build_dir args = Fpath.parent args.Cli.config_file
 
-  let get_build_cmd args =
-    [ P.name; "build"; "--config-file"; Fpath.to_string args.Cli.config_file ]
+  let mirage_dir args = Fpath.(build_dir args / P.name)
+
+  let artifacts_dir = Fpath.v "dist"
 
   let exit_err args = function
     | Ok v -> v
@@ -104,6 +115,21 @@ module Make (P : S) = struct
         flush_all ();
         if m <> "" then Fmt.epr "%a\n%!" Fmt.(styled (`Fg `Red) string) m;
         if not args.Cli.dry_run then exit 1 else Fmt.epr "(exit 1)"
+
+  let get_build_cmd _ =
+    let command_line_arguments =
+      Sys.argv
+      |> Array.to_list
+      |> List.tl
+      |> List.filter (fun arg ->
+             arg <> "configure" && arg <> "query" && arg <> "switch.opam")
+      |> List.map (fun x -> "\"" ^ x ^ "\"")
+      |> String.concat ~sep:" "
+    in
+    [
+      Fmt.str {|"%s" "configure" %s|} P.name command_line_arguments;
+      Fmt.str {|"%s" "build"|} P.name;
+    ]
 
   (* STAGE 2 *)
 
@@ -159,61 +185,177 @@ module Make (P : S) = struct
     let* () = Engine.configure i jobs in
     Engine.connect i ~init jobs
 
-  let clean_main i jobs =
-    let* () = Engine.clean i jobs in
-    Action.rm (Info.main i)
-
-  let configure args =
-    let { Config.init; info; device_graph; _ } = args.Cli.context in
-    Log.info (fun m -> m "Configuration: %a" Fpath.pp args.Cli.config_file);
-    let () =
-      match Info.output info with
-      | None -> ()
-      | Some o -> Log.info (fun m -> m "Output       : %a" Fmt.(string) o)
-    in
-    Action.with_dir (build_dir args) (fun () ->
-        configure_main info init device_graph)
-
-  let files i jobs s =
+  let files i jobs =
     let main = Info.main i in
-    let files = Engine.files i jobs s in
-    let files = if s = `Configure then Fpath.Set.add main files else files in
+    let files = Engine.files i jobs in
+    let files = Fpath.Set.add main files in
     Fpath.Set.(elements files)
 
-  let build args =
-    let { Config.info; device_graph; _ } = args.Cli.context in
-    Log.info (fun m -> m "Building: %a" Fpath.pp args.Cli.config_file);
-    Action.with_dir (build_dir args) (fun () -> Engine.build info device_graph)
+  let build (args : _ Cli.build_args) =
+    (* Get application name *)
+    let build_dir = build_dir args in
+    let* () = Filegen.write Fpath.(build_dir / "dune") "(include dune.build)" in
+    let cmd = Bos.Cmd.(v "dune" % "build" % "--root" % ".") in
+    Log.info (fun f -> f "dune build --root .");
+    Action.run_cmd_cli cmd
 
-  let query ({ args; kind; depext } : _ Cli.query_args) =
+  let query ({ args; kind; depext; extra_repo } : _ Cli.query_args) =
     let { Config.jobs; info; _ } = args.Cli.context in
+    let name = P.name_of_target info in
+    let install = Key.eval (Info.context info) (Engine.install info jobs) in
+    let build_dir = Fpath.parent args.config_file in
     match kind with
     | `Name -> Fmt.pr "%s\n%!" (Info.name info)
     | `Packages ->
         let pkgs = Info.packages info in
         List.iter (Fmt.pr "%a\n%!" (Package.pp ~surround:"\"")) pkgs
-    | `Opam ->
-        let opam = Info.opam info in
+    | `Opam scope ->
+        let opam = Info.opam ~install scope info in
         Fmt.pr "%a\n%!" Opam.pp opam
-    | `Install ->
-        let install = Key.eval (Info.context info) (Engine.install info jobs) in
-        Fmt.pr "%a\n%!" Install.pp install
-    | `Files stage ->
-        let files = files info jobs stage in
+    | `Files ->
+        let files = files info jobs in
         Fmt.pr "%a\n%!" Fmt.(list ~sep:(any " ") Fpath.pp) files
     | `Makefile ->
-        let file = Makefile.v ~depext (Info.name info) in
+        let file =
+          Makefile.v ~build_dir ~depext ~name:P.name ?extra_repo
+            (Info.name info)
+        in
         Fmt.pr "%a\n%!" Makefile.pp file
+    | `Dune `Config ->
+        let cwd = Bos.OS.Dir.current () |> Result.get_ok in
+        let config_ml_file = Fpath.(cwd // args.Cli.config_file) in
+        let dune =
+          Dune.base ~config_ml_file ~packages:P.packages ~name:P.name
+            ~version:P.version
+        in
+        Fmt.pr "%a\n%!" Dune.pp dune
+    | `Dune `Build ->
+        let dune_copy_config = Dune.stanzaf "(copy_files ./config/*)" in
+        let dune = Dune.v (dune_copy_config :: Engine.dune info jobs) in
+        Fmt.pr "%a\n%!" Dune.pp dune
+    | `Dune `Project ->
+        let dune =
+          Dune.v
+            (Dune.base_project
+            @ (Dune.stanzaf "(name %s)" name :: P.dune_project))
+        in
+        Fmt.pr "%a\n%!" Dune.pp dune
+    | `Dune `Workspace ->
+        let dune =
+          match P.dune_workspace with
+          | None -> Dune.base_workspace
+          | Some f -> f ~build_dir info
+        in
+        Fmt.pr "%a\n%!" Dune.pp dune
+    | `Dune `Dist ->
+        let install = Key.eval (Info.context info) (Engine.install info jobs) in
+        Fmt.pr "%a\n%!" Dune.pp
+          (Install.dune
+             ~build_dir:Fpath.(v ".." // build_dir)
+             ~context_name:(P.context_name info) install)
 
-  let clean args =
-    let { Config.info; device_graph; _ } = args.Cli.context in
-    Log.info (fun m -> m "Cleaning: %a" Fpath.pp args.Cli.config_file);
-    Action.with_dir (build_dir args) (fun () ->
-        let* () = clean_main info device_graph in
-        let* () = Filegen.rm Fpath.(v "dune") in
-        let* () = Filegen.rm Fpath.(v "dune.config") in
-        let* () = Filegen.rm Fpath.(v "dune.build") in
-        Action.rm Fpath.(v ".merlin"))
+  (* Configuration step. *)
+
+  let generate_opam ~name scope (args : _ Cli.args) () =
+    let { Config.info; jobs; _ } = args.Cli.context in
+    let install = Key.eval (Info.context info) (Engine.install info jobs) in
+    let fname =
+      match scope with
+      | `Monorepo -> "-monorepo.opam"
+      | `Switch -> "-switch.opam"
+    in
+    let opam = Info.opam ~install scope info in
+    let contents = Fmt.str "%a" Opam.pp opam in
+    let file = Fpath.(v (name ^ fname)) in
+    Log.info (fun m ->
+        m "Generating: %a (%a)" Fpath.pp file Cli.pp_query_kind (`Opam scope));
+    Filegen.write file contents
+
+  let generate_dune alias (args : _ Cli.args) () =
+    let { Config.info; jobs; _ } = args.Cli.context in
+    let name = P.name_of_target info in
+    let build_dir = build_dir args in
+    let file =
+      match alias with
+      | `Dist -> Fpath.(v "dune")
+      | `Build -> Fpath.(v "dune.build")
+      | `Workspace -> Fpath.(v "dune-workspace")
+      | `Project -> Fpath.(v "dune-project")
+    in
+    Log.info (fun m ->
+        m "Generating: %a (%a)" Fpath.pp file Cli.pp_query_kind
+          (`Dune alias :> Cli.query_kind));
+    let contents =
+      match alias with
+      | `Build ->
+          let import_config = Dune.stanzaf "(copy_files ./%s/*)" P.name in
+          let dune = Dune.v (import_config :: Engine.dune info jobs) in
+          Fmt.str "%a\n" Dune.pp dune
+      | `Project ->
+          let dune =
+            Dune.v
+              (Dune.base_project
+              @ (Dune.stanzaf "(name %s)" name :: P.dune_project))
+          in
+          Fmt.str "%a\n" Dune.pp dune
+      | `Workspace ->
+          let dune =
+            match P.dune_workspace with
+            | None -> Dune.base_workspace
+            | Some f -> f ~build_dir info
+          in
+          Fmt.str "%a\n" Dune.pp dune
+      | `Dist ->
+          let install =
+            Key.eval (Info.context info) (Engine.install info jobs)
+          in
+          Fmt.str "%a\n" Dune.pp
+            (Install.dune
+               ~build_dir:Fpath.(v ".." // build_dir)
+               ~context_name:(P.context_name info) install)
+    in
+    Filegen.write file contents
+
+  let clean (args : _ Cli.clean_args) =
+    let* () = Action.rmdir (mirage_dir args) in
+    Action.rmdir artifacts_dir
+
+  let generate_makefile ~build_dir ~depext ~extra_repo name =
+    let file = Fpath.(v "Makefile") in
+    let contents =
+      Fmt.to_to_string Makefile.pp
+        (Makefile.v ~build_dir ~depext ~name:P.name ?extra_repo name)
+    in
+    Filegen.write file contents
+
+  let configure ({ args; depext; extra_repo; _ } : _ Cli.configure_args) =
+    let { Config.init; info; device_graph; _ } = args.Cli.context in
+    (* Get application name *)
+    let build_dir = build_dir args in
+    let name = P.name_of_target info in
+    let* () = generate_makefile ~build_dir ~depext ~extra_repo name in
+    let* _ = Action.mkdir (mirage_dir args) in
+    let* () =
+      Action.with_dir (mirage_dir args) (fun () ->
+          (* OPAM files *)
+          let* () = generate_opam `Switch ~name args () in
+          let* () = generate_opam `Monorepo ~name args () in
+          (* Generate application specific-files *)
+          Log.info (fun m -> m "in dir %a" (Cli.pp_args (fun _ _ -> ())) args);
+          configure_main info init device_graph)
+    in
+    let* () =
+      Action.with_dir build_dir (fun () ->
+          let* () = generate_dune `Build args () in
+          Filegen.write Fpath.(v "dune") "(include dune.build)")
+    in
+    (* dune-workspace: defines compilation contexts *)
+    let* () = generate_dune `Workspace args () in
+    (* dune-project *)
+    let* () = generate_dune `Project args () in
+    (* Get install spec *)
+    let* _ = Action.mkdir artifacts_dir in
+    Action.with_dir artifacts_dir (generate_dune `Dist args)
 
   let ok () = Action.ok ()
 
@@ -240,7 +382,7 @@ module Make (P : S) = struct
         | Cli.Configure t ->
             let t = { t with args = with_output t.args } in
             Log.info (fun m -> pp_info m (Some Logs.Debug) t.args);
-            configure t.args
+            configure t
         | Cli.Build t ->
             let t = with_output t in
             Log.info (fun m -> pp_info m (Some Logs.Debug) t);
@@ -337,7 +479,7 @@ module Make (P : S) = struct
        and root directory. *)
     let argv = Sys.argv in
     (* TODO: do not are parse the command-line twice *)
-    let args = Cli.peek_args ~mname:P.name argv in
+    let args = Cli.peek_args ~with_setup:true ~mname:P.name argv in
     let run () =
       let build_cmd = get_build_cmd args in
       let main_dev = P.create (init @ jobs) in

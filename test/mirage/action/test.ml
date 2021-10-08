@@ -16,14 +16,14 @@ let print_banner s =
   print_newline ()
 
 let info context =
-  Info.v ~packages:[] ~keys:[] ~context ~src:`None
-    ~build_cmd:[ "mirage"; "build" ] "NAME"
+  Info.v ~packages:[] ~keys:[] ~build_cmd:[ "mirage build" ] ~context ~src:`None
+    "NAME"
 
 let test target =
   print_banner target;
   let context = context_singleton Key.target target in
   let env = Action.env ~files:(`Files []) () in
-  Action.dry_run_trace ~env @@ Configure.configure @@ info context;
+  Action.dry_run_trace ~env @@ Project.configure @@ info context;
   print_newline ()
 
-let () = List.iter test [ "unix"; "xen"; "virtio" ]
+let () = List.iter test [ "unix"; "hvt" ]

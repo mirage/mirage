@@ -59,8 +59,8 @@ val hash : ('a, 'b) t -> int
 
 (** {1 Resources} *)
 
-val files : ('a, 'b) t -> Info.t -> [ `Configure | `Build ] -> Fpath.Set.t
-(** [files t info s] is the list of files generated at stage [s]. *)
+val files : ('a, 'b) t -> Info.t -> Fpath.Set.t
+(** [files t info s] is the list of files generated configure-time. *)
 
 val keys : ('a, 'b) t -> Key.t list
 (** [keys t] is the list of command-line keys which can be used to configure
@@ -85,20 +85,18 @@ val nice_name : _ t -> string
     identifier. *)
 
 (** {1 Actions} *)
+val dune : ('a, 'b) t -> Info.t -> Dune.stanza list
+(** [dune t info] are the dune stanza which needs to be generated to build the
+    application. *)
+
+(** {1 Configuration} *)
 
 val configure : ('a, 'b) t -> Info.t -> unit Action.t
-(** [configure t info] runs [t]'s configuration hooks. During the configuration
-    phase, [packages t] might not yet be installed yet. The code might involve
-    generating more OCaml code, running shell scripts, etc. *)
+(** [configure t info] is configure hook for [t] the device and the files it
+    generates. During the configure phase, you cannot rely on [packages t] being
+    installed.
 
-val build : ('a, 'b) t -> Info.t -> unit Action.t
-(** [build t info] runs the build hooks for [t] the device. During the build
-    phase, you can rely on every [packages t] to be installed. The code might
-    involve generating more OCaml code (crunching directories), running shell
-    scripts, etc. *)
-
-val clean : ('a, 'b) t -> Info.t -> unit Action.t
-(** [clean t info] runs [t]'s clean-up hooks. *)
+    To run code during the [build] phase, generate a [dune] fragment instead. *)
 
 (** {1 Constructors} *)
 
@@ -110,10 +108,9 @@ val v :
   ?keys:Key.t list ->
   ?extra_deps:'b list ->
   ?connect:(Info.t -> string -> string list -> 'a code) ->
+  ?dune:(Info.t -> Dune.stanza list) ->
   ?configure:(Info.t -> unit Action.t) ->
-  ?files:(Info.t -> [ `Configure | `Build ] -> Fpath.t list) ->
-  ?build:(Info.t -> unit Action.t) ->
-  ?clean:(Info.t -> unit Action.t) ->
+  ?files:(Info.t -> Fpath.t list) ->
   string ->
   'a Type.t ->
   ('a, 'b) t
@@ -121,13 +118,10 @@ val v :
 val extend :
   ?packages:Package.t list ->
   ?packages_v:Package.t list Key.value ->
-  ?files:(Info.t -> [ `Configure | `Build ] -> Fpath.t list) ->
+  ?dune:(Info.t -> Dune.stanza list) ->
   ?pre_configure:(Info.t -> unit Action.t) ->
   ?post_configure:(Info.t -> unit Action.t) ->
-  ?pre_build:(Info.t -> unit Action.t) ->
-  ?post_build:(Info.t -> unit Action.t) ->
-  ?pre_clean:(Info.t -> unit Action.t) ->
-  ?post_clean:(Info.t -> unit Action.t) ->
+  ?files:(Info.t -> Fpath.t list) ->
   ('a, 'b) t ->
   ('a, 'b) t
 

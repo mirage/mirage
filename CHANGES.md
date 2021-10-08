@@ -1,3 +1,47 @@
+### v4.0.0 (unreleased)
+
+Refactor build process to use [Dune](https://dune.build/) build system. The
+motivation is to drop `ocamlbuild`-induced technical debt and to obtain
+first-class support for _cross-compilation_. To learn more about how Dune is
+able to perform cross-compilation, please refer to the
+[documentation](https://dune.readthedocs.io/en/stable/cross-compilation.html).
+
+Main changes:
+
+* Two opam files are generated when running `mirage configure`:
+  - `<unikernel>-switch.opam`: for dependencies that are meant to be installed
+    in the user's opam switch. It comprises of build tools such as
+    `ocaml-freestanding` for Solo5 targets.
+  - `<unikernel>-monorepo.opam`: for unikernel dependencies, they are locally
+    fetched to compose a _dune workspace_.
+
+* Unikernel dependencies are fetched in the source project using the
+  `opam-monorepo` tool. This tool reads the `<unikernel>-monorepo.opam` file and
+  make use of the opam solver to compute the transitive dependency set, saves
+  that as a _lockfile_, and fetch sources in the `duniverse/` subfolder.
+  More info on the [Github repository](https://github.com/ocamllabs/opam-monorepo).
+
+* The compilation scheme use `dune`'s concept of a _workspace_: it's a set of
+  libraries that are built together using the same _context_. For each
+  compilation target, the Mirage tool is able to generate a _context_ definition
+  able to compile for that target. A _context_ is defined by an OCaml compiler
+  (or cross-compiler) toolchain, as defined by `findlib`, it can be tuned with
+  environment variables and custom flags for the OCaml or underlying C compiler.
+
+Breaking changes:
+
+* Unikernel dependencies need to use `dune` as a build system. Other build
+  systems may be sandboxed in a Dune package, but the recommended way is to
+  switch to `dune`. A set of packages have been ported to dune but the changes
+  are not upstreamed, they are available in the Mirage
+  [overlay repository](https://github.com/mirage/opam-overlays).
+  This repository is configured by default.
+  To remove it, use `mirage configure --no-extra-repo`.
+  Another overlay repository can be used:
+  ```
+  $ mirage configure --extra-repo https://github.com/dune-universe/opam-overlays
+  ````
+
 ### v3.10.4 (2021-04-20)
 
 - Allow mirage-crypto-rng-mirage 0.10 (@hannesm)
@@ -68,13 +112,13 @@ index c425edb..eabc9d6 100644
 @@ -4,9 +4,9 @@ let port =
    let doc = Key.Arg.info ~doc:"The TCP port on which to listen for incoming connections." ["port"] in
    Key.(create "port" Arg.(opt int 8080 doc))
- 
+
 -let main = foreign ~keys:[Key.abstract port] "Unikernel.Main" (stackv4 @-> job)
 +let main = foreign ~keys:[Key.abstract port] "Unikernel.Main" (stackv4v6 @-> job)
- 
+
 -let stack = generic_stackv4 default_network
 +let stack = generic_stackv4v6 default_network
- 
+
  let () =
    register "network" [
 diff --git a/device-usage/network/unikernel.ml b/device-usage/network/unikernel.ml
@@ -83,10 +127,10 @@ index 5d29111..1bf1228 100644
 +++ b/device-usage/network/unikernel.ml
 @@ -1,19 +1,19 @@
  open Lwt.Infix
- 
+
 -module Main (S: Mirage_stack.V4) = struct
 +module Main (S: Mirage_stack.V4V6) = struct
- 
+
    let start s =
      let port = Key_gen.port () in
 -    S.listen_tcpv4 s ~port (fun flow ->
@@ -106,7 +150,7 @@ index 5d29111..1bf1228 100644
 -          S.TCPV4.close flow
 +          S.TCP.close flow
        );
- 
+
      S.listen s
 ```
 

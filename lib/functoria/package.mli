@@ -18,10 +18,17 @@
 
 (** Representation of opam packages. *)
 
+type scope = [ `Switch | `Monorepo ]
+(** The scope of package installation:
+
+    - Switch: installed with opam.
+    - Monorepo: locally fetched along unikernel sources. *)
+
 type t
 (** The type for opam packages. *)
 
 val v :
+  ?scope:scope ->
   ?build:bool ->
   ?sublibs:string list ->
   ?libs:string list ->
@@ -30,7 +37,7 @@ val v :
   ?pin:string ->
   string ->
   t
-(** [v ~build ~sublibs ~libs ~min ~max ~pin opam] is a [package]. [Build]
+(** [v ~scope ~build ~sublibs ~libs ~min ~max ~pin opam] is a [package]. [Build]
     indicates a build-time dependency only, defaults to [false]. The library
     name is by default the same as [opam], you can specify [~sublibs] to add
     additional sublibraries (e.g. [~sublibs:\["mirage"\] "foo"] will result in
@@ -39,10 +46,20 @@ val v :
     leads to an invalid argument. Version constraints are given as [min]
     (inclusive) and [max] (exclusive). If [pin] is provided, a
     {{:https://opam.ocaml.org/doc/Manual.html#opamfield-pin-depends}
-    pin-depends} is generated. *)
+    pin-depends} is generated. [~scope] specifies the installation location of
+    the package. *)
+
+val with_scope : scope:scope -> t -> t
+(** [with_scope t] returns t with chosen installation location.*)
 
 val name : t -> string
 (** [name t] is [t]'s opam name. *)
+
+val key : t -> string
+(** [key t] is [t]'s key (concatenation of name and installation scope). *)
+
+val scope : t -> scope
+(** [scope t] is [t]'s installation scope. *)
 
 val pin : t -> string option
 (** [pin t] is [Some r] iff [t] is pinned to the repository [r]. *)

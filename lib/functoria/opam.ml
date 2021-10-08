@@ -41,14 +41,6 @@ let find_git () =
       let+ git_url = Action.(run_cmd_out ~err:`Null git_remote) in
       Some (subdir, branch, git_url)
 
-type t = {
-  name : string;
-  depends : Package.t list;
-  build : string list;
-  pins : (string * string) list;
-  src : string option;
-}
-
 let guess_src () =
   let git_info =
     match Action.run @@ find_git () with
@@ -66,11 +58,24 @@ let guess_src () =
       in
       Some (Fmt.str "%s#%s" public branch)
 
-let v ?(build = []) ?(depends = []) ?(pins = []) ~src name =
+type target = [ `Switch | `Monorepo ]
+
+type t = {
+  name : string;
+  depends : Package.t list;
+  build : string list;
+  install : Install.t;
+  pins : (string * string) list;
+  src : string option;
+  target : target;
+}
+
+let v ?(build = []) ?(install = Install.empty) ?(depends = []) ?(pins = [])
+    ~target ~src name =
   let src =
     match src with `Auto -> guess_src () | `None -> None | `Some d -> Some d
   in
-  { name; depends; build; pins; src }
+  { name; depends; build; install; pins; target; src }
 
 let pp_packages ppf packages =
   Fmt.pf ppf "\n  %a\n"
@@ -92,19 +97,45 @@ let pp_src ppf = function
   | Some src -> Fmt.pf ppf {|@.url { src: %S }|} src
 
 let pp ppf t =
-  let pp_build = Fmt.list ~sep:(Fmt.any " ") (Fmt.fmt "%S") in
-  Fmt.pf ppf
-    {|opam-version: "2.0"
+  let pp_build ppf =
+    Fmt.pf ppf "\n%a\n" (Fmt.list ~sep:(Fmt.any "\n") (Fmt.fmt "  [ %s ]"))
+  in
+  match t.target with
+  | `Switch ->
+      Fmt.pf ppf
+        {|opam-version: "2.0"
 name: "%s"
 maintainer: "dummy"
 authors: "dummy"
 homepage: "dummy"
 bug-reports: "dummy"
-dev-repo: "git+https://example.com/nonexistent"
-synopsis: "This is a dummy"
+dev-repo: "git://dummy"
+synopsis: "Unikernel %s - switch dependencies"
+description: """
+It assumes that local dependencies are already
+fetched.
+"""
 
 build: [%a]
 
+install: [%a]
+
 depends: [%a]
 %a%a|}
-    t.name pp_build t.build pp_packages t.depends pp_src t.src pp_pins t.pins
+        t.name t.name pp_build t.build Install.pp_opam t.install pp_packages
+        t.depends pp_src t.src pp_pins t.pins
+  | `Monorepo ->
+      Fmt.pf ppf
+        {|opam-version: "2.0"
+name: "%s"
+maintainer: "dummy"
+authors: "dummy"
+homepage: "dummy"
+bug-reports: "dummy"
+dev-repo: "git://dummy"
+synopsis: "Unikernel %s - monorepo dependencies"
+
+depends: [%a]
+%a
+|}
+        t.name t.name pp_packages t.depends pp_pins t.pins

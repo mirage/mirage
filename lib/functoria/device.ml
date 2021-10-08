@@ -27,6 +27,8 @@ type info = Info.t
 
 type 'a value = 'a Key.value
 
+type 'a code = string
+
 type ('a, 'impl) t = {
   id : 'a Typeid.t;
   module_name : string;
@@ -34,11 +36,10 @@ type ('a, 'impl) t = {
   keys : abstract_key list;
   packages : package list value;
   install : info -> Install.t value;
-  connect : info -> string -> string list -> string;
+  connect : info -> string -> string list -> 'a code;
+  dune : info -> Dune.stanza list;
   configure : info -> unit Action.t;
-  files : (info -> [ `Configure | `Build ] -> Fpath.t list) option;
-  build : info -> unit Action.t;
-  clean : info -> unit Action.t;
+  files : (info -> Fpath.t list) option;
   extra_deps : 'impl list;
 }
 
@@ -69,7 +70,7 @@ let default_connect _ _ l =
 
 let niet _ = Action.ok ()
 
-type 'a code = string
+let nil _ = []
 
 let merge empty union a b =
   match (a, b) with
@@ -83,8 +84,8 @@ let merge_packages = merge [] List.append
 let merge_install = merge Install.empty Install.union
 
 let v ?packages ?packages_v ?install ?install_v ?(keys = []) ?(extra_deps = [])
-    ?(connect = default_connect) ?(configure = niet) ?files ?(build = niet)
-    ?(clean = niet) module_name module_type =
+    ?(connect = default_connect) ?(dune = nil) ?(configure = niet) ?files
+    module_name module_type =
   let id = Typeid.gen () in
   let packages = merge_packages packages packages_v in
   let install i =
@@ -99,10 +100,9 @@ let v ?packages ?packages_v ?install ?install_v ?(keys = []) ?(extra_deps = [])
     connect;
     packages;
     install;
-    clean;
+    dune;
     configure;
     files;
-    build;
     extra_deps;
   }
 
@@ -120,19 +120,13 @@ let connect t = t.connect
 
 let configure t = t.configure
 
-let files t i stage =
-  let gen =
-    match stage with
-    | `Configure -> Action.generated_files (t.configure i)
-    | `Build -> Action.generated_files (t.build i)
-  in
+let files t i =
+  let gen = Action.generated_files (t.configure i) in
   match t.files with
   | None -> gen
-  | Some files -> Fpath.Set.(union gen (of_list (files i stage)))
+  | Some files -> Fpath.Set.(union gen (of_list (files i)))
 
-let build t = t.build
-
-let clean t = t.clean
+let dune t = t.dune
 
 let keys t = t.keys
 
@@ -141,17 +135,16 @@ let extra_deps t = t.extra_deps
 let start impl_name args =
   Fmt.str "@[%s.start@ %a@]" impl_name Fmt.(list ~sep:sp string) args
 
-let exec_hook i = function None -> Action.ok () | Some h -> h i
-
 let uniq t = Fpath.Set.(elements (of_list t))
 
-let extend ?packages ?packages_v ?files ?pre_configure ?post_configure
-    ?pre_build ?post_build ?pre_clean ?post_clean t =
+let exec_hook i = function None -> Action.ok () | Some h -> h i
+
+let extend ?packages ?packages_v ?dune ?pre_configure ?post_configure ?files t =
   let files =
     match (files, t.files) with
     | None, None -> None
     | Some f, None | None, Some f -> Some f
-    | Some x, Some y -> Some (fun i stage -> uniq (x i stage @ y i stage))
+    | Some x, Some y -> Some (fun i -> uniq (x i @ y i))
   in
   let packages =
     Key.(pure List.append $ merge_packages packages packages_v $ t.packages)
@@ -162,9 +155,11 @@ let extend ?packages ?packages_v ?files ?pre_configure ?post_configure
     exec_hook i post
   in
   let configure = exec pre_configure t.configure post_configure in
-  let build = exec pre_build t.build post_build in
-  let clean = exec pre_clean t.clean post_clean in
-  { t with packages; files; configure; build; clean }
+  let dune =
+    Option.map (fun dune i -> t.dune i @ dune i) dune
+    |> Option.value ~default:t.dune
+  in
+  { t with packages; files; configure; dune }
 
 let nice_name d =
   module_name d

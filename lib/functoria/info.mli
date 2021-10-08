@@ -36,22 +36,20 @@ val with_output : t -> string -> t
 val libraries : t -> string list
 (** [libraries t] are the direct OCamlfind dependencies. *)
 
-val get : t -> 'a Key.key -> 'a
-
-val package_names : t -> string list
-(** [package_names t] are the opam package dependencies. *)
-
 val packages : t -> Package.t list
 (** [packages t] are the opam package dependencies by the project. *)
 
-val opam : t -> Opam.t
-(** [opam t] is [t]'opam file. *)
+val opam : Package.scope -> t -> install:Install.t -> Opam.t
+(** [opam scope t] is [t]'opam file to install in the [scope] context.*)
 
 val keys : t -> Key.t list
 (** [keys t] are the keys declared by the project. *)
 
 val context : t -> Key.context
 (** [parsed t] is a value representing the command-line argument being parsed. *)
+
+val get : t -> 'a Key.key -> 'a
+(** [get i k] is the value associated with [k] in [context i]. *)
 
 val v :
   packages:Package.t list ->

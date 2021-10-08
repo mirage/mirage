@@ -41,6 +41,48 @@ let pp ppf t =
   Fmt.pf ppf "etc: [%s%s]" (String.concat "" etcs)
     (match etcs with [] -> "" | _ -> "\n")
 
+let pp_opam ppf t =
+  let pp_bin ppf (src, dst) =
+    Fmt.pf ppf {|"cp" "dist/%a" "%%{bin}%%/%a"|} Fpath.pp src Fpath.pp dst
+  in
+  let pp_etc ppf etc = Fmt.pf ppf {|"cp" "dist/%a" "%%{etc}%%"|} Fpath.pp etc in
+  Fmt.pf ppf "\n%a\n"
+    (Fmt.list ~sep:(Fmt.any "\n") (fun ppf -> Fmt.pf ppf "  [ %a ]" pp_bin))
+    t.bin;
+  match t.etc with
+  | [] -> ()
+  | _ ->
+      Fmt.pf ppf "%a\n"
+        (Fmt.list ~sep:(Fmt.any "\n") (fun ppf -> Fmt.pf ppf "  [ %a ]" pp_etc))
+        t.etc
+
+let promote_artifact ~build_dir ~context_name ~src ~dst =
+  Dune.stanzaf
+    {|
+(rule
+ (mode (promote (until-clean)))
+ (target %a)
+ (enabled_if (= %%{context_name} "%s"))
+ (action
+  (copy %a %%{target}))
+)
+|}
+    Fpath.pp dst context_name Fpath.pp
+    Fpath.(build_dir // src)
+
+let dune ~build_dir ~context_name t =
+  let bin_rules =
+    List.map
+      (fun (src, dst) -> promote_artifact ~build_dir ~context_name ~src ~dst)
+      t.bin
+  in
+  let etc_rules =
+    List.map
+      (fun etc -> promote_artifact ~build_dir ~context_name ~src:etc ~dst:etc)
+      t.etc
+  in
+  Dune.v (bin_rules @ etc_rules)
+
 let union_etc x y = Fpath.Set.(elements (union (of_list x) (of_list y)))
 
 let union_bin x y = x @ y

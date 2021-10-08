@@ -33,7 +33,7 @@ module Make (P : PROJECT) = struct
     | _, (".ml" | ".mli") -> Some `OCaml
     | _, (".opam" | ".install") -> Some `Opam
     | "Makefile", _ -> Some `Make
-    | ("dune" | "dune-project"), _ -> Some `Sexp
+    | ("dune" | "dune-project" | "dune-workspace"), _ -> Some `Sexp
     | _ -> None
 
   let headers lang =
@@ -78,7 +78,7 @@ module Make (P : PROJECT) = struct
     if has_headers file contents then contents
     else
       match Fpath.basename file with
-      | "dune-project" | "dune-workspace" ->
+      | "dune-project" | "dune-workspace" | "dune-workspace.config" ->
           Fmt.str "%s\n%s\n" contents (headers `Sexp)
       | _ -> (
           match lang file with

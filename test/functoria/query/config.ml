@@ -1,7 +1,7 @@
 open F0
 open Functoria
 
-let main = Functoria.(main "App" job)
+let main = Functoria.(main ~extra_deps:[ dep (app_info ()) ] "App" job)
 
 let key =
   let doc = Key.Arg.info ~doc:"How to say hello." [ "hello" ] in

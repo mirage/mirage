@@ -1,7 +1,6 @@
 open Functoria
 open Mirage_impl_block
 open Mirage_impl_misc
-open Action.Syntax
 module Key = Mirage_key
 
 type t = FS
@@ -54,26 +53,30 @@ let count =
 let fat_block ?(dir = ".") ?(regexp = "*") () =
   let name = "fat_block" ^ string_of_int (count ()) in
   let block_file = name ^ ".img" in
-  let files _ = function `Build -> [ Fpath.v block_file ] | _ -> [] in
   let file = Fmt.str "make-%s-image.sh" name in
-  let pre_build _ =
+  let pre_configure _ =
     let dir = Fpath.of_string dir |> Rresult.R.error_msg_to_invalid_arg in
     Log.info (fun m -> m "Generating block generator script: %s" file);
-    let* () =
-      Action.with_output ~mode:0o755 ~path:(Fpath.v file)
-        ~purpose:"fat shell script" (fun fmt ->
-          fat_shell_script fmt ~block_file ~dir ~regexp)
-    in
-    Log.info (fun m -> m "Executing block generator script: ./%s" file);
-    Action.run_cmd (Bos.Cmd.v ("./" ^ file))
+    Action.with_output ~mode:0o755 ~path:(Fpath.v file)
+      ~purpose:"fat shell script" (fun fmt ->
+        fat_shell_script fmt ~block_file ~dir ~regexp)
   in
-  let pre_clean _ =
-    let* () = Action.rm (Fpath.v file) in
-    Action.rm (Fpath.v block_file)
+  let dune _ =
+    let dune =
+      Dune.stanzaf
+        {|
+(rule
+ (targets %s)
+ (deps (source_tree %s))
+ (action (run %s)))
+|}
+        block_file dir file
+    in
+    [ dune ]
   in
   let packages = [ fat_pkg ] in
   let block = Mirage_impl_block.block_conf block_file in
-  of_device @@ Device.extend ~files ~packages ~pre_build ~pre_clean block
+  of_device @@ Device.extend ~packages ~dune ~pre_configure block
 
 let fat_of_files ?dir ?regexp () = fat @@ fat_block ?dir ?regexp ()
 

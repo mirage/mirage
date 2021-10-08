@@ -33,6 +33,9 @@ module type S = sig
       - a [return] function of type ['a -> 'a t]
       - a [>>=] operator of type ['a t -> ('a -> 'b t) -> 'b t] *)
 
+  val packages : Package.t list
+  (** The packages to load when compiling the configuration file. *)
+
   val name : string
   (** Name of the custom DSL. *)
 
@@ -42,6 +45,18 @@ module type S = sig
   val create : job impl list -> job impl
   (** [create jobs] is the top-level job in the custom DSL which will execute
       the given list of [job]. *)
+
+  val name_of_target : Info.t -> string
+  (** [name_of_target i] is the name used to build the project with the build
+      info [i]. For simple projects it can be [Info.name]. For more complex
+      projects (like [mirage]), the name is suffixed by the value of the target
+      key defined in [i]. *)
+
+  val dune_project : Dune.stanza list
+
+  val dune_workspace : (?build_dir:Fpath.t -> info -> Dune.t) option
+
+  val context_name : Info.t -> string
 end
 
 module Make (P : S) : sig

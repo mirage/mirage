@@ -36,6 +36,7 @@ let test_configure () =
       (Cli.Configure
          {
            depext = true;
+           extra_repo = Some "https://github.com/mirage/opam-overlays.git";
            args =
              {
                context = (true, false);

@@ -51,6 +51,7 @@ type _ command =
   | Size_of : Fpath.t -> int option command
   | Run_cmd : cmd -> unit command
   | Run_cmd_out : cmd -> string command
+  | Run_cmd_cli : Bos.Cmd.t -> unit command
   | Get_var : string -> string option command
   | Set_var : string * string option -> unit command
   | With_dir : Fpath.t * (unit -> 'a t) -> 'a command
@@ -114,6 +115,8 @@ let run_cmd ?(err = `Fmt Fmt.stderr) ?(out = `Fmt Fmt.stdout) cmd =
 let run_cmd_out ?(err = `Fmt Fmt.stderr) cmd =
   wrap @@ Run_cmd_out { cmd; out = `Null; err; trim = true }
 
+let run_cmd_cli cmd = wrap @@ Run_cmd_cli cmd
+
 let write_file path contents = wrap @@ Write_file (!path, contents)
 
 let read_file path = wrap @@ Read_file !path
@@ -143,6 +146,14 @@ let interpret_cmd { cmd; err; out; trim } =
   pfo out str_out;
   flush_err () >>= fun () -> Bos.OS.Cmd.success res
 
+let interpret_cmd_cli cmd =
+  Log.debug (fun l -> l "RUN-CLI: %a" Bos.Cmd.pp cmd);
+  let res = Bos.OS.Cmd.run_out cmd in
+  match Bos.OS.Cmd.out_stdout res with
+  | Ok ((), (_, `Exited 0)) -> Ok ()
+  | Ok ((), (_, `Exited _)) -> Error (`Msg "")
+  | failure -> Bos.OS.Cmd.success failure
+
 let rec interpret_command : type r. r command -> r or_err = function
   | Rmdir path ->
       Log.debug (fun l -> l "rmdir %a" Fpath.pp path);
@@ -171,6 +182,7 @@ let rec interpret_command : type r. r command -> r or_err = function
       | _ -> Ok None)
   | Run_cmd cmd -> Rresult.(interpret_cmd cmd >>| fun _ -> ())
   | Run_cmd_out cmd -> interpret_cmd cmd
+  | Run_cmd_cli cmd -> interpret_cmd_cli cmd
   | Set_var (c, v) ->
       Log.debug (fun l ->
           l "set_var %s %a" c Fmt.(option ~none:(any "<unset>") string) v);
@@ -486,6 +498,13 @@ let interpret_dry_cmd env { cmd; err; out; _ } : string domain =
       pfo err e;
       dom (Ok o) env [ log "ok" ]
 
+let interpret_dry_cmd_cli env cmd : unit domain =
+  Log.debug (fun l -> l "Run_cmd_cli '%a'" Bos.Cmd.pp cmd);
+  let log x = Fmt.str "Run_cmd_cli '%a' (%s)" Bos.Cmd.pp cmd x in
+  match Env.exec env cmd with
+  | None -> dom (error_msg "'%a' not found" Bos.Cmd.pp cmd) env [ log "error" ]
+  | Some _ -> dom (Ok ()) env [ log "ok" ]
+
 let rec interpret_dry : type r. env:Env.t -> r command -> r domain =
  fun ~env -> function
   | Mkdir path -> (
@@ -548,6 +567,7 @@ let rec interpret_dry : type r. env:Env.t -> r command -> r domain =
       | Ok _ -> { domain with result = Ok () }
       | Error _ as r -> { domain with result = r })
   | Run_cmd_out cmd -> interpret_dry_cmd env cmd
+  | Run_cmd_cli cmd -> interpret_dry_cmd_cli env cmd
   | Write_file (path, s) ->
       Log.debug (fun l -> l "Write_file %a" Fpath.pp path);
       dom (Ok ()) (Env.write env path s)

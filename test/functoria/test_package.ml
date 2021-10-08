@@ -1,5 +1,7 @@
 open Functoria
 
+let w = Package.v ~min:"1.0" ~max:"2.0" "foo" ~scope:`Switch
+
 let x = Package.v ~min:"1.0" ~max:"2.0" "foo"
 
 let y = Package.v ~min:"0.9" ~max:"1.9" ~sublibs:[ "bar" ] "foo"
@@ -25,11 +27,14 @@ let test_package_merge () =
 let test_package_pp () =
   let str = Fmt.to_to_string Package.pp in
   let str' = Fmt.to_to_string (Package.pp ~surround:"x") in
-  Alcotest.(check string) "pp(x)" (str x) {|foo { >= "1.0" & < "2.0"}|};
+  Alcotest.(check string) "pp(x)" (str x) {|foo { >= "1.0" & < "2.0" }|};
   Alcotest.(check string)
-    "pp(xy)" (str xy) {|foo { >= "0.9" & >= "1.0" & < "1.9" & < "2.0"}|};
-  Alcotest.(check string) "pp(z)" (str z) {|bar { >= "42"}|};
-  Alcotest.(check string) "pp'(x)" (str' x) {|xfoox { >= "1.0" & < "2.0"}|}
+    "pp(xy)" (str xy) {|foo { >= "0.9" & >= "1.0" & < "1.9" & < "2.0" }|};
+  Alcotest.(check string) "pp(z)" (str z) {|bar { >= "42" }|};
+  Alcotest.(check string) "pp'(x)" (str' x) {|xfoox { >= "1.0" & < "2.0" }|};
+  Alcotest.(check string) "pp(w)" (str w) {|foo { >= "1.0" & < "2.0" }|};
+  Alcotest.(check string) "key(x)" (Package.key x) "monorepo-foo";
+  Alcotest.(check string) "key(w)" (Package.key w) "switch-foo"
 
 let suite =
   [ ("merge", `Quick, test_package_merge); ("pp", `Quick, test_package_pp) ]

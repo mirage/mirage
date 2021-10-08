@@ -32,25 +32,6 @@ let opam_prefix =
   let cmd = Bos.Cmd.(v "opam" % "config" % "var" % "prefix") in
   lazy (Action.run_cmd_out cmd)
 
-(* Invoke pkg-config and return output if successful. *)
-let pkg_config pkgs args =
-  let var = "PKG_CONFIG_PATH" in
-  let* pkg_config_fallback =
-    let+ var = Action.get_var var in
-    match var with Some path -> ":" ^ path | None -> ""
-  in
-  let* prefix = Lazy.force opam_prefix in
-  (* the order here matters (at least for ancient 0.26, distributed with
-       ubuntu 14.04 versions): use share before lib! *)
-  let value =
-    Fmt.str "%s/share/pkgconfig:%s/lib/pkgconfig%s" prefix prefix
-      pkg_config_fallback
-  in
-  let* () = Action.set_var var (Some value) in
-  let cmd = Bos.Cmd.(v "pkg-config" % pkgs %% of_list args) in
-  let+ data = Action.run_cmd_out cmd in
-  String.cuts ~sep:" " ~empty:false data
-
 (* Implement something similar to the @name/file extended names of findlib. *)
 let rec expand_name ~lib param =
   match String.cut param ~sep:"@" with

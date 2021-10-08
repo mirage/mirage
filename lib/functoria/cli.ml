@@ -34,20 +34,24 @@ let description_section = "DESCRIBE OPTIONS"
 type query_kind =
   [ `Name
   | `Packages
-  | `Opam
-  | `Install
-  | `Files of [ `Configure | `Build ]
+  | `Opam of [ `Switch | `Monorepo ]
+  | `Files
+  | `Dune of [ `Config | `Build | `Project | `Workspace | `Dist ]
   | `Makefile ]
 
 let query_kinds : (string * query_kind) list =
   [
     ("name", `Name);
     ("packages", `Packages);
-    ("opam", `Opam);
-    ("install", `Install);
-    ("files-configure", `Files `Configure);
-    ("files-build", `Files `Build);
+    ("monorepo.opam", `Opam `Monorepo);
+    ("switch.opam", `Opam `Switch);
+    ("files", `Files);
     ("Makefile", `Makefile);
+    ("dune.config", `Dune `Config);
+    ("dune.build", `Dune `Build);
+    ("dune-project", `Dune `Project);
+    ("dune-workspace", `Dune `Workspace);
+    ("dune.dist", `Dune `Dist);
   ]
 
 let setup ~with_setup =
@@ -75,6 +79,33 @@ let context_file mname =
   Term.(
     const (map_default ~default Fpath.v)
     $ Arg.(value & opt string default & doc))
+
+let extra_repo doc_section =
+  let env = Arg.env_var "MIRAGE_EXTRA_REPO" in
+  let doc =
+    Arg.info ~docs:doc_section ~docv:"URL" ~env
+      ~doc:
+        "Additional opam-repository to use when using `opam monorepo lock' to \
+         gather local sources. Default: \
+         https://github.com/mirage/opam-overlays.git."
+      [ "extra-repo" ]
+  in
+  Arg.(
+    value
+    & opt (some string) (Some "https://github.com/mirage/opam-overlays.git")
+    & doc)
+
+let no_extra_repo doc_section =
+  let doc =
+    Arg.info ~docs:doc_section ~doc:"Disable the use of any overlay repository."
+      [ "no-extra-repo" ]
+  in
+  Arg.(value & flag & doc)
+
+let extra_repo doc_section =
+  let ex = extra_repo doc_section in
+  let no_ex = no_extra_repo doc_section in
+  Term.(const (fun ex no_ex -> if no_ex then None else ex) $ ex $ no_ex)
 
 let dry_run =
   let doc =
@@ -159,7 +190,11 @@ type 'a args = {
   dry_run : bool;
 }
 
-type 'a configure_args = { args : 'a args; depext : bool }
+type 'a configure_args = {
+  args : 'a args;
+  depext : bool;
+  extra_repo : string option;
+}
 
 type 'a build_args = 'a args
 
@@ -174,7 +209,12 @@ type 'a describe_args = {
   eval : bool option;
 }
 
-type 'a query_args = { args : 'a args; kind : query_kind; depext : bool }
+type 'a query_args = {
+  args : 'a args;
+  kind : query_kind;
+  depext : bool;
+  extra_repo : string option;
+}
 
 type 'a action =
   | Configure of 'a configure_args
@@ -265,9 +305,11 @@ module Subcommands = struct
   (** The 'configure' subcommand *)
   let configure ~with_setup mname context =
     ( Term.(
-        const (fun args depext -> Configure { args; depext })
+        const (fun args depext extra_repo ->
+            Configure { args; depext; extra_repo })
         $ args ~with_setup context mname
-        $ depext configuration_section),
+        $ depext configuration_section
+        $ extra_repo configuration_section),
       Term.info "configure" ~doc:"Configure a $(mname) application."
         ~man:
           [
@@ -279,10 +321,12 @@ module Subcommands = struct
 
   let query ~with_setup mname context =
     ( Term.(
-        const (fun kind args depext -> Query { kind; args; depext })
+        const (fun kind args depext extra_repo ->
+            Query { kind; args; depext; extra_repo })
         $ kind
         $ args ~with_setup context mname
-        $ depext query_section),
+        $ depext query_section
+        $ extra_repo query_section),
       Term.info "query" ~doc:"Query information about the $(mname) application."
         ~man:
           [
@@ -360,9 +404,10 @@ module Subcommands = struct
           | `Ok t -> `Help (man_format, Some t))
     in
     ( Term.(
-        const (fun args _ _ () -> Help args)
+        const (fun args _ _ _ () -> Help args)
         $ args ~with_setup context mname
         $ depext configuration_section
+        $ extra_repo configuration_section
         $ full_eval
         $ ret (const help $ Term.man_format $ Term.choice_names $ topic)),
       Term.info "help" ~doc:"Display help about $(mname) commands."
@@ -404,11 +449,6 @@ let peek_args ?(with_setup = false) ~mname argv =
   match Term.eval_peek_opts ~argv (args ~with_setup (Term.pure ()) mname) with
   | _, `Ok b | Some b, _ -> b
   | _ -> assert false
-
-let peek_context_file ~mname argv =
-  match Term.eval_peek_opts ~argv (context_file mname) with
-  | _, `Ok b -> b
-  | _ -> None
 
 let eval ?(with_setup = true) ?help_ppf ?err_ppf ~name ~version ~configure
     ~query ~describe ~build ~clean ~help ~mname argv =

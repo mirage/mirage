@@ -1,24 +1,10 @@
 unix
 ====
 
-Is_file? myocamlbuild.ml -> false
-Write to myocamlbuild.ml (0 bytes)
 
-xen
+hvt
 ===
 
-Is_file? myocamlbuild.ml -> false
-Write to myocamlbuild.ml (0 bytes)
-Write to _build/manifest.json (mode: default, purpose: Solo5 application manifest file)
-Write to NAME.xl (mode: default, purpose: xl file)
-Write to NAME.xl.in (mode: default, purpose: xl file)
-Write to NAME_libvirt.xml (mode: default, purpose: libvirt.xml)
-
-virtio
-======
-
-Is_file? myocamlbuild.ml -> false
-Write to myocamlbuild.ml (0 bytes)
-Write to _build/manifest.json (mode: default, purpose: Solo5 application manifest file)
-Write to NAME_libvirt.xml (mode: default, purpose: libvirt.xml)
+Write to manifest.json (mode: default, purpose: Solo5 application manifest file)
+Write to manifest.ml (0 bytes)
 

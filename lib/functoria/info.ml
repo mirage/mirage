@@ -24,7 +24,8 @@ type t = {
   keys : Key.Set.t;
   context : Key.context;
   packages : Package.t String.Map.t;
-  opam : Opam.t;
+  opam_monorepo : install:Install.t -> Opam.t;
+  opam_switch : install:Install.t -> Opam.t;
 }
 
 let name t = t.name
@@ -33,11 +34,12 @@ let main t =
   let main = match t.output with None -> "main" | Some f -> f in
   Fpath.v (main ^ ".ml")
 
-let opam t = t.opam
+let get t k = Key.get t.context k
+
+let opam scope t =
+  match scope with `Monorepo -> t.opam_monorepo | `Switch -> t.opam_switch
 
 let output t = t.output
-
-let get t k = Key.get t.context k
 
 let with_output t output = { t with output = Some output }
 
@@ -53,8 +55,6 @@ let packages t = List.map snd (String.Map.bindings t.packages)
 
 let libraries t = libraries (packages t)
 
-let package_names t = List.map Package.name (packages t)
-
 let pins packages =
   List.fold_left
     (fun acc p ->
@@ -69,8 +69,16 @@ let context t = t.context
 
 let v ~packages ~keys ~context ~build_cmd ~src name =
   let keys = Key.Set.of_list keys in
-  let opam =
-    Opam.v ~depends:packages ~pins:(pins packages) ~build:build_cmd ~src name
+  let monorepo_packages, switch_packages =
+    List.partition (fun pkg -> Package.scope pkg == `Monorepo) packages
+  in
+  let opam_monorepo ~install:_ =
+    Opam.v ~depends:monorepo_packages ~pins:(pins monorepo_packages)
+      ~target:`Monorepo ~build:build_cmd ~src name
+  in
+  let opam_switch ~install =
+    Opam.v ~depends:switch_packages ~install ~pins:(pins switch_packages)
+      ~build:build_cmd ~target:`Switch ~src name
   in
   let packages =
     List.fold_left
@@ -84,10 +92,11 @@ let v ~packages ~keys ~context ~build_cmd ~src name =
             | None -> m))
       String.Map.empty packages
   in
-  { name; keys; packages; context; output = None; opam }
+  { name; keys; packages; context; output = None; opam_monorepo; opam_switch }
 
 let pp_packages ?(surround = "") ?sep ppf t =
-  Fmt.pf ppf "%a" (Fmt.iter ?sep List.iter (Package.pp ~surround)) (packages t)
+  let pkgs = packages t in
+  Fmt.pf ppf "%a" (Fmt.iter ?sep List.iter (Package.pp ~surround)) pkgs
 
 let pp verbose ppf ({ name; keys; context; output; _ } as t) =
   let show ?(newline = true) name =
@@ -109,7 +118,7 @@ let pp verbose ppf ({ name; keys; context; output; _ } as t) =
 
 let t =
   let i =
-    v ~packages:[] ~keys:[] ~context:Key.empty_context ~build_cmd:[] ~src:`None
-      "dummy"
+    v ~packages:[] ~keys:[] ~build_cmd:[ "dummy" ] ~context:Key.empty_context
+      ~src:`None "dummy"
   in
   Type.v i

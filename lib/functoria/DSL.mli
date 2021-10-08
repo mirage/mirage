@@ -96,7 +96,11 @@ val match_impl : 'b value -> default:'a impl -> ('b * 'a impl) list -> 'a impl
 type package = Package.t
 (** The type for opam packages. *)
 
+type scope = Package.scope
+(** Installation scope of a package. *)
+
 val package :
+  ?scope:scope ->
   ?build:bool ->
   ?sublibs:string list ->
   ?libs:string list ->
@@ -162,10 +166,9 @@ val impl :
   ?keys:Key.t list ->
   ?extra_deps:abstract_impl list ->
   ?connect:(info -> string -> string list -> string) ->
+  ?dune:(info -> Dune.stanza list) ->
   ?configure:(info -> unit Action.t) ->
-  ?files:(info -> [ `Configure | `Build ] -> Fpath.t list) ->
-  ?build:(info -> unit Action.t) ->
-  ?clean:(info -> unit Action.t) ->
+  ?files:(info -> Fpath.t list) ->
   string ->
   'a typ ->
   'a impl

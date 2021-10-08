@@ -1,32 +1,52 @@
 open Functoria
-open Action.Syntax
+module Key = Mirage_key
 
 type t = [ `Unix | `MacOSX ]
 
-let cast = function #t as t -> t | _ -> failwith "not an unix target"
+let cast = function #t as t -> t | _ -> invalid_arg "not a unix target."
 
-let packages _ = [ package ~min:"4.0.0" ~max:"5.0.0" "mirage-unix" ]
+let packages _ = [ Functoria.package ~min:"4.0.1" ~max:"5.0.0" "mirage-unix" ]
+
+(*Mirage unix is built on the host build context.*)
+let build_context ?build_dir:_ _ = []
+
+let context_name _ = "default"
 
 let configure _ = Action.ok ()
 
-let configure_files _ = []
+let main i = Fpath.(base (rem_ext (Info.main i)))
 
-let build _ = Action.ok ()
+let public_name i = match Info.output i with None -> Info.name i | Some o -> o
 
-let link ~name _ =
-  let link = Bos.Cmd.(v "ln" % "-nfs" % "_build/main.native" % name) in
-  let+ () = Action.run_cmd link in
-  name
+let dune i =
+  let libraries = Info.libraries i in
+  let flags = Mirage_dune.flags i in
+  let public_name = public_name i in
+  let main = Fpath.to_string (main i) in
+  let pp_list f = Dune.compact_list f in
+  let dune =
+    Dune.stanzaf
+      {|
+(rule
+ (target %s)
+ (enabled_if (= %%{context_name} "default"))
+ (action
+  (copy %s.exe %%{target})))
+
+(executable
+ (name %s)
+ (libraries %a)
+ (link_flags (-thread))
+ (modules (:standard \ config))
+ (flags %a)
+ (enabled_if (= %%{context_name} "default"))
+)
+|}
+      public_name main main (pp_list "libraries") libraries (pp_list "flags")
+      flags
+  in
+  [ dune ]
 
 let install i =
-  let name = match Info.output i with None -> Info.name i | Some n -> n in
-  let bin = (Fpath.((v "_build" / "main") + "native"), Fpath.v name) in
-  Install.v ~bin:[ bin ] ~etc:[] ()
-
-let result = "main.native"
-
-let dontlink = []
-
-let ocamlbuild_tags = [ "thread" ]
-
-let clean _ = Action.ok ()
+  let public_name = public_name i in
+  Install.v ~bin:[ Fpath.(v public_name, v public_name) ] ()

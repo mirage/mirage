@@ -16,7 +16,9 @@ Test that `describe` works as expected:
                           "dotcmd" = "xdot";
                           "dot" = false;
                           "eval" = None }
-  test.exe: [INFO] Compiling: app/config.ml
+  test.exe: [INFO] Generating: app/test/dune-workspace.config (base)
+  test.exe: [INFO] Generating: dune-project (base)
+  test.exe: [INFO] Generating: app/dune.config (base)
   Name       noop
   Keys      
     hello=Hello World! (default),

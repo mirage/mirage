@@ -18,9 +18,12 @@
 
 open Astring
 
+type scope = [ `Switch | `Monorepo ]
+
 type t = {
   name : string;
   pin : string option;
+  scope : scope;
   build : bool;
   libs : String.Set.t;
   min : String.Set.t;
@@ -29,9 +32,16 @@ type t = {
 
 let name t = t.name
 
+let key t =
+  match t.scope with
+  | `Switch -> "switch-" ^ t.name
+  | `Monorepo -> "monorepo-" ^ t.name
+
 let pin t = t.pin
 
 let build_dependency t = t.build
+
+let scope t = t.scope
 
 let libraries t = String.Set.elements t.libs
 
@@ -41,6 +51,7 @@ let max_versions t = String.Set.elements t.max
 
 let merge a b =
   if a.name <> b.name then None
+  else if a.scope <> b.scope then None
   else
     let name = a.name in
     let libs = String.Set.union a.libs b.libs
@@ -52,19 +63,20 @@ let merge a b =
       | None, Some a | Some a, None -> Some a
       | Some a, Some b when String.equal a b -> Some a
       | _ -> invalid_arg ("conflicting pin depends for " ^ name)
-    and build = a.build || b.build in
+    and build = a.build || b.build
+    and scope = a.scope in
     match pin with
-    | None -> Some { name; build; libs; min; max; pin }
+    | None -> Some { name; build; scope; libs; min; max; pin }
     | Some _ ->
         (* pin wins over min and max *)
         let empty = String.Set.empty in
-        Some { name; build; libs; min = empty; max = empty; pin }
+        Some { name; build; scope; libs; min = empty; max = empty; pin }
 
-let v ?(build = false) ?sublibs ?libs ?min ?max ?pin name =
+let v ?(scope = `Monorepo) ?(build = false) ?sublibs ?libs ?min ?max ?pin name =
   let libs =
     match (sublibs, libs) with
     | None, None -> [ name ]
-    | Some xs, None -> name :: List.map (fun x -> name ^ "." ^ x) xs
+    | Some xs, None -> List.map (fun x -> name ^ "." ^ x) xs
     | None, Some a -> a
     | Some _, Some _ ->
         Fmt.invalid_arg
@@ -76,20 +88,18 @@ let v ?(build = false) ?sublibs ?libs ?min ?max ?pin name =
     | Some m -> String.Set.singleton m
   in
   let min = to_set min and max = to_set max in
-  { name; build; libs; min; max; pin }
+  { name; build; scope; libs; min; max; pin }
+
+let with_scope ~scope t = { t with scope }
 
 let exts_to_string ppf (min, max, build) =
-  let bui = if build then "build & " else "" in
+  let build_strs = if build then [ "build" ] else [] in
   let esc_prefix prefix e = Fmt.str "%s %S" prefix e in
   let min_strs = List.map (esc_prefix ">=") (String.Set.elements min)
-  and max_strs = List.map (esc_prefix "<") (String.Set.elements max)
-  and flat xs = String.concat ~sep:" & " xs in
-  match (String.Set.is_empty min, String.Set.is_empty max) with
-  | true, true -> if build then Fmt.string ppf " {build}"
-  | false, true -> Fmt.pf ppf " {%s %s}" bui (flat min_strs)
-  | true, false -> Fmt.pf ppf " {%s %s}" bui (flat max_strs)
-  | false, false ->
-      Fmt.pf ppf " {%s %s & %s}" bui (flat min_strs) (flat max_strs)
+  and max_strs = List.map (esc_prefix "<") (String.Set.elements max) in
+  let constr_list = build_strs @ min_strs @ max_strs in
+  if List.length constr_list > 0 then
+    Fmt.pf ppf " { %s }" (String.concat ~sep:" & " constr_list)
 
 let pp ?(surround = "") ppf p =
   Fmt.pf ppf "%s%s%s%a" surround p.name surround exts_to_string

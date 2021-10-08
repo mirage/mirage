@@ -422,14 +422,20 @@ let randomize_hashtables =
 let gc_control =
   let pp_pol ~name =
     Fmt.(
-      any (name ^^ " = ")
-      ++ (any " with `Next_fit -> 0 | `First_fit -> 1 | `Best_fit -> 2)"
-         ++ (any "(match " ++ Mirage_impl_misc.pp_key)))
+      any name
+      ++ any " = "
+      ++ any "(match "
+      ++ Mirage_impl_misc.pp_key
+      ++ any " with `Next_fit -> 0 | `First_fit -> 1 | `Best_fit -> 2)")
   and pp_k ~name =
-    let m_body = " with None -> ctrl." ^^ name ^^ " | Some x -> x)" in
     Fmt.(
-      any (name ^^ " = ")
-      ++ (any m_body ++ (any "(match " ++ Mirage_impl_misc.pp_key)))
+      any name
+      ++ any " = "
+      ++ any "(match "
+      ++ Mirage_impl_misc.pp_key
+      ++ any " with None -> ctrl."
+      ++ any name
+      ++ any " | Some x -> x)")
   in
   let keys =
     Key.

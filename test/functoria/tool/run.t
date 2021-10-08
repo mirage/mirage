@@ -63,7 +63,7 @@ Clean
   * Run_cmd_cli '_build/default/./config.exe clean a b c --dry-run' (ok)
   * Get_var INSIDE_FUNCTORIA_TESTS -> <not set>
   * Run_cmd 'dune clean' (ok)
-  * Ls ./ (1 entry)
+  * Ls ./ (12 entries)
   * Is_file? dune-project -> true
   * Read dune-project (47 bytes)
   * Rm dune-project (removed)

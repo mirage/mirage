@@ -177,17 +177,22 @@ module Make (P : S) = struct
       | _ -> run_cmd ?ppf ?err_ppf Bos.Cmd.(v "dune" % "clean")
     in
     let rm_gen_files () =
-      let* files =
-        Action.ls (Fpath.v ".") (fun file ->
-            Fpath.parent file = Fpath.v "./"
-            &&
-            let base, ext = Fpath.split_ext file in
-            let base = Fpath.basename base in
-            match (base, ext) with
-            | ("Makefile" | "dune-project" | "dune-workspace"), "" -> true
-            | _ ->
-                Logs.info (fun f -> f "Skipped %a" Fpath.pp file);
-                false)
+      let* files = Action.ls (Fpath.v ".") (fun _ -> true) in
+      let files = List.sort Fpath.compare files in
+      let files =
+        List.filter_map
+          (fun file ->
+            if Fpath.parent file <> Fpath.v "./" then None
+            else
+              let base, ext = Fpath.split_ext file in
+              let base = Fpath.basename base in
+              match (base, ext) with
+              | ("Makefile" | "dune-project" | "dune-workspace"), "" ->
+                  Some file
+              | _ ->
+                  Logs.info (fun f -> f "Skipped %a" Fpath.pp file);
+                  None)
+          files
       in
       let* () = Action.List.iter ~f:Filegen.rm files in
       let* () = remove_context args in

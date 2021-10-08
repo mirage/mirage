@@ -1,6 +1,7 @@
+(* A very simple engine *)
+
 open Functoria
 module Key = Key
-open Action.Syntax
 
 let warn_error =
   let doc = "Enable -warn-error when compiling OCaml sources." in
@@ -16,21 +17,6 @@ let vote =
 
 let output i = match Info.output i with None -> "main" | Some o -> o
 
-let rec root path =
-  let build = Fpath.(basename (parent path)) = "_build" in
-  let* opam = Action.is_file Fpath.(path / "functoria-runtime.opam") in
-  match build || opam with
-  | true -> Action.ok path
-  | false ->
-      let parent = Fpath.parent path in
-      if Fpath.is_root parent then Action.ok path else root parent
-
-let root () =
-  let* cwd = Action.pwd () in
-  root cwd
-
-let dune_build = Fpath.(v "dune.build")
-
 let file_of_key k = Fpath.v Key.(name @@ v k)
 
 let write_key i k f =
@@ -39,17 +25,10 @@ let write_key i k f =
   let contents = f (Key.get context k) in
   Action.write_file file contents
 
-let split_root () =
-  let* cwd = Action.pwd () in
-  let* root = root () in
-  match Fpath.relativize ~root cwd with
-  | None -> Action.error "split root"
-  | Some path -> Action.ok (root, path)
-
 module C = struct
   open Action.Syntax
 
-  let prelude = "let (>>=) x f = f x\nlet return x = x\nlet run x = x"
+  let prelude = ""
 
   let name = "test"
 
@@ -61,47 +40,22 @@ module C = struct
 
   let connect _ _ _ = "()"
 
-  let configure i =
-    let dune =
-      Fmt.str
-        "(executable\n\
-        \   (name      %s)\n\
-        \   (modules   (:standard \\ config))\n\
-        \   (promote   (until-clean))\n\
-        \   (libraries cmdliner fmt functoria-runtime))\n"
-        (output i)
-    in
-    Action.write_file dune_build dune
+  let configure _ = Action.ok ()
 
   let build i =
-    let* root, prefix = split_root () in
-    let exe = Fpath.((prefix / output i) + "exe") in
     let* () = write_key i vote (fun x -> x) in
     let* () = write_key i warn_error string_of_bool in
-    Action.run_cmd
-    @@ Bos.Cmd.(v "dune" % "build" % "--root" % Fpath.to_string root % p exe)
+    Action.ok ()
 
-  let clean i =
-    let* () = Action.rm dune_build in
-    let* () = Action.rm Fpath.(v @@ output i ^ ".exe") in
-    Action.List.iter
-      ~f:(fun key ->
-        let file = Fpath.v (Key.name key) in
-        Action.rm file)
-      keys
+  let clean _ = Action.ok ()
 
   let install i =
-    match Action.run @@ split_root () with
-    | Error _ -> Install.empty
-    | Ok (_, prefix) ->
-        let src = Fpath.((prefix / output i) + "exe") in
-        let dst =
-          match Info.output i with None -> Info.name i | Some o -> o
-        in
-        let dst = Fpath.v dst in
-        let vote = Fpath.(prefix // file_of_key vote) in
-        let warn_error = Fpath.(prefix // file_of_key warn_error) in
-        Install.v ~bin:[ (src, dst) ] ~etc:[ vote; warn_error ] ()
+    let src = Fpath.((v "src" / output i) + "exe") in
+    let dst = match Info.output i with None -> Info.name i | Some o -> o in
+    let dst = Fpath.v dst in
+    let vote = Fpath.(v "key" // file_of_key vote) in
+    let warn_error = Fpath.(v "key" // file_of_key warn_error) in
+    Install.v ~bin:[ (src, dst) ] ~etc:[ vote; warn_error ] ()
 
   let create jobs =
     let packages = [ package "fmt" ] in

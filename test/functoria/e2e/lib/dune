@@ -1,0 +1,3 @@
+(library
+ (name e2e)
+ (libraries functoria))

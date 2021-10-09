@@ -1,3 +1,7 @@
+### v3.10.5 (2021-10-09)
+
+- Allow tls-mirage 0.14 and 0.15 series (@hannesm)
+
 ### v3.10.4 (2021-04-20)
 
 - Allow mirage-crypto-rng-mirage 0.10 (@hannesm)

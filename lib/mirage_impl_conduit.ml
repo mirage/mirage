@@ -27,7 +27,7 @@ let tls random = impl @@ object
     method! deps = [ abstract random ]
     method! packages =
       Mirage_key.pure [
-          package ~min:"0.13.0" ~max:"0.14.0" "tls-mirage"; pkg]
+          package ~min:"0.13.0" ~max:"0.16.0" "tls-mirage"; pkg]
     method! connect _i _ = function
       | [ stack; _random ] -> Fmt.strf "Lwt.return %s@;" stack
       | _ -> failwith (connect_err "tls_conduit" 1)

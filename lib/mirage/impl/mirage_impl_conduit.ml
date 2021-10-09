@@ -18,7 +18,7 @@ let tcp =
   impl ~packages ~connect "Conduit_mirage.TCP" (stackv4v6 @-> conduit)
 
 let tls random =
-  let packages = [ pkg; package ~min:"0.13.0" ~max:"0.14.0" "tls-mirage" ] in
+  let packages = [ pkg; package ~min:"0.13.0" ~max:"0.16.0" "tls-mirage" ] in
   let extra_deps = [ dep random ] in
   let connect _ _ = function
     | [ stack; _random ] -> Fmt.str "Lwt.return %s@;" stack

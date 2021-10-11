@@ -56,7 +56,7 @@ let pp_opam ppf t =
         (Fmt.list ~sep:(Fmt.any "\n") (fun ppf -> Fmt.pf ppf "  [ %a ]" pp_etc))
         t.etc
 
-let promote_artifact ~build_dir ~context_name ~src ~dst =
+let promote_artifact ~context_name ~src ~dst =
   Dune.stanzaf
     {|
 (rule
@@ -68,18 +68,14 @@ let promote_artifact ~build_dir ~context_name ~src ~dst =
 )
 |}
     Fpath.pp dst context_name Fpath.pp
-    Fpath.(build_dir // src)
+    Fpath.(v ".." // src)
 
-let dune ~build_dir ~context_name t =
+let dune ~context_name t =
   let bin_rules =
-    List.map
-      (fun (src, dst) -> promote_artifact ~build_dir ~context_name ~src ~dst)
-      t.bin
+    List.map (fun (src, dst) -> promote_artifact ~context_name ~src ~dst) t.bin
   in
   let etc_rules =
-    List.map
-      (fun etc -> promote_artifact ~build_dir ~context_name ~src:etc ~dst:etc)
-      t.etc
+    List.map (fun etc -> promote_artifact ~context_name ~src:etc ~dst:etc) t.etc
   in
   Dune.v (bin_rules @ etc_rules)
 

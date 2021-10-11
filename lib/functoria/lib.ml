@@ -107,7 +107,7 @@ module Make (P : S) = struct
 
   let mirage_dir args = Fpath.(build_dir args / P.name)
 
-  let artifacts_dir = Fpath.v "dist"
+  let artifacts_dir args = Fpath.(build_dir args / "dist")
 
   let exit_err args = function
     | Ok v -> v
@@ -250,9 +250,7 @@ module Make (P : S) = struct
     | `Dune `Dist ->
         let install = Key.eval (Info.context info) (Engine.install info jobs) in
         Fmt.pr "%a\n%!" Dune.pp
-          (Install.dune
-             ~build_dir:Fpath.(v ".." // build_dir)
-             ~context_name:(P.context_name info) install)
+          (Install.dune ~context_name:(P.context_name info) install)
 
   (* Configuration step. *)
 
@@ -310,15 +308,13 @@ module Make (P : S) = struct
             Key.eval (Info.context info) (Engine.install info jobs)
           in
           Fmt.str "%a\n" Dune.pp
-            (Install.dune
-               ~build_dir:Fpath.(v ".." // build_dir)
-               ~context_name:(P.context_name info) install)
+            (Install.dune ~context_name:(P.context_name info) install)
     in
     Filegen.write file contents
 
   let clean (args : _ Cli.clean_args) =
     let* () = Action.rmdir (mirage_dir args) in
-    Action.rmdir artifacts_dir
+    Action.rmdir (artifacts_dir args)
 
   let generate_makefile ~build_dir ~depext ~extra_repo name =
     let file = Fpath.(v "Makefile") in
@@ -354,8 +350,8 @@ module Make (P : S) = struct
     (* dune-project *)
     let* () = generate_dune `Project args () in
     (* Get install spec *)
-    let* _ = Action.mkdir artifacts_dir in
-    Action.with_dir artifacts_dir (generate_dune `Dist args)
+    let* _ = Action.mkdir (artifacts_dir args) in
+    Action.with_dir (artifacts_dir args) (generate_dune `Dist args)
 
   let ok () = Action.ok ()
 

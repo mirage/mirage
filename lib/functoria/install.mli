@@ -34,9 +34,9 @@ val pp : t Fmt.t
 val pp_opam : t Fmt.t
 (** Print the opam rules to install [t] *)
 
-val dune : build_dir:Fpath.t -> context_name:string -> t -> Dune.t
-(** [dune ~build_dir ~context_name ()] is the dune rules to promote installed
-    files back in the source tree. *)
+val dune : context_name:string -> t -> Dune.t
+(** [dune ~context_name ()] is the dune rules to promote installed files back in
+    the source tree. *)
 
 val dump : t Fmt.t
 (** Dump installation rules. *)

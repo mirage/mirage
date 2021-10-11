@@ -39,6 +39,7 @@ is passed:
   ..
   app.ml
   config.ml
+  dist
   dune
   dune.build
   dune.config

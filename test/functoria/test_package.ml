@@ -1,11 +1,8 @@
 open Functoria
 
 let w = Package.v ~min:"1.0" ~max:"2.0" "foo" ~scope:`Switch
-
 let x = Package.v ~min:"1.0" ~max:"2.0" "foo"
-
 let y = Package.v ~min:"0.9" ~max:"1.9" ~sublibs:[ "bar" ] "foo"
-
 let z = Package.v "bar" ~sublibs:[ "foo" ] ~min:"42"
 
 let xy =

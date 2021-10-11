@@ -7,25 +7,16 @@ open Mirage_impl_qubesdb
 open Mirage_impl_random
 
 type v4
-
 type v6
-
 type v4v6
-
 type 'a ip
-
 type ipv4 = v4 ip
-
 type ipv6 = v6 ip
-
 type ipv4v6 = v4v6 ip
 
 val ip : 'a ip Functoria.typ
-
 val ipv4 : ipv4 Functoria.typ
-
 val ipv6 : ipv6 Functoria.typ
-
 val ipv4v6 : ipv4v6 Functoria.typ
 
 type ipv4_config = {

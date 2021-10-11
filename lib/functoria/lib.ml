@@ -74,27 +74,18 @@ module Config = struct
     Key.(pure mk $ packages $ of_deps (Set.of_list keys))
 
   let keys t = t.keys
-
   let pp_dot = Impl.pp_dot
 end
 
 module type S = sig
   val prelude : string
-
   val packages : Package.t list
-
   val name : string
-
   val version : string
-
   val create : job impl list -> job impl
-
   val name_of_target : Info.t -> string
-
   val dune_project : Dune.stanza list
-
   val dune_workspace : (?build_dir:Fpath.t -> info -> Dune.t) option
-
   val context_name : Info.t -> string
 end
 
@@ -102,11 +93,8 @@ module Make (P : S) = struct
   module Filegen = Filegen.Make (P)
 
   let default_init = [ Job.keys Argv.sys_argv ]
-
   let build_dir args = Fpath.parent args.Cli.config_file
-
   let mirage_dir args = Fpath.(build_dir args / P.name)
-
   let artifacts_dir args = Fpath.(build_dir args / "dist")
 
   let exit_err args = function
@@ -354,7 +342,6 @@ module Make (P : S) = struct
     Action.with_dir (artifacts_dir args) (generate_dune `Dist args)
 
   let ok () = Action.ok ()
-
   let exit () = Action.error ""
 
   let with_output args =

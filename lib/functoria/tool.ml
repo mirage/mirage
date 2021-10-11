@@ -25,11 +25,8 @@ module Log = (val Logs.src_log src : Logs.LOG)
 
 module type S = sig
   val name : string
-
   val version : string
-
   val packages : package list
-
   val create : job impl list -> job impl
 end
 
@@ -37,7 +34,6 @@ module Make (P : S) = struct
   module Filegen = Filegen.Make (P)
 
   let build_dir t = Fpath.parent t.Cli.config_file
-
   let context_file t = Context_cache.file ~name:P.name t
 
   let add_context_file t argv =
@@ -110,7 +106,6 @@ module Make (P : S) = struct
     run_cmd ?ppf ?err_ppf command
 
   let write_context t argv = Context_cache.write (context_file t) argv
-
   let remove_context t = Action.rm (context_file t)
 
   (* Generated a project skeleton and try to compile config.exe. *)
@@ -220,13 +215,9 @@ module Make (P : S) = struct
     re_exec_cli args argv
 
   let build (t : 'a Cli.build_args) = try_to_re_exec t
-
   let error t = try_to_re_exec t
-
   let query (t : 'a Cli.query_args) = try_to_re_exec t.args
-
   let describe (t : 'a Cli.describe_args) = try_to_re_exec t.args
-
   let help (t : 'a Cli.help_args) = try_to_re_exec t
 
   let clean args ?ppf ?err_ppf argv =
@@ -238,7 +229,6 @@ module Make (P : S) = struct
     clean_files args
 
   let run args action = action |> action_run args |> exit_err args
-
   let pp_unit _ _ = ()
 
   let run_with_argv ?help_ppf ?err_ppf argv =

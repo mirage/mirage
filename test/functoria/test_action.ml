@@ -2,21 +2,13 @@ open Functoria
 open Action.Syntax
 
 let pp_unit ppf () = Fmt.string ppf "()"
-
 let domain pp = Alcotest.testable (Action.pp_domain pp) (Action.eq_domain ( = ))
-
 let file = "<file>"
-
 let dir = "<DIR>"
-
 let error e = Error (`Msg e)
-
 let ( ! ) files = Action.env ~files:(`Files files) ()
-
 let path = Fpath.v "path"
-
 let other_path = Fpath.v "other_path"
-
 let dom result env logs = { Action.result; env; logs }
 
 let test_bind () =
@@ -233,9 +225,7 @@ let test_get_var () =
     ~expected:(dom (Ok None) env [ "Get_var var -> <not set>" ])
 
 let none _ = None
-
 let yay _ = Some ("yay", "")
-
 let yay_err _ = Some ("yay", "err")
 
 let test_run_cmd () =

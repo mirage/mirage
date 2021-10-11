@@ -20,9 +20,7 @@ open Misc
 
 module Serialize = struct
   let string fmt s = Format.fprintf fmt "%S" s
-
   let option x = Fmt.(parens @@ Dump.option x)
-
   let list x = Fmt.Dump.list x
 end
 
@@ -30,7 +28,6 @@ module Arg = struct
   (** {1 Converters} *)
 
   type 'a serialize = Format.formatter -> 'a -> unit
-
   type 'a runtime_conv = string
 
   type 'a converter = {
@@ -40,11 +37,8 @@ module Arg = struct
   }
 
   let conv ~conv ~serialize ~runtime_conv = { conv; serialize; runtime_conv }
-
   let converter x = x.conv
-
   let serialize x = x.serialize
-
   let runtime_conv x = x.runtime_conv
 
   let string =
@@ -289,9 +283,7 @@ module Set = struct
     else add k set
 
   let pp_gen = Fmt.iter ~sep:(Fmt.any ",@ ") iter
-
   let pp_elt fmt (Any k) = Fmt.string fmt k.name
-
   let pp = pp_gen pp_elt
 end
 
@@ -299,11 +291,8 @@ module Alias = struct
   type 'a t = { a_setters : 'a setter list; a_arg : 'a Arg.t }
 
   let setters t = t.a_setters
-
   let arg t = t.a_arg
-
   let create a_arg = { a_setters = []; a_arg }
-
   let flag doc = create (Arg.flag ~stage:`Configure doc)
 
   (* let opt conv d i = create (Arg.opt ~stage:`Configure conv d i) *)
@@ -315,20 +304,14 @@ module Alias = struct
     | Some v -> if Context.mem k.key map then map else Context.add k.key v map
 
   let apply v l map = List.fold_left (apply_one v) map l
-
   let keys l = Set.of_list @@ List.map (fun (Setter (k, _)) -> Any k) l
 end
 
 let v x = Any x
-
 let abstract = v
-
 let arg k = k.arg
-
 let aliases (Any k) = Alias.keys k.setters
-
 let name (Any k) = k.name
-
 let stage (Any k) = Arg.stage k.arg
 
 let is_runtime k =
@@ -348,15 +331,10 @@ let filter_stage stage s =
 type context = Context.t
 
 let empty_context = Context.empty
-
 let merge_context = Context.merge
-
 let add_to_context t = Context.add t.key
-
 let find (type a) ctx (t : a key) : a option = Context.find t.key ctx
-
 let get ctx t = match find ctx t with Some x -> x | None -> Arg.default t.arg
-
 let mem_u ctx t = Context.mem t.key ctx
 
 (* {2 Values} *)
@@ -364,20 +342,15 @@ let mem_u ctx t = Context.mem t.key ctx
 type +'a value = { deps : Set.t; v : context -> 'a }
 
 let eval p v = v.v p
-
 let pure x = { deps = Set.empty; v = (fun _ -> x) }
 
 let app f x =
   { deps = Set.union f.deps x.deps; v = (fun p -> (eval p f) (eval p x)) }
 
 let map f x = app (pure f) x
-
 let pipe x f = map f x
-
 let if_ c t e = pipe c @@ fun b -> if b then t else e
-
 let match_ v f = map f v
-
 let ( $ ) = app
 
 let value k =
@@ -385,21 +358,15 @@ let value k =
   { deps = Set.singleton (Any k); v }
 
 let of_deps deps = { (pure ()) with deps }
-
 let deps k = k.deps
-
 let mem p v = Set.for_all (fun (Any x) -> mem_u p x) v.deps
-
 let peek p v = if mem p v then Some (eval p v) else None
-
 let default v = eval Context.empty v
 
 (* {2 Pretty printing} *)
 
 let dump_context = Context.dump
-
 let pp = Set.pp_elt
-
 let pp_deps fmt v = Set.pp fmt v.deps
 
 let pps p =
@@ -484,11 +451,8 @@ let context ?(stage = `Both) ~with_required l =
 (* {2 Code emission} *)
 
 let module_name = "Key_gen"
-
 let ocaml_name k = Name.ocamlify (name k)
-
 let serialize_call fmt k = Fmt.pf fmt "(%s.%s ())" module_name (ocaml_name k)
-
 let serialize ctx ppf (Any k) = Arg.serialize (get ctx k) ppf (arg k)
 
 let serialize_rw ctx fmt t =

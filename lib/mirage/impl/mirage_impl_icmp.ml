@@ -3,11 +3,9 @@ open Mirage_impl_ip
 open Mirage_impl_misc
 
 type 'a icmp = ICMP
-
 type icmpv4 = v4 icmp
 
 let icmp = Type.v ICMP
-
 let icmpv4 : icmpv4 typ = icmp
 
 let icmpv4_direct () =

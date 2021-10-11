@@ -11,7 +11,6 @@ module Substitutions : sig
   type t = (v * string) list
 
   val lookup : t -> v -> string
-
   val defaults : Functoria.Info.t -> t
 end
 

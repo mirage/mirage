@@ -53,9 +53,7 @@ module type KEY =
 include DSL
 
 let job = Job.t
-
 let noop = Job.noop
-
 let info = Info.t
 
 let keys ?runtime_package ?runtime_modname x =
@@ -64,7 +62,6 @@ let keys ?runtime_package ?runtime_modname x =
 type argv = Argv.t
 
 let sys_argv = Argv.sys_argv
-
 let argv = Argv.argv
 
 (* Info device *)

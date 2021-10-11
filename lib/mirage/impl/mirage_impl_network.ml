@@ -4,7 +4,6 @@ module Key = Mirage_key
 type network = NETWORK
 
 let network = Type.v NETWORK
-
 let all_networks = ref []
 
 let network_conf (intf : string Key.key) =

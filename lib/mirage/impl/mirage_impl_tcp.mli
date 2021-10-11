@@ -3,15 +3,11 @@ type 'a tcp
 val tcp : 'a tcp Functoria.typ
 
 type tcpv4 = Mirage_impl_ip.v4 tcp
-
 type tcpv6 = Mirage_impl_ip.v6 tcp
-
 type tcpv4v6 = Mirage_impl_ip.v4v6 tcp
 
 val tcpv4 : tcpv4 Functoria.typ
-
 val tcpv6 : tcpv6 Functoria.typ
-
 val tcpv4v6 : tcpv4v6 Functoria.typ
 
 val direct_tcp :

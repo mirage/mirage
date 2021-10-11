@@ -39,7 +39,6 @@ module Arg = struct
     type t
 
     val of_string : string -> (t, [ `Msg of string ]) result
-
     val to_string : t -> string
   end
 
@@ -47,22 +46,16 @@ module Arg = struct
     make d m M.of_string M.to_string
 
   let ipv4_address = of_module "ipv4_address" "Ipaddr.V4" (module Ipaddr.V4)
-
   let ipv4 = of_module "ipv4" "Ipaddr.V4.Prefix" (module Ipaddr.V4.Prefix)
-
   let ipv6_address = of_module "ipv6_address" "Ipaddr.V6" (module Ipaddr.V6)
-
   let ipv6 = of_module "ipv6" "Ipaddr.V6.Prefix" (module Ipaddr.V6.Prefix)
-
   let ip_address = of_module "ip_address" "Ipaddr" (module Ipaddr)
 end
 
 (** {2 Documentation helper} *)
 
 let mirage_section = "MIRAGE PARAMETERS"
-
 let unikernel_section = "UNIKERNEL PARAMETERS"
-
 let pp_group = Fmt.(option ~none:(any "the unikernel") @@ fmt "the %s group")
 
 (** {2 Special keys} *)
@@ -70,11 +63,8 @@ let pp_group = Fmt.(option ~none:(any "the unikernel") @@ fmt "the %s group")
 (** {3 Mode} *)
 
 type mode_unix = [ `Unix | `MacOSX ]
-
 type mode_xen = [ `Xen | `Qubes ]
-
 type mode_solo5 = [ `Hvt | `Spt | `Virtio | `Muen | `Genode ]
-
 type mode = [ mode_unix | mode_xen | mode_solo5 ]
 
 let first_ukvm_mention = ref true

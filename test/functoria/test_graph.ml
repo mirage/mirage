@@ -1,9 +1,7 @@
 open Functoria
 
 let x = Impl.v "Foo.Bar" Functoria.job
-
 let y = Impl.v "X.Y" Functoria.(job @-> job) ~extra_deps:[ Impl.abstract x ]
-
 let z = Impl.v "Bar" job ~extra_deps:[ Impl.abstract y ]
 
 let z, y, x =
@@ -14,9 +12,7 @@ let z, y, x =
   | _ -> assert false
 
 let var_name x = Device.Graph.var_name x
-
 let impl_name x = Device.Graph.impl_name x
-
 let ident s i = Fmt.str "%s__%d" s i
 
 let test_var_name () =
@@ -30,15 +26,10 @@ let test_impl_name () =
   Alcotest.(check string) "z" "Bar" (impl_name z)
 
 let d1 = Device.v ~packages:[ package "a" ] "Foo.Bar" job
-
 let d2 = Device.v ~packages:[ package "b" ] "Foo.Bar" job
-
 let i1 = of_device d1
-
 let i2 = of_device d2
-
 let if1 = if_impl (Key.pure true) i1 i2
-
 let if2 = if_impl (Key.pure true) i2 i1
 
 let normalise_lines str =
@@ -77,7 +68,6 @@ let test_graph () =
     type t = (string * string list) list
 
     let empty = []
-
     let union = List.append
   end in
   let packages t =

@@ -38,15 +38,10 @@ let key t =
   | `Monorepo -> "monorepo-" ^ t.name
 
 let pin t = t.pin
-
 let build_dependency t = t.build
-
 let scope t = t.scope
-
 let libraries t = String.Set.elements t.libs
-
 let min_versions t = String.Set.elements t.min
-
 let max_versions t = String.Set.elements t.max
 
 let merge a b =

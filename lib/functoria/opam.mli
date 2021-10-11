@@ -17,7 +17,6 @@
  *)
 
 type t
-
 type target = [ `Switch | `Monorepo ]
 
 val v :

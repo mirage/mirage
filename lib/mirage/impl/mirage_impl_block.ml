@@ -132,5 +132,4 @@ let archive_conf =
   impl ~packages ~connect "Tar_mirage.Make_KV_RO" (block @-> Mirage_impl_kv.ro)
 
 let archive block = archive_conf $ block
-
 let archive_of_files ?(dir = ".") () = archive @@ tar_block dir

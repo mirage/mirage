@@ -20,11 +20,9 @@
 let src = Logs.Src.create "functoria.action" ~doc:"functoria library"
 
 module Log = (val Logs.src_log src : Logs.LOG)
-
 open Astring
 
 type 'a or_err = ('a, Rresult.R.msg) result
-
 type tmp_name_pat = Bos.OS.File.tmp_name_pat
 
 type 'a with_output = {
@@ -36,9 +34,7 @@ type 'a with_output = {
 }
 
 type channel = [ `Null | `Fmt of Format.formatter ]
-
 type cmd = { cmd : Bos.Cmd.t; err : channel; out : channel; trim : bool }
-
 type ls = { root : Fpath.t; filter : Fpath.t -> bool }
 
 type _ command =
@@ -67,9 +63,7 @@ and _ t =
   | Run : 'r command * ('r -> 'a t) -> 'a t
 
 let ok x = Done x
-
 let error e = Fail e
-
 let errorf fmt = Fmt.kstr error fmt
 
 let rec bind ~f = function
@@ -80,33 +74,19 @@ let rec bind ~f = function
       Run (c, k2)
 
 let map ~f x = bind x ~f:(fun y -> ok (f y))
-
 let rec seq = function [] -> ok () | h :: t -> bind ~f:(fun () -> seq t) h
-
 let wrap x = Run (x, ok)
-
 let ( ! ) = Fpath.normalize
-
 let rm path = wrap @@ Rm !path
-
 let rmdir path = wrap @@ Rmdir !path
-
 let mkdir path = wrap @@ Mkdir !path
-
 let ls path filter = wrap @@ Ls { root = !path; filter }
-
 let with_dir path f = wrap @@ With_dir (!path, f)
-
 let pwd () = wrap @@ Pwd
-
 let is_file path = wrap @@ Is_file !path
-
 let is_dir path = wrap @@ Is_dir !path
-
 let size_of path = wrap @@ Size_of !path
-
 let set_var c v = wrap @@ Set_var (c, v)
-
 let get_var c = wrap @@ Get_var c
 
 let run_cmd ?(err = `Fmt Fmt.stderr) ?(out = `Fmt Fmt.stdout) cmd =
@@ -116,11 +96,8 @@ let run_cmd_out ?(err = `Fmt Fmt.stderr) cmd =
   wrap @@ Run_cmd_out { cmd; out = `Null; err; trim = true }
 
 let run_cmd_cli cmd = wrap @@ Run_cmd_cli cmd
-
 let write_file path contents = wrap @@ Write_file (!path, contents)
-
 let read_file path = wrap @@ Read_file !path
-
 let tmp_file ?mode pat = wrap @@ Tmp_file (mode, pat)
 
 let with_output ?mode ?(append = false) ~path ~purpose contents =
@@ -247,15 +224,10 @@ module Env : sig
   type t
 
   val eq : t -> t -> bool
-
   val pp : t Fmt.t
-
   val diff_files : old:t -> t -> Fpath.Set.t
-
   val pwd : t -> Fpath.t
-
   val chdir : t -> Fpath.t -> t
-
   val ls : t -> Fpath.t -> Fpath.t list option
 
   val v :
@@ -267,27 +239,16 @@ module Env : sig
     t
 
   val exec : t -> Bos.Cmd.t -> (string * string) option
-
   val is_file : t -> Fpath.t -> bool
-
   val is_dir : t -> Fpath.t -> bool
-
   val mkdir : t -> Fpath.t -> (t * bool) option
-
   val rm : t -> Fpath.t -> (t * bool) option
-
   val rmdir : t -> Fpath.t -> t
-
   val size_of : t -> Fpath.t -> int option
-
   val write : t -> Fpath.t -> string -> t
-
   val read : t -> Fpath.t -> string option
-
   val tmp_file : t -> tmp_name_pat -> Fpath.t
-
   val set_var : t -> string -> string option -> t
-
   val get_var : t -> string -> string option
 end = struct
   type t = {
@@ -354,7 +315,6 @@ end = struct
       ]
 
   let pwd t = t.pwd
-
   let exec t cmd = t.exec cmd
 
   let mk_path t path =
@@ -471,7 +431,6 @@ let env = Env.v
 type 'a domain = { result : 'a or_err; env : Env.t; logs : string list }
 
 let pp_or_err pp_a = Rresult.R.pp ~error:Rresult.R.pp_msg ~ok:pp_a
-
 let eq_or_err eq_a = Rresult.R.equal ~error:( = ) ~ok:eq_a
 
 let pp_domain pp_a =
@@ -667,7 +626,6 @@ let generated_files ?(env = env ~exec:(fun _ -> None) ()) t =
 
 module Infix = struct
   let ( >>= ) x f = bind ~f x
-
   let ( >|= ) x f = map ~f x
 end
 
@@ -675,7 +633,6 @@ module Syntax = struct
   open Infix
 
   let ( let* ) = ( >>= )
-
   let ( let+ ) = ( >|= )
 end
 

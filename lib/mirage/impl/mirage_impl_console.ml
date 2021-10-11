@@ -4,7 +4,6 @@ module Key = Mirage_key
 type console = CONSOLE
 
 let console = Type.v CONSOLE
-
 let connect str _ m _ = Fmt.str "%s.connect %S" m str
 
 let console_unix str =

@@ -40,7 +40,6 @@ module Packages = struct
   type t = Package.t String.Map.t Key.value
 
   let union x y = Key.(pure (String.Map.union (fun _ -> Package.merge)) $ x $ y)
-
   let empty = Key.pure String.Map.empty
 end
 
@@ -62,7 +61,6 @@ module Installs = struct
   type t = Install.t Key.value
 
   let union x y = Key.(pure Install.union $ x $ y)
-
   let empty = Key.pure Install.empty
 end
 
@@ -82,7 +80,6 @@ module Dune = struct
   type t = Dune.stanza list
 
   let union = ( @ )
-
   let empty = []
 end
 

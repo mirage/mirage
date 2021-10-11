@@ -21,7 +21,6 @@ type _ t =
   | Function : 'a t * 'b t -> ('a -> 'b) t
 
 let v x = Type x
-
 let ( @-> ) f x = Function (f, x)
 
 let rec pp : type a. a t Fmt.t =

@@ -21,7 +21,6 @@ open Action.Syntax
 
 module type PROJECT = sig
   val name : string
-
   val version : string
 end
 

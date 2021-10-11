@@ -10,25 +10,16 @@ open Mirage_impl_time
 module Key = Mirage_key
 
 type v4
-
 type v6
-
 type v4v6
-
 type 'a ip = IP
-
 type ipv4 = v4 ip
-
 type ipv6 = v6 ip
-
 type ipv4v6 = v4v6 ip
 
 let ip = Type.Type IP
-
 let ipv4 : ipv4 typ = ip
-
 let ipv6 : ipv6 typ = ip
-
 let ipv4v6 : ipv4v6 typ = ip
 
 type ipv4_config = {
@@ -38,13 +29,9 @@ type ipv4_config = {
 (** Types for IPv4 manual configuration. *)
 
 let opt_opt_key s = Fmt.(option @@ (any ("?" ^^ s ^^ ":") ++ pp_key))
-
 let opt_key s = Fmt.(option @@ (any ("~" ^^ s ^^ ":") ++ pp_key))
-
 let opt_map f = function Some x -> Some (f x) | None -> None
-
 let ( @? ) x l = match x with Some s -> s :: l | None -> l
-
 let ( @?? ) x y = opt_map Key.v x @? y
 
 (* convenience function for linking tcpip.unix for checksums *)

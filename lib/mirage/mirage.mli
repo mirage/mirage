@@ -278,7 +278,6 @@ val crunch : string -> kv_ro impl
 (** Crunch a directory. *)
 
 val archive : block impl -> kv_ro impl
-
 val archive_of_files : ?dir:string -> unit -> kv_ro impl
 
 val direct_kv_ro : string -> kv_ro impl
@@ -366,18 +365,14 @@ val arp : ?time:time impl -> ethernet impl -> arpv4 impl
     Implementations of the [Mirage_types.IP] signature. *)
 
 type v4
-
 type v6
-
 type v4v6
 
 type 'a ip
 (** Abstract type for IP configurations. *)
 
 type ipv4 = v4 ip
-
 type ipv6 = v6 ip
-
 type ipv4v6 = v4v6 ip
 
 val ipv4 : ipv4 typ
@@ -441,26 +436,18 @@ val create_ipv4v6 : ?group:string -> ipv4 impl -> ipv6 impl -> ipv4v6 impl
 (** {2 UDP configuration} *)
 
 type 'a udp
-
 type udpv4 = v4 udp
-
 type udpv6 = v6 udp
-
 type udpv4v6 = v4v6 udp
 
 val udp : 'a udp typ
 (** Implementation of the [Mirage_types.UDP] signature. *)
 
 val udpv4 : udpv4 typ
-
 val udpv6 : udpv6 typ
-
 val udpv4v6 : udpv4v6 typ
-
 val direct_udp : ?random:random impl -> 'a ip impl -> 'a udp impl
-
 val socket_udpv4 : ?group:string -> Ipaddr.V4.t option -> udpv4 impl
-
 val socket_udpv6 : ?group:string -> Ipaddr.V6.t option -> udpv6 impl
 
 val socket_udpv4v6 :
@@ -469,20 +456,15 @@ val socket_udpv4v6 :
 (** {2 TCP configuration} *)
 
 type 'a tcp
-
 type tcpv4 = v4 tcp
-
 type tcpv6 = v6 tcp
-
 type tcpv4v6 = v4v6 tcp
 
 val tcp : 'a tcp typ
 (** Implementation of the [Mirage_types.TCP] signature. *)
 
 val tcpv4 : tcpv4 typ
-
 val tcpv6 : tcpv6 typ
-
 val tcpv4v6 : tcpv4v6 typ
 
 val direct_tcp :
@@ -493,7 +475,6 @@ val direct_tcp :
   'a tcp impl
 
 val socket_tcpv4 : ?group:string -> Ipaddr.V4.t option -> tcpv4 impl
-
 val socket_tcpv6 : ?group:string -> Ipaddr.V6.t option -> tcpv6 impl
 
 val socket_tcpv4v6 :
@@ -851,7 +832,6 @@ end
 
 module Project : sig
   val dune : Info.t -> Dune.stanza list
-
   val configure : Info.t -> unit Action.t
 end
 

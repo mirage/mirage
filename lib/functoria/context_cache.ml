@@ -26,7 +26,6 @@ module Log = (val Logs.src_log src : Logs.LOG)
 type t = string array
 
 let empty = [| "" |]
-
 let is_empty t = t = empty
 
 let write file argv =

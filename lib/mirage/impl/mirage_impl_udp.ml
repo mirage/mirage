@@ -5,19 +5,13 @@ open Mirage_impl_random
 module Key = Mirage_key
 
 type 'a udp = UDP
-
 type udpv4 = v4 udp
-
 type udpv6 = v6 udp
-
 type udpv4v6 = v4v6 udp
 
 let udp = Type.Type UDP
-
 let udpv4 : udpv4 typ = udp
-
 let udpv6 : udpv6 typ = udp
-
 let udpv4v6 : udpv4v6 typ = udp
 
 (* Value restriction ... *)

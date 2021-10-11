@@ -256,7 +256,6 @@ val dump_context : context Fmt.t
 (** [dump_context] dumps the contents of a context. *)
 
 val empty_context : context
-
 val merge_context : default:context -> context -> context
 
 val add_to_context : 'a key -> 'a -> context -> context

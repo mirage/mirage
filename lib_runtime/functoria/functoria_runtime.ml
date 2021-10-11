@@ -23,9 +23,7 @@ module Arg = struct
   type 'a t = { info : Cmdliner.Arg.info; kind : 'a kind }
 
   let flag info = { info; kind = Flag }
-
   let opt conv default info = { info; kind = Opt (default, conv) }
-
   let required conv info = { info; kind = Required conv }
 
   let key ?default c i =
@@ -38,7 +36,6 @@ module Arg = struct
     | Required _ -> None
 
   let kind t = t.kind
-
   let info t = t.info
 end
 

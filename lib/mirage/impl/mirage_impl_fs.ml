@@ -6,7 +6,6 @@ module Key = Mirage_key
 type t = FS
 
 let typ = Type.v FS
-
 let fat_pkg = package ~min:"0.14.0" ~max:"0.15.0" "fat-filesystem"
 
 let connect err _ modname l =

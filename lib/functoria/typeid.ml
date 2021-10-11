@@ -28,7 +28,6 @@ end
 
 module type ID = sig
   type t
-
   type _ Id.t += Tid : t Id.t
 
   val id : int
@@ -45,7 +44,6 @@ let gen_id =
 let gen () (type s) =
   let module M = struct
     type t = s
-
     type _ Id.t += Tid : t Id.t
 
     let id = gen_id ()
@@ -59,7 +57,5 @@ let witness : type r s. r t -> s t -> (r, s) witness =
   match R.Tid with S.Tid -> Eq | _ -> NotEq
 
 let equal a b = to_bool @@ witness a b
-
 let pp (type a) ppf ((module M) : a t) = Fmt.int ppf M.id
-
 let id (type a) ((module M) : a t) = M.id

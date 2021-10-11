@@ -14,7 +14,6 @@ let result_t pp_a =
   Alcotest.testable pp ( = )
 
 let result_b = result_t Fmt.(Dump.pair bool bool)
-
 let eval = Cli.eval ~with_setup:false ~name:"name" ~version:"0.2"
 
 let test_configure () =

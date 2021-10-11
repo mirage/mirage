@@ -52,7 +52,6 @@ module Arg = struct
     type t
 
     val of_string : string -> (t, [ `Msg of string ]) result
-
     val to_string : t -> string
   end
 
@@ -60,13 +59,9 @@ module Arg = struct
     make M.of_string M.to_string
 
   let ip_address = of_module (module Ipaddr)
-
   let ipv4_address = of_module (module Ipaddr.V4)
-
   let ipv4 = of_module (module Ipaddr.V4.Prefix)
-
   let ipv6_address = of_module (module Ipaddr.V6)
-
   let ipv6 = of_module (module Ipaddr.V6.Prefix)
 
   let log_threshold =
@@ -112,13 +107,9 @@ include (
   Functoria_runtime : module type of Functoria_runtime with module Arg := Arg)
 
 let exit_hooks = ref []
-
 let enter_iter_hooks = ref []
-
 let leave_iter_hooks = ref []
-
 let run t = List.iter (fun f -> f ()) !t
-
 let add f t = t := f :: !t
 
 let run_exit_hooks () =
@@ -127,11 +118,7 @@ let run_exit_hooks () =
     !exit_hooks
 
 let run_enter_iter_hooks () = run enter_iter_hooks
-
 let run_leave_iter_hooks () = run leave_iter_hooks
-
 let at_exit f = add f exit_hooks
-
 let at_leave_iter f = add f leave_iter_hooks
-
 let at_enter_iter f = add f enter_iter_hooks

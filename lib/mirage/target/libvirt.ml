@@ -1,7 +1,6 @@
 open Functoria
 
 let filename ~name = Fpath.(v (name ^ "_libvirt") + "xml")
-
 let append fmt s = Fmt.pf fmt (s ^^ "@.")
 
 let configure_main ~name =

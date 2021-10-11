@@ -3,7 +3,6 @@ open Functoria
 type conduit
 
 val pkg : package
-
 val conduit : conduit typ
 
 val conduit_direct :

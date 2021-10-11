@@ -6,7 +6,6 @@ type t = {
 }
 
 let target_str = function `Unix -> "unix" | `Hvt -> "hvt"
-
 let v ?args x target = { cmd = "query " ^ x; file = x; target; args }
 
 let gen t =

@@ -6,6 +6,7 @@ Make sure that clean remove everything:
   ..
   app.ml
   config.ml
+  dist
   dune
   dune.build
   dune.config
@@ -55,6 +56,7 @@ Check that clean works with `--output`:
   ..
   app.ml
   config.ml
+  dist
   dune
   dune.build
   dune.config

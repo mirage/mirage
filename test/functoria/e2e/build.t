@@ -22,6 +22,7 @@ Build an application.
   ..
   app.ml
   config.ml
+  dist
   dune
   dune.build
   dune.config
@@ -71,6 +72,7 @@ Test `--output`:
   ..
   app.ml
   config.ml
+  dist
   dune
   dune.build
   dune.config

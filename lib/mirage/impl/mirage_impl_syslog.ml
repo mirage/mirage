@@ -25,13 +25,9 @@ let default_syslog_config =
 type syslog = SYSLOG
 
 let syslog = Type.v SYSLOG
-
 let opt p s = Fmt.(option @@ (any ("~" ^^ s ^^ ":") ++ p))
-
 let opt_int = opt Fmt.int
-
 let opt_string = opt (fun pp v -> Format.fprintf pp "%S" v)
-
 let pkg sublibs = [ package ~min:"0.3.0" ~max:"0.4.0" ~sublibs "logs-syslog" ]
 
 let syslog_udp_conf config =

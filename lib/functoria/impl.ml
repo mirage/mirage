@@ -45,7 +45,6 @@ let abstract t = Abstract t
 (* Devices *)
 
 let mk_dev ~args ~deps dev = Dev { dev; args; deps }
-
 let of_device dev = mk_dev ~args:Nil ~deps:(Device.extra_deps dev) dev
 
 let v ?packages ?packages_v ?keys ?extra_deps ?connect ?dune ?configure ?files
@@ -188,7 +187,6 @@ module Tbl = Hashtbl.Make (struct
   type t = abstract
 
   let hash = hash_abstract
-
   let equal = equal_abstract
 end)
 
@@ -196,15 +194,12 @@ module Hashcons : sig
   type tbl
 
   val create : unit -> tbl
-
   val add : tbl -> 'a t -> 'a t -> unit
-
   val get : tbl -> 'a t -> 'a t option
 end = struct
   type tbl = abstract Tbl.t
 
   let create () = Tbl.create 50
-
   let add tbl a b = Tbl.add tbl (abstract a) (abstract b)
 
   let get (type a) tbl (oldv : a t) : a t option =

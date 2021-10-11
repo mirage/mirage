@@ -40,7 +40,6 @@ let opam scope t =
   match scope with `Monorepo -> t.opam_monorepo | `Switch -> t.opam_switch
 
 let output t = t.output
-
 let with_output t output = { t with output = Some output }
 
 let libraries ps =
@@ -52,7 +51,6 @@ let libraries ps =
     (List.fold_left String.Set.union String.Set.empty (List.map libs ps))
 
 let packages t = List.map snd (String.Map.bindings t.packages)
-
 let libraries t = libraries (packages t)
 
 let pins packages =
@@ -64,7 +62,6 @@ let pins packages =
     [] packages
 
 let keys t = Key.Set.elements t.keys
-
 let context t = t.context
 
 let v ~packages ~keys ~context ~build_cmd ~src name =

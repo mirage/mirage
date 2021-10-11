@@ -25,17 +25,11 @@ module C = struct
   open Action.Syntax
 
   let prelude = "let (>>=) x f = f x\nlet return x = x\nlet run x = x"
-
   let name = "test"
-
   let version = "1.0~test"
-
   let packages = [ package "functoria"; package "e2e" ]
-
   let keys = Key.[ v vote; v warn_error ]
-
   let connect _ _ _ = "()"
-
   let main i = Fpath.(basename @@ rem_ext @@ Info.main i)
 
   let dune i =
@@ -64,11 +58,8 @@ module C = struct
       job
 
   let name_of_target i = Info.name i
-
   let dune_project = []
-
   let dune_workspace = None
-
   let context_name _ = "default"
 end
 

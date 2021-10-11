@@ -19,7 +19,6 @@
 let src = Logs.Src.create "functoria" ~doc:"functoria library"
 
 module Log = (val Logs.src_log src : Logs.LOG)
-
 open Astring
 
 type t = JOB

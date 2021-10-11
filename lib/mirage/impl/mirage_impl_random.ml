@@ -24,5 +24,4 @@ let rng ?(time = default_time) ?(mclock = default_monotonic_clock) () =
   $ mclock
 
 let default_random = rng ()
-
 let nocrypto = Functoria.noop

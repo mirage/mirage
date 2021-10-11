@@ -19,11 +19,9 @@
 open Astring
 
 type stanza = string option
-
 type t = string list
 
 let stanza v = Some (String.trim v)
-
 let stanzaf fmt = Fmt.kstr stanza fmt
 
 let v x : t =
@@ -32,15 +30,12 @@ let v x : t =
     [] (List.rev x)
 
 let pp_list pp = Fmt.(list ~sep:(any "\n\n") pp)
-
 let pp ppf (t : t) = Fmt.pf ppf "%a" (pp_list Fmt.string) t
-
 let to_string t = Fmt.to_to_string pp t ^ "\n"
 
 let headers ~name ~version =
   let module M = Filegen.Make (struct
     let name = name
-
     let version = version
   end) in
   M.headers `Sexp
@@ -115,5 +110,4 @@ let base ~packages ~name ~version ~config_ml_file =
   disable_duniverse :: dune_base
 
 let base_project = [ stanza "(lang dune 2.7)" ]
-
 let base_workspace = v [ stanza "(lang dune 2.0)\n(context default)" ]

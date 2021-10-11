@@ -1,16 +1,13 @@
 open Functoria
 
 let key_a = Key.create "a" Key.Arg.(flag @@ info [ "a" ])
-
 let key_b = Key.create "b" Key.Arg.(opt int 0 @@ info [ "b" ])
 
 let key_c =
   Key.create "c" Key.Arg.(required ~stage:`Configure string @@ info [ "c" ])
 
 let empty = Key.empty_context
-
 let ( & ) (k, v) c = Key.add_to_context k v c
-
 let ( && ) x y = x & y & empty
 
 let test_eval () =

@@ -53,9 +53,7 @@ module type S = sig
       key defined in [i]. *)
 
   val dune_project : Dune.stanza list
-
   val dune_workspace : (?build_dir:Fpath.t -> info -> Dune.t) option
-
   val context_name : Info.t -> string
 end
 

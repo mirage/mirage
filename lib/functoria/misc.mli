@@ -28,7 +28,6 @@ module type Monoid = sig
   type t
 
   val empty : t
-
   val union : t -> t -> t
 end
 

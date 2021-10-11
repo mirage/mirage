@@ -34,9 +34,7 @@ module Map = Map.Make (String)
 type t = exn Map.t
 
 let empty = Map.empty
-
 let add k v (t : t) : t = Map.add k.name (k.put v) t
-
 let mem k (t : t) = Map.mem k.name t
 
 let find k (t : t) =

@@ -24,13 +24,9 @@ module Arg : sig
   end
 
   val ipv4_address : Ipaddr.V4.t converter
-
   val ipv4 : Ipaddr.V4.Prefix.t converter
-
   val ipv6_address : Ipaddr.V6.t converter
-
   val ipv6 : Ipaddr.V6.Prefix.t converter
-
   val ip_address : Ipaddr.t converter
 end
 
@@ -39,11 +35,8 @@ include Functoria.KEY with module Arg := Arg
 val abstract : 'a key -> t [@@ocaml.deprecated "Use Mirage.Key.v."]
 
 type mode_unix = [ `Unix | `MacOSX ]
-
 type mode_xen = [ `Xen | `Qubes ]
-
 type mode_solo5 = [ `Hvt | `Spt | `Virtio | `Muen | `Genode ]
-
 type mode = [ mode_unix | mode_xen | mode_solo5 ]
 
 (** {2 Mirage keys} *)
@@ -96,23 +89,14 @@ val randomize_hashtables : bool key
     The following keys allow boot time configuration. *)
 
 val allocation_policy : [ `Next_fit | `First_fit | `Best_fit ] key
-
 val minor_heap_size : int option key
-
 val major_heap_increment : int option key
-
 val space_overhead : int option key
-
 val max_space_overhead : int option key
-
 val gc_verbosity : int option key
-
 val gc_window_size : int option key
-
 val custom_major_ratio : int option key
-
 val custom_minor_ratio : int option key
-
 val custom_minor_max_size : int option key
 
 (** {2 Generic keys}

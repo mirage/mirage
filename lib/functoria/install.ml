@@ -19,7 +19,6 @@
 type t = { bin : (Fpath.t * Fpath.t) list; etc : Fpath.t list }
 
 let v ?(bin = []) ?(etc = []) () = { bin; etc }
-
 let empty = v ()
 
 let dump ppf t =
@@ -80,7 +79,5 @@ let dune ~context_name t =
   Dune.v (bin_rules @ etc_rules)
 
 let union_etc x y = Fpath.Set.(elements (union (of_list x) (of_list y)))
-
 let union_bin x y = x @ y
-
 let union x y = { bin = union_bin x.bin y.bin; etc = union_etc x.etc y.etc }

@@ -20,13 +20,9 @@ open Action.Syntax
 open Astring
 
 type abstract_key = Key.t
-
 type package = Package.t
-
 type info = Info.t
-
 type 'a value = 'a Key.value
-
 type 'a code = string
 
 type ('a, 'impl) t = {
@@ -60,16 +56,13 @@ let pp : type a b. b Fmt.t -> (a, b) t Fmt.t =
   record fields ppf t
 
 let equal x y = Typeid.equal x.id y.id
-
 let witness x y = Typeid.witness x.id y.id
-
 let hash x = Typeid.id x.id
 
 let default_connect _ _ l =
   Printf.sprintf "return (%s)" (String.concat ~sep:", " l)
 
 let niet _ = Action.ok ()
-
 let nil _ = []
 
 let merge empty union a b =
@@ -80,7 +73,6 @@ let merge empty union a b =
   | Some a, Some b -> Key.(pure union $ pure a $ b)
 
 let merge_packages = merge [] List.append
-
 let merge_install = merge Install.empty Install.union
 
 let v ?packages ?packages_v ?install ?install_v ?(keys = []) ?(extra_deps = [])
@@ -107,17 +99,11 @@ let v ?packages ?packages_v ?install ?install_v ?(keys = []) ?(extra_deps = [])
   }
 
 let id t = Typeid.id t.id
-
 let module_name t = t.module_name
-
 let module_type t = t.module_type
-
 let packages t = t.packages
-
 let install t = t.install
-
 let connect t = t.connect
-
 let configure t = t.configure
 
 let files t i =
@@ -127,16 +113,13 @@ let files t i =
   | Some files -> Fpath.Set.(union gen (of_list (files i)))
 
 let dune t = t.dune
-
 let keys t = t.keys
-
 let extra_deps t = t.extra_deps
 
 let start impl_name args =
   Fmt.str "@[%s.start@ %a@]" impl_name Fmt.(list ~sep:sp string) args
 
 let uniq t = Fpath.Set.(elements (of_list t))
-
 let exec_hook i = function None -> Action.ok () | Some h -> h i
 
 let extend ?packages ?packages_v ?dune ?pre_configure ?post_configure ?files t =
@@ -180,7 +163,6 @@ module Graph = struct
     type t = dtree
 
     let hash (D t) = t.id
-
     let equal (D t1) (D t2) = Int.equal t1.id t2.id
   end)
 

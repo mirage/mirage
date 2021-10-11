@@ -3,15 +3,11 @@ type 'a udp
 val udp : 'a udp Functoria.typ
 
 type udpv4 = Mirage_impl_ip.v4 udp
-
 type udpv6 = Mirage_impl_ip.v6 udp
-
 type udpv4v6 = Mirage_impl_ip.v4v6 udp
 
 val udpv4 : udpv4 Functoria.typ
-
 val udpv6 : udpv6 Functoria.typ
-
 val udpv4v6 : udpv4v6 Functoria.typ
 
 val direct_udp :

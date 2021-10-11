@@ -7,19 +7,13 @@ open Mirage_impl_time
 module Key = Mirage_key
 
 type 'a tcp = TCP
-
 type tcpv4 = v4 tcp
-
 type tcpv6 = v6 tcp
-
 type tcpv4v6 = v4v6 tcp
 
 let tcp = Type.Type TCP
-
 let tcpv4 : tcpv4 typ = tcp
-
 let tcpv6 : tcpv6 typ = tcp
-
 let tcpv4v6 : tcpv4v6 typ = tcp
 
 (* this needs to be a function due to the value restriction. *)

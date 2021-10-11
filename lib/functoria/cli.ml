@@ -24,11 +24,8 @@ let setup_log style_renderer level =
 open Cmdliner
 
 let common_section = "COMMON OPTIONS"
-
 let configuration_section = "CONFIGURE OPTIONS"
-
 let query_section = "QUERY OPTIONS"
-
 let description_section = "DESCRIBE OPTIONS"
 
 type query_kind =
@@ -197,9 +194,7 @@ type 'a configure_args = {
 }
 
 type 'a build_args = 'a args
-
 type 'a clean_args = 'a args
-
 type 'a help_args = 'a args
 
 type 'a describe_args = {
@@ -247,9 +242,7 @@ let pp_configure pp_a =
     ]
 
 let pp_build = pp_args
-
 let pp_clean = pp_args
-
 let pp_help = pp_args
 
 let pp_query_kind ppf (q : query_kind) =

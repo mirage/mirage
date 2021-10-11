@@ -21,17 +21,13 @@
 type stanza
 
 val stanza : string -> stanza
-
 val stanzaf : ('a, Format.formatter, unit, stanza) format4 -> 'a
 
 type t
 
 val v : stanza list -> t
-
 val pp : t Fmt.t
-
 val to_string : t -> string
-
 val compact_list : ?indent:int -> string -> string list Fmt.t
 
 val base :

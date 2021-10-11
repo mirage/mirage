@@ -44,19 +44,16 @@ val seq : unit t list -> unit t
 
 module List : sig
   val iter : f:('a -> unit t) -> 'a list -> unit t
-
   val map : f:('a -> 'b t) -> 'a list -> 'b list t
 end
 
 module Infix : sig
   val ( >>= ) : 'a t -> ('a -> 'b t) -> 'b t
-
   val ( >|= ) : 'a t -> ('a -> 'b) -> 'b t
 end
 
 module Syntax : sig
   val ( let* ) : 'a t -> ('a -> 'b t) -> 'b t
-
   val ( let+ ) : 'a t -> ('a -> 'b) -> 'b t
 end
 

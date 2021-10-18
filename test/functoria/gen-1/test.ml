@@ -1,6 +1,6 @@
 open Functoria
 
-let opam_list =
+let build_info =
   [
     ("base-bigarray", "base");
     ("base-threads", "base");
@@ -22,7 +22,7 @@ let opam_list =
 let test () =
   let context = Key.empty_context in
   let sigs = job @-> info @-> job in
-  let job = main "App.Make" sigs $ keys sys_argv $ app_info ~opam_list () in
+  let job = main "App.Make" sigs $ keys sys_argv $ app_info ~build_info () in
   Functoria_test.run context job
 
 let () =

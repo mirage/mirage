@@ -44,6 +44,7 @@ Query local opam
   synopsis: "Unikernel noop - monorepo dependencies"
   
   depends: [
+    "dune-build-info"
     "fmt"
     "functoria-runtime"
   ]
@@ -53,6 +54,7 @@ Query local opam
 
 Query packages
   $ ./config.exe query packages
+  "dune-build-info"
   "fmt"
   "functoria-runtime"
 

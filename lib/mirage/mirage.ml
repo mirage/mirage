@@ -263,7 +263,7 @@ let app_info_partial =
   Functoria.app_info ~runtime_package:"mirage-runtime" ~modname:"Mirage_runtime"
 
 let app_info = app_info_partial ()
-let app_info_with_opam_deps opam_list = app_info_partial ~opam_list ()
+let app_info_with_opam_deps build_info = app_info_partial ~build_info ()
 
 module Project = struct
   let name = "mirage"

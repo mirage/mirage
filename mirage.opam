@@ -26,6 +26,7 @@ depends: [
   "logs"
   "stdlib-shims"
   "mirage-runtime"     {>= "3.10.0" & <= version}
+  "opam-monorepo"      {>= "0.2.5"}
   "alcotest" {with-test}
   "fmt" {with-test}
 ]

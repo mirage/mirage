@@ -1,11 +1,7 @@
+let libraries = [
+  ]
+
 let info = Mirage_runtime.{
   name = "foo";
-  packages = [
-    ]
-  ;
-  libraries = [
-    "mirage-bootvar-solo5";
-    "mirage-bootvar-unix";
-    "mirage-bootvar-xen";
-    "mirage-runtime"]
-  }
+  libraries
+}

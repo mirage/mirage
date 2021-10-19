@@ -162,7 +162,7 @@ val info : info typ
 
 val app_info :
   ?runtime_package:string ->
-  ?opam_list:(string * string) list ->
+  ?build_info:(string * string) list ->
   ?gen_modname:string ->
   ?modname:string ->
   unit ->

@@ -42,6 +42,11 @@ Breaking changes:
   $ mirage configure --extra-repo https://github.com/dune-universe/opam-overlays
   ````
 
+* `Functoria_runtime.info` and `Mirage_runtime.info` now list all the libraries
+  that are statically linked against the unikernel. The `packages` field have
+  been removed and the `libraries` field is now accurate and contains the
+  versions computed by `dune-build-info`.
+
 ### v3.10.5 (2021-10-09)
 
 - Allow tls-mirage 0.14 and 0.15 series (@hannesm)

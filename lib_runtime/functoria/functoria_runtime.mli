@@ -77,7 +77,6 @@ val with_argv : unit Cmdliner.Term.t list -> string -> string array -> unit
 
 type info = {
   name : string;
-  libraries : string list;
-  packages : (string * string) list;
+  libraries : (string * string) list;  (** the result of [dune-build-info] *)
 }
 (** The type for build information available at runtime. *)

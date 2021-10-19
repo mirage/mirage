@@ -81,8 +81,4 @@ let with_argv keys s argv =
     | `Error _ -> exit 64
     | `Help | `Version -> exit 63
 
-type info = {
-  name : string;
-  libraries : string list;
-  packages : (string * string) list;
-}
+type info = { name : string; libraries : (string * string) list }

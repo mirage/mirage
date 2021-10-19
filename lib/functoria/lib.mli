@@ -71,7 +71,7 @@ module Make (P : S) : sig
     job impl list ->
     unit
   (** [register name jobs] registers the application named by [name] which will
-      execute the given [jobs]. Same optional arguments as {!DSL.main}.
+      execute the given [jobs]. Same optional arguments as {!module-DSL.main}.
 
       [init] is the list of job to execute before anything else (such as
       command-line argument parsing, log reporter setup, etc.). The jobs are

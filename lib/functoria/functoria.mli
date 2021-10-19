@@ -21,7 +21,7 @@
 (** Functoria is a DSL to describe a set of modules and functors, their types
     and how to apply them in order to produce a complete application.
 
-    The main use case is mirage. See the {!Mirage} documentation for details.
+    The main use case is mirage. See the [Mirage] documentation for details.
 
     Functoria is a DSL to write configuration files for functor-heavy
     applications. Such configuration files (imaginatively called [config.ml])
@@ -39,9 +39,10 @@
     {[ let main = main "Unikernel.Main" (m @-> job) ]}
 
     This declares that the functor [Unikernel.Main] takes a module of type [m]
-    and returns a module of type {!DSL.job}. [job] has a specific meaning for
-    functoria: it is a module which defines at least a function [start], which
-    should have one argument per functor argument and should return [unit].
+    and returns a module of type {!module-DSL.job}. [job] has a specific meaning
+    for functoria: it is a module which defines at least a function [start],
+    which should have one argument per functor argument and should return
+    [unit].
 
     It is up to the user to ensure that the declaration matches the
     implementation, or be rewarded by a compiler error later on. If the
@@ -59,7 +60,7 @@
 
     Consider a multilingual application: we want to pass the default language as
     a parameter. We will use a simple string, so we can use the predefined
-    description {!Key.Desc.string}. We want to be able to define it both at
+    description {!Key.Arg.string}. We want to be able to define it both at
     configure and run time, so we use the stage [Both]. This gives us the
     following code:
 
@@ -138,27 +139,26 @@ val job : job typ
 (** [job] is the signature for user's application main module. *)
 
 val noop : job impl
-(** [noop] is an implementation of {!Functoria.job} that holds no state, does
-    nothing and has no dependency. *)
+(** [noop] is an implementation of {!type-job} that holds no state, does nothing
+    and has no dependency. *)
 
 type argv = Argv.t
 (** The type for command-line arguments, similar to the usual [Sys.argv]. *)
 
 val argv : argv typ
-(** [argv] is a value representing {!argv} module types. *)
+(** [argv] is a value representing {!type-argv} module types. *)
 
 val sys_argv : argv impl
-(** [sys_argv] is a device providing command-line arguments by using
-    {!Sys.argv}. *)
+(** [sys_argv] is a device providing command-line arguments by using [Sys.argv]. *)
 
 val keys :
   ?runtime_package:string -> ?runtime_modname:string -> argv impl -> job impl
-(** [keys a] is an implementation of {!Functoria.job} that holds the parsed
+(** [keys a] is an implementation of {!type-job} that holds the parsed
     command-line arguments. By default [runtime_package] is
     ["functoria-runtime"] and [runtime_modname] is ["Functoria_runtime"]. *)
 
 val info : info typ
-(** [info] is a value representing {!info} module types. *)
+(** [info] is a value representing {!type-info} module types. *)
 
 val app_info :
   ?runtime_package:string ->

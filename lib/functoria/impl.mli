@@ -23,7 +23,7 @@ type abstract
 (** The type for untyped {!t}. *)
 
 type 'a device = ('a, abstract) Device.t
-(** The type for device whose dependencies have typ {!abstract}. *)
+(** The type for device whose dependencies have type {!type:abstract}. *)
 
 val abstract : 'a t -> abstract
 (** [abstract i] is [i] with its type erased. *)

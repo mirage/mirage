@@ -52,10 +52,10 @@ type argv
 (** The type for command-line arguments, similar to the usual [Sys.argv]. *)
 
 val argv : argv t
-(** [argv] is a value representing {!argv} module types. *)
+(** [argv] is a value representing {!type-argv} module types. *)
 
 type info
 (** The type for application about the application being built. *)
 
 val info : info t
-(** [info] is a value representing {!info} module types. *)
+(** [info] is a value representing {!type-info} module types. *)

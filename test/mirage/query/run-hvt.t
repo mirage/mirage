@@ -25,7 +25,10 @@ Query global opam
   ]
   
   depends: [
+    "mirage" { build & >= "4.0.0" & < "4.1.0" }
+    "ocaml" { build & >= "4.08.0" }
     "ocaml-freestanding" { build }
+    "opam-monorepo" { build & >= "0.2.6" }
   ]
   
 
@@ -42,13 +45,11 @@ Query local opam
   
   depends: [
     "lwt"
-    "mirage" { build & >= "4.0.0" & < "4.1.0" }
     "mirage-bootvar-solo5" { >= "0.6.0" & < "0.7.0" }
     "mirage-clock-freestanding" { >= "3.1.0" & < "4.0.0" }
     "mirage-logs" { >= "1.2.0" & < "2.0.0" }
     "mirage-runtime" { >= "4.0.0" & < "4.1.0" }
     "mirage-solo5" { >= "0.7.0" & < "0.8.0" }
-    "ocaml" { build & >= "4.08.0" }
   ]
   
   
@@ -64,6 +65,7 @@ Query packages
   "mirage-solo5" { >= "0.7.0" & < "0.8.0" }
   "ocaml" { build & >= "4.08.0" }
   "ocaml-freestanding" { build }
+  "opam-monorepo" { build & >= "0.2.6" }
 
 Query files
   $ ./config.exe query --target hvt files

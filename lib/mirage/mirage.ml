@@ -316,10 +316,11 @@ module Project = struct
       let min = "4.0.0" and max = "4.1.0" in
       let common =
         [
-          package ~build:true ~min:"4.08.0" "ocaml";
-          package "lwt";
-          package ~min ~max "mirage-runtime";
-          package ~build:true ~min ~max "mirage";
+          package ~scope:`Switch ~build:true ~min:"4.08.0" "ocaml";
+          package ~scope:`Monorepo "lwt";
+          package ~scope:`Monorepo ~min ~max "mirage-runtime";
+          package ~scope:`Switch ~build:true ~min ~max "mirage";
+          package ~scope:`Switch ~build:true ~min:"0.2.6" "opam-monorepo";
         ]
       in
       Key.match_ Key.(value target) @@ fun target ->

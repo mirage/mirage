@@ -19,14 +19,13 @@ build: [
 depends: [
   "ocaml" {>= "4.08.0"}
   "dune" {>= "2.0.0"}
-  "ipaddr"             {>= "5.0.0"}
-  "functoria"          {>= "3.0.2"}
+  "ipaddr" {>= "5.0.0"}
+  "functoria" {= version}
   "bos"
   "astring"
   "logs"
-  "stdlib-shims"
-  "mirage-runtime"     {>= "3.10.0" & <= version}
-  "opam-monorepo"      {>= "0.2.5"}
+  "mirage-runtime" {= version}
+  "opam-monorepo" {>= "0.2.6"}
   "alcotest" {with-test}
   "fmt" {with-test}
 ]

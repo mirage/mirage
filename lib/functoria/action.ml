@@ -475,7 +475,8 @@ let rec interpret_dry : type r. env:Env.t -> r command -> r domain =
       | None ->
           dom
             (error_msg "a file named '%a' already exists" Fpath.pp path)
-            env [ log "error" ])
+            env
+            [ log "error" ])
   | Rmdir path ->
       Log.debug (fun l -> l "Rmdir %a" Fpath.pp path);
       let log s = Fmt.str "Rmdir %a (%s)" Fpath.pp path s in
@@ -489,7 +490,8 @@ let rec interpret_dry : type r. env:Env.t -> r command -> r domain =
       | None ->
           dom
             (error_msg "%a: no such file or directory" Fpath.pp root)
-            env [ logs "error" ]
+            env
+            [ logs "error" ]
       | Some es -> (
           match List.filter filter es with
           | ([] | [ _ ]) as e ->

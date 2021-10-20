@@ -2,6 +2,7 @@ open Functoria
 module Key = Mirage_key
 open Mirage_impl_misc
 open Mirage_impl_mclock
+open Mirage_impl_pclock
 open Mirage_impl_stack
 open Mirage_impl_random
 open Mirage_impl_time
@@ -18,7 +19,7 @@ let resolver_unix_system = impl @@ object
     method! packages =
       Key.(if_ is_unix)
         [ Mirage_impl_conduit.pkg ;
-          package ~min:"4.0.0" ~max:"5.0.0" "conduit-lwt-unix"; ]
+          package ~min:"4.0.0" ~max:"6.0.0" "conduit-lwt-unix"; ]
         []
     method! configure i =
       match get_target i with
@@ -29,25 +30,28 @@ let resolver_unix_system = impl @@ object
 
 let resolver_dns_conf ~ns ~ns_port = impl @@ object
     inherit base_configurable
-    method ty = random @-> time @-> mclock @-> stackv4v6 @-> resolver
+
+    method ty = random @-> time @-> mclock @-> pclock @-> stackv4v6 @-> resolver
     method name = "resolver"
     method module_name = "Resolver_mirage.Make"
     method! packages =
       Key.pure [ Mirage_impl_conduit.pkg ]
     method! keys = [ Key.abstract ns ; Key.abstract ns_port ]
     method! connect _ modname = function
-      | [ _r ; _t ; _m ; stack ] ->
+      | [ _r ; _t ; _m ; _p ; stack ] ->
         Fmt.strf
-          "let ns = %a in@;\
-           let ns_port = %a in@;\
-           let res = %s.v ~ns ~ns_port %s in@;\
+          "let nameservers = match %a with@;\
+             | None -> None@;\
+             | Some x -> Some [ `Plaintext (x, %a) ]@;\
+           in@;\
+           let res = %s.v ?nameservers %s in@;\
            Lwt.return res@;"
           pp_key ns pp_key ns_port modname stack
       | _ -> failwith (connect_err "resolver" 3)
   end
 
-let resolver_dns ?ns ?ns_port ?(random = default_random) ?(time = default_time) ?(mclock = default_monotonic_clock) stack =
+let resolver_dns ?ns ?ns_port ?(random = default_random) ?(time = default_time) ?(mclock = default_monotonic_clock) ?(pclock = default_posix_clock) stack =
   let ns = Key.resolver ?default:ns ()
   and ns_port = Key.resolver_port ?default:ns_port ()
   in
-  resolver_dns_conf ~ns ~ns_port $ random $ time $ mclock $ stack
+  resolver_dns_conf ~ns ~ns_port $ random $ time $ mclock $ pclock $ stack

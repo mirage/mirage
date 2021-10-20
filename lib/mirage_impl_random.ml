@@ -17,7 +17,7 @@ let random_conf = object
     ]
   method! connect _i modname _ =
     (* here we could use the boot argument (--prng) to select the RNG! *)
-    Fmt.strf "%s.initialize (module Mirage_crypto_rng.Fortuna)" modname
+    Fmt.str "%s.initialize (module Mirage_crypto_rng.Fortuna)" modname
 end
 
 let default_random = impl random_conf $ default_time $ default_monotonic_clock

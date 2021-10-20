@@ -181,7 +181,7 @@ val ipv4_only : ?group:string -> unit -> bool key
 val ipv6_only : ?group:string -> unit -> bool key
 (** An option for dual stack to only use IPv6. *)
 
-val resolver: ?default:Ipaddr.t -> unit -> Ipaddr.t key
+val resolver: ?default:Ipaddr.t -> unit -> Ipaddr.t option key
 (** The address of the DNS resolver to use. *)
 
 val resolver_port: ?default:int -> unit -> int key

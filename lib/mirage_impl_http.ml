@@ -18,7 +18,7 @@ let cohttp_server = impl @@ object
     method! packages =
       Mirage_key.pure [ package ~min:"4.0.0" ~max:"5.0.0" "cohttp-mirage" ]
     method! connect _i modname = function
-      | [ conduit ] -> Fmt.strf "Lwt.return (%s.listen %s)" modname conduit
+      | [ conduit ] -> Fmt.str "Lwt.return (%s.listen %s)" modname conduit
       | _ -> failwith (connect_err "http" 1)
   end
 
@@ -33,7 +33,7 @@ let cohttp_client = impl @@ object
       Mirage_key.pure [ package ~min:"4.0.0" ~max:"5.0.0" "cohttp-mirage" ]
     method! connect _i modname = function
       | [ _pclock; resolver; conduit ] ->
-         Fmt.strf "Lwt.return (%s.ctx %s %s)" modname resolver conduit
+         Fmt.str "Lwt.return (%s.ctx %s %s)" modname resolver conduit
       | _ -> failwith (connect_err "http" 2)
   end
 
@@ -50,6 +50,6 @@ let httpaf_server conduit = impl @@ object
       Mirage_key.pure [ package "httpaf-mirage" ]
     method! deps = [ abstract conduit ]
     method! connect _i modname = function
-      | [ conduit ] -> Fmt.strf "%s.connect %s" modname conduit
+      | [ conduit ] -> Fmt.str "%s.connect %s" modname conduit
       | _ -> failwith (connect_err "httpaf" 1)
   end

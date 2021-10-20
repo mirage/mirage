@@ -21,7 +21,7 @@ let fat_conf = impl @@ object
     method! connect _ modname l =
       match l with
       | [block_name] ->
-        Fmt.strf "%s.connect %s" modname block_name
+        Fmt.str "%s.connect %s" modname block_name
       | _ ->
         failwith (connect_err "fat" 1)
   end
@@ -55,7 +55,7 @@ echo Created '%s'|}
 let fat_block ?(dir = ".") ?(regexp = "*") () =
   let name =
     Name.(
-      ocamlify @@ create (Fmt.strf "fat%s:%s" dir regexp) ~prefix:"fat_block")
+      ocamlify @@ create (Fmt.str "fat%s:%s" dir regexp) ~prefix:"fat_block")
   in
   let block_file = name ^ ".img" in
   impl @@ object
@@ -63,7 +63,7 @@ let fat_block ?(dir = ".") ?(regexp = "*") () =
     method! packages = Key.map (List.cons fat_pkg) super#packages
     method! build i =
       let root = Info.build_dir i in
-      let file = Fmt.strf "make-%s-image.sh" name in
+      let file = Fmt.str "make-%s-image.sh" name in
       let dir = Fpath.of_string dir |> R.error_msg_to_invalid_arg in
       Log.info (fun m -> m "Generating block generator script: %s" file);
       with_output ~mode:0o755 (Fpath.v file)
@@ -76,7 +76,7 @@ let fat_block ?(dir = ".") ?(regexp = "*") () =
       Log.info (fun m -> m "Executing block generator script: ./%s" file);
       Bos.OS.Cmd.run (Bos.Cmd.v ("./" ^ file)) >>= fun () -> super#build i
     method! clean i =
-      let file = Fmt.strf "make-%s-image.sh" name in
+      let file = Fmt.str "make-%s-image.sh" name in
       Bos.OS.File.delete (Fpath.v file)
       >>= fun () ->
       Bos.OS.File.delete (Fpath.v block_file) >>= fun () -> super#clean i
@@ -93,7 +93,7 @@ let kv_ro_of_fs_conf =
     method! packages =
       Key.pure [package ~min:"3.0.0" ~max:"4.0.0" "mirage-fs"]
     method! connect _ modname = function
-      | [fs] -> Fmt.strf "%s.connect %s" modname fs
+      | [fs] -> Fmt.str "%s.connect %s" modname fs
       | _ -> failwith (connect_err "kv_ro_of_fs" 1)
   end
 

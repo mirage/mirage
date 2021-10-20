@@ -29,8 +29,8 @@ type ipv4_config = {
 }
 (** Types for IPv4 manual configuration. *)
 
-let opt_opt_key s = Fmt.(option @@ prefix (unit ("?"^^s^^":")) pp_key)
-let opt_key s = Fmt.(option @@ prefix (unit ("~"^^s^^":")) pp_key)
+let opt_opt_key s = Fmt.(option @@ append (any ("?"^^s^^":")) pp_key)
+let opt_key s = Fmt.(option @@ append (any ("~"^^s^^":")) pp_key)
 let opt_map f = function Some x -> Some (f x) | None -> None
 let (@?) x l = match x with Some s -> s :: l | None -> l
 let (@??) x y = opt_map Key.abstract x @? y
@@ -49,11 +49,11 @@ let ipv4_keyed_conf ~ip ?gateway ?no_init () = impl @@ object
     method! keys = no_init @?? gateway @?? [Key.abstract ip]
     method! connect _ modname = function
     | [ _random ; _mclock ; etif ; arp ] ->
-      Fmt.strf
+      Fmt.str
         "%s.connect@[@ %a@ %a@ %a@ %s@ %s@]"
         modname
         (opt_key "no_init") no_init
-        Fmt.(prefix (unit "~cidr:") pp_key) ip
+        Fmt.(append (any "~cidr:") pp_key) ip
         (opt_opt_key "gateway") gateway
         etif arp
       | _ -> failwith (connect_err "ipv4 keyed" 4)
@@ -68,7 +68,7 @@ let ipv4_dhcp_conf = impl @@ object
       Key.pure [ package ~min:"1.3.0" ~max:"2.0.0" ~sublibs:["mirage"] "charrua-client" ]
     method! connect _ modname = function
       | [ _random ; _mclock ; _time ; network ; ethernet ; arp ] ->
-        Fmt.strf "%s.connect@[@ %s@ %s@ %s@]"
+        Fmt.str "%s.connect@[@ %s@ %s@ %s@]"
           modname network ethernet arp
       | _ -> failwith (connect_err "ipv4 dhcp" 5)
   end
@@ -107,7 +107,7 @@ let ipv4_qubes_conf = impl @@ object
       Key.pure [ package ~min:"0.9.0" ~max:"0.10.0" "mirage-qubes-ipv4" ]
     method! connect _ modname = function
       | [  db ; _random ; _mclock ;etif; arp ] ->
-        Fmt.strf "%s.connect@[@ %s@ %s@ %s@]" modname db etif arp
+        Fmt.str "%s.connect@[@ %s@ %s@ %s@]" modname db etif arp
       | _ -> failwith (connect_err "qubes ipv4" 5)
   end
 
@@ -125,7 +125,7 @@ let ipv6_conf ?ip ?gateway ?handle_ra ?no_init () = impl @@ object
     method! keys = ip @?? gateway @?? handle_ra @?? no_init @?? []
     method! connect _ modname = function
       | [ interface ; etif ; _random ; _time ; _clock ] ->
-        Fmt.strf "%s.connect@[@ %a@ %a@ %a@ %a@ %s@ %s@]"
+        Fmt.str "%s.connect@[@ %a@ %a@ %a@ %a@ %s@ %s@]"
           modname
           (opt_key "no_init") no_init
           (opt_key "handle_ra") handle_ra
@@ -160,7 +160,7 @@ let ipv4v6_conf ?ipv4_only ?ipv6_only () = impl @@ object
     method! keys = ipv4_only @?? ipv6_only @?? []
     method! connect _ modname = function
       | [ ipv4 ; ipv6 ] ->
-        Fmt.strf "%s.connect@[@ %a@ %a@ %s@ %s@]"
+        Fmt.str "%s.connect@[@ %a@ %a@ %s@ %s@]"
           modname
           (opt_key "ipv4_only") ipv4_only
           (opt_key "ipv6_only") ipv6_only

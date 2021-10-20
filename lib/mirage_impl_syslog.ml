@@ -27,7 +27,7 @@ let default_syslog_config =
 type syslog = SYSLOG
 let syslog = Type SYSLOG
 
-let opt p s = Fmt.(option @@ prefix (unit ("~"^^s^^":")) p)
+let opt p s = Fmt.(option @@ append (any ("~"^^s^^":")) p)
 let opt_int = opt Fmt.int
 let opt_string = opt (fun pp v -> Format.fprintf pp "%S" v)
 
@@ -49,7 +49,7 @@ let syslog_udp_conf config =
       [ Key.abstract endpoint ; Key.abstract hostname ; Key.abstract port ]
     method! connect _i modname = function
       | [ console ; pclock ; stack ] ->
-        Fmt.strf
+        Fmt.str
           "@[<v 2>\
            match %a with@ \
            | None -> Lwt.return_unit@ \
@@ -86,7 +86,7 @@ let syslog_tcp_conf config =
       [ Key.abstract endpoint ; Key.abstract hostname ; Key.abstract port ]
     method! connect _i modname = function
       | [ console ; pclock ; stack ] ->
-        Fmt.strf
+        Fmt.str
           "@[<v 2>\
            match %a with@ \
            | None -> Lwt.return_unit@ \
@@ -120,7 +120,7 @@ let syslog_tls_conf ?keyname config =
     method! keys = [ Key.abstract endpoint ; Key.abstract hostname ; Key.abstract port ]
     method! connect _i modname = function
       | [ console ; pclock ; stack ; kv ] ->
-        Fmt.strf
+        Fmt.str
           "@[<v 2>\
            match %a with@ \
            | None -> Lwt.return_unit@ \

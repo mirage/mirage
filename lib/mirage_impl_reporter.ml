@@ -25,7 +25,7 @@ let mirage_log ?ring_size default =
     method! keys = [ Key.abstract logs ]
     method! connect _ modname = function
       | [ _pclock ] ->
-        Fmt.strf
+        Fmt.str
           "@[<v 2>\
            let ring_size = %a in@ \
            let reporter = %s.create ?ring_size () in@ \

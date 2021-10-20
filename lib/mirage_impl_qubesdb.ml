@@ -18,7 +18,7 @@ let qubesdb_conf = object
     match get_target i with
     | `Qubes | `Xen -> R.ok ()
     | _ -> R.error_msg "Qubes DB invoked for an unsupported target; qubes and xen are supported"
-  method! connect _ modname _args = Fmt.strf "%s.connect ~domid:0 ()" modname
+  method! connect _ modname _args = Fmt.str "%s.connect ~domid:0 ()" modname
 end
 
 let default_qubesdb = impl qubesdb_conf

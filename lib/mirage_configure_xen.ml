@@ -25,7 +25,7 @@ let detected_bridge_name =
     List.fold_left (fun sofar x ->
         match sofar with
         (* This is Linux-specific *)
-        | None when Sys.file_exists (Fmt.strf "/sys/class/net/%s0" x) -> Some x
+        | None when Sys.file_exists (Fmt.str "/sys/class/net/%s0" x) -> Some x
         | None -> None
         | Some x -> Some x)
       None [ "xenbr"; "br"; "virbr" ]
@@ -47,8 +47,8 @@ module Substitutions = struct
     | Name -> "@NAME@"
     | Kernel -> "@KERNEL@"
     | Memory -> "@MEMORY@"
-    | Block b -> Fmt.strf "@BLOCK:%s@" b.filename
-    | Network n -> Fmt.strf "@NETWORK:%s@" n
+    | Block b -> Fmt.str "@BLOCK:%s@" b.filename
+    | Network n -> Fmt.str "@NETWORK:%s@" n
 
   let lookup ts v =
     if List.mem_assoc v ts then
@@ -62,7 +62,7 @@ module Substitutions = struct
         (fun b -> Block b, Fpath.(to_string ((Info.build_dir i) / b.filename)))
         (Hashtbl.fold (fun _ v acc -> v :: acc) Mirage_impl_block.all_blocks [])
     and networks =
-      List.mapi (fun i n -> Network n, Fmt.strf "%s%d" detected_bridge_name i)
+      List.mapi (fun i n -> Network n, Fmt.str "%s%d" detected_bridge_name i)
         !Mirage_impl_network.all_networks
     in [
       Name, (Info.name i);
@@ -103,15 +103,15 @@ let configure_main_xl ?substitutions ~ext i =
                    (fun _ -> char_of_int (low + (int_of_char 'a') - 1))
                in
                high' ^ low' in
-             let vdev = Fmt.strf "xvd%s" (string_of_int26 b.number) in
+             let vdev = Fmt.str "xvd%s" (string_of_int26 b.number) in
              let path = lookup substitutions (Block b) in
-             Fmt.strf "'format=raw, vdev=%s, access=rw, target=%s'" vdev path)
+             Fmt.str "'format=raw, vdev=%s, access=rw, target=%s'" vdev path)
           (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks [])
       in
       append fmt "disk = [ %s ]" (String.concat ~sep:", " blocks);
       newline fmt;
       let networks = List.map (fun n ->
-          Fmt.strf "'bridge=%s'" (lookup substitutions (Network n)))
+          Fmt.str "'bridge=%s'" (lookup substitutions (Network n)))
           !Mirage_impl_network.all_networks
       in
       append fmt "# if your system uses openvswitch then either edit \

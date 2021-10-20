@@ -291,7 +291,7 @@ let backtrace = impl @@ object
     method module_name = "Printexc"
     method! keys = [ Key.abstract Key.backtrace ]
     method! connect _ _ _ =
-      Fmt.strf "Lwt.return (Printexc.record_backtrace %a)"
+      Fmt.str "Lwt.return (Printexc.record_backtrace %a)"
         Mirage_impl_misc.pp_key Key.backtrace
   end
 
@@ -302,19 +302,19 @@ let randomize_hashtables = impl @@ object
     method module_name = "Hashtbl"
     method! keys = [ Key.abstract Key.randomize_hashtables ]
     method! connect _ _ _ =
-      Fmt.strf "Lwt.return (if %a then Hashtbl.randomize ())"
+      Fmt.str "Lwt.return (if %a then Hashtbl.randomize ())"
         Mirage_impl_misc.pp_key Key.randomize_hashtables
   end
 
 let gc_control =
   let pp_pol ~name =
-    Fmt.(prefix (unit (name ^^ " = "))
-           (suffix (unit " with `Next_fit -> 0 | `First_fit -> 1 | `Best_fit -> 2)")
-              (prefix (unit "(match ") Mirage_impl_misc.pp_key)))
+    Fmt.(append (any (name ^^ " = (match "))
+           (append Mirage_impl_misc.pp_key
+              (any " with `Next_fit -> 0 | `First_fit -> 1 | `Best_fit -> 2)")))
   and pp_k ~name =
     let m_body = " with None -> ctrl." ^^ name ^^ " | Some x -> x)" in
-    Fmt.(prefix (unit (name ^^ " = "))
-           (suffix (unit m_body) (prefix (unit "(match ") Mirage_impl_misc.pp_key)))
+    Fmt.(append (any (name ^^ " = (match "))
+           (append Mirage_impl_misc.pp_key (any m_body)))
   in
   impl @@ object
     inherit base_configurable
@@ -334,7 +334,7 @@ let gc_control =
       Key.abstract Key.custom_minor_max_size ;
     ]
     method! connect _ _ _ =
-      Fmt.strf "Lwt.return (@.\
+      Fmt.str "Lwt.return (@.\
                   @[<v 2>let open Gc in@ \
                   let ctrl = get () in@ \
                   set ({ ctrl with %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a })@]@.\

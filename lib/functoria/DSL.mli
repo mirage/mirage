@@ -21,13 +21,13 @@
     command-line arguments either at configure-time or at runtime.
 
     Users of the Functoria DSL composes their application by defining a list of
-    {{!main} module} implementations, specify the command-line {!keys} that are
-    required and {{!combinators} combine} all of them together using
+    {{!main} module} implementations, specify the command-line {!type-key} that
+    are required and {{!section-combinators} combine} all of them together using
     {{:http://dx.doi.org/10.1017/S0956796807006326} applicative} operators.
 
-    The DSL expression is then compiled into an {{!app} application builder},
-    which will, once evaluated, produced the final portable and flexible
-    application. *)
+    The DSL expression is then compiled into an {{!section-app} application
+    builder}, which will, once evaluated, produced the final portable and
+    flexible application. *)
 
 (** {1:combinators Combinators} *)
 
@@ -54,7 +54,7 @@ val ( $ ) : ('a -> 'b) impl -> 'a impl -> 'b impl
 (** [m $ a] applies the functor [m] to the module [a]. *)
 
 type abstract_impl = Impl.abstract
-(** Same as {!impl} but with hidden type. *)
+(** Same as {!type-impl} but with hidden type. *)
 
 val dep : 'a impl -> abstract_impl
 (** [dep t] is the (build-time) dependency towards [t]. *)
@@ -71,10 +71,10 @@ type abstract_key = Key.t
 (** The type for abstract keys. *)
 
 type context = Key.context
-(** The type for keys' parsing context. See {!Key.context}. *)
+(** The type for keys' parsing context. See {!module-Key.type-context}. *)
 
 type 'a value = 'a Key.value
-(** The type for values parsed from the command-line. See {!Key.value}. *)
+(** The type for values parsed from the command-line. See {!Key.type-value}. *)
 
 val key : 'a key -> Key.t
 (** [key k] is an untyped representation of [k]. *)
@@ -89,9 +89,10 @@ val match_impl : 'b value -> default:'a impl -> ('b * 'a impl) list -> 'a impl
 
 (** {1:pkg Package dependencies}
 
-    For specifying opam package dependencies, the type {!package} is used. It
-    consists of the opam package name, the ocamlfind names, and optional lower
-    and upper bounds. The version constraints are merged with other modules. *)
+    For specifying opam package dependencies, the type {!type-package} is used.
+    It consists of the opam package name, the ocamlfind names, and optional
+    lower and upper bounds. The version constraints are merged with other
+    modules. *)
 
 type package = Package.t
 (** The type for opam packages. *)
@@ -109,15 +110,16 @@ val package :
   ?pin:string ->
   string ->
   package
-(** Same as {!Package.v} *)
+(** Same as {!Functoria.Package.val-v} *)
 
 (** {1:app Application Builder}
 
-    Values of type {!impl} are tied to concrete module implementation with the
-    {!device} and {!foreign} construct. Module implementations of type {!job}
-    can then be {{!App.Make.register} registered} into an application builder.
-    The builder is in charge if parsing the command-line arguments and of
-    generating code for the final application. See {!App} for details. *)
+    Values of type {!type-impl} are tied to concrete module implementation with
+    the {!device} and {!foreign} construct. Module implementations of type
+    {!type-job} can then be {{!Functoria.Lib.Make.register} registered} into an
+    application builder. The builder is in charge if parsing the command-line
+    arguments and of generating code for the final application. See
+    {!Functoria.Lib} for details. *)
 
 type info = Info.t
 (** The type for build information. *)

@@ -132,8 +132,8 @@ val eval :
 
 type 'a result =
   [ `Ok of 'a action | `Error of 'a args * [ `Exn | `Parse | `Term ] | `Version ]
-(** Similar to {!Cmdliner.Term.result} but help is folded into [`Ok] and errors
+(** Similar to [Cmdliner.Term.result] but help is folded into [`Ok] and errors
     also carry global command-line parameters. *)
 
 val peek : ?with_setup:bool -> mname:string -> string array -> unit result
-(** [peek] is the same as {!eval} but without failing on unknown arguments. *)
+(** [peek] is the same as {!val:eval} but without failing on unknown arguments. *)

@@ -165,7 +165,7 @@ val value : 'a key -> 'a value
 (** {1 Abstract Keys} *)
 
 type t
-(** The type for abstract {{!key} keys}. *)
+(** The type for abstract {{!type:key} keys}. *)
 
 val name : t -> string
 (** [name t] is the string given as [t]'s name when [t] was created. *)

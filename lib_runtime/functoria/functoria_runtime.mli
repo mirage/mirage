@@ -19,7 +19,7 @@
 (** Functoria runtime. *)
 
 (** [Arg] defines command-line arguments which can be set at runtime. This
-    module is the runtime companion of {!Functoria_key}. It exposes a subset of
+    module is the runtime companion of [Functoria.Key]. It exposes a subset of
     {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html}
     Cmdliner.Arg}. *)
 module Arg : sig
@@ -27,24 +27,25 @@ module Arg : sig
 
   type 'a t
   (** The type for runtime command-line arguments. Similar to
-      {!Functoria_key.Arg.t} but only available at runtime. *)
+      [Functoria.Key.Arg.t] but only available at runtime. *)
 
   val opt : 'a Cmdliner.Arg.converter -> 'a -> Cmdliner.Arg.info -> 'a t
-  (** [opt] is the runtime companion of {!Functoria_key.Arg.opt}. *)
+  (** [opt] is the runtime companion of [Functoria.Ky.Arg.opt]. *)
 
   val required : 'a Cmdliner.Arg.converter -> Cmdliner.Arg.info -> 'a t
-  (** [required] is the runtime companion of {!Functoria_key.Arg.required}. *)
+  (** [required] is the runtime companion of [Functoria.Key.Arg.required]. *)
 
   val key :
     ?default:'a -> 'a Cmdliner.Arg.converter -> Cmdliner.Arg.info -> 'a t
-  (** [key] is either {!opt} or {!runtime}, depending if [~default] is provided. *)
+  (** [key] is either {!opt} or {!required}, depending if [~default] is
+      provided. *)
 
   val flag : Cmdliner.Arg.info -> bool t
-  (** [flag] is the runtime companion of {!Functoria_key.Arg.flag}. *)
+  (** [flag] is the runtime companion of [Functoria.Key.Arg.flag]. *)
 end
 
 (** [Key] defines values that can be set by runtime command-line arguments. This
-    module is the runtime companion of {!Functoria_key}. *)
+    module is the runtime companion of {!Key}. *)
 module Key : sig
   (** {1 Runtime keys} *)
 

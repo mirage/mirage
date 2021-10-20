@@ -124,8 +124,8 @@ include Functoria.DSL
 (** Configuration keys. *)
 module Key : module type of struct
   include Mirage_key
+  (** @inline *)
 end
-(** @inline *)
 
 val abstract : 'a impl -> abstract_impl [@@ocaml.deprecated "Use Mirage.dep."]
 
@@ -135,7 +135,7 @@ type tracing
 (** The type for tracing. *)
 
 val tracing : tracing typ
-(** Implementation of the {!tracing} type. *)
+(** Implementation of the {!type:tracing} type. *)
 
 val mprof_trace : size:int -> unit -> tracing impl
 (** Use mirage-profile to trace the unikernel. On Unix, this creates and mmaps a
@@ -169,7 +169,7 @@ type pclock
 (** Abstract type for POSIX clocks. *)
 
 val pclock : pclock typ
-(** Implementations of the {!Mirage_types.PCLOCK} signature. *)
+(** Implementations of the [Mirage_clock.PCLOCK] signature. *)
 
 val default_posix_clock : pclock impl
 (** The default mirage-clock PCLOCK implementation. *)
@@ -178,7 +178,7 @@ type mclock
 (** Abstract type for monotonic clocks *)
 
 val mclock : mclock typ
-(** Implementations of the {!Mirage_types.MCLOCK} signature. *)
+(** Implementations of the [Mirage_clock.MCLOCK] signature. *)
 
 val default_monotonic_clock : mclock impl
 (** The default mirage-clock MCLOCK implementation. *)
@@ -189,7 +189,7 @@ type reporter
 (** The type for log reporters. *)
 
 val reporter : reporter typ
-(** Implementation of the log {!reporter} type. *)
+(** Implementation of the log {!type:reporter} type. *)
 
 val default_reporter :
   ?clock:pclock impl ->
@@ -674,13 +674,13 @@ type syslog_config = {
 
 val syslog_config :
   ?port:int -> ?truncate:int -> ?server:Ipaddr.t -> string -> syslog_config
-(** Helper for constructing a {!syslog_config}. *)
+(** Helper for constructing a {!type:syslog_config}. *)
 
 type syslog
 (** The type for syslog *)
 
 val syslog : syslog typ
-(** Implementation of the {!syslog} type. *)
+(** Implementation of the {!type:syslog} type. *)
 
 val syslog_udp :
   ?config:syslog_config ->
@@ -780,15 +780,15 @@ val keys : argv impl -> job impl
        {!Mirage_runtime.Info}. *) *)
 
 val info : info typ
-(** [info] is the combinator to generate {!info} values to use at runtime. *)
+(** [info] is the combinator to generate {!type:info} values to use at runtime. *)
 
 val app_info : info impl
 (** [app_info] exports all the information available at configure time into a
-    runtime {!Mirage.Info.t} value. *)
+    runtime {!type:Mirage.Info.t} value. *)
 
 val app_info_with_opam_deps : (string * string) list -> info impl
 (** [app_info] exports all the information available at configure time into a
-    runtime {!Mirage.Info.t} value. *)
+    runtime {!type:Mirage.Info.t} value. *)
 
 (** {2 Application registering} *)
 

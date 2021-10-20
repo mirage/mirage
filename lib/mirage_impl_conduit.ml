@@ -15,7 +15,7 @@ let tcp = impl @@ object
     method module_name = "Conduit_mirage.TCP"
     method! packages = Mirage_key.pure [ pkg ]
     method! connect _i _ = function
-      | [ stack ] -> Fmt.strf "Lwt.return %s@;" stack
+      | [ stack ] -> Fmt.str "Lwt.return %s@;" stack
       | _ -> failwith (connect_err "tcp_conduit" 1)
   end
 
@@ -29,7 +29,7 @@ let tls random = impl @@ object
       Mirage_key.pure [
           package ~min:"0.13.0" ~max:"0.16.0" "tls-mirage"; pkg]
     method! connect _i _ = function
-      | [ stack; _random ] -> Fmt.strf "Lwt.return %s@;" stack
+      | [ stack; _random ] -> Fmt.str "Lwt.return %s@;" stack
       | _ -> failwith (connect_err "tls_conduit" 1)
   end
 

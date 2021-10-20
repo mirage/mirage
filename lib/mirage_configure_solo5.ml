@@ -17,7 +17,7 @@ let generate_manifest_json with_devices () =
   let blocks = Hashtbl.fold (fun k _v acc -> (k, `Block) :: acc)
       Mirage_impl_block.all_blocks [] in
   let to_string (name, typ) =
-    Fmt.strf {json|{ "name": %S, "type": %S }|json}
+    Fmt.str {json|{ "name": %S, "type": %S }|json}
       name
       (match typ with `Network -> "NET_BASIC" | `Block -> "BLOCK_BASIC") in
   let devices = if with_devices then

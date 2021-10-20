@@ -29,7 +29,7 @@ let stackv4_direct_conf ?(group="") () = impl @@ object
     method! packages = right_tcpip_library ~sublibs:["stack-direct"] "tcpip"
     method! connect _i modname = function
       | [ _t; _r; interface; ethif; arp; ip; icmp; udp; tcp ] ->
-        Fmt.strf
+        Fmt.str
           "%s.connect %s %s %s %s %s %s %s"
           modname interface ethif arp ip icmp udp tcp
       | _ -> failwith (connect_err "direct stackv4" 9)
@@ -85,7 +85,7 @@ let socket_stackv4 ?(group="") () = impl @@ object
     method! packages = right_tcpip_library ~sublibs:["stack-socket"] "tcpip"
     method! deps = [abstract (keyed_socket_udpv4 key) ; abstract (keyed_socket_tcpv4 key)]
     method! connect _i modname = function
-      | [ udpv4 ; tcpv4 ] -> Fmt.strf "%s.connect %s %s" modname udpv4 tcpv4
+      | [ udpv4 ; tcpv4 ] -> Fmt.str "%s.connect %s %s" modname udpv4 tcpv4
       | _ -> failwith (connect_err "socket stack" 2)
   end
 
@@ -130,7 +130,7 @@ let stackv6_direct_conf ?(group="") () = impl @@ object
     method! packages = right_tcpip_library ~sublibs:["stack-direct"] "tcpip"
     method! connect _i modname = function
       | [ _t; _r; interface; ethif; ip; udp; tcp ] ->
-        Fmt.strf
+        Fmt.str
           "%s.connect %s %s %s %s %s"
           modname interface ethif ip udp tcp
       | _ -> failwith (connect_err "direct stackv6" 7)
@@ -163,7 +163,7 @@ let socket_stackv6 ?(group="") () = impl @@ object
     method! packages = right_tcpip_library ~sublibs:["stack-socket"] "tcpip"
     method! deps = [abstract (keyed_socket_udpv6 key); abstract (keyed_socket_tcpv6 key)]
     method! connect _i modname = function
-      | [ udp ; tcp ] -> Fmt.strf "%s.connect %s %s" modname udp tcp
+      | [ udp ; tcp ] -> Fmt.str "%s.connect %s %s" modname udp tcp
       | _ -> failwith (connect_err "socket stack" 2)
   end
 
@@ -204,7 +204,7 @@ let stackv4v6_direct_conf ?(group="") () = impl @@ object
     method! packages = right_tcpip_library ~sublibs:["stack-direct"] "tcpip"
     method! connect _i modname = function
       | [ _t; _r; interface; ethif; arp; ipv4v6; icmpv4; udp; tcp ] ->
-        Fmt.strf
+        Fmt.str
           "%s.connect %s %s %s %s %s %s %s"
           modname interface ethif arp ipv4v6 icmpv4 udp tcp
       | _ -> failwith (connect_err "direct stack" 8)
@@ -277,7 +277,7 @@ let socket_stackv4v6 ?(group="") () = impl @@ object
       abstract (keyed_socket_tcpv4v6 ~ipv4_only ~ipv6_only v4key v6key)
     ]
     method! connect _i modname = function
-      | [ udp ; tcp ] -> Fmt.strf "%s.connect %s %s" modname udp tcp
+      | [ udp ; tcp ] -> Fmt.str "%s.connect %s %s" modname udp tcp
       | _ -> failwith (connect_err "socket stack" 2)
   end
 

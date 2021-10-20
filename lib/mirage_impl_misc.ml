@@ -7,7 +7,7 @@ module Log = (val Logs.src_log src : Logs.LOG)
 let get_target i = Mirage_key.(get (Functoria.Info.context i) target)
 
 let connect_err name number =
-  Fmt.strf "The %s connect expects exactly %d argument%s"
+  Fmt.str "The %s connect expects exactly %d argument%s"
     name number (if number = 1 then "" else "s")
 
 let with_output ?mode f k err =
@@ -49,7 +49,7 @@ let pkg_config pkgs args =
   (* the order here matters (at least for ancient 0.26, distributed with
        ubuntu 14.04 versions): use share before lib! *)
   let value =
-    Fmt.strf "%s/share/pkgconfig:%s/lib/pkgconfig%s"
+    Fmt.str "%s/share/pkgconfig:%s/lib/pkgconfig%s"
       prefix prefix pkg_config_fallback
   in
   Bos.OS.Env.set_var var (Some value) >>= fun () ->
@@ -72,7 +72,7 @@ let rec expand_name ~lib param =
 let extra_c_artifacts target pkgs =
   Lazy.force opam_prefix >>= fun prefix ->
   let lib = prefix ^ "/lib" in
-  let format = Fmt.strf "%%d\t%%(%s_linkopts)" target
+  let format = Fmt.str "%%d\t%%(%s_linkopts)" target
   and predicates = "native"
   in
   query_ocamlfind ~recursive:true ~format ~predicates pkgs >>= fun data ->

@@ -26,7 +26,7 @@ let network_conf (intf : string Key.key) =
       | #Mirage_key.mode_solo5 ->
         [ package ~min:"0.6.1" ~max:"0.7.0" "mirage-net-solo5" ]
     method! connect _ modname _ =
-      Fmt.strf "%s.connect %a" modname Key.serialize_call key
+      Fmt.str "%s.connect %a" modname Key.serialize_call key
     method! configure i =
       all_networks := Key.get (Info.context i) intf :: !all_networks;
       Rresult.R.ok ()

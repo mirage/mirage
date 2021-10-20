@@ -104,7 +104,7 @@ let configure_opam ~name info =
            | Some d -> (List.map (fun a -> Fpath.(d // a)) xs)
          in
          append fmt {|  [ "cp" %a "%%{etc}%%" ]|}
-           Fmt.(list ~sep:(unit " ") (quote Fpath.pp)) xs');
+           Fmt.(list ~sep:(any " ") (quote Fpath.pp)) xs');
       append fmt {|]|};
       (match git_info with
        | None -> ()
@@ -122,7 +122,7 @@ let opam_name ~name ~target =
   String.concat ~sep:"-" ["mirage"; "unikernel"; name; target]
 
 let unikernel_opam_name ~name target =
-  let target = Fmt.strf "%a" Key.pp_target target in
+  let target = Fmt.str "%a" Key.pp_target target in
   opam_name ~name ~target
 
 let clean_opam ~name target =

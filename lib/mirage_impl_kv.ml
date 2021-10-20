@@ -18,7 +18,7 @@ let crunch dirname = impl @@ object
         package ~min:"3.0.0" ~max:"4.0.0" "mirage-kv-mem";
         package ~min:"3.1.0" ~max:"4.0.0" ~build:true "crunch"
       ]
-    method! connect _ modname _ = Fmt.strf "%s.connect ()" modname
+    method! connect _ modname _ = Fmt.str "%s.connect ()" modname
     method! build _i =
       let dir = Fpath.(v dirname) in
       let file = Fpath.(v name + "ml") in
@@ -27,7 +27,7 @@ let crunch dirname = impl @@ object
         Mirage_impl_misc.Log.info (fun m -> m "Generating: %a" Fpath.pp file);
         Bos.OS.Cmd.run Bos.Cmd.(v "ocaml-crunch" % "-o" % p file % p dir)
       | false ->
-        R.error_msg (Fmt.strf "The directory %s does not exist." dirname)
+        R.error_msg (Fmt.str "The directory %s does not exist." dirname)
     method! clean _i =
       Bos.OS.File.delete Fpath.(v name + "ml") >>= fun () ->
       Bos.OS.File.delete Fpath.(v name + "mli")
@@ -43,7 +43,7 @@ let direct_kv_ro dirname = impl @@ object
       Key.pure [ package ~min:"2.1.0" ~max:"3.0.0" "mirage-kv-unix" ]
     method! connect i modname _names =
       let path = Fpath.(Info.build_dir i / dirname) in
-      Fmt.strf "%s.connect \"%a\"" modname Fpath.pp path
+      Fmt.str "%s.connect \"%a\"" modname Fpath.pp path
   end
 
 let direct_kv_ro dirname =
@@ -70,7 +70,7 @@ let direct_kv_rw dirname = impl @@ object
       Key.pure [ package ~min:"2.1.0" ~max:"3.0.0" "mirage-kv-unix" ]
     method! connect i modname _names =
       let path = Fpath.(Info.build_dir i / dirname) in
-      Fmt.strf "%s.connect \"%a\"" modname Fpath.pp path
+      Fmt.str "%s.connect \"%a\"" modname Fpath.pp path
   end
 
 let mem_kv_rw_config = impl @@ object
@@ -81,7 +81,7 @@ let mem_kv_rw_config = impl @@ object
     method! packages =
       Key.pure [ package ~min:"3.0.0" ~max:"4.0.0" "mirage-kv-mem" ]
     method! connect _i modname _names =
-      Fmt.strf "%s.connect ()" modname
+      Fmt.str "%s.connect ()" modname
   end
 
 let mem_kv_rw ?(clock = Mirage_impl_pclock.default_posix_clock) () =

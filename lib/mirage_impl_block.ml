@@ -44,7 +44,7 @@ class xenstore_conf id =
       | _ -> R.error_msg "XenStore IDs are only valid ways of specifying block \
                           devices when the target is Xen or Qubes."
     method! connect _ s _ =
-      Fmt.strf "%s.connect %S" s id
+      Fmt.str "%s.connect %S" s id
   end
 
 let block_of_xenstore_id id = impl (new xenstore_conf id)
@@ -92,7 +92,7 @@ class block_conf file =
       match get_target i with
       | `Muen -> failwith "Block devices not supported on Muen target."
       | _ ->
-        Fmt.strf "%s.connect %S" s
+        Fmt.str "%s.connect %S" s
           (self#connect_name (get_target i) @@ Info.build_dir i)
   end
 
@@ -108,7 +108,7 @@ class ramdisk_conf rname =
       Key.pure [ package "mirage-block-ramdisk" ]
 
     method! connect _i modname _names =
-      Fmt.strf "%s.connect ~name:%S" modname rname
+      Fmt.str "%s.connect ~name:%S" modname rname
   end
 
 
@@ -139,7 +139,7 @@ let archive_conf = impl @@ object
     method! packages =
       Key.pure [ package ~min:"1.0.0" ~max:"2.0.0" "tar-mirage" ]
     method! connect _ modname = function
-      | [ block ] -> Fmt.strf "%s.connect %s" modname block
+      | [ block ] -> Fmt.str "%s.connect %s" modname block
       | _ -> failwith (connect_err "archive" 1)
   end
 

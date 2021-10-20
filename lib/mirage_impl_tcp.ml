@@ -26,7 +26,7 @@ let tcp_direct_conf () = object
   method module_name = "Tcp.Flow.Make"
   method! packages = right_tcpip_library ~sublibs:["tcp"] "tcpip"
   method! connect _ modname = function
-    | [ip; _time; _clock; _random] -> Fmt.strf "%s.connect %s" modname ip
+    | [ip; _time; _clock; _random] -> Fmt.str "%s.connect %s" modname ip
     | _ -> failwith (connect_err "direct tcp" 4)
 end
 
@@ -51,7 +51,7 @@ let tcpv4_socket_conf ipv4_key = object
     match get_target i with
     | `Unix | `MacOSX -> R.ok ()
     | _  -> R.error_msg "TCPv4 socket not supported on non-UNIX targets."
-  method! connect _ modname _ = Fmt.strf "%s.connect %a" modname pp_key ipv4_key
+  method! connect _ modname _ = Fmt.str "%s.connect %a" modname pp_key ipv4_key
 end
 
 let keyed_socket_tcpv4 key = impl (tcpv4_socket_conf key)
@@ -75,7 +75,7 @@ let tcpv6_socket_conf ipv6_key = object
     match get_target i with
     | `Unix | `MacOSX -> R.ok ()
     | _  -> R.error_msg "TCPv6 socket not supported on non-UNIX targets."
-  method! connect _ modname _ = Fmt.strf "%s.connect %a" modname pp_key ipv6_key
+  method! connect _ modname _ = Fmt.str "%s.connect %a" modname pp_key ipv6_key
 end
 
 let keyed_socket_tcpv6 key = impl (tcpv6_socket_conf key)
@@ -100,7 +100,7 @@ let tcpv4v6_socket_conf ~ipv4_only ~ipv6_only ipv4_key ipv6_key = object
     | `Unix | `MacOSX -> R.ok ()
     | _  -> R.error_msg "TCPv4v6 socket not supported on non-UNIX targets."
   method! connect _ modname _ =
-    Fmt.strf "%s.connect ~ipv4_only:%a ~ipv6_only:%a %a %a"
+    Fmt.str "%s.connect ~ipv4_only:%a ~ipv6_only:%a %a %a"
       modname
       pp_key ipv4_only pp_key ipv6_only
       pp_key ipv4_key pp_key ipv6_key

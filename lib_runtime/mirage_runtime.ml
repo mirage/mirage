@@ -72,7 +72,7 @@ module Arg = struct
     ] in
     let level_of_string x =
       try List.assoc x enum
-      with Not_found -> Fmt.kstrf failwith "%s is not a valid log level" x
+      with Not_found -> Fmt.kstr failwith "%s is not a valid log level" x
     in
     let string_of_level x =
       try fst @@ List.find (fun (_, y) -> x = y) enum

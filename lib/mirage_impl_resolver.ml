@@ -39,7 +39,7 @@ let resolver_dns_conf ~ns ~ns_port = impl @@ object
     method! keys = [ Key.abstract ns ; Key.abstract ns_port ]
     method! connect _ modname = function
       | [ _r ; _t ; _m ; _p ; stack ] ->
-        Fmt.strf
+        Fmt.str
           "let nameservers = match %a with@;\
              | None -> None@;\
              | Some x -> Some [ `Plaintext (x, %a) ]@;\

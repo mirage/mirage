@@ -1,3 +1,8 @@
+### v3.10.6 (2021-10-20)
+
+- Adapt to conduit 5.0.0 API (and dns 6.0.0) @hannesm #1246
+- Avoid deprecated Fmt functions @hannesm #1246
+
 ### v3.10.5 (2021-10-09)
 
 - Allow tls-mirage 0.14 and 0.15 series (@hannesm)

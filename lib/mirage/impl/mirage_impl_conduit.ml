@@ -6,7 +6,7 @@ open Mirage_impl_random
 type conduit = Conduit
 
 let conduit = Type.v Conduit
-let pkg = package ~min:"4.0.0" ~max:"5.0.0" "conduit-mirage"
+let pkg = package ~min:"5.0.0" ~max:"6.0.0" "conduit-mirage"
 
 let tcp =
   let packages = [ pkg ] in

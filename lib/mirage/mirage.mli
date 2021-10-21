@@ -652,6 +652,7 @@ val resolver_dns :
   ?ns_port:int ->
   ?time:time impl ->
   ?mclock:mclock impl ->
+  ?pclock:pclock impl ->
   ?random:random impl ->
   stackv4v6 impl ->
   resolver impl

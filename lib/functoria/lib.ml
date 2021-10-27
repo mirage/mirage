@@ -205,7 +205,7 @@ module Make (P : S) = struct
     | `Makefile ->
         let file =
           Makefile.v ~build_dir ~depext ~builder_name:P.name ?extra_repo
-            (Misc.Name.opamify (Info.name info))
+            (Misc.Name.opamify name)
         in
         Fmt.pr "%a\n%!" Makefile.pp file
     | `Dune `Config ->
@@ -320,8 +320,7 @@ module Make (P : S) = struct
     let name = P.name_of_target info in
     let opam_name = Misc.Name.opamify name in
     let* () =
-      generate_makefile ~build_dir ~depext ~extra_repo
-        (Misc.Name.opamify (Info.name info))
+      generate_makefile ~build_dir ~depext ~extra_repo (Misc.Name.opamify name)
     in
     let* _ = Action.mkdir (mirage_dir args) in
     let* () =

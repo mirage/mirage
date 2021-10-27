@@ -34,7 +34,7 @@ Query makefile
   -include Makefile.user
   BUILD_DIR = ./
   MIRAGE_DIR = ./mirage
-  UNIKERNEL_NAME = noop-functor_v0
+  UNIKERNEL_NAME = noop-functor_v0-unix
   OPAM = opam
   
   all:: build

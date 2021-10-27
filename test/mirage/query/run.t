@@ -80,7 +80,7 @@ Query Makefile
   -include Makefile.user
   BUILD_DIR = ./
   MIRAGE_DIR = ./mirage
-  UNIKERNEL_NAME = noop
+  UNIKERNEL_NAME = noop-unix
   OPAM = opam
   
   all:: build
@@ -127,7 +127,7 @@ Query Makefile without depexts
   -include Makefile.user
   BUILD_DIR = ./
   MIRAGE_DIR = ./mirage
-  UNIKERNEL_NAME = noop
+  UNIKERNEL_NAME = noop-unix
   OPAM = opam
   
   all:: build
@@ -167,7 +167,7 @@ Query Makefile with depext
   -include Makefile.user
   BUILD_DIR = ./
   MIRAGE_DIR = ./mirage
-  UNIKERNEL_NAME = noop
+  UNIKERNEL_NAME = noop-unix
   OPAM = opam
   
   all:: build

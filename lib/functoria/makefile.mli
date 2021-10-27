@@ -21,9 +21,9 @@ type t
 val v :
   ?extra_repo:string ->
   build_dir:Fpath.t ->
-  name:string ->
+  builder_name:string ->
   depext:bool ->
-  string ->
+  Misc.Name.Opam.t ->
   t
 
 val pp : t Fmt.t

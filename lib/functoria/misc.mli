@@ -32,5 +32,12 @@ module type Monoid = sig
 end
 
 module Name : sig
+  module Opam : sig
+    type t
+
+    val to_string : t -> string
+  end
+
+  val opamify : string -> Opam.t
   val ocamlify : string -> string
 end

@@ -3,7 +3,7 @@ Query unikernel dune
   (copy_files ./config/*)
   
   (rule
-   (target noop_functor_v0)
+   (target noop-functor.v0)
    (enabled_if (= %{context_name} "default"))
    (action
     (copy main.exe %{target})))
@@ -23,10 +23,10 @@ Query dist dune
   $ ./config_dash_in_name.exe query dune.dist
   (rule
    (mode (promote (until-clean)))
-   (target noop_functor_v0)
+   (target noop-functor.v0)
    (enabled_if (= %{context_name} "default"))
    (action
-    (copy ../noop_functor_v0 %{target}))
+    (copy ../noop-functor.v0 %{target}))
   )
 
 Query makefile
@@ -34,7 +34,7 @@ Query makefile
   -include Makefile.user
   BUILD_DIR = ./
   MIRAGE_DIR = ./mirage
-  UNIKERNEL_NAME = noop_functor_v0
+  UNIKERNEL_NAME = noop-functor_v0
   OPAM = opam
   
   all:: build
@@ -80,7 +80,7 @@ Query dune-project
   $ ./config_dash_in_name.exe query dune-project
   (lang dune 2.7)
   
-  (name noop_functor_v0-unix)
+  (name noop-functor.v0-unix)
   
   (implicit_transitive_deps true)
 
@@ -107,7 +107,7 @@ Query unikernel dune (hvt)
     (run solo5-elftool gen-manifest manifest.json manifest.c)))
   
   (rule
-   (target noop_functor_v0.hvt)
+   (target noop-functor.v0.hvt)
    (enabled_if (= %{context_name} "mirage-hvt"))
    (deps main.exe)
    (action
@@ -123,8 +123,8 @@ Query dist dune (hvt)
   $ ./config_dash_in_name.exe query --target hvt dune.dist
   (rule
    (mode (promote (until-clean)))
-   (target noop_functor_v0.hvt)
+   (target noop-functor.v0.hvt)
    (enabled_if (= %{context_name} "mirage-hvt"))
    (action
-    (copy ../noop_functor_v0.hvt %{target}))
+    (copy ../noop-functor.v0.hvt %{target}))
   )

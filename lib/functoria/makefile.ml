@@ -19,13 +19,13 @@
 type t = {
   depext : bool;
   build_dir : Fpath.t;
-  name : string;
-  unikernel_name : string;
+  builder_name : string;
+  unikernel_opam_name : Misc.Name.Opam.t;
   extra_repo : string option;
 }
 
-let v ?extra_repo ~build_dir ~name ~depext unikernel_name =
-  { depext; build_dir; name; unikernel_name; extra_repo }
+let v ?extra_repo ~build_dir ~builder_name ~depext unikernel_opam_name =
+  { depext; build_dir; builder_name; unikernel_opam_name; extra_repo }
 
 let depext_rules =
   {|
@@ -72,7 +72,7 @@ let pp_extra_rules ppf t =
         rules
 
 let pp ppf t =
-  let mirage_dir = Fpath.(t.build_dir / t.name) in
+  let mirage_dir = Fpath.(t.build_dir / t.builder_name) in
   let pp_depext_lockfile ppf = function
     | true -> Fmt.string ppf "\n\t@$(MAKE) -s depext-lockfile"
     | false -> ()
@@ -119,6 +119,8 @@ build::
 clean::
 	mirage clean
 |}
-    Fpath.pp t.build_dir Fpath.pp mirage_dir t.unikernel_name pp_extra_rules t
-    t.name pp_no_depext t.depext pp_add_repo t.extra_repo pp_or_remove_repo
-    t.extra_repo pp_depext_lockfile t.depext pp_final_remove_repo t.extra_repo
+    Fpath.pp t.build_dir Fpath.pp mirage_dir
+    (Misc.Name.Opam.to_string t.unikernel_opam_name)
+    pp_extra_rules t t.builder_name pp_no_depext t.depext pp_add_repo
+    t.extra_repo pp_or_remove_repo t.extra_repo pp_depext_lockfile t.depext
+    pp_final_remove_repo t.extra_repo

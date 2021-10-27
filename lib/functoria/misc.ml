@@ -33,6 +33,25 @@ end
 (* {Misc informations} *)
 
 module Name = struct
+  module Opam = struct
+    type t = string
+
+    let to_string = Fun.id
+  end
+
+  let opamify s =
+    let b = Buffer.create (String.length s) in
+    String.iter
+      (function
+        | ('a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_' | '-') as c ->
+            Buffer.add_char b c
+        | '.' -> Buffer.add_char b '_'
+        | _ -> ())
+      s;
+    let s' = Buffer.contents b in
+    if String.length s' = 0 then raise (Invalid_argument s);
+    s'
+
   let ocamlify s =
     let b = Buffer.create (String.length s) in
     String.iter

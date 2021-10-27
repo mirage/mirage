@@ -79,36 +79,44 @@ Query Makefile
   UNIKERNEL_NAME = noop-hvt
   OPAM = opam
   
-  all:: build
+  all::
+  	@$(MAKE) --no-print-directory lock
+  	@$(MAKE) --no-print-directory depends
+  	@$(MAKE) --no-print-directory pull
+  	@$(MAKE) --no-print-directory build
   
-  .PHONY: all depend depends clean build repo-add repo-rm depext-lockfile
+  .PHONY: all lock depend depends pull clean build repo-add repo-rm depext-lockfile
   
   repo-add:
-  	echo -e "\e[2musing overlay repository mirage-tmp: https://github.com/mirage/opam-overlays.git \e[0m"
+  	@echo -e "\e[2musing overlay repository mirage-tmp: https://github.com/mirage/opam-overlays.git \e[0m"
   	$(OPAM) repo add mirage-tmp https://github.com/mirage/opam-overlays.git ||\
   	$(OPAM) repo set-url mirage-tmp https://github.com/mirage/opam-overlays.git
   
   repo-rm:
-  	echo -e "\e[2mremoving overlay repository mirage-tmp\e[0m"
+  	@echo -e "\e[2mremoving overlay repository mirage-tmp\e[0m"
   	$(OPAM) repo remove mirage-tmp
   
   
-  depext-lockfile:
-  	echo " ↳ lockfile depexts"
-  	opam install --cli 2.1 --ignore-pin-depends --depext-only --locked $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked
+  depext-lockfile: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked
+  	echo " ↳ install external dependencies for monorepo"
+  	$(OPAM) monorepo depext -y -l $<
   
-  
-  depend depends::$(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked
-  	@echo " ↳ fetch monorepo rependencies in the duniverse folder"
-  	@cd $(BUILD_DIR) && $(OPAM) monorepo pull -l mirage/$(UNIKERNEL_NAME)-monorepo.opam.locked
   
   $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam
-  	@echo " ↳ opam install switch dependencies"
-  	@$(OPAM) install ./$(MIRAGE_DIR)/$(UNIKERNEL_NAME)-switch.opam --deps-only --yes
   	@$(MAKE) -s repo-add
   	@echo " ↳ generate lockfile for monorepo dependencies"
-  	@$(OPAM) monorepo lock --build-only $(UNIKERNEL_NAME)-monorepo -l ./$(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked --ocaml-version $(shell ocamlc --version)  || (ret=$$?; $(MAKE) -s repo-rm && exit $$ret)
-  	@$(MAKE) -s depext-lockfile && $(MAKE) -s repo-rm || (ret=$$?; $(MAKE) -s repo-rm && exit $$ret)
+  	@$(OPAM) monorepo lock --build-only $(UNIKERNEL_NAME)-monorepo -l $@ --ocaml-version $(shell ocamlc --version); (ret=$$?; $(MAKE) -s repo-rm && exit $$ret)
+  
+  lock:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked
+  
+  pull:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked
+  	@echo " ↳ fetch monorepo rependencies in the duniverse folder"
+  	@cd $(BUILD_DIR) && $(OPAM) monorepo pull -l $<
+  
+  depends depend:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-switch.opam
+  	@echo " ↳ opam install switch dependencies"
+  	@$(OPAM) install $< --deps-only --yes
+  	@$(MAKE) -s depext-lockfile
   
   build::
   	mirage build
@@ -125,29 +133,37 @@ Query Makefile without depexts
   UNIKERNEL_NAME = noop-hvt
   OPAM = opam
   
-  all:: build
+  all::
+  	@$(MAKE) --no-print-directory lock
+  	@$(MAKE) --no-print-directory depends
+  	@$(MAKE) --no-print-directory pull
+  	@$(MAKE) --no-print-directory build
   
-  .PHONY: all depend depends clean build repo-add repo-rm
+  .PHONY: all lock depend depends pull clean build repo-add repo-rm
   
   repo-add:
-  	echo -e "\e[2musing overlay repository mirage-tmp: https://github.com/mirage/opam-overlays.git \e[0m"
+  	@echo -e "\e[2musing overlay repository mirage-tmp: https://github.com/mirage/opam-overlays.git \e[0m"
   	$(OPAM) repo add mirage-tmp https://github.com/mirage/opam-overlays.git ||\
   	$(OPAM) repo set-url mirage-tmp https://github.com/mirage/opam-overlays.git
   
   repo-rm:
-  	echo -e "\e[2mremoving overlay repository mirage-tmp\e[0m"
+  	@echo -e "\e[2mremoving overlay repository mirage-tmp\e[0m"
   	$(OPAM) repo remove mirage-tmp
   
-  depend depends::$(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked
-  	@echo " ↳ fetch monorepo rependencies in the duniverse folder"
-  	@cd $(BUILD_DIR) && $(OPAM) monorepo pull -l mirage/$(UNIKERNEL_NAME)-monorepo.opam.locked
-  
   $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam
-  	@echo " ↳ opam install switch dependencies"
-  	@$(OPAM) install ./$(MIRAGE_DIR)/$(UNIKERNEL_NAME)-switch.opam --deps-only --yes --no-depexts
   	@$(MAKE) -s repo-add
   	@echo " ↳ generate lockfile for monorepo dependencies"
-  	@$(OPAM) monorepo lock --build-only $(UNIKERNEL_NAME)-monorepo -l ./$(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked --ocaml-version $(shell ocamlc --version)  || (ret=$$?; $(MAKE) -s repo-rm && exit $$ret) && $(MAKE) -s repo-rm || (ret=$$?; $(MAKE) -s repo-rm && exit $$ret)
+  	@$(OPAM) monorepo lock --build-only $(UNIKERNEL_NAME)-monorepo -l $@ --ocaml-version $(shell ocamlc --version); (ret=$$?; $(MAKE) -s repo-rm && exit $$ret)
+  
+  lock:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked
+  
+  pull:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked
+  	@echo " ↳ fetch monorepo rependencies in the duniverse folder"
+  	@cd $(BUILD_DIR) && $(OPAM) monorepo pull -l $<
+  
+  depends depend:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-switch.opam
+  	@echo " ↳ opam install switch dependencies"
+  	@$(OPAM) install $< --deps-only --yes --no-depexts
   
   build::
   	mirage build
@@ -164,36 +180,44 @@ Query Makefile with depext
   UNIKERNEL_NAME = noop-hvt
   OPAM = opam
   
-  all:: build
+  all::
+  	@$(MAKE) --no-print-directory lock
+  	@$(MAKE) --no-print-directory depends
+  	@$(MAKE) --no-print-directory pull
+  	@$(MAKE) --no-print-directory build
   
-  .PHONY: all depend depends clean build repo-add repo-rm depext-lockfile
+  .PHONY: all lock depend depends pull clean build repo-add repo-rm depext-lockfile
   
   repo-add:
-  	echo -e "\e[2musing overlay repository mirage-tmp: https://github.com/mirage/opam-overlays.git \e[0m"
+  	@echo -e "\e[2musing overlay repository mirage-tmp: https://github.com/mirage/opam-overlays.git \e[0m"
   	$(OPAM) repo add mirage-tmp https://github.com/mirage/opam-overlays.git ||\
   	$(OPAM) repo set-url mirage-tmp https://github.com/mirage/opam-overlays.git
   
   repo-rm:
-  	echo -e "\e[2mremoving overlay repository mirage-tmp\e[0m"
+  	@echo -e "\e[2mremoving overlay repository mirage-tmp\e[0m"
   	$(OPAM) repo remove mirage-tmp
   
   
-  depext-lockfile:
-  	echo " ↳ lockfile depexts"
-  	opam install --cli 2.1 --ignore-pin-depends --depext-only --locked $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked
+  depext-lockfile: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked
+  	echo " ↳ install external dependencies for monorepo"
+  	$(OPAM) monorepo depext -y -l $<
   
-  
-  depend depends::$(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked
-  	@echo " ↳ fetch monorepo rependencies in the duniverse folder"
-  	@cd $(BUILD_DIR) && $(OPAM) monorepo pull -l mirage/$(UNIKERNEL_NAME)-monorepo.opam.locked
   
   $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam
-  	@echo " ↳ opam install switch dependencies"
-  	@$(OPAM) install ./$(MIRAGE_DIR)/$(UNIKERNEL_NAME)-switch.opam --deps-only --yes
   	@$(MAKE) -s repo-add
   	@echo " ↳ generate lockfile for monorepo dependencies"
-  	@$(OPAM) monorepo lock --build-only $(UNIKERNEL_NAME)-monorepo -l ./$(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked --ocaml-version $(shell ocamlc --version)  || (ret=$$?; $(MAKE) -s repo-rm && exit $$ret)
-  	@$(MAKE) -s depext-lockfile && $(MAKE) -s repo-rm || (ret=$$?; $(MAKE) -s repo-rm && exit $$ret)
+  	@$(OPAM) monorepo lock --build-only $(UNIKERNEL_NAME)-monorepo -l $@ --ocaml-version $(shell ocamlc --version); (ret=$$?; $(MAKE) -s repo-rm && exit $$ret)
+  
+  lock:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked
+  
+  pull:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked
+  	@echo " ↳ fetch monorepo rependencies in the duniverse folder"
+  	@cd $(BUILD_DIR) && $(OPAM) monorepo pull -l $<
+  
+  depends depend:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-switch.opam
+  	@echo " ↳ opam install switch dependencies"
+  	@$(OPAM) install $< --deps-only --yes
+  	@$(MAKE) -s depext-lockfile
   
   build::
   	mirage build

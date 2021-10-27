@@ -29,15 +29,15 @@ let v ?extra_repo ~build_dir ~builder_name ~depext unikernel_opam_name =
 
 let depext_rules =
   {|
-depext-lockfile:
-	echo " ↳ lockfile depexts"
-	opam install --cli 2.1 --ignore-pin-depends --depext-only --locked $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked
+depext-lockfile: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked
+	echo " ↳ install external dependencies for monorepo"
+	$(OPAM) monorepo depext -y -l $<
 |}
 
 let opam_repo_add_rule repo =
   Fmt.str
     {|repo-add:
-	echo -e "\e[2musing overlay repository mirage-tmp: %s \e[0m"
+	@@echo -e "\e[2musing overlay repository mirage-tmp: %s \e[0m"
 	$(OPAM) repo add mirage-tmp %s ||\
 	$(OPAM) repo set-url mirage-tmp %s|}
     repo repo repo
@@ -45,7 +45,7 @@ let opam_repo_add_rule repo =
 let opam_repo_remove_rule =
   Fmt.str
     {|repo-rm:
-	echo -e "\e[2mremoving overlay repository mirage-tmp\e[0m"
+	@@echo -e "\e[2mremoving overlay repository mirage-tmp\e[0m"
 	$(OPAM) repo remove mirage-tmp|}
 
 let pp_extra_rules ppf t =
@@ -83,13 +83,7 @@ let pp ppf t =
     | Some _ -> Fmt.string ppf "\n\t@$(MAKE) -s repo-add"
     | None -> ()
   and pp_or_remove_repo ppf = function
-    | Some _ -> Fmt.string ppf " || (ret=$$?; $(MAKE) -s repo-rm && exit $$ret)"
-    | None -> ()
-  and pp_final_remove_repo ppf = function
-    | Some _ ->
-        Fmt.string ppf
-          " && $(MAKE) -s repo-rm || (ret=$$?; $(MAKE) -s repo-rm && exit \
-           $$ret)"
+    | Some _ -> Fmt.string ppf "; (ret=$$?; $(MAKE) -s repo-rm && exit $$ret)"
     | None -> ()
   in
   Fmt.pf ppf
@@ -99,19 +93,27 @@ MIRAGE_DIR = %a
 UNIKERNEL_NAME = %s
 OPAM = opam
 
-all:: build
+all::
+	@@$(MAKE) --no-print-directory lock
+	@@$(MAKE) --no-print-directory depends
+	@@$(MAKE) --no-print-directory pull
+	@@$(MAKE) --no-print-directory build
 
-.PHONY: all depend depends clean build%a
+.PHONY: all lock depend depends pull clean build%a
 
-depend depends::$(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked
-	@@echo " ↳ fetch monorepo rependencies in the duniverse folder"
-	@@cd $(BUILD_DIR) && $(OPAM) monorepo pull -l %s/$(UNIKERNEL_NAME)-monorepo.opam.locked
-
-$(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam
-	@@echo " ↳ opam install switch dependencies"
-	@@$(OPAM) install ./$(MIRAGE_DIR)/$(UNIKERNEL_NAME)-switch.opam --deps-only --yes%a%a
+$(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam%a
 	@@echo " ↳ generate lockfile for monorepo dependencies"
-	@@$(OPAM) monorepo lock --build-only $(UNIKERNEL_NAME)-monorepo -l ./$(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked --ocaml-version $(shell ocamlc --version) %a%a%a
+	@@$(OPAM) monorepo lock --build-only $(UNIKERNEL_NAME)-monorepo -l $@@ --ocaml-version $(shell ocamlc --version)%a
+
+lock:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked
+
+pull:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked
+	@@echo " ↳ fetch monorepo rependencies in the duniverse folder"
+	@@cd $(BUILD_DIR) && $(OPAM) monorepo pull -l $<
+
+depends depend:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-switch.opam
+	@@echo " ↳ opam install switch dependencies"
+	@@$(OPAM) install $< --deps-only --yes%a%a
 
 build::
 	mirage build
@@ -121,6 +123,5 @@ clean::
 |}
     Fpath.pp t.build_dir Fpath.pp mirage_dir
     (Misc.Name.Opam.to_string t.unikernel_opam_name)
-    pp_extra_rules t t.builder_name pp_no_depext t.depext pp_add_repo
-    t.extra_repo pp_or_remove_repo t.extra_repo pp_depext_lockfile t.depext
-    pp_final_remove_repo t.extra_repo
+    pp_extra_rules t pp_add_repo t.extra_repo pp_or_remove_repo t.extra_repo
+    pp_no_depext t.depext pp_depext_lockfile t.depext

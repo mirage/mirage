@@ -18,6 +18,11 @@ let console_solo5 str =
   let packages = [ package ~min:"0.6.1" ~max:"0.7.0" "mirage-console-solo5" ] in
   impl ~packages ~connect:(connect str) "Console_solo5" console
 
+let console_rpi4 =
+  let packages = [ package "mirage-console-gilbraltar" ] in
+  let connect _ modname _ = Fmt.str "%s.connect ()" modname in
+  impl ~packages ~connect "Console_gilbraltar" console
+
 let custom_console str =
   match_impl
     Key.(value target)
@@ -29,6 +34,7 @@ let custom_console str =
       (`Spt, console_solo5 str);
       (`Muen, console_solo5 str);
       (`Genode, console_solo5 str);
+      (`RPi4, console_rpi4);
     ]
     ~default:(console_unix str)
 

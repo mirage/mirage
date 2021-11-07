@@ -21,6 +21,7 @@ let network_conf (intf : string Key.key) =
         ]
     | #Mirage_key.mode_solo5 ->
         [ package ~min:"0.6.1" ~max:"0.7.0" "mirage-net-solo5" ]
+    | #Mirage_key.mode_rpi4 -> []
   in
   let connect _ modname _ =
     (* @samoht: why not just use the args paramater? *)

@@ -4,6 +4,7 @@ module Key = Mirage_key
 let choose : Key.mode -> (module S.TARGET) = function
   | #Solo5.t -> (module Solo5)
   | #Unix.t -> (module Unix)
+  | #RPi4.t -> (module RPi4)
 
 let dune i =
   let target = Info.get i Key.target in

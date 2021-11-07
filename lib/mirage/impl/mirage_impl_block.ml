@@ -63,6 +63,8 @@ let block_conf file =
         (* XXX For now, on Solo5, just pass the "file" name through directly as
          * the Solo5 block device name *)
         file
+    | #Mirage_key.mode_rpi4 ->
+        Fmt.failwith "Block device is not implemented for RPi4"
   in
   let packages_v =
     Key.match_ Key.(value target) @@ function
@@ -71,6 +73,7 @@ let block_conf file =
         [ package ~min:"0.6.1" ~max:"0.7.0" "mirage-block-solo5" ]
     | #Mirage_key.mode_unix ->
         [ package ~min:"2.12.0" ~max:"3.0.0" "mirage-block-unix" ]
+    | #Mirage_key.mode_rpi4 -> []
   in
   let configure _ =
     let (_ : block_t) = make_block_t file in

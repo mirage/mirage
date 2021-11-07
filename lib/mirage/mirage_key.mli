@@ -37,7 +37,8 @@ val abstract : 'a key -> t [@@ocaml.deprecated "Use Mirage.Key.v."]
 type mode_unix = [ `Unix | `MacOSX ]
 type mode_xen = [ `Xen | `Qubes ]
 type mode_solo5 = [ `Hvt | `Spt | `Virtio | `Muen | `Genode ]
-type mode = [ mode_unix | mode_xen | mode_solo5 ]
+type mode_rpi4 = [ `RPi4 ]
+type mode = [ mode_unix | mode_xen | mode_solo5 | mode_rpi4 ]
 
 (** {2 Mirage keys} *)
 

@@ -65,7 +65,8 @@ let pp_group = Fmt.(option ~none:(any "the unikernel") @@ fmt "the %s group")
 type mode_unix = [ `Unix | `MacOSX ]
 type mode_xen = [ `Xen | `Qubes ]
 type mode_solo5 = [ `Hvt | `Spt | `Virtio | `Muen | `Genode ]
-type mode = [ mode_unix | mode_xen | mode_solo5 ]
+type mode_rpi4 = [ `RPi4 ]
+type mode = [ mode_unix | mode_xen | mode_solo5 | mode_rpi4 ]
 
 let first_ukvm_mention = ref true
 
@@ -87,6 +88,7 @@ let target_conv : mode Cmdliner.Arg.converter =
         ("qubes", `Qubes);
         ("genode", `Genode);
         ("spt", `Spt);
+        ("rpi4", `RPi4);
       ]
   in
   let filter_ukvm s =
@@ -112,6 +114,7 @@ let target_serialize ppf = function
   | `Qubes -> Fmt.pf ppf "`Qubes"
   | `Genode -> Fmt.pf ppf "`Genode"
   | `Spt -> Fmt.pf ppf "`Spt"
+  | `RPi4 -> Fmt.pf ppf "`RPi4"
 
 let pp_target fmt m = snd target_conv fmt m
 
@@ -144,17 +147,17 @@ let target =
 let is_unix =
   Key.match_ Key.(value target) @@ function
   | #mode_unix -> true
-  | #mode_xen | #mode_solo5 -> false
+  | #mode_xen | #mode_solo5 | #mode_rpi4 -> false
 
 let is_solo5 =
   Key.match_ Key.(value target) @@ function
   | #mode_solo5 -> true
-  | #mode_xen | #mode_unix -> false
+  | #mode_xen | #mode_unix | #mode_rpi4 -> false
 
 let is_xen =
   Key.match_ Key.(value target) @@ function
   | #mode_xen -> true
-  | #mode_solo5 | #mode_unix -> false
+  | #mode_solo5 | #mode_unix | #mode_rpi4 -> false
 
 let warn_error =
   let doc = "Enable -warn-error when compiling OCaml sources." in

@@ -23,11 +23,14 @@ let mprof_trace ~size () =
           package ~max:"1.0.0" "mirage-profile";
           package ~max:"1.0.0" "mirage-profile-unix";
         ]
+    | #Mirage_key.mode_rpi4 -> []
   in
   let connect i _ _ =
     match get_target i with
     | #Mirage_key.mode_solo5 ->
         failwith "tracing is not currently implemented for solo5 targets"
+    | #Mirage_key.mode_rpi4 ->
+        failwith "tracing is not currently implemented for rpi4 targets"
     | #Mirage_key.mode_unix ->
         Fmt.str
           "Lwt.return ())@.let () = (@ @[<v 2> let buffer = \

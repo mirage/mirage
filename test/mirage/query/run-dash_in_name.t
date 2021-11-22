@@ -38,12 +38,10 @@ Query makefile
   OPAM = opam
   
   all::
-  	@$(MAKE) --no-print-directory lock
   	@$(MAKE) --no-print-directory depends
-  	@$(MAKE) --no-print-directory pull
   	@$(MAKE) --no-print-directory build
   
-  .PHONY: all lock depend depends pull clean build repo-add repo-rm depext-lockfile
+  .PHONY: all lock install-switch pull clean depend depends build repo-add repo-rm depext-lockfile
   
   repo-add:
   	@echo -e "\e[2musing overlay repository mirage-tmp: https://github.com/mirage/opam-overlays.git \e[0m"
@@ -65,16 +63,22 @@ Query makefile
   	@echo " ↳ generate lockfile for monorepo dependencies"
   	@$(OPAM) monorepo lock --build-only $(UNIKERNEL_NAME)-monorepo -l $@ --ocaml-version $(shell ocamlc --version); (ret=$$?; $(MAKE) -s repo-rm && exit $$ret)
   
-  lock:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked
+  lock::
+  	@$(MAKE) -B $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked
   
   pull:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked
   	@echo " ↳ fetch monorepo rependencies in the duniverse folder"
   	@cd $(BUILD_DIR) && $(OPAM) monorepo pull -l $<
   
-  depends depend:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-switch.opam
+  install-switch:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-switch.opam
   	@echo " ↳ opam install switch dependencies"
   	@$(OPAM) install $< --deps-only --yes
   	@$(MAKE) -s depext-lockfile
+  
+  depends depend::
+  	@$(MAKE) --no-print-directory lock
+  	@$(MAKE) --no-print-directory install-switch
+  	@$(MAKE) --no-print-directory pull
   
   build::
   	mirage build

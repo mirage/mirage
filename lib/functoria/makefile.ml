@@ -94,26 +94,30 @@ UNIKERNEL_NAME = %s
 OPAM = opam
 
 all::
-	@@$(MAKE) --no-print-directory lock
 	@@$(MAKE) --no-print-directory depends
-	@@$(MAKE) --no-print-directory pull
 	@@$(MAKE) --no-print-directory build
 
-.PHONY: all lock depend depends pull clean build%a
+.PHONY: all lock install-switch pull clean depend depends build%a
 
 $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam%a
 	@@echo " ↳ generate lockfile for monorepo dependencies"
 	@@$(OPAM) monorepo lock --build-only $(UNIKERNEL_NAME)-monorepo -l $@@ --ocaml-version $(shell ocamlc --version)%a
 
-lock:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked
+lock::
+	@@$(MAKE) -B $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked
 
 pull:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked
 	@@echo " ↳ fetch monorepo rependencies in the duniverse folder"
 	@@cd $(BUILD_DIR) && $(OPAM) monorepo pull -l $<
 
-depends depend:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-switch.opam
+install-switch:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-switch.opam
 	@@echo " ↳ opam install switch dependencies"
 	@@$(OPAM) install $< --deps-only --yes%a%a
+
+depends depend::
+	@@$(MAKE) --no-print-directory lock
+	@@$(MAKE) --no-print-directory install-switch
+	@@$(MAKE) --no-print-directory pull
 
 build::
 	mirage build

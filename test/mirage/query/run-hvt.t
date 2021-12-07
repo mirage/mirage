@@ -46,7 +46,7 @@ Query local opam
   depends: [
     "lwt"
     "mirage-bootvar-solo5" { >= "0.6.0" & < "0.7.0" }
-    "mirage-clock-freestanding" { >= "3.1.0" & < "4.0.0" }
+    "mirage-clock-freestanding" { >= "3.1.0" & < "5.0.0" }
     "mirage-logs" { >= "1.2.0" & < "2.0.0" }
     "mirage-runtime" { >= "4.0.0" & < "4.1.0" }
     "mirage-solo5" { >= "0.7.0" & < "0.8.0" }
@@ -59,7 +59,7 @@ Query packages
   "lwt"
   "mirage" { build & >= "4.0.0" & < "4.1.0" }
   "mirage-bootvar-solo5" { >= "0.6.0" & < "0.7.0" }
-  "mirage-clock-freestanding" { >= "3.1.0" & < "4.0.0" }
+  "mirage-clock-freestanding" { >= "3.1.0" & < "5.0.0" }
   "mirage-logs" { >= "1.2.0" & < "2.0.0" }
   "mirage-runtime" { >= "4.0.0" & < "4.1.0" }
   "mirage-solo5" { >= "0.7.0" & < "0.8.0" }

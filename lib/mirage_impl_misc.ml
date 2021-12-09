@@ -33,7 +33,7 @@ let query_ocamlfind ?(recursive = false) ?(format="%p") ?predicates libs =
   OS.Cmd.run_out cmd |> OS.Cmd.out_lines >>| fst
 
 let opam_prefix =
-  let cmd = Bos.Cmd.(v "opam" % "config" % "var" % "prefix") in
+  let cmd = Bos.Cmd.(v "opam" % "var" % "prefix") in
   lazy (match Sys.getenv_opt "PREFIX" with
       | Some x -> Ok x
       | None -> Bos.OS.Cmd.(run_out cmd |> out_string |> success))

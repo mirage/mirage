@@ -47,6 +47,11 @@ Breaking changes:
   been removed and the `libraries` field is now accurate and contains the
   versions computed by `dune-build-info`.
 
+### v3.10.7 (2021-12-09)
+
+- Allow mirage-clock 4.0.0 (@hannesm #1256)
+- Use "opam var prefix" instead of "opam config var prefix" (@hannesm)
+
 ### v3.10.6 (2021-10-20)
 
 - Adapt to conduit 5.0.0 API (and dns 6.0.0) @hannesm #1246

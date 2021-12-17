@@ -37,7 +37,7 @@ let (@??) x y = opt_map Key.abstract x @? y
 
 (* convenience function for linking tcpip.unix for checksums *)
 let right_tcpip_library ?ocamlfind ~sublibs pkg =
-  let min = "6.1.0" and max = "7.0.0" in
+  let min = "7.0.0" and max = "8.0.0" in
   Key.pure [ package ~min ~max ?ocamlfind ~sublibs pkg ]
 
 let ipv4_keyed_conf ~ip ?gateway ?no_init () = impl @@ object

@@ -1,3 +1,7 @@
+### v3.10.8 (2021-12-17)
+
+- Allow tcpip 7.0.0, arp 3.0.0, ethernet 3.0.0 (#1259 @hannesm)
+
 ### v3.10.7 (2021-12-09)
 
 - Allow mirage-clock 4.0.0 (@hannesm #1256)

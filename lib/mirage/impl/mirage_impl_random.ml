@@ -11,7 +11,7 @@ let rng ?(time = default_time) ?(mclock = default_monotonic_clock) () =
   let packages =
     [
       package ~min:"0.8.0" ~max:"0.11.0" "mirage-crypto-rng-mirage";
-      package ~min:"2.0.0" ~max:"3.0.0" "mirage-random";
+      package ~min:"3.0.0" ~max:"4.0.0" "mirage-random";
     ]
   in
   let connect _ modname _ =

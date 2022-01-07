@@ -335,7 +335,8 @@ let create_simple ?(group = "") ?(stage = `Both) ~doc ~default conv name =
   let doc =
     Arg.info ~docs:unikernel_section
       ~docv:(String.Ascii.uppercase name)
-      ~doc [ prefix ^ name ]
+      ~doc
+      [ prefix ^ name ]
   in
   let key = Arg.opt ~stage conv default doc in
   Key.create (prefix ^ name) key

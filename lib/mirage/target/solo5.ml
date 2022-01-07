@@ -5,8 +5,6 @@ module Key = Mirage_key
 module Log = Mirage_impl_misc.Log
 
 let solo5_manifest_path = Fpath.v "manifest.json"
-let flags_generator target = Fmt.str "%a-ldflags.sh" Key.pp_target target
-let flags_file target = Fmt.str "%a-ldflags" Key.pp_target target
 
 type solo5_target = [ `Virtio | `Muen | `Hvt | `Genode | `Spt ]
 type xen_target = [ `Xen | `Qubes ]
@@ -15,7 +13,10 @@ type t = [ solo5_target | xen_target ]
 let cast = function #t as t -> t | _ -> invalid_arg "not a solo5 target."
 
 let build_packages =
-  [ Functoria.package ~scope:`Switch ~build:true "ocaml-freestanding" ]
+  [
+    Functoria.package ~min:"0.7.0" ~scope:`Switch ~build:true
+      "ocaml-freestanding";
+  ]
 
 let runtime_packages target =
   match target with

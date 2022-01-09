@@ -17,14 +17,14 @@ let connect err _i modname = function
   | _ -> failwith (connect_err err 1)
 
 let cohttp_server =
-  let packages = [ package ~min:"4.0.0" ~max:"5.0.0" "cohttp-mirage" ] in
+  let packages = [ package ~min:"4.0.0" ~max:"6.0.0" "cohttp-mirage" ] in
   impl ~packages ~connect:(connect "http") "Cohttp_mirage.Server.Make"
     (conduit @-> http)
 
 let cohttp_server conduit = cohttp_server $ conduit
 
 let cohttp_client =
-  let packages = [ package ~min:"4.0.0" ~max:"5.0.0" "cohttp-mirage" ] in
+  let packages = [ package ~min:"4.0.0" ~max:"6.0.0" "cohttp-mirage" ] in
   let connect _i modname = function
     | [ _pclock; resolver; conduit ] ->
         Fmt.str "Lwt.return (%s.ctx %s %s)" modname resolver conduit

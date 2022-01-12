@@ -101,7 +101,7 @@ Query unikernel dune (hvt)
   (copy_files ./config/*)
   
   (executable
-   (enabled_if (= %{context_name} "mirage-hvt"))
+   (enabled_if (= %{context_name} "freestanding"))
    (name main)
    (modes (native exe))
    (libraries lwt mirage-bootvar-solo5 mirage-clock-freestanding mirage-logs
@@ -120,14 +120,14 @@ Query unikernel dune (hvt)
   
   (rule
    (target noop-functor.v0.hvt)
-   (enabled_if (= %{context_name} "mirage-hvt"))
+   (enabled_if (= %{context_name} "freestanding"))
    (deps main.exe)
    (action
     (copy main.exe %{target})))
   
   (alias
     (name default)
-    (enabled_if (= %{context_name} "mirage-hvt"))
+    (enabled_if (= %{context_name} "freestanding"))
     (deps (alias_rec all))
     )
 
@@ -136,7 +136,7 @@ Query dist dune (hvt)
   (rule
    (mode (promote (until-clean)))
    (target noop-functor.v0.hvt)
-   (enabled_if (= %{context_name} "mirage-hvt"))
+   (enabled_if (= %{context_name} "freestanding"))
    (action
     (copy ../noop-functor.v0.hvt %{target}))
   )

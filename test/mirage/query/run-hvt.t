@@ -246,7 +246,7 @@ Query unikernel dune
   (copy_files ./config/*)
   
   (executable
-   (enabled_if (= %{context_name} "mirage-hvt"))
+   (enabled_if (= %{context_name} "freestanding"))
    (name main)
    (modes (native exe))
    (libraries lwt mirage-bootvar-solo5 mirage-clock-freestanding mirage-logs
@@ -265,14 +265,14 @@ Query unikernel dune
   
   (rule
    (target noop.hvt)
-   (enabled_if (= %{context_name} "mirage-hvt"))
+   (enabled_if (= %{context_name} "freestanding"))
    (deps main.exe)
    (action
     (copy main.exe %{target})))
   
   (alias
     (name default)
-    (enabled_if (= %{context_name} "mirage-hvt"))
+    (enabled_if (= %{context_name} "freestanding"))
     (deps (alias_rec all))
     )
 
@@ -306,7 +306,7 @@ Query dune-workspace
   (profile release)
   
   (context (default
-    (name mirage-hvt)
+    (name freestanding)
     (host default)
     (toolchain freestanding)
     (disable_dynamically_linked_foreign_archives true)

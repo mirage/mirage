@@ -25,10 +25,7 @@ let runtime_packages target =
   | #xen_target -> [ Functoria.package ~min:"7.0.0" ~max:"8.0.0" "mirage-xen" ]
 
 let packages target = build_packages @ runtime_packages target
-
-let context_name i =
-  let target = Info.get i Key.target in
-  Fmt.str "mirage-%a" Key.pp_target target
+let context_name _i = "freestanding"
 
 (* OCaml freestanding build context. *)
 let build_context ?build_dir:_ i =

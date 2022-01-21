@@ -204,7 +204,7 @@ module Make (P : S) = struct
         Fmt.pr "%a\n%!" Fmt.(list ~sep:(any " ") Fpath.pp) files
     | `Makefile ->
         let file =
-          Makefile.v ~build_dir ~depext ~builder_name:P.name ?extra_repo
+          Makefile.v ~build_dir ~depext ~builder_name:P.name ~extra_repo
             (Misc.Name.opamify name)
         in
         Fmt.pr "%a\n%!" Makefile.pp file
@@ -308,7 +308,7 @@ module Make (P : S) = struct
     let file = Fpath.(v "Makefile") in
     let contents =
       Fmt.to_to_string Makefile.pp
-        (Makefile.v ~build_dir ~depext ~builder_name:P.name ?extra_repo
+        (Makefile.v ~build_dir ~depext ~builder_name:P.name ~extra_repo
            opam_name)
     in
     Filegen.write file contents

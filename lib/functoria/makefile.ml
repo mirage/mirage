@@ -21,10 +21,10 @@ type t = {
   build_dir : Fpath.t;
   builder_name : string;
   unikernel_opam_name : Misc.Name.Opam.t;
-  extra_repo : string option;
+  extra_repo : (string * string) list;
 }
 
-let v ?extra_repo ~build_dir ~builder_name ~depext unikernel_opam_name =
+let v ?(extra_repo = []) ~build_dir ~builder_name ~depext unikernel_opam_name =
   { depext; build_dir; builder_name; unikernel_opam_name; extra_repo }
 
 let depext_rules =
@@ -34,19 +34,34 @@ depext-lockfile: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked
 	$(OPAM) monorepo depext -y -l $<
 |}
 
-let opam_repo_add_rule repo =
-  Fmt.str
+let opam_repo_add_rule extra =
+  let buf = Buffer.create 0x100 in
+  let ppf = Format.formatter_of_buffer buf in
+  Fmt.pf ppf
     {|repo-add:
-	@@echo -e "\e[2musing overlay repository mirage-tmp: %s \e[0m"
-	$(OPAM) repo add mirage-tmp %s ||\
-	$(OPAM) repo set-url mirage-tmp %s|}
-    repo repo repo
+	@@echo -e "\e[2musing overlay repository mirage: %a \e[0m"
+|}
+    Fmt.(brackets (list ~sep:(any ", ") (using fst string)))
+    extra;
+  List.iter
+    (fun (name, repo) ->
+      Fmt.pf ppf "\t$(OPAM) repo add %s %s || $(OPAM) repo set-url %s %s\n" name
+        repo name repo)
+    extra;
+  Buffer.contents buf
 
-let opam_repo_remove_rule =
-  Fmt.str
-    {|repo-rm:
-	@@echo -e "\e[2mremoving overlay repository mirage-tmp\e[0m"
-	$(OPAM) repo remove mirage-tmp|}
+let opam_repo_remove_rule extra =
+  let buf = Buffer.create 0x100 in
+  let ppf = Format.formatter_of_buffer buf in
+  Fmt.pf ppf {|repo-rm:
+	@@echo -e "\e[2mremoving overlay repository %a\e[0m"
+|}
+    Fmt.(brackets (list ~sep:(any ", ") (using fst string)))
+    extra;
+  List.iter
+    (fun (name, repo) -> Fmt.pf ppf "\t$(OPAM) repo remove %s %s\n" name repo)
+    extra;
+  Buffer.contents buf
 
 let pp_extra_rules ppf t =
   let rules, targets =
@@ -56,10 +71,10 @@ let pp_extra_rules ppf t =
   in
   let rules, targets =
     match t.extra_repo with
-    | Some repo ->
-        ( opam_repo_add_rule repo :: opam_repo_remove_rule :: rules,
+    | _ :: _ as extra ->
+        ( opam_repo_add_rule extra :: opam_repo_remove_rule extra :: rules,
           "repo-add" :: "repo-rm" :: targets )
-    | None -> (rules, targets)
+    | [] -> (rules, targets)
   in
   match rules with
   | [] -> ()
@@ -80,11 +95,11 @@ let pp ppf t =
     | true -> ()
     | false -> Fmt.string ppf " --no-depexts"
   and pp_add_repo ppf = function
-    | Some _ -> Fmt.string ppf "\n\t@$(MAKE) -s repo-add"
-    | None -> ()
+    | _ :: _ -> Fmt.string ppf "\n\t@$(MAKE) -s repo-add"
+    | [] -> ()
   and pp_or_remove_repo ppf = function
-    | Some _ -> Fmt.string ppf "; (ret=$$?; $(MAKE) -s repo-rm && exit $$ret)"
-    | None -> ()
+    | _ :: _ -> Fmt.string ppf "; (ret=$$?; $(MAKE) -s repo-rm && exit $$ret)"
+    | [] -> ()
   in
   Fmt.pf ppf
     {|-include Makefile.user
@@ -97,7 +112,7 @@ all::
 	@@$(MAKE) --no-print-directory depends
 	@@$(MAKE) --no-print-directory build
 
-.PHONY: all lock install-switch pull clean depend depends build%a
+.PHONY: all lock install-switch pull clean depend depends build mirage-repo-add mirage-repo-rm%a
 
 $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam%a
 	@@echo " ↳ generate lockfile for monorepo dependencies"

@@ -35,7 +35,13 @@ let test_configure () =
       (Cli.Configure
          {
            depext = true;
-           extra_repo = Some "https://github.com/mirage/opam-overlays.git";
+           extra_repo =
+             [
+               ( "opam-overlays",
+                 "https://github.com/dune-universe/opam-overlays.git" );
+               ( "mirage-overlays",
+                 "https://github.com/dune-universe/mirage-opam-overlays.git" );
+             ];
            args =
              {
                context = (true, false);

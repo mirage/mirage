@@ -46,7 +46,7 @@ val pp_args : 'a Fmt.t -> 'a args Fmt.t
 type 'a configure_args = {
   args : 'a args;
   depext : bool;
-  extra_repo : string option;
+  extra_repo : (string * string) list;
 }
 (** The type for arguments of the [configure] sub-command. *)
 
@@ -74,7 +74,7 @@ type 'a query_args = {
   args : 'a args;
   kind : query_kind;
   depext : bool;
-  extra_repo : string option;
+  extra_repo : (string * string) list;
 }
 (** The type for arguments of the [query] sub-command. *)
 

@@ -78,18 +78,35 @@ let context_file mname =
     $ Arg.(value & opt string default & doc))
 
 let extra_repo doc_section =
+  let key =
+    let parser str =
+      match Astring.String.cut ~sep:":" str with
+      | Some (name, repository) -> Ok (name, repository)
+      | None ->
+          Rresult.R.error_msgf
+            "Invalid extra repository argument (expected <name>:<repository>)"
+    in
+    let pp ppf (name, repository) = Fmt.pf ppf "%s:%s" name repository in
+    Arg.conv (parser, pp)
+  in
   let env = Arg.env_var "MIRAGE_EXTRA_REPO" in
   let doc =
     Arg.info ~docs:doc_section ~docv:"URL" ~env
       ~doc:
-        "Additional opam-repository to use when using `opam monorepo lock' to \
-         gather local sources. Default: \
-         https://github.com/mirage/opam-overlays.git."
+        "Additional opam-repositories to use when using `opam monorepo lock' \
+         to gather local sources. Default: \
+         https://github.com/dune-universe/opam-overlays.git & \
+         https://github.com/dune-universe/mirage-opam-overlays.git."
       [ "extra-repo" ]
   in
   Arg.(
     value
-    & opt (some string) (Some "https://github.com/mirage/opam-overlays.git")
+    & opt (list key)
+        [
+          ("opam-overlays", "https://github.com/dune-universe/opam-overlays.git");
+          ( "mirage-overlays",
+            "https://github.com/dune-universe/mirage-opam-overlays.git" );
+        ]
     & doc)
 
 let no_extra_repo doc_section =
@@ -102,7 +119,7 @@ let no_extra_repo doc_section =
 let extra_repo doc_section =
   let ex = extra_repo doc_section in
   let no_ex = no_extra_repo doc_section in
-  Term.(const (fun ex no_ex -> if no_ex then None else ex) $ ex $ no_ex)
+  Term.(const (fun ex no_ex -> if no_ex then [] else ex) $ ex $ no_ex)
 
 let dry_run =
   let doc =
@@ -190,7 +207,7 @@ type 'a args = {
 type 'a configure_args = {
   args : 'a args;
   depext : bool;
-  extra_repo : string option;
+  extra_repo : (string * string) list;
 }
 
 type 'a build_args = 'a args
@@ -208,7 +225,7 @@ type 'a query_args = {
   args : 'a args;
   kind : query_kind;
   depext : bool;
-  extra_repo : string option;
+  extra_repo : (string * string) list;
 }
 
 type 'a action =

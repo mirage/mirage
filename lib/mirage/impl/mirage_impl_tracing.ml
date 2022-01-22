@@ -42,7 +42,7 @@ let mprof_trace ~size () =
            |> Io_page.to_cstruct |> Cstruct.to_bigarray in@ let trace_config = \
            MProf.Trace.Control.make buffer MProf_xen.timestamper in@ \
            MProf.Trace.Control.start trace_config;@ MProf_xen.share_with \
-           ~domid:0 trace_pages@ |> OS.Main.run@]"
+           ~domid:0 trace_pages@ |> Xen_os.Main.run@]"
           Key.serialize_call (Key.v key)
   in
   impl ~keys ~packages_v ~connect "MProf" job

@@ -24,7 +24,7 @@
 module type S = sig
   open DSL
 
-  val prelude : string
+  val prelude : Info.t -> string
   (** Prelude printed at the beginning of [main.ml].
 
       It should put in scope:

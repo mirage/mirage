@@ -77,7 +77,7 @@ module Config = struct
 end
 
 module type S = sig
-  val prelude : string
+  val prelude : Info.t -> string
   val packages : Package.t list
   val name : string
   val version : string
@@ -167,7 +167,7 @@ module Make (P : S) = struct
     Log.info (fun m -> m "Generating: %a (main file)" Fpath.pp main);
     let* () =
       Action.with_output ~path:main ~append:false ~purpose (fun ppf ->
-          Fmt.pf ppf "%a@.@." Fmt.text P.prelude)
+          Fmt.pf ppf "%a@.@." Fmt.text (P.prelude i))
     in
     let* () = Engine.configure i jobs in
     Engine.connect i ~init jobs

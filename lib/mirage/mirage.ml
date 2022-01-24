@@ -277,9 +277,9 @@ module Project = struct
 
   let prelude info =
     Fmt.str
-      {ocaml|open Lwt.Infix\n\
-let return = Lwt.return\n\
-let run t = %s.Main.run t ; exit 0"|ocaml}
+      {ocaml|open Lwt.Infix
+let return = Lwt.return
+let run t = %s.Main.run t ; exit 0|ocaml}
       (os_of_target info)
 
   (* The ocamlfind packages to use when compiling config.ml *)

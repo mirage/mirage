@@ -4,7 +4,7 @@ module Key = Mirage_key
 type t = [ `Unix | `MacOSX ]
 
 let cast = function #t as t -> t | _ -> invalid_arg "not a unix target."
-let packages _ = [ Functoria.package ~min:"4.0.1" ~max:"5.0.0" "mirage-unix" ]
+let packages _ = [ Functoria.package ~min:"5.0.0" ~max:"6.0.0" "mirage-unix" ]
 
 (*Mirage unix is built on the host build context.*)
 let build_context ?build_dir:_ _ = []

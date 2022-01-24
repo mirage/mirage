@@ -24,7 +24,7 @@ let write_key i k f =
 module C = struct
   open Action.Syntax
 
-  let prelude = "let (>>=) x f = f x\nlet return x = x\nlet run x = x"
+  let prelude _ = "let (>>=) x f = f x\nlet return x = x\nlet run x = x"
   let name = "test"
   let version = "1.0~test"
   let packages = [ package "functoria"; package "e2e" ]

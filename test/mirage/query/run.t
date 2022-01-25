@@ -53,7 +53,7 @@ Query local opam
     "mirage-clock-unix" { >= "3.0.0" & < "5.0.0" }
     "mirage-logs" { >= "1.2.0" & < "2.0.0" }
     "mirage-runtime" { >= "4.0.0" & < "4.1.0" }
-    "mirage-unix" { >= "4.0.1" & < "5.0.0" }
+    "mirage-unix" { >= "5.0.0" & < "6.0.0" }
   ]
   
   
@@ -67,7 +67,7 @@ Query packages
   "mirage-clock-unix" { >= "3.0.0" & < "5.0.0" }
   "mirage-logs" { >= "1.2.0" & < "2.0.0" }
   "mirage-runtime" { >= "4.0.0" & < "4.1.0" }
-  "mirage-unix" { >= "4.0.1" & < "5.0.0" }
+  "mirage-unix" { >= "5.0.0" & < "6.0.0" }
   "ocaml" { build & >= "4.08.0" }
   "opam-monorepo" { build & >= "0.2.6" }
 

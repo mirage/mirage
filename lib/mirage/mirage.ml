@@ -265,14 +265,22 @@ let app_info_partial =
 let app_info = app_info_partial ()
 let app_info_with_opam_deps build_info = app_info_partial ~build_info ()
 
+let os_of_target i =
+  match Info.get i Key.target with
+  | #Key.mode_solo5 -> "Solo5_os"
+  | #Key.mode_unix -> "Unix_os"
+  | #Key.mode_xen -> "Xen_os"
+
 module Project = struct
   let name = "mirage"
   let version = "%%VERSION%%"
 
-  let prelude =
-    "open Lwt.Infix\n\
-     let return = Lwt.return\n\
-     let run t = OS.Main.run t ; exit 0"
+  let prelude info =
+    Fmt.str
+      {ocaml|open Lwt.Infix
+let return = Lwt.return
+let run t = %s.Main.run t ; exit 0|ocaml}
+      (os_of_target info)
 
   (* The ocamlfind packages to use when compiling config.ml *)
   let packages = [ package "mirage" ]

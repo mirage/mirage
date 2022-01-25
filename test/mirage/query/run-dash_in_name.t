@@ -41,16 +41,19 @@ Query makefile
   	@$(MAKE) --no-print-directory depends
   	@$(MAKE) --no-print-directory build
   
-  .PHONY: all lock install-switch pull clean depend depends build repo-add repo-rm depext-lockfile
+  .PHONY: all lock install-switch pull clean depend depends build mirage-repo-add mirage-repo-rm repo-add repo-rm depext-lockfile
   
   repo-add:
-  	@echo -e "\e[2musing overlay repository mirage-tmp: https://github.com/mirage/opam-overlays.git \e[0m"
-  	$(OPAM) repo add mirage-tmp https://github.com/mirage/opam-overlays.git ||\
-  	$(OPAM) repo set-url mirage-tmp https://github.com/mirage/opam-overlays.git
+  	@echo -e "\e[2musing overlay repository mirage: [opam-overlays, mirage-overlays] \e[0m"
+  	$(OPAM) repo add opam-overlays https://github.com/dune-universe/opam-overlays.git || $(OPAM) repo set-url opam-overlays https://github.com/dune-universe/opam-overlays.git
+  	$(OPAM) repo add mirage-overlays https://github.com/dune-universe/mirage-opam-overlays.git || $(OPAM) repo set-url mirage-overlays https://github.com/dune-universe/mirage-opam-overlays.git
+  
   
   repo-rm:
-  	@echo -e "\e[2mremoving overlay repository mirage-tmp\e[0m"
-  	$(OPAM) repo remove mirage-tmp
+  	@echo -e "\e[2mremoving overlay repository [opam-overlays, mirage-overlays]\e[0m"
+  	$(OPAM) repo remove opam-overlays https://github.com/dune-universe/opam-overlays.git
+  	$(OPAM) repo remove mirage-overlays https://github.com/dune-universe/mirage-opam-overlays.git
+  
   
   
   depext-lockfile: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked

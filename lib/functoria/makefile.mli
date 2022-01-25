@@ -19,7 +19,7 @@
 type t
 
 val v :
-  ?extra_repo:string ->
+  ?extra_repo:(string * string) list ->
   build_dir:Fpath.t ->
   builder_name:string ->
   depext:bool ->

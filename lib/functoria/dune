@@ -2,6 +2,8 @@
  (name functoria)
  (public_name functoria)
  (libraries
+  uri
+  emile
   unix
   cmdliner
   rresult

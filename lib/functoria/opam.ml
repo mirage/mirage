@@ -41,6 +41,62 @@ let find_git () =
       let+ git_url = Action.(run_cmd_out ~err:`Null git_remote) in
       Some (subdir, branch, git_url)
 
+module Endpoint = struct
+  type t = {
+    scheme : [ `SSH of string | `Git | `HTTP | `HTTPS | `Scheme of string ];
+    port : int option;
+    path : string;
+    hostname : string;
+  }
+
+  let of_string str =
+    let open Rresult in
+    let parse_ssh str =
+      let len = String.length str in
+      Emile.of_string_raw ~off:0 ~len str
+      |> R.reword_error (R.msgf "%a" Emile.pp_error)
+      >>= fun (consumed, m) ->
+      match
+        Astring.String.cut ~sep:":" (String.sub str consumed (len - consumed))
+      with
+      | Some ("", path) ->
+          let local =
+            List.map
+              (function `Atom x -> x | `String x -> Fmt.str "%S" x)
+              m.Emile.local
+          in
+          let user = String.concat "." local in
+          let hostname =
+            match fst m.Emile.domain with
+            | `Domain vs -> String.concat "." vs
+            | `Literal v -> v
+            | `Addr (Emile.IPv4 v) -> Ipaddr.V4.to_string v
+            | `Addr (Emile.IPv6 v) -> Ipaddr.V6.to_string v
+            | `Addr (Emile.Ext (k, v)) -> Fmt.str "%s:%s" k v
+          in
+          R.ok { scheme = `SSH user; path; port = None; hostname }
+      | _ -> R.error_msg "Invalid SSH pattern"
+    in
+    let parse_uri str =
+      let uri = Uri.of_string str in
+      let path = Uri.path uri in
+      match (Uri.scheme uri, Uri.host uri, Uri.port uri) with
+      | Some "git", Some hostname, port ->
+          R.ok { scheme = `Git; path; port; hostname }
+      | Some "http", Some hostname, port ->
+          R.ok { scheme = `HTTP; path; port; hostname }
+      | Some "https", Some hostname, port ->
+          R.ok { scheme = `HTTPS; path; port; hostname }
+      | Some scheme, Some hostname, port ->
+          R.ok { scheme = `Scheme scheme; path; port; hostname }
+      | _ -> R.error_msgf "Invalid uri: %a" Uri.pp uri
+    in
+    match (parse_ssh str, parse_uri str) with
+    | Ok v, _ -> Ok v
+    | _, Ok v -> Ok v
+    | Error _, Error _ -> R.error_msgf "Invalid endpoint: %s" str
+end
+
 let guess_src () =
   let git_info =
     match Action.run @@ find_git () with
@@ -52,9 +108,25 @@ let guess_src () =
   | Some (branch, origin) ->
       (* TODO is there a library for git urls anywhere? *)
       let public =
-        match Astring.String.cut ~sep:"github.com:" origin with
-        | Some (_, post) -> "git+https://github.com/" ^ post
-        | _ -> origin
+        match Endpoint.of_string origin with
+        | Ok
+            { Endpoint.scheme = `Scheme scheme; port = None; path; hostname; _ }
+          ->
+            Fmt.str "%s://%s/%s" scheme hostname path
+        | Ok
+            {
+              Endpoint.scheme = `Scheme scheme;
+              port = Some port;
+              path;
+              hostname;
+              _;
+            } ->
+            Fmt.str "%s://%s:%d/%s" scheme hostname port path
+        | Ok { Endpoint.port = None; path; hostname; _ } ->
+            Fmt.str "git+https://%s/%s" hostname path
+        | Ok { Endpoint.port = Some port; path; hostname; _ } ->
+            Fmt.str "git+https://%s:%d/%s" hostname port path
+        | _ -> "git+https://invalid/endpoint"
       in
       Some (Fmt.str "%s#%s" public branch)
 

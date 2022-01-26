@@ -77,7 +77,7 @@ let context_file mname =
     const (map_default ~default Fpath.v)
     $ Arg.(value & opt string default & doc))
 
-let extra_repo doc_section =
+let extra_repos doc_section =
   let key =
     let parser str =
       match Astring.String.cut ~sep:":" str with
@@ -89,15 +89,15 @@ let extra_repo doc_section =
     let pp ppf (name, repository) = Fmt.pf ppf "%s:%s" name repository in
     Arg.conv (parser, pp)
   in
-  let env = Arg.env_var "MIRAGE_EXTRA_REPO" in
+  let env = Arg.env_var "MIRAGE_EXTRA_REPOS" in
   let doc =
-    Arg.info ~docs:doc_section ~docv:"URL" ~env
+    Arg.info ~docs:doc_section ~docv:"NAME1:URL1,NAME2:URL2,..." ~env
       ~doc:
         "Additional opam-repositories to use when using `opam monorepo lock' \
          to gather local sources. Default: \
          https://github.com/dune-universe/opam-overlays.git & \
          https://github.com/dune-universe/mirage-opam-overlays.git."
-      [ "extra-repo" ]
+      [ "extra-repos" ]
   in
   Arg.(
     value
@@ -116,8 +116,8 @@ let no_extra_repo doc_section =
   in
   Arg.(value & flag & doc)
 
-let extra_repo doc_section =
-  let ex = extra_repo doc_section in
+let extra_repos doc_section =
+  let ex = extra_repos doc_section in
   let no_ex = no_extra_repo doc_section in
   Term.(const (fun ex no_ex -> if no_ex then [] else ex) $ ex $ no_ex)
 
@@ -319,7 +319,7 @@ module Subcommands = struct
             Configure { args; depext; extra_repo })
         $ args ~with_setup context mname
         $ depext configuration_section
-        $ extra_repo configuration_section),
+        $ extra_repos configuration_section),
       Term.info "configure" ~doc:"Configure a $(mname) application."
         ~man:
           [
@@ -336,7 +336,7 @@ module Subcommands = struct
         $ kind
         $ args ~with_setup context mname
         $ depext query_section
-        $ extra_repo query_section),
+        $ extra_repos query_section),
       Term.info "query" ~doc:"Query information about the $(mname) application."
         ~man:
           [
@@ -417,7 +417,7 @@ module Subcommands = struct
         const (fun args _ _ _ () -> Help args)
         $ args ~with_setup context mname
         $ depext configuration_section
-        $ extra_repo configuration_section
+        $ extra_repos configuration_section
         $ full_eval
         $ ret (const help $ Term.man_format $ Term.choice_names $ topic)),
       Term.info "help" ~doc:"Display help about $(mname) commands."

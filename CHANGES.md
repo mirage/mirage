@@ -1,4 +1,4 @@
-### v4.0.0 (unreleased)
+### v4.0.0+beta1 (2022-01-26)
 
 Refactor build process to use [Dune](https://dune.build/) build system. The
 motivation is to drop `ocamlbuild`-induced technical debt and to obtain
@@ -28,24 +28,33 @@ Main changes:
   (or cross-compiler) toolchain, as defined by `findlib`, it can be tuned with
   environment variables and custom flags for the OCaml or underlying C compiler.
 
+* The usual workflow: `mirage configure && make depends && mirage build` does
+  not change however. Generated files are located into the new directory
+  `./mirage` (OPAM files, `main.ml`, `key_gen.ml` or `manifest.json`) and
+  the final artifact is created into the `./dist` directory.
+
 Breaking changes:
 
 * Unikernel dependencies need to use `dune` as a build system. Other build
   systems may be sandboxed in a Dune package, but the recommended way is to
   switch to `dune`. A set of packages have been ported to dune but the changes
-  are not upstreamed, they are available in the Mirage
-  [overlay repository](https://github.com/mirage/opam-overlays).
-  This repository is configured by default.
-  To remove it, use `mirage configure --no-extra-repo`.
-  Another overlay repository can be used:
-  ```
-  $ mirage configure --extra-repo https://github.com/dune-universe/opam-overlays
-  ````
+  are not upstreamed, they are available in the `dune-universe`
+  [overlay repository](https://github.com/dune-universe/opam-overlays). A
+  specific package must be _dunified_ in a _certain_ way to allow the
+  cross-compilation: `zarith`. It is maitained by the MirageOS core team and
+  available into our own
+  [mirage overlay repository](https://github.com/dune-universe/mirage-opam-overlays).
+  These repositories are configured by default.
+  To remove them, use `mirage configure --no-extra-repo`.
 
 * `Functoria_runtime.info` and `Mirage_runtime.info` now list all the libraries
   that are statically linked against the unikernel. The `packages` field have
   been removed and the `libraries` field is now accurate and contains the
   versions computed by `dune-build-info`.
+
+* The DSL to describe devices into the `config.ml` was updated. We don't use
+  anymore objects and we replace it by an usage of `Mirage.impl` which expects
+  same _fields_ than before.
 
 ### v3.10.8 (2021-12-17)
 

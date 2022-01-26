@@ -21,9 +21,9 @@ Help query --man-format=plain
          --depext
              Enable call to `opam depext' in the project Makefile.
   
-         --extra-repo=URL
+         --extra-repo=(<name>:<url>)+
          (absent=opam-overlays:https://github.com/dune-universe/opam-overlays.git,mirage-overlays:https://github.com/dune-universe/mirage-opam-overlays.git
-         or MIRAGE_EXTRA_REPO env)
+         or MIRAGE_EXTRA_REPOS env)
              Additional opam-repositories to use when using `opam monorepo
              lock' to gather local sources. Default:
              https://github.com/dune-universe/opam-overlays.git &
@@ -149,7 +149,7 @@ Help query --man-format=plain
   ENVIRONMENT
          These environment variables affect the execution of query:
   
-         MIRAGE_EXTRA_REPO
+         MIRAGE_EXTRA_REPOS
              See option --extra-repo.
   
          MIRAGE_LOGS
@@ -180,9 +180,9 @@ Help query --help=plain
          --depext
              Enable call to `opam depext' in the project Makefile.
   
-         --extra-repo=URL
+         --extra-repo=(<name>:<url>)+
          (absent=opam-overlays:https://github.com/dune-universe/opam-overlays.git,mirage-overlays:https://github.com/dune-universe/mirage-opam-overlays.git
-         or MIRAGE_EXTRA_REPO env)
+         or MIRAGE_EXTRA_REPOS env)
              Additional opam-repositories to use when using `opam monorepo
              lock' to gather local sources. Default:
              https://github.com/dune-universe/opam-overlays.git &
@@ -308,7 +308,7 @@ Help query --help=plain
   ENVIRONMENT
          These environment variables affect the execution of query:
   
-         MIRAGE_EXTRA_REPO
+         MIRAGE_EXTRA_REPOS
              See option --extra-repo.
   
          MIRAGE_LOGS

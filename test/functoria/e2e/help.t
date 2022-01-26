@@ -36,9 +36,9 @@ Test that the help command works without config file:
          --dry-run
              Display I/O actions instead of executing them.
   
-         --extra-repo=URL
+         --extra-repo=(<name>:<url>)+
          (absent=opam-overlays:https://github.com/dune-universe/opam-overlays.git,mirage-overlays:https://github.com/dune-universe/mirage-opam-overlays.git
-         or MIRAGE_EXTRA_REPO env)
+         or MIRAGE_EXTRA_REPOS env)
              Additional opam-repositories to use when using `opam monorepo
              lock' to gather local sources. Default:
              https://github.com/dune-universe/opam-overlays.git &
@@ -100,7 +100,7 @@ Test that the help command works without config file:
   ENVIRONMENT
          These environment variables affect the execution of help:
   
-         MIRAGE_EXTRA_REPO
+         MIRAGE_EXTRA_REPOS
              See option --extra-repo.
   
 

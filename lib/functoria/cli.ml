@@ -89,9 +89,9 @@ let extra_repo doc_section =
     let pp ppf (name, repository) = Fmt.pf ppf "%s:%s" name repository in
     Arg.conv (parser, pp)
   in
-  let env = Arg.env_var "MIRAGE_EXTRA_REPO" in
+  let env = Arg.env_var "MIRAGE_EXTRA_REPOS" in
   let doc =
-    Arg.info ~docs:doc_section ~docv:"URL" ~env
+    Arg.info ~docs:doc_section ~docv:"(<name>:<url>)+" ~env
       ~doc:
         "Additional opam-repositories to use when using `opam monorepo lock' \
          to gather local sources. Default: \

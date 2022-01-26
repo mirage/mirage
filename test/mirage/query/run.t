@@ -117,7 +117,7 @@ Query Makefile
   
   pull:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked
   	@echo " ↳ fetch monorepo rependencies in the duniverse folder"
-  	@cd $(BUILD_DIR) && $(OPAM) monorepo pull -l $<
+  	@$(OPAM) monorepo pull -l $< -r $(BUILD_DIR)
   
   install-switch:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-switch.opam
   	@echo " ↳ opam install switch dependencies"
@@ -173,7 +173,7 @@ Query Makefile without depexts
   
   pull:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked
   	@echo " ↳ fetch monorepo rependencies in the duniverse folder"
-  	@cd $(BUILD_DIR) && $(OPAM) monorepo pull -l $<
+  	@$(OPAM) monorepo pull -l $< -r $(BUILD_DIR)
   
   install-switch:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-switch.opam
   	@echo " ↳ opam install switch dependencies"
@@ -234,7 +234,7 @@ Query Makefile with depext
   
   pull:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-monorepo.opam.locked
   	@echo " ↳ fetch monorepo rependencies in the duniverse folder"
-  	@cd $(BUILD_DIR) && $(OPAM) monorepo pull -l $<
+  	@$(OPAM) monorepo pull -l $< -r $(BUILD_DIR)
   
   install-switch:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME)-switch.opam
   	@echo " ↳ opam install switch dependencies"

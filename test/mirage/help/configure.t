@@ -90,7 +90,7 @@ Help configure --man-format=plain
          --dry-run
              Display I/O actions instead of executing them.
   
-         --extra-repo=(<name>:<url>)+
+         --extra-repos=NAME1:URL1,NAME2:URL2,...
          (absent=opam-overlays:https://github.com/dune-universe/opam-overlays.git,mirage-overlays:https://github.com/dune-universe/mirage-opam-overlays.git
          or MIRAGE_EXTRA_REPOS env)
              Additional opam-repositories to use when using `opam monorepo
@@ -143,7 +143,7 @@ Help configure --man-format=plain
          These environment variables affect the execution of configure:
   
          MIRAGE_EXTRA_REPOS
-             See option --extra-repo.
+             See option --extra-repos.
   
          MIRAGE_LOGS
              See option --logs.
@@ -242,7 +242,7 @@ Configure help --help=plain
          --dry-run
              Display I/O actions instead of executing them.
   
-         --extra-repo=(<name>:<url>)+
+         --extra-repos=NAME1:URL1,NAME2:URL2,...
          (absent=opam-overlays:https://github.com/dune-universe/opam-overlays.git,mirage-overlays:https://github.com/dune-universe/mirage-opam-overlays.git
          or MIRAGE_EXTRA_REPOS env)
              Additional opam-repositories to use when using `opam monorepo
@@ -295,7 +295,7 @@ Configure help --help=plain
          These environment variables affect the execution of configure:
   
          MIRAGE_EXTRA_REPOS
-             See option --extra-repo.
+             See option --extra-repos.
   
          MIRAGE_LOGS
              See option --logs.

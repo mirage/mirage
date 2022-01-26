@@ -135,7 +135,7 @@ Help configure
          --dry-run
              Display I/O actions instead of executing them.
   
-         --extra-repo=(<name>:<url>)+
+         --extra-repos=NAME1:URL1,NAME2:URL2,...
          (absent=opam-overlays:https://github.com/dune-universe/opam-overlays.git,mirage-overlays:https://github.com/dune-universe/mirage-opam-overlays.git
          or MIRAGE_EXTRA_REPOS env)
              Additional opam-repositories to use when using `opam monorepo
@@ -191,7 +191,7 @@ Help configure
          These environment variables affect the execution of configure:
   
          MIRAGE_EXTRA_REPOS
-             See option --extra-repo.
+             See option --extra-repos.
   
 
   $ cat configure.err

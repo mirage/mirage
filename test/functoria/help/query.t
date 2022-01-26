@@ -13,7 +13,7 @@ Help query --man-format=plain
          --depext
              Enable call to `opam depext' in the project Makefile.
   
-         --extra-repo=(<name>:<url>)+
+         --extra-repos=NAME1:URL1,NAME2:URL2,...
          (absent=opam-overlays:https://github.com/dune-universe/opam-overlays.git,mirage-overlays:https://github.com/dune-universe/mirage-opam-overlays.git
          or MIRAGE_EXTRA_REPOS env)
              Additional opam-repositories to use when using `opam monorepo
@@ -85,7 +85,7 @@ Help query --man-format=plain
          These environment variables affect the execution of query:
   
          MIRAGE_EXTRA_REPOS
-             See option --extra-repo.
+             See option --extra-repos.
   
 
 Help query --help=plain
@@ -103,7 +103,7 @@ Help query --help=plain
          --depext
              Enable call to `opam depext' in the project Makefile.
   
-         --extra-repo=(<name>:<url>)+
+         --extra-repos=NAME1:URL1,NAME2:URL2,...
          (absent=opam-overlays:https://github.com/dune-universe/opam-overlays.git,mirage-overlays:https://github.com/dune-universe/mirage-opam-overlays.git
          or MIRAGE_EXTRA_REPOS env)
              Additional opam-repositories to use when using `opam monorepo
@@ -175,7 +175,7 @@ Help query --help=plain
          These environment variables affect the execution of query:
   
          MIRAGE_EXTRA_REPOS
-             See option --extra-repo.
+             See option --extra-repos.
   
 
 No difference

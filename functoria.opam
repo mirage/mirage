@@ -33,6 +33,7 @@ depends: [
   "emile" {>= "1.1"}
   "uri" {>= "4.2.0"}
   "alcotest" {with-test}
+  "functoria-runtime" {= version & with-test}
 ]
 synopsis: "A DSL to organize functor applications"
 description: """

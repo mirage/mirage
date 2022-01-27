@@ -14,8 +14,7 @@
   help.exe
   (source_tree app)
   (source_tree lib)
-  (package functoria)
-  (package functoria-runtime))
+  (package functoria))
  (enabled_if
   (<> %{architecture} "i386"))
  (package functoria))

@@ -24,6 +24,7 @@ depends: [
   "base-unix"
   "cmdliner" {>= "0.9.8"}
   "rresult" {>= "0.7.0"}
+  "result" {>= "1.5"}
   "astring"
   "fmt"
   "logs"

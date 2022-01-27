@@ -3,4 +3,5 @@
  (libraries f0))
 
 (cram
+ (package functoria)
  (deps ./config.exe x.context y.context))

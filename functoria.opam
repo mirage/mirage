@@ -16,6 +16,8 @@ build: [
   ["dune" "subst"] {dev}
   ["dune" "build" "-p" name "-j" jobs]
   ["dune" "runtest" "-p" name "-j" jobs] {with-test}
+  ["env" "INSIDE_FUNCTORIA_TESTS=1" "dune" "exec" "-p" name "-j" jobs "--"
+     "test/functoria/e2e/test.exe"] {with-test}
 ]
 
 depends: [

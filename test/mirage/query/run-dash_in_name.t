@@ -30,7 +30,7 @@ Query dist dune
   )
 
 Query makefile
-  $ ./config_dash_in_name.exe query Makefile
+  $ ./config_dash_in_name.exe query Makefile --target unix
   -include Makefile.user
   BUILD_DIR = ./
   MIRAGE_DIR = ./mirage
@@ -92,7 +92,7 @@ Query makefile
 ...
 
 Query dune-project
-  $ ./config_dash_in_name.exe query dune-project
+  $ ./config_dash_in_name.exe query dune-project --target unix
   (lang dune 2.7)
   
   (name noop-functor.v0-unix)

@@ -26,7 +26,7 @@ depends: [
   "rresult" {>= "0.7.0"}
   "result" {>= "1.5"}
   "astring"
-  "fmt"
+  "fmt" {>= "0.8.7"}
   "logs"
   "bos"
   "fpath"

@@ -25,8 +25,6 @@ depends: [
   "dune" {>= "2.8.0"}
   "cmdliner" {>= "0.9.8"}
   "fmt" {>= "0.8.7"}
-  "functoria" {with-test & >= "2.2.0"}
-  "alcotest"  {with-test}
 ]
 
 synopsis: "Runtime support library for functoria-generated code"

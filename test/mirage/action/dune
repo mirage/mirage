@@ -1,3 +1,4 @@
 (test
  (name test)
+ (package mirage)
  (libraries alcotest mirage))

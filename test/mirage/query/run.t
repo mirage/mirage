@@ -76,7 +76,7 @@ Query files
   key_gen.ml main.ml
 
 Query Makefile
-  $ ./config.exe query Makefile
+  $ ./config.exe query Makefile --target unix
   -include Makefile.user
   BUILD_DIR = ./
   MIRAGE_DIR = ./mirage
@@ -138,7 +138,7 @@ Query Makefile
 
 
 Query Makefile without depexts
-  $ ./config.exe query Makefile --no-depext
+  $ ./config.exe query Makefile --no-depext --target unix
   -include Makefile.user
   BUILD_DIR = ./
   MIRAGE_DIR = ./mirage
@@ -193,7 +193,7 @@ Query Makefile without depexts
 
 
 Query Makefile with depext
-  $ ./config.exe query Makefile --depext
+  $ ./config.exe query Makefile --depext --target unix
   -include Makefile.user
   BUILD_DIR = ./
   MIRAGE_DIR = ./mirage

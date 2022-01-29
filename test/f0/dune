@@ -1,3 +1,4 @@
 (library
  (name f0)
+ (package functoria)
  (libraries functoria))

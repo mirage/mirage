@@ -9,4 +9,5 @@
  (libraries mirage))
 
 (cram
+ (package mirage)
  (deps config.exe config_dash_in_name.exe))

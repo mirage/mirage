@@ -13,25 +13,29 @@ license:      "ISC"
 tags:         ["org:mirage"]
 
 build: [
-  ["dune" "subst"] {pinned}
+  ["dune" "subst"] {dev}
   ["dune" "build" "-p" name "-j" jobs]
   ["dune" "runtest" "-p" name "-j" jobs] {with-test}
+  ["env" "INSIDE_FUNCTORIA_TESTS=1" "dune" "exec" "-p" name "-j" jobs "--"
+     "test/functoria/e2e/test.exe"] {with-test}
 ]
 
 depends: [
   "ocaml" {>= "4.08.0"}
-  "dune" {>= "2.0.0"}
+  "dune" {>= "2.8.0"}
   "base-unix"
   "cmdliner" {>= "0.9.8"}
-  "rresult"
+  "rresult" {>= "0.7.0"}
+  "result" {>= "1.5"}
   "astring"
-  "fmt"
+  "fmt" {>= "0.8.7"}
   "logs"
   "bos"
   "fpath"
   "emile" {>= "1.1"}
   "uri" {>= "4.2.0"}
   "alcotest" {with-test}
+  "functoria-runtime" {= version & with-test}
 ]
 synopsis: "A DSL to organize functor applications"
 description: """

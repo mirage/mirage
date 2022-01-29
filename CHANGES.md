@@ -1,4 +1,4 @@
-### v4.0.0 (unreleased)
+### v4.0.0~beta1 (2022-01-29)
 
 Refactor build process to use [Dune](https://dune.build/) build system. The
 motivation is to drop `ocamlbuild`-induced technical debt and to obtain
@@ -19,7 +19,8 @@ Main changes:
   `opam-monorepo` tool. This tool reads the `<unikernel>-monorepo.opam` file and
   make use of the opam solver to compute the transitive dependency set, saves
   that as a _lockfile_, and fetch sources in the `duniverse/` subfolder.
-  More info on the [Github repository](https://github.com/ocamllabs/opam-monorepo).
+  More info on the
+  [Github repository](https://github.com/ocamllabs/opam-monorepo).
 
 * The compilation scheme use `dune`'s concept of a _workspace_: it's a set of
   libraries that are built together using the same _context_. For each
@@ -28,24 +29,32 @@ Main changes:
   (or cross-compiler) toolchain, as defined by `findlib`, it can be tuned with
   environment variables and custom flags for the OCaml or underlying C compiler.
 
+* The usual workflow `mirage configure && make depends && mirage build` does
+  not change. However, files are now generated in the `./mirage` directory
+  (OPAM files, `main.ml`, `key_gen.ml` or `manifest.json`), and
+  the final artefact is created in the `./dist` directory.
+
 Breaking changes:
 
 * Unikernel dependencies need to use `dune` as a build system. Other build
-  systems may be sandboxed in a Dune package, but the recommended way is to
-  switch to `dune`. A set of packages have been ported to dune but the changes
-  are not upstreamed, they are available in the Mirage
-  [overlay repository](https://github.com/mirage/opam-overlays).
-  This repository is configured by default.
-  To remove it, use `mirage configure --no-extra-repo`.
-  Another overlay repository can be used:
-  ```
-  $ mirage configure --extra-repo https://github.com/dune-universe/opam-overlays
-  ````
-
+  systems can be sandboxed, but the recommended way is to switch to `dune`.
+  Many packages not compiling with dune yet have been ported  and are available
+  as an additional
+  [opam repository](https://github.com/dune-universe/opam-overlays) overlay.
+  In addition, a few packages not supporting cross-compilation have been fixed
+  and are available in another
+  [opam repository](https://github.com/dune-universe/mirage-opam-overlays)
+  overlay. The mirage tool uses these two opam overlays by default. To only
+  use the default packages provided by Opam,
+  use `mirage configure --no-extra-repo`.
 * `Functoria_runtime.info` and `Mirage_runtime.info` now list all the libraries
   that are statically linked against the unikernel. The `packages` field have
   been removed and the `libraries` field is now accurate and contains the
   versions computed by `dune-build-info`.
+
+* Update the DSL to describe devices into the `config.ml`.  We don't use
+  objects anymore, and we replace it with the usage of `Mirage.impl` that
+  expects the same _fields_ as before.
 
 ### v3.10.8 (2021-12-17)
 

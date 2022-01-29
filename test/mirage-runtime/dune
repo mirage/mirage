@@ -1,4 +1,4 @@
 (test
  (name test)
- (package mirage)
- (libraries mirage alcotest))
+ (package mirage-runtime)
+ (libraries mirage-runtime alcotest))

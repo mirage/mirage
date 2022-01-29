@@ -3,4 +3,5 @@
  (libraries f0))
 
 (cram
+ (package functoria)
  (deps ./test.exe))

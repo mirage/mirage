@@ -20,10 +20,10 @@
 
 (** {2 Log thresholds} *)
 
-type log_threshold = [ `All | `Src of string ] * Logs.level
+type log_threshold = [ `All | `Src of string ] * Logs.level option
 (** The type for log threshold. *)
 
-val set_level : default:Logs.level -> log_threshold list -> unit
+val set_level : default:Logs.level option -> log_threshold list -> unit
 (** [set_level ~default l] set the log levels needed to have all of the log
     sources appearing in [l] be used. *)
 

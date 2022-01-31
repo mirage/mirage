@@ -1,3 +1,7 @@
+### v4.0.0~beta2 (2022-01-31)
+
+-  Update the generated minimal constraint required for `mirage-runtime` as Opam considers `4.0.0~beta* < 4.0.0` (#1276, @dinosaure)
+
 ### v4.0.0~beta1 (2022-01-29)
 
 Refactor build process to use [Dune](https://dune.build/) build system. The

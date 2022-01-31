@@ -1,3 +1,10 @@
+### v4.0.0~beta2 (2022-01-31)
+
+- Hot-fix about minimal constraint required for `mirage-runtime` (#1276)
+  OPAM considers `4.0.0~beta1 < 4.0.0`. We must update emitted constraints
+  to be sure to take the right version of `mirage-runtime` when we want to
+  make an unikernel.
+
 ### v4.0.0~beta1 (2022-01-29)
 
 Refactor build process to use [Dune](https://dune.build/) build system. The

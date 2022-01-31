@@ -3,7 +3,7 @@
     <img src="./logo.svg" alt="MirageOS logo"/>
   </a>
   <br />
-  <strong>A Distributed Database Built on the Same Principles as Git</strong>
+  <strong>Build Unikernels in OCaml</strong>
 </div>
 
 <div align="center">

@@ -1,9 +1,6 @@
 ### v4.0.0~beta2 (2022-01-31)
 
-- Hot-fix about minimal constraint required for `mirage-runtime` (#1276)
-  OPAM considers `4.0.0~beta1 < 4.0.0`. We must update emitted constraints
-  to be sure to take the right version of `mirage-runtime` when we want to
-  make an unikernel.
+-  Update the generated minimal constraint required for `mirage-runtime` as Opam considers `4.0.0~beta* < 4.0.0` (#1276, @dinosaure)
 
 ### v4.0.0~beta1 (2022-01-29)
 

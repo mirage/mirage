@@ -14,8 +14,7 @@ The most up-to-date documentation can be found at the
 Simpler [skeleton applications](https://github.com/mirage/mirage-skeleton) are also
 available online.
 
-[![OCaml-CI Build Status](https://img.shields.io/endpoint?url=https%3A%2F%2Fci.ocamllabs.io%2Fbadge%2Fmirage%2Fmirage%2Fmaster&logo=ocaml)](https://ci.ocamllabs.io/github/mirage/mirage)
-[![TravisCI Build Status](https://travis-ci.org/mirage/mirage.svg)](https://travis-ci.org/mirage/mirage)
+[![OCaml-CI Build Status](https://img.shields.io/endpoint?url=https%3A%2F%2Fci.ocamllabs.io%2Fbadge%2Fmirage%2Fmirage%2Fmain&logo=ocaml&style=flat-square)](https://ci.ocamllabs.io/github/mirage/mirage)
 [![docs](https://img.shields.io/badge/doc-online-blue.svg)](https://mirage.github.io/mirage/)
 
 ### This repository

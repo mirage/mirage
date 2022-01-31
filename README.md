@@ -19,7 +19,7 @@
 <div align="center">
   <em>
     MirageOS is a library operating system that constructs secure,
-    performant and resource-efficent unikernels.
+    performant and resource-efficient unikernels.
   </em>
 </div>
 

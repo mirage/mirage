@@ -321,7 +321,7 @@ let run t = %s.Main.run t ; exit 0|ocaml}
     let keys = Key.[ v target; v warn_error; v target_debug ] in
     let packages_v =
       (* XXX: use %%VERSION_NUM%% here instead of hardcoding a version? *)
-      let min = "4.0.0" and max = "4.1.0" in
+      let min = "4.0" and max = "4.1.0" in
       let common =
         [
           package ~scope:`Switch ~build:true ~min:"4.08.0" "ocaml";

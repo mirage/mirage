@@ -29,7 +29,7 @@ Query global opam
   ]
   
   depends: [
-    "mirage" { build & >= "4.0.0" & < "4.1.0" }
+    "mirage" { build & >= "4.0" & < "4.1.0" }
     "ocaml" { build & >= "4.08.0" }
     "opam-monorepo" { build & >= "0.2.6" }
   ]
@@ -52,7 +52,7 @@ Query local opam
     "mirage-bootvar-unix" { >= "0.1.0" & < "0.2.0" }
     "mirage-clock-unix" { >= "3.0.0" & < "5.0.0" }
     "mirage-logs" { >= "1.2.0" & < "2.0.0" }
-    "mirage-runtime" { >= "4.0.0" & < "4.1.0" }
+    "mirage-runtime" { >= "4.0" & < "4.1.0" }
     "mirage-unix" { >= "5.0.0" & < "6.0.0" }
   ]
   
@@ -62,11 +62,11 @@ Query local opam
 Query packages
   $ ./config.exe query packages
   "lwt"
-  "mirage" { build & >= "4.0.0" & < "4.1.0" }
+  "mirage" { build & >= "4.0" & < "4.1.0" }
   "mirage-bootvar-unix" { >= "0.1.0" & < "0.2.0" }
   "mirage-clock-unix" { >= "3.0.0" & < "5.0.0" }
   "mirage-logs" { >= "1.2.0" & < "2.0.0" }
-  "mirage-runtime" { >= "4.0.0" & < "4.1.0" }
+  "mirage-runtime" { >= "4.0" & < "4.1.0" }
   "mirage-unix" { >= "5.0.0" & < "6.0.0" }
   "ocaml" { build & >= "4.08.0" }
   "opam-monorepo" { build & >= "0.2.6" }

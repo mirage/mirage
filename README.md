@@ -25,14 +25,15 @@
 
 ## About
 
-MirageOS is a library operating system that constructs unikernels for secure,
-high-performance network applications across a variety of cloud computing and
-mobile platforms. Code can be developed on a traditional OS such as Linux or
-MacOS X, and then compiled into a fully-standalone, specialised unikernel that
-runs under the Xen or KVM hypervisors as well as lightweight hypervisors like
-FreeBSD's BHyve, OpenBSD's VMM.  Xen and KVM power many public clouds;
-MirageOS unikernels are currently running on Amazon's Elastic Compute Cloud
-and Google Compute Engine, and maybe others!
+MirageOS is a library operating system that constructs unikernels for
+secure, high-performance network applications across various cloud
+computing and mobile platforms. Developers can write code on a
+traditional OS such as Linux or macOS. They can then compile their
+code into a fully-standalone, specialised unikernel that runs under
+the Xen or KVM hypervisors and lightweight hypervisors like FreeBSD's
+BHyve, OpenBSD's VMM. These unikernels can deploy on public clouds,
+like Amazon's Elastic Compute Cloud and Google Compute Engine, or
+private deployments.
 
 The most up-to-date documentation can be found at the
 [homepage](https://mirage.io). The site is [a self-hosted

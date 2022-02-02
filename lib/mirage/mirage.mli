@@ -330,7 +330,9 @@ val docteur :
 
     For a Solo5 target, users must {i attach} the image as a block device:
 
-    {[ $ solo5-hvt --block:<name>=<path-to-the-image> -- unikernel.{hvt,...} ]}
+    {[
+      $ solo5-hvt --block:<name>=<path-to-the-image> -- unikernel.{hvt,...}
+    ]}
 
     For the Unix target, the program [open] the image at the beginning of the
     process. An integrity check of the image can be done via the [analyze] value
@@ -948,7 +950,9 @@ val git_ssh :
     The format of the authenticator is [SHA256:<b64-encoded-public-key>], the
     output of:
 
-    {[ $ ssh-keygen -lf <(ssh-keyscan -t rsa|ed25519 remote 2>/dev/null) ]} *)
+    {[
+      $ ssh-keygen -lf <(ssh-keyscan -t rsa|ed25519 remote 2>/dev/null)
+    ]} *)
 
 val git_http :
   ?authenticator:string option key ->

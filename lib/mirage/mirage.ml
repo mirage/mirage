@@ -295,6 +295,30 @@ type tracing = Mirage_impl_tracing.tracing
 let tracing = Mirage_impl_tracing.tracing
 let mprof_trace = Mirage_impl_tracing.mprof_trace
 
+type git_client = Mirage_impl_git.git_client
+
+let git_client = Mirage_impl_git.git_client
+
+let merge_git_clients ctx0 ctx1 =
+  Mirage_impl_git.git_merge_clients $ ctx0 $ ctx1
+
+let git_happy_eyeballs stackv4v6 dns_client happy_eyeballs =
+  Mirage_impl_git.git_happy_eyeballs $ stackv4v6 $ dns_client $ happy_eyeballs
+
+let git_tcp tcpv4v6 ctx = Mirage_impl_git.git_tcp $ tcpv4v6 $ ctx
+
+let git_ssh ?authenticator ~key ?(mclock = default_monotonic_clock)
+    ?(time = default_time) tcpv4v6 ctx =
+  Mirage_impl_git.git_ssh ?authenticator key $ mclock $ tcpv4v6 $ time $ ctx
+
+let git_http ?authenticator ?headers ?(time = default_time)
+    ?(pclock = default_posix_clock) tcpv4v6 ctx =
+  Mirage_impl_git.git_http ?authenticator headers
+  $ time
+  $ pclock
+  $ tcpv4v6
+  $ ctx
+
 (** Functoria devices *)
 
 (* fix compilation on ocaml<4.08 *)

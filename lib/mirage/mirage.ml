@@ -250,6 +250,46 @@ type tracing = Mirage_impl_tracing.tracing
 let tracing = Mirage_impl_tracing.tracing
 let mprof_trace = Mirage_impl_tracing.mprof_trace
 
+type git_client = Mirage_impl_git.git_client
+
+let git_client = Mirage_impl_git.git_client
+
+type dns = Mirage_impl_git.dns
+
+let dns = Mirage_impl_git.dns
+(* TODO(dinosaure): we should move [dns] to the [mimic] distribution
+ * instead of [git]. *)
+
+let merge_git_clients ctx0 ctx1 =
+  Mirage_impl_git.git_merge_clients $ ctx0 $ ctx1
+
+let happy_eyeballs ?(random = default_random) ?(time = default_time)
+    ?(mclock = default_monotonic_clock) ?(pclock = default_posix_clock)
+    stackv4v6 =
+  Mirage_impl_git.git_happy_eyeballs
+  $ random
+  $ time
+  $ mclock
+  $ pclock
+  $ stackv4v6
+
+let git_tcp tcpv4v6 ctx = Mirage_impl_git.git_tcp $ tcpv4v6 $ ctx
+
+let git_ssh ?authenticator ~key ?(mclock = default_monotonic_clock)
+    ?(time = default_time) tcpv4v6 ctx =
+  Mirage_impl_git.git_ssh ?authenticator key $ mclock $ tcpv4v6 $ time $ ctx
+
+let git_http ?authenticator ?headers ?(time = default_time)
+    ?(pclock = default_posix_clock) tcpv4v6 ctx =
+  Mirage_impl_git.git_http ?authenticator headers
+  $ time
+  $ pclock
+  $ tcpv4v6
+  $ ctx
+
+let git_tcpv4v6_of_stackv4v6 stackv4v6 =
+  Mirage_impl_git.git_tcpv4v6_of_stackv4v6 $ stackv4v6
+
 (** Functoria devices *)
 
 (* fix compilation on ocaml<4.08 *)

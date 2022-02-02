@@ -7,7 +7,7 @@ let console = Type.v CONSOLE
 let connect str _ m _ = Fmt.str "%s.connect %S" m str
 
 let console_unix str =
-  let packages = [ package ~min:"4.0.0" ~max:"5.0.0" "mirage-console-unix" ] in
+  let packages = [ package ~min:"5.1.0" ~max:"6.0.0" "mirage-console-unix" ] in
   impl ~packages ~connect:(connect str) "Console_unix" console
 
 let console_xen str =
@@ -15,7 +15,7 @@ let console_xen str =
   impl ~packages ~connect:(connect str) "Console_xen" console
 
 let console_solo5 str =
-  let packages = [ package ~min:"0.6.1" ~max:"0.7.0" "mirage-console-solo5" ] in
+  let packages = [ package ~min:"0.7.0" ~max:"0.8.0" "mirage-console-solo5" ] in
   impl ~packages ~connect:(connect str) "Console_solo5" console
 
 let custom_console str =

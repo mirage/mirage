@@ -1,6 +1,12 @@
+### v4.0.0~beta3 (2022-02-02)
+
+- Lint constraints on few packages to split the world between MirageOS 3.0 and
+  MirageOS 4.0 (#1280, @dinosaure)
+
 ### v4.0.0~beta2 (2022-01-31)
 
--  Update the generated minimal constraint required for `mirage-runtime` as Opam considers `4.0.0~beta* < 4.0.0` (#1276, @dinosaure)
+- Update the generated minimal constraint required for `mirage-runtime` as
+  Opam considers `4.0.0~beta* < 4.0.0` (#1276, @dinosaure)
 
 ### v4.0.0~beta1 (2022-01-29)
 

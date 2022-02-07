@@ -294,6 +294,28 @@ val generic_kv_ro :
 
     If no key is provided, it uses {!Key.kv_ro} to create a new one. *)
 
+val docteur :
+  ?mode:[ `Fast | `Light ] ->
+  ?disk:string Key.key ->
+  ?analyze:bool Key.key ->
+  string ->
+  kv_ro impl
+(** [docteur ?mode ?disk ?analyze remote] creates a Docteur image which can be
+    used by the produced {i unikernel} as an external block-device. It permits
+    to attach a read-only file-system. [analyze] checks the integrity of the
+    given block-device at the boot-time (it can take a time). It's possible to
+    use the file-system into 2 modes:
+
+    - [`Light] an access requires that we reconstruct the path to the requested
+      object. That mostly means that we probably need to extract few objects
+      before the extraction of the requested one. This choice does not require a
+      huge usage of memory but it can be slower is deep in your filesystem
+    - [`Fast] reconstructs the layout of your file-system at the boot time (so
+      it can take a time). Then, if the user wants a specific file, we ensure
+      that only the requested object is extracted. However, depending on your
+      image, this mode can require a huge amount of memory to keep the structure
+      of your file-system. *)
+
 type kv_rw
 (** Abstract type for read-write key/value store. *)
 

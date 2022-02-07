@@ -1,5 +1,6 @@
 open Functoria
 open Mirage_impl_misc
+open Mirage_impl_kv
 module Key = Mirage_key
 
 type block = BLOCK
@@ -133,3 +134,122 @@ let archive_conf =
 
 let archive block = archive_conf $ block
 let archive_of_files ?(dir = ".") () = archive @@ tar_block dir
+
+type mode = [ `Fast | `Light ]
+
+let pp_mode ppf = function
+  | `Fast -> Fmt.string ppf "Fast"
+  | `Light -> Fmt.string ppf "Light"
+
+let docteur_unix (mode : mode) disk analyze remote =
+  let dune info =
+    let ctx = Info.context info in
+    let disk = Key.get ctx disk in
+    let dune =
+      Dune.stanzaf
+        {dune|
+(rule
+ (targets %s)
+ (deps (:make %%{bin:docteur.make}))
+ (action (run %%{make} %s %s)))
+|dune}
+        disk remote disk
+    in
+    [ dune ]
+  in
+  let install info =
+    let ctx = Info.context info in
+    let disk = Fpath.v (Key.get ctx disk) in
+    Install.v ~bin:[ (disk, disk) ] ()
+  in
+  let configure info =
+    let ctx = Info.context info in
+    let disk = Key.get ctx disk in
+    let (_ : block_t) = make_block_t disk in
+    Action.ok ()
+  in
+  let connect _info modname _ =
+    Fmt.str
+      {ocaml|let ( <.> ) f g = fun x -> f (g x) in
+             let f = Rresult.R.(failwith_error_msg <.> reword_error (msgf "%%a" %s.pp_error)) in
+             Lwt.map f (%s.connect ~analyze:%a %a)|ocaml}
+      modname modname Key.serialize_call (Key.v analyze) Key.serialize_call
+      (Key.v disk)
+  in
+  let keys = [ Key.v disk; Key.v analyze ] in
+  let packages = [ package "docteur-unix" ] in
+  impl ~keys ~packages ~dune ~install ~configure ~connect
+    (Fmt.str "Docteur_unix.%a" pp_mode mode)
+    ro
+
+let docteur_solo5 (mode : mode) disk analyze remote =
+  let dune info =
+    let ctx = Info.context info in
+    let disk = Key.get ctx disk in
+    let dune =
+      Dune.stanzaf
+        {dune|
+(rule
+ (targets %s)
+ (deps (:make %%{bin:docteur.make}))
+ (action (run %%{make} %s %s)))
+|dune}
+        disk remote disk
+    in
+    [ dune ]
+  in
+  let install info =
+    let ctx = Info.context info in
+    let disk = Fpath.v (Key.get ctx disk) in
+    Install.v ~bin:[ (disk, disk) ] ()
+  in
+  let configure info =
+    let ctx = Info.context info in
+    let disk = Key.get ctx disk in
+    let (_ : block_t) = make_block_t disk in
+    Action.ok ()
+  in
+  let connect _info modname _ =
+    Fmt.str
+      {ocaml|let ( <.> ) f g = fun x -> f (g x) in
+             let f = Rresult.R.(failwith_error_msg <.> reword_error (msgf "%%a" %s.pp_error)) in
+             Lwt.map f (%s.connect ~analyze:%a %a)|ocaml}
+      modname modname Key.serialize_call (Key.v analyze) Key.serialize_call
+      (Key.v disk)
+  in
+  let keys = [ Key.v disk; Key.v analyze ] in
+  let packages = [ package "docteur-solo5" ] in
+  impl ~keys ~packages ~dune ~install ~configure ~connect
+    (Fmt.str "Docteur_solo5.%a" pp_mode mode)
+    ro
+
+let disk =
+  let doc =
+    Key.Arg.info
+      ~doc:
+        "Name of the docteur disk (for Solo5 targets, the name must contains \
+         only alpanumeric characters)."
+      [ "disk" ]
+  in
+  Key.(create "disk" Arg.(opt ~stage:`Configure string "disk" doc))
+
+let analyze =
+  let doc =
+    Key.Arg.info ~doc:"Analyze at the boot time the given docteur disk."
+      [ "analyze" ]
+  in
+  Key.(create "analyze" Arg.(opt bool true doc))
+
+let docteur ?(mode = `Fast) ?(disk = disk) ?(analyze = analyze) remote =
+  match_impl
+    Key.(value target)
+    [
+      (`Xen, docteur_solo5 mode disk analyze remote);
+      (`Qubes, docteur_solo5 mode disk analyze remote);
+      (`Virtio, docteur_solo5 mode disk analyze remote);
+      (`Hvt, docteur_solo5 mode disk analyze remote);
+      (`Spt, docteur_solo5 mode disk analyze remote);
+      (`Muen, docteur_solo5 mode disk analyze remote);
+      (`Genode, docteur_solo5 mode disk analyze remote);
+    ]
+    ~default:(docteur_unix mode disk analyze remote)

@@ -300,21 +300,47 @@ val docteur :
   ?analyze:bool Key.key ->
   string ->
   kv_ro impl
-(** [docteur ?mode ?disk ?analyze remote] creates a Docteur image which can be
-    used by the produced {i unikernel} as an external block-device. It permits
-    to attach a read-only file-system. [analyze] checks the integrity of the
-    given block-device at the boot-time (it can take a time). It's possible to
-    use the file-system into 2 modes:
+(** [docteur ?mode ?disk ?analyze remote] creates a {i docteur} image which can
+    be used by the produced {i unikernel} as an external block-device. It
+    permits to attach a read-only (probably huge) file-system. The format of the
+    file-system is the Git PACK file (version 2). It permits to store a huge
+    amount of files into a small image (for instance, 14Gb of documentation can
+    be compiled into a {i docteur} image of 240Mb).
 
-    - [`Light] an access requires that we reconstruct the path to the requested
-      object. That mostly means that we probably need to extract few objects
+    Unlike {!crunch}, [docteur] produces an external image which means that less
+    memory is used to keep and get files. The image can be produced from many
+    sources:
+
+    - A local Git repository (like [file://path/to/the/git/repository/])
+    - A simple directory (like [file://path/to/a/simple/directory/])
+    - A remove Git repository (via SSH, HTTP(S) or TCP/IP as what [git clone]
+      expects)
+
+    For a Solo5 target, users must {i attach} the image as a block device:
+
+    {[ $ solo5-hvt --block:<name>=<path-to-the-image> -- unikernel.{hvt,...} ]}
+
+    For the Unix target, the program [open] the image at the beginning of the
+    process.
+
+    [docteur] becomes useful to load some files without the memory restriction
+    when the unikernel is launched (~ 1Go) with Solo5.
+
+    An integrity check of the image can be done via the [analyze] value
+    (defaults to [true]).
+
+    It's possible to use the file-system into 2 modes:
+
+    - [`Light]: an access requires that we reconstruct the path to the requested
+      file. That mostly means that we probably need to extract few objects
       before the extraction of the requested one. This choice does not require a
-      huge usage of memory but it can be slower is deep in your filesystem
-    - [`Fast] reconstructs the layout of your file-system at the boot time (so
-      it can take a time). Then, if the user wants a specific file, we ensure
-      that only the requested object is extracted. However, depending on your
-      image, this mode can require a huge amount of memory to keep the structure
-      of your file-system. *)
+      huge usage of memory but it can be slower if the requested file is deep in
+      the structure.
+    - [`Fast]: reconstructs the layout of your file-system at the boot time (so
+      it can take a time at the beginning). Then, if the user wants a specific
+      file, we ensure that only the requested object is extracted. However,
+      depending on your image, this mode can require a huge amount of memory.
+      Indeed, it keeps the structure of your file-system in memory. *)
 
 type kv_rw
 (** Abstract type for read-write key/value store. *)

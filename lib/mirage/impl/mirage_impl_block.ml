@@ -177,7 +177,7 @@ let docteur_unix (mode : mode) disk analyze remote =
       (Key.v disk)
   in
   let keys = [ Key.v disk; Key.v analyze ] in
-  let packages = [ package "docteur-unix" ] in
+  let packages = [ package "docteur-unix" ~min:"0.0.3" ] in
   impl ~keys ~packages ~dune ~install ~configure ~connect
     (Fmt.str "Docteur_unix.%a" pp_mode mode)
     ro
@@ -218,7 +218,7 @@ let docteur_solo5 (mode : mode) disk analyze remote =
       (Key.v disk)
   in
   let keys = [ Key.v disk; Key.v analyze ] in
-  let packages = [ package "docteur-solo5" ] in
+  let packages = [ package "docteur-solo5" ~min:"0.0.3" ] in
   impl ~keys ~packages ~dune ~install ~configure ~connect
     (Fmt.str "Docteur_solo5.%a" pp_mode mode)
     ro

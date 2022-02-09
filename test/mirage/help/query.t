@@ -6,7 +6,7 @@ Help query --man-format=plain
          mirage-query - Query information about the mirage application.
   
   SYNOPSIS
-         mirage query [OPTION]... [INFO]
+         mirage query [OPTION]… [INFO]
   
   DESCRIPTION
          The query command queries information about the mirage application.
@@ -112,28 +112,23 @@ Help query --man-format=plain
              Name of the output file.
   
          INFO (absent=packages)
-             The information to query. INFO must be one of `name', `packages',
-             `monorepo.opam', `switch.opam', `files', `Makefile',
-             `dune.config', `dune.build', `dune-project', `dune-workspace' or
-             `dune.dist'
+             The information to query. INFO must be one of 'name', 'packages',
+             'monorepo.opam', 'switch.opam', 'files', 'Makefile',
+             'dune.config', 'dune.build', 'dune-project', 'dune-workspace' or
+             'dune.dist'
   
   APPLICATION OPTIONS
          --hello=VAL (absent=Hello World!)
              How to say hello. 
   
-  OPTIONS
-         --help[=FMT] (default=auto)
-             Show this help in format FMT. The value FMT must be one of `auto',
-             `pager', `groff' or `plain'. With `auto', the format is `pager` or
-             `plain' whenever the TERM env var is `dumb' or undefined.
-  
-         --version
-             Show version information.
-  
   COMMON OPTIONS
          --color=WHEN (absent=auto)
-             Colorize the output. WHEN must be one of `auto', `always' or
-             `never'.
+             Colorize the output. WHEN must be one of auto, always or never.
+  
+         --help[=FMT] (default=auto)
+             Show this help in format FMT. The value FMT must be one of auto,
+             pager, groff or plain. With auto, the format is pager or plain
+             whenever the TERM env var is dumb or undefined.
   
          -q, --quiet
              Be quiet. Takes over -v and --verbosity.
@@ -143,8 +138,22 @@ Help query --man-format=plain
              more.
   
          --verbosity=LEVEL (absent=warning)
-             Be more or less verbose. LEVEL must be one of `quiet', `error',
-             `warning', `info' or `debug'. Takes over -v.
+             Be more or less verbose. LEVEL must be one of quiet, error,
+             warning, info or debug. Takes over -v.
+  
+         --version
+             Show version information.
+  
+  EXIT STATUS
+         query exits with the following status:
+  
+         0   on success.
+  
+         123 on indiscriminate errors reported on standard error.
+  
+         124 on command line parsing errors.
+  
+         125 on unexpected internal errors (bugs).
   
   ENVIRONMENT
          These environment variables affect the execution of query:
@@ -157,6 +166,9 @@ Help query --man-format=plain
   
          MODE
              See option --target.
+  
+  SEE ALSO
+         mirage(1)
   
 
 Help query --help=plain
@@ -165,7 +177,7 @@ Help query --help=plain
          mirage-query - Query information about the mirage application.
   
   SYNOPSIS
-         mirage query [OPTION]... [INFO]
+         mirage query [OPTION]… [INFO]
   
   DESCRIPTION
          The query command queries information about the mirage application.
@@ -271,28 +283,23 @@ Help query --help=plain
              Name of the output file.
   
          INFO (absent=packages)
-             The information to query. INFO must be one of `name', `packages',
-             `monorepo.opam', `switch.opam', `files', `Makefile',
-             `dune.config', `dune.build', `dune-project', `dune-workspace' or
-             `dune.dist'
+             The information to query. INFO must be one of 'name', 'packages',
+             'monorepo.opam', 'switch.opam', 'files', 'Makefile',
+             'dune.config', 'dune.build', 'dune-project', 'dune-workspace' or
+             'dune.dist'
   
   APPLICATION OPTIONS
          --hello=VAL (absent=Hello World!)
              How to say hello. 
   
-  OPTIONS
-         --help[=FMT] (default=auto)
-             Show this help in format FMT. The value FMT must be one of `auto',
-             `pager', `groff' or `plain'. With `auto', the format is `pager` or
-             `plain' whenever the TERM env var is `dumb' or undefined.
-  
-         --version
-             Show version information.
-  
   COMMON OPTIONS
          --color=WHEN (absent=auto)
-             Colorize the output. WHEN must be one of `auto', `always' or
-             `never'.
+             Colorize the output. WHEN must be one of auto, always or never.
+  
+         --help[=FMT] (default=auto)
+             Show this help in format FMT. The value FMT must be one of auto,
+             pager, groff or plain. With auto, the format is pager or plain
+             whenever the TERM env var is dumb or undefined.
   
          -q, --quiet
              Be quiet. Takes over -v and --verbosity.
@@ -302,8 +309,22 @@ Help query --help=plain
              more.
   
          --verbosity=LEVEL (absent=warning)
-             Be more or less verbose. LEVEL must be one of `quiet', `error',
-             `warning', `info' or `debug'. Takes over -v.
+             Be more or less verbose. LEVEL must be one of quiet, error,
+             warning, info or debug. Takes over -v.
+  
+         --version
+             Show version information.
+  
+  EXIT STATUS
+         query exits with the following status:
+  
+         0   on success.
+  
+         123 on indiscriminate errors reported on standard error.
+  
+         124 on command line parsing errors.
+  
+         125 on unexpected internal errors (bugs).
   
   ENVIRONMENT
          These environment variables affect the execution of query:
@@ -316,6 +337,9 @@ Help query --help=plain
   
          MODE
              See option --target.
+  
+  SEE ALSO
+         mirage(1)
   
 
 No difference

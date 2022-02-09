@@ -4,7 +4,7 @@ Help configure -o --man-format=plain
          test-configure - Configure a test application.
   
   SYNOPSIS
-         test configure [OPTION]... 
+         test configure [OPTION]… 
   
   DESCRIPTION
          The configure command initializes a fresh test application.
@@ -49,19 +49,14 @@ Help configure -o --man-format=plain
          --warn-error=BOOL (absent=false)
              Enable -warn-error when compiling OCaml sources. 
   
-  OPTIONS
-         --help[=FMT] (default=auto)
-             Show this help in format FMT. The value FMT must be one of `auto',
-             `pager', `groff' or `plain'. With `auto', the format is `pager` or
-             `plain' whenever the TERM env var is `dumb' or undefined.
-  
-         --version
-             Show version information.
-  
   COMMON OPTIONS
          --color=WHEN (absent=auto)
-             Colorize the output. WHEN must be one of `auto', `always' or
-             `never'.
+             Colorize the output. WHEN must be one of auto, always or never.
+  
+         --help[=FMT] (default=auto)
+             Show this help in format FMT. The value FMT must be one of auto,
+             pager, groff or plain. With auto, the format is pager or plain
+             whenever the TERM env var is dumb or undefined.
   
          -q, --quiet
              Be quiet. Takes over -v and --verbosity.
@@ -71,14 +66,31 @@ Help configure -o --man-format=plain
              more.
   
          --verbosity=LEVEL (absent=warning)
-             Be more or less verbose. LEVEL must be one of `quiet', `error',
-             `warning', `info' or `debug'. Takes over -v.
+             Be more or less verbose. LEVEL must be one of quiet, error,
+             warning, info or debug. Takes over -v.
+  
+         --version
+             Show version information.
+  
+  EXIT STATUS
+         configure exits with the following status:
+  
+         0   on success.
+  
+         123 on indiscriminate errors reported on standard error.
+  
+         124 on command line parsing errors.
+  
+         125 on unexpected internal errors (bugs).
   
   ENVIRONMENT
          These environment variables affect the execution of configure:
   
          MIRAGE_EXTRA_REPOS
              See option --extra-repos.
+  
+  SEE ALSO
+         test(1)
   
 
 Help configure -o --help=plain
@@ -87,7 +99,7 @@ Help configure -o --help=plain
          test-configure - Configure a test application.
   
   SYNOPSIS
-         test configure [OPTION]... 
+         test configure [OPTION]… 
   
   DESCRIPTION
          The configure command initializes a fresh test application.
@@ -132,19 +144,14 @@ Help configure -o --help=plain
          --warn-error=BOOL (absent=false)
              Enable -warn-error when compiling OCaml sources. 
   
-  OPTIONS
-         --help[=FMT] (default=auto)
-             Show this help in format FMT. The value FMT must be one of `auto',
-             `pager', `groff' or `plain'. With `auto', the format is `pager` or
-             `plain' whenever the TERM env var is `dumb' or undefined.
-  
-         --version
-             Show version information.
-  
   COMMON OPTIONS
          --color=WHEN (absent=auto)
-             Colorize the output. WHEN must be one of `auto', `always' or
-             `never'.
+             Colorize the output. WHEN must be one of auto, always or never.
+  
+         --help[=FMT] (default=auto)
+             Show this help in format FMT. The value FMT must be one of auto,
+             pager, groff or plain. With auto, the format is pager or plain
+             whenever the TERM env var is dumb or undefined.
   
          -q, --quiet
              Be quiet. Takes over -v and --verbosity.
@@ -154,14 +161,31 @@ Help configure -o --help=plain
              more.
   
          --verbosity=LEVEL (absent=warning)
-             Be more or less verbose. LEVEL must be one of `quiet', `error',
-             `warning', `info' or `debug'. Takes over -v.
+             Be more or less verbose. LEVEL must be one of quiet, error,
+             warning, info or debug. Takes over -v.
+  
+         --version
+             Show version information.
+  
+  EXIT STATUS
+         configure exits with the following status:
+  
+         0   on success.
+  
+         123 on indiscriminate errors reported on standard error.
+  
+         124 on command line parsing errors.
+  
+         125 on unexpected internal errors (bugs).
   
   ENVIRONMENT
          These environment variables affect the execution of configure:
   
          MIRAGE_EXTRA_REPOS
              See option --extra-repos.
+  
+  SEE ALSO
+         test(1)
   
 
 No difference

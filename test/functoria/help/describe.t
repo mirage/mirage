@@ -4,7 +4,7 @@ Help describe --man-format=plain
          test-describe - Describe a test application.
   
   SYNOPSIS
-         test describe [OPTION]... 
+         test describe [OPTION]… 
   
   DESCRIPTION
          The describe command describes the configuration of a test
@@ -64,19 +64,14 @@ Help describe --man-format=plain
          --warn-error=BOOL (absent=false)
              Enable -warn-error when compiling OCaml sources. 
   
-  OPTIONS
-         --help[=FMT] (default=auto)
-             Show this help in format FMT. The value FMT must be one of `auto',
-             `pager', `groff' or `plain'. With `auto', the format is `pager` or
-             `plain' whenever the TERM env var is `dumb' or undefined.
-  
-         --version
-             Show version information.
-  
   COMMON OPTIONS
          --color=WHEN (absent=auto)
-             Colorize the output. WHEN must be one of `auto', `always' or
-             `never'.
+             Colorize the output. WHEN must be one of auto, always or never.
+  
+         --help[=FMT] (default=auto)
+             Show this help in format FMT. The value FMT must be one of auto,
+             pager, groff or plain. With auto, the format is pager or plain
+             whenever the TERM env var is dumb or undefined.
   
          -q, --quiet
              Be quiet. Takes over -v and --verbosity.
@@ -86,8 +81,25 @@ Help describe --man-format=plain
              more.
   
          --verbosity=LEVEL (absent=warning)
-             Be more or less verbose. LEVEL must be one of `quiet', `error',
-             `warning', `info' or `debug'. Takes over -v.
+             Be more or less verbose. LEVEL must be one of quiet, error,
+             warning, info or debug. Takes over -v.
+  
+         --version
+             Show version information.
+  
+  EXIT STATUS
+         describe exits with the following status:
+  
+         0   on success.
+  
+         123 on indiscriminate errors reported on standard error.
+  
+         124 on command line parsing errors.
+  
+         125 on unexpected internal errors (bugs).
+  
+  SEE ALSO
+         test(1)
   
 
 Help describe --help=plain
@@ -96,7 +108,7 @@ Help describe --help=plain
          test-describe - Describe a test application.
   
   SYNOPSIS
-         test describe [OPTION]... 
+         test describe [OPTION]… 
   
   DESCRIPTION
          The describe command describes the configuration of a test
@@ -156,19 +168,14 @@ Help describe --help=plain
          --warn-error=BOOL (absent=false)
              Enable -warn-error when compiling OCaml sources. 
   
-  OPTIONS
-         --help[=FMT] (default=auto)
-             Show this help in format FMT. The value FMT must be one of `auto',
-             `pager', `groff' or `plain'. With `auto', the format is `pager` or
-             `plain' whenever the TERM env var is `dumb' or undefined.
-  
-         --version
-             Show version information.
-  
   COMMON OPTIONS
          --color=WHEN (absent=auto)
-             Colorize the output. WHEN must be one of `auto', `always' or
-             `never'.
+             Colorize the output. WHEN must be one of auto, always or never.
+  
+         --help[=FMT] (default=auto)
+             Show this help in format FMT. The value FMT must be one of auto,
+             pager, groff or plain. With auto, the format is pager or plain
+             whenever the TERM env var is dumb or undefined.
   
          -q, --quiet
              Be quiet. Takes over -v and --verbosity.
@@ -178,8 +185,25 @@ Help describe --help=plain
              more.
   
          --verbosity=LEVEL (absent=warning)
-             Be more or less verbose. LEVEL must be one of `quiet', `error',
-             `warning', `info' or `debug'. Takes over -v.
+             Be more or less verbose. LEVEL must be one of quiet, error,
+             warning, info or debug. Takes over -v.
+  
+         --version
+             Show version information.
+  
+  EXIT STATUS
+         describe exits with the following status:
+  
+         0   on success.
+  
+         123 on indiscriminate errors reported on standard error.
+  
+         124 on command line parsing errors.
+  
+         125 on unexpected internal errors (bugs).
+  
+  SEE ALSO
+         test(1)
   
 
 No difference

@@ -4,7 +4,7 @@ Help clean --man-format=plain
          test-clean - Clean the files produced by test for a given application.
   
   SYNOPSIS
-         test clean [OPTION]... 
+         test clean [OPTION]… 
   
   DESCRIPTION
          Clean the files produced by test for a given application.
@@ -32,19 +32,14 @@ Help clean --man-format=plain
          --warn-error=BOOL (absent=false)
              Enable -warn-error when compiling OCaml sources. 
   
-  OPTIONS
-         --help[=FMT] (default=auto)
-             Show this help in format FMT. The value FMT must be one of `auto',
-             `pager', `groff' or `plain'. With `auto', the format is `pager` or
-             `plain' whenever the TERM env var is `dumb' or undefined.
-  
-         --version
-             Show version information.
-  
   COMMON OPTIONS
          --color=WHEN (absent=auto)
-             Colorize the output. WHEN must be one of `auto', `always' or
-             `never'.
+             Colorize the output. WHEN must be one of auto, always or never.
+  
+         --help[=FMT] (default=auto)
+             Show this help in format FMT. The value FMT must be one of auto,
+             pager, groff or plain. With auto, the format is pager or plain
+             whenever the TERM env var is dumb or undefined.
   
          -q, --quiet
              Be quiet. Takes over -v and --verbosity.
@@ -54,8 +49,25 @@ Help clean --man-format=plain
              more.
   
          --verbosity=LEVEL (absent=warning)
-             Be more or less verbose. LEVEL must be one of `quiet', `error',
-             `warning', `info' or `debug'. Takes over -v.
+             Be more or less verbose. LEVEL must be one of quiet, error,
+             warning, info or debug. Takes over -v.
+  
+         --version
+             Show version information.
+  
+  EXIT STATUS
+         clean exits with the following status:
+  
+         0   on success.
+  
+         123 on indiscriminate errors reported on standard error.
+  
+         124 on command line parsing errors.
+  
+         125 on unexpected internal errors (bugs).
+  
+  SEE ALSO
+         test(1)
   
 
 Help clean --help=plain
@@ -64,7 +76,7 @@ Help clean --help=plain
          test-clean - Clean the files produced by test for a given application.
   
   SYNOPSIS
-         test clean [OPTION]... 
+         test clean [OPTION]… 
   
   DESCRIPTION
          Clean the files produced by test for a given application.
@@ -92,19 +104,14 @@ Help clean --help=plain
          --warn-error=BOOL (absent=false)
              Enable -warn-error when compiling OCaml sources. 
   
-  OPTIONS
-         --help[=FMT] (default=auto)
-             Show this help in format FMT. The value FMT must be one of `auto',
-             `pager', `groff' or `plain'. With `auto', the format is `pager` or
-             `plain' whenever the TERM env var is `dumb' or undefined.
-  
-         --version
-             Show version information.
-  
   COMMON OPTIONS
          --color=WHEN (absent=auto)
-             Colorize the output. WHEN must be one of `auto', `always' or
-             `never'.
+             Colorize the output. WHEN must be one of auto, always or never.
+  
+         --help[=FMT] (default=auto)
+             Show this help in format FMT. The value FMT must be one of auto,
+             pager, groff or plain. With auto, the format is pager or plain
+             whenever the TERM env var is dumb or undefined.
   
          -q, --quiet
              Be quiet. Takes over -v and --verbosity.
@@ -114,8 +121,25 @@ Help clean --help=plain
              more.
   
          --verbosity=LEVEL (absent=warning)
-             Be more or less verbose. LEVEL must be one of `quiet', `error',
-             `warning', `info' or `debug'. Takes over -v.
+             Be more or less verbose. LEVEL must be one of quiet, error,
+             warning, info or debug. Takes over -v.
+  
+         --version
+             Show version information.
+  
+  EXIT STATUS
+         clean exits with the following status:
+  
+         0   on success.
+  
+         123 on indiscriminate errors reported on standard error.
+  
+         124 on command line parsing errors.
+  
+         125 on unexpected internal errors (bugs).
+  
+  SEE ALSO
+         test(1)
   
 
 No difference

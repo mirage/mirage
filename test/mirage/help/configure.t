@@ -6,7 +6,7 @@ Help configure --man-format=plain
          mirage-configure - Configure a mirage application.
   
   SYNOPSIS
-         mirage configure [OPTION]... 
+         mirage configure [OPTION]… 
   
   DESCRIPTION
          The configure command initializes a fresh mirage application.
@@ -114,19 +114,14 @@ Help configure --man-format=plain
          --hello=VAL (absent=Hello World!)
              How to say hello. 
   
-  OPTIONS
-         --help[=FMT] (default=auto)
-             Show this help in format FMT. The value FMT must be one of `auto',
-             `pager', `groff' or `plain'. With `auto', the format is `pager` or
-             `plain' whenever the TERM env var is `dumb' or undefined.
-  
-         --version
-             Show version information.
-  
   COMMON OPTIONS
          --color=WHEN (absent=auto)
-             Colorize the output. WHEN must be one of `auto', `always' or
-             `never'.
+             Colorize the output. WHEN must be one of auto, always or never.
+  
+         --help[=FMT] (default=auto)
+             Show this help in format FMT. The value FMT must be one of auto,
+             pager, groff or plain. With auto, the format is pager or plain
+             whenever the TERM env var is dumb or undefined.
   
          -q, --quiet
              Be quiet. Takes over -v and --verbosity.
@@ -136,8 +131,22 @@ Help configure --man-format=plain
              more.
   
          --verbosity=LEVEL (absent=warning)
-             Be more or less verbose. LEVEL must be one of `quiet', `error',
-             `warning', `info' or `debug'. Takes over -v.
+             Be more or less verbose. LEVEL must be one of quiet, error,
+             warning, info or debug. Takes over -v.
+  
+         --version
+             Show version information.
+  
+  EXIT STATUS
+         configure exits with the following status:
+  
+         0   on success.
+  
+         123 on indiscriminate errors reported on standard error.
+  
+         124 on command line parsing errors.
+  
+         125 on unexpected internal errors (bugs).
   
   ENVIRONMENT
          These environment variables affect the execution of configure:
@@ -150,6 +159,9 @@ Help configure --man-format=plain
   
          MODE
              See option --target.
+  
+  SEE ALSO
+         mirage(1)
   
 
 Configure help --help=plain
@@ -158,7 +170,7 @@ Configure help --help=plain
          mirage-configure - Configure a mirage application.
   
   SYNOPSIS
-         mirage configure [OPTION]... 
+         mirage configure [OPTION]… 
   
   DESCRIPTION
          The configure command initializes a fresh mirage application.
@@ -266,19 +278,14 @@ Configure help --help=plain
          --hello=VAL (absent=Hello World!)
              How to say hello. 
   
-  OPTIONS
-         --help[=FMT] (default=auto)
-             Show this help in format FMT. The value FMT must be one of `auto',
-             `pager', `groff' or `plain'. With `auto', the format is `pager` or
-             `plain' whenever the TERM env var is `dumb' or undefined.
-  
-         --version
-             Show version information.
-  
   COMMON OPTIONS
          --color=WHEN (absent=auto)
-             Colorize the output. WHEN must be one of `auto', `always' or
-             `never'.
+             Colorize the output. WHEN must be one of auto, always or never.
+  
+         --help[=FMT] (default=auto)
+             Show this help in format FMT. The value FMT must be one of auto,
+             pager, groff or plain. With auto, the format is pager or plain
+             whenever the TERM env var is dumb or undefined.
   
          -q, --quiet
              Be quiet. Takes over -v and --verbosity.
@@ -288,8 +295,22 @@ Configure help --help=plain
              more.
   
          --verbosity=LEVEL (absent=warning)
-             Be more or less verbose. LEVEL must be one of `quiet', `error',
-             `warning', `info' or `debug'. Takes over -v.
+             Be more or less verbose. LEVEL must be one of quiet, error,
+             warning, info or debug. Takes over -v.
+  
+         --version
+             Show version information.
+  
+  EXIT STATUS
+         configure exits with the following status:
+  
+         0   on success.
+  
+         123 on indiscriminate errors reported on standard error.
+  
+         124 on command line parsing errors.
+  
+         125 on unexpected internal errors (bugs).
   
   ENVIRONMENT
          These environment variables affect the execution of configure:
@@ -302,6 +323,9 @@ Configure help --help=plain
   
          MODE
              See option --target.
+  
+  SEE ALSO
+         mirage(1)
   
 
 No difference

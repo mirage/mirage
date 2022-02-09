@@ -3,62 +3,62 @@ Configure
   [1]
 
   $ cat configure.err
-  test: too many arguments, don't know what to do with `a', `b', `c'
-  Usage: test configure [OPTION]... 
-  Try `test configure --help' or `test --help' for more information.
+  test: too many arguments, don't know what to do with 'a', 'b', 'c'
+  Usage: test configure [OPTION]… 
+  Try 'test configure --help' or 'test --help' for more information.
 
 Build
   $ ./config.exe build a b c 2> build.err
   [1]
 
   $ cat build.err
-  test: too many arguments, don't know what to do with `a', `b', `c'
-  Usage: test build [OPTION]... 
-  Try `test build --help' or `test --help' for more information.
+  test: too many arguments, don't know what to do with 'a', 'b', 'c'
+  Usage: test build [OPTION]… 
+  Try 'test build --help' or 'test --help' for more information.
 
 Clean
   $ ./config.exe clean a b c 2> clean.err
   [1]
 
   $ cat clean.err
-  test: too many arguments, don't know what to do with `a', `b', `c'
-  Usage: test clean [OPTION]... 
-  Try `test clean --help' or `test --help' for more information.
+  test: too many arguments, don't know what to do with 'a', 'b', 'c'
+  Usage: test clean [OPTION]… 
+  Try 'test clean --help' or 'test --help' for more information.
 
 Query
   $ ./config.exe query a b c 2> query.err
   [1]
 
   $ cat query.err
-  test: too many arguments, don't know what to do with `b', `c'
-  Usage: test query [OPTION]... [INFO]
-  Try `test query --help' or `test --help' for more information.
+  test: too many arguments, don't know what to do with 'b', 'c'
+  Usage: test query [OPTION]… [INFO]
+  Try 'test query --help' or 'test --help' for more information.
 
 Describe
   $ ./config.exe describe a b c 2> describe.err
   [1]
 
   $ cat describe.err
-  test: too many arguments, don't know what to do with `a', `b', `c'
-  Usage: test describe [OPTION]... 
-  Try `test describe --help' or `test --help' for more information.
+  test: too many arguments, don't know what to do with 'a', 'b', 'c'
+  Usage: test describe [OPTION]… 
+  Try 'test describe --help' or 'test --help' for more information.
 
 Help
   $ ./config.exe help a b c 2> help.err
   [1]
 
   $ cat help.err
-  test: too many arguments, don't know what to do with `b', `c'
-  Usage: test help [OPTION]... [TOPIC]
-  Try `test help --help' or `test --help' for more information.
+  test: too many arguments, don't know what to do with 'b', 'c'
+  Usage: test help [--man-format=FMT] [OPTION]… [TOPIC]
+  Try 'test help --help' or 'test --help' for more information.
 
 Simple help
   $ ./config.exe help --man-format=plain 2> simple-help.err
   NAME
-         test - The test application builder
+         test-test - The test application builder
   
   SYNOPSIS
-         test COMMAND ...
+         test test [COMMAND] …
   
   DESCRIPTION
          The test application builder. It glues together a set of libraries and
@@ -68,37 +68,32 @@ Simple help
          Use test help <command> for more information on a specific command.
   
   COMMANDS
-         build
+         build [OPTION]… 
              Build a test application.
   
-         clean
+         clean [OPTION]… 
              Clean the files produced by test for a given application.
   
-         configure
+         configure [OPTION]… 
              Configure a test application.
   
-         describe
+         describe [OPTION]… 
              Describe a test application.
   
-         help
+         help [--man-format=FMT] [OPTION]… [TOPIC]
              Display help about test commands.
   
-         query
+         query [OPTION]… [INFO]
              Query information about the test application.
-  
-  OPTIONS
-         --help[=FMT] (default=auto)
-             Show this help in format FMT. The value FMT must be one of `auto',
-             `pager', `groff' or `plain'. With `auto', the format is `pager` or
-             `plain' whenever the TERM env var is `dumb' or undefined.
-  
-         --version
-             Show version information.
   
   COMMON OPTIONS
          --color=WHEN (absent=auto)
-             Colorize the output. WHEN must be one of `auto', `always' or
-             `never'.
+             Colorize the output. WHEN must be one of auto, always or never.
+  
+         --help[=FMT] (default=auto)
+             Show this help in format FMT. The value FMT must be one of auto,
+             pager, groff or plain. With auto, the format is pager or plain
+             whenever the TERM env var is dumb or undefined.
   
          -q, --quiet
              Be quiet. Takes over -v and --verbosity.
@@ -108,8 +103,25 @@ Simple help
              more.
   
          --verbosity=LEVEL (absent=warning)
-             Be more or less verbose. LEVEL must be one of `quiet', `error',
-             `warning', `info' or `debug'. Takes over -v.
+             Be more or less verbose. LEVEL must be one of quiet, error,
+             warning, info or debug. Takes over -v.
+  
+         --version
+             Show version information.
+  
+  EXIT STATUS
+         test exits with the following status:
+  
+         0   on success.
+  
+         123 on indiscriminate errors reported on standard error.
+  
+         124 on command line parsing errors.
+  
+         125 on unexpected internal errors (bugs).
+  
+  SEE ALSO
+         test(1)
   
 
   $ cat simple-help.err
@@ -120,7 +132,7 @@ Help configure
          test-configure - Configure a test application.
   
   SYNOPSIS
-         test configure [OPTION]... 
+         test configure [OPTION]… 
   
   DESCRIPTION
          The configure command initializes a fresh test application.
@@ -162,19 +174,14 @@ Help configure
          --warn-error=BOOL (absent=false)
              Enable -warn-error when compiling OCaml sources. 
   
-  OPTIONS
-         --help[=FMT] (default=auto)
-             Show this help in format FMT. The value FMT must be one of `auto',
-             `pager', `groff' or `plain'. With `auto', the format is `pager` or
-             `plain' whenever the TERM env var is `dumb' or undefined.
-  
-         --version
-             Show version information.
-  
   COMMON OPTIONS
          --color=WHEN (absent=auto)
-             Colorize the output. WHEN must be one of `auto', `always' or
-             `never'.
+             Colorize the output. WHEN must be one of auto, always or never.
+  
+         --help[=FMT] (default=auto)
+             Show this help in format FMT. The value FMT must be one of auto,
+             pager, groff or plain. With auto, the format is pager or plain
+             whenever the TERM env var is dumb or undefined.
   
          -q, --quiet
              Be quiet. Takes over -v and --verbosity.
@@ -184,14 +191,31 @@ Help configure
              more.
   
          --verbosity=LEVEL (absent=warning)
-             Be more or less verbose. LEVEL must be one of `quiet', `error',
-             `warning', `info' or `debug'. Takes over -v.
+             Be more or less verbose. LEVEL must be one of quiet, error,
+             warning, info or debug. Takes over -v.
+  
+         --version
+             Show version information.
+  
+  EXIT STATUS
+         configure exits with the following status:
+  
+         0   on success.
+  
+         123 on indiscriminate errors reported on standard error.
+  
+         124 on command line parsing errors.
+  
+         125 on unexpected internal errors (bugs).
   
   ENVIRONMENT
          These environment variables affect the execution of configure:
   
          MIRAGE_EXTRA_REPOS
              See option --extra-repos.
+  
+  SEE ALSO
+         test(1)
   
 
   $ cat configure.err
@@ -201,17 +225,17 @@ Configure help
   [1]
 
   $ cat configure-help.err
-  test: too many arguments, don't know what to do with `help'
-  Usage: test configure [OPTION]... 
-  Try `test configure --help' or `test --help' for more information.
+  test: too many arguments, don't know what to do with 'help'
+  Usage: test configure [OPTION]… 
+  Try 'test configure --help' or 'test --help' for more information.
 
 Help no config
   $ ./config.exe help --file=empty/config.ml --man-format=plain 2> help-no-config.err
   NAME
-         test - The test application builder
+         test-test - The test application builder
   
   SYNOPSIS
-         test COMMAND ...
+         test test [COMMAND] …
   
   DESCRIPTION
          The test application builder. It glues together a set of libraries and
@@ -221,37 +245,32 @@ Help no config
          Use test help <command> for more information on a specific command.
   
   COMMANDS
-         build
+         build [OPTION]… 
              Build a test application.
   
-         clean
+         clean [OPTION]… 
              Clean the files produced by test for a given application.
   
-         configure
+         configure [OPTION]… 
              Configure a test application.
   
-         describe
+         describe [OPTION]… 
              Describe a test application.
   
-         help
+         help [--man-format=FMT] [OPTION]… [TOPIC]
              Display help about test commands.
   
-         query
+         query [OPTION]… [INFO]
              Query information about the test application.
-  
-  OPTIONS
-         --help[=FMT] (default=auto)
-             Show this help in format FMT. The value FMT must be one of `auto',
-             `pager', `groff' or `plain'. With `auto', the format is `pager` or
-             `plain' whenever the TERM env var is `dumb' or undefined.
-  
-         --version
-             Show version information.
   
   COMMON OPTIONS
          --color=WHEN (absent=auto)
-             Colorize the output. WHEN must be one of `auto', `always' or
-             `never'.
+             Colorize the output. WHEN must be one of auto, always or never.
+  
+         --help[=FMT] (default=auto)
+             Show this help in format FMT. The value FMT must be one of auto,
+             pager, groff or plain. With auto, the format is pager or plain
+             whenever the TERM env var is dumb or undefined.
   
          -q, --quiet
              Be quiet. Takes over -v and --verbosity.
@@ -261,8 +280,25 @@ Help no config
              more.
   
          --verbosity=LEVEL (absent=warning)
-             Be more or less verbose. LEVEL must be one of `quiet', `error',
-             `warning', `info' or `debug'. Takes over -v.
+             Be more or less verbose. LEVEL must be one of quiet, error,
+             warning, info or debug. Takes over -v.
+  
+         --version
+             Show version information.
+  
+  EXIT STATUS
+         test exits with the following status:
+  
+         0   on success.
+  
+         123 on indiscriminate errors reported on standard error.
+  
+         124 on command line parsing errors.
+  
+         125 on unexpected internal errors (bugs).
+  
+  SEE ALSO
+         test(1)
   
   $ cat help-no-config.err
 
@@ -271,9 +307,9 @@ Help no config with bad arguments
   [1]
 
   $ cat help-no-config-args.err
-  test: too many arguments, don't know what to do with `b', `c'
-  Usage: test help [OPTION]... [TOPIC]
-  Try `test help --help' or `test --help' for more information.
+  test: too many arguments, don't know what to do with 'b', 'c'
+  Usage: test help [--man-format=FMT] [OPTION]… [TOPIC]
+  Try 'test help --help' or 'test --help' for more information.
 
 Build help no config with bad arguments
   $ ./config.exe build --help=plain --file=empty/config.ml a b c 2> build-help-no-config-args.err
@@ -281,7 +317,7 @@ Build help no config with bad arguments
          test-build - Build a test application.
   
   SYNOPSIS
-         test build [OPTION]... 
+         test build [OPTION]… 
   
   DESCRIPTION
          Build a test application.
@@ -306,19 +342,14 @@ Build help no config with bad arguments
          --warn-error=BOOL (absent=false)
              Enable -warn-error when compiling OCaml sources. 
   
-  OPTIONS
-         --help[=FMT] (default=auto)
-             Show this help in format FMT. The value FMT must be one of `auto',
-             `pager', `groff' or `plain'. With `auto', the format is `pager` or
-             `plain' whenever the TERM env var is `dumb' or undefined.
-  
-         --version
-             Show version information.
-  
   COMMON OPTIONS
          --color=WHEN (absent=auto)
-             Colorize the output. WHEN must be one of `auto', `always' or
-             `never'.
+             Colorize the output. WHEN must be one of auto, always or never.
+  
+         --help[=FMT] (default=auto)
+             Show this help in format FMT. The value FMT must be one of auto,
+             pager, groff or plain. With auto, the format is pager or plain
+             whenever the TERM env var is dumb or undefined.
   
          -q, --quiet
              Be quiet. Takes over -v and --verbosity.
@@ -328,8 +359,25 @@ Build help no config with bad arguments
              more.
   
          --verbosity=LEVEL (absent=warning)
-             Be more or less verbose. LEVEL must be one of `quiet', `error',
-             `warning', `info' or `debug'. Takes over -v.
+             Be more or less verbose. LEVEL must be one of quiet, error,
+             warning, info or debug. Takes over -v.
+  
+         --version
+             Show version information.
+  
+  EXIT STATUS
+         build exits with the following status:
+  
+         0   on success.
+  
+         123 on indiscriminate errors reported on standard error.
+  
+         124 on command line parsing errors.
+  
+         125 on unexpected internal errors (bugs).
+  
+  SEE ALSO
+         test(1)
   
   $ cat build-help-no-config-args.err
 
@@ -342,9 +390,9 @@ Ambiguous
   [1]
 
   $ cat ambiguous.err
-  test: command `c' ambiguous and could be either `clean' or `configure'
-  Usage: test COMMAND ...
-  Try `test --help' for more information.
+  test: command 'c' ambiguous and could be either 'clean' or 'configure'
+  Usage: test [COMMAND] …
+  Try 'test --help' for more information.
 
 Default
   $ ./config.exe 2> default.err
@@ -352,7 +400,7 @@ Default
          test - The test application builder
   
   SYNOPSIS
-         test COMMAND ...
+         test [COMMAND] …
   
   DESCRIPTION
          The test application builder. It glues together a set of libraries and
@@ -362,37 +410,37 @@ Default
          Use test help <command> for more information on a specific command.
   
   COMMANDS
-         build
+         build [OPTION]… 
              Build a test application.
   
-         clean
+         clean [OPTION]… 
              Clean the files produced by test for a given application.
   
-         configure
+         configure [OPTION]… 
              Configure a test application.
   
-         describe
+         describe [OPTION]… 
              Describe a test application.
   
-         help
+         help [--man-format=FMT] [OPTION]… [TOPIC]
              Display help about test commands.
   
-         query
+         query [OPTION]… [INFO]
              Query information about the test application.
-  
-  OPTIONS
-         --help[=FMT] (default=auto)
-             Show this help in format FMT. The value FMT must be one of `auto',
-             `pager', `groff' or `plain'. With `auto', the format is `pager` or
-             `plain' whenever the TERM env var is `dumb' or undefined.
-  
-         --version
-             Show version information.
   
   COMMON OPTIONS
          --color=WHEN (absent=auto)
-             Colorize the output. WHEN must be one of `auto', `always' or
-             `never'.
+             Colorize the output. WHEN must be one of auto, always or never.
+  
+         --help[=FMT] (default=auto)
+             Show this help in format FMT. The value FMT must be one of auto,
+             pager, groff or plain. With auto, the format is pager or plain
+             whenever the TERM env var is dumb or undefined.
+  
+         --help[=FMT] (default=auto)
+             Show this help in format FMT. The value FMT must be one of auto,
+             pager, groff or plain. With auto, the format is pager or plain
+             whenever the TERM env var is dumb or undefined.
   
          -q, --quiet
              Be quiet. Takes over -v and --verbosity.
@@ -402,8 +450,25 @@ Default
              more.
   
          --verbosity=LEVEL (absent=warning)
-             Be more or less verbose. LEVEL must be one of `quiet', `error',
-             `warning', `info' or `debug'. Takes over -v.
+             Be more or less verbose. LEVEL must be one of quiet, error,
+             warning, info or debug. Takes over -v.
+  
+         --version
+             Show version information.
+  
+         --version
+             Show version information.
+  
+  EXIT STATUS
+         test exits with the following status:
+  
+         0   on success.
+  
+         123 on indiscriminate errors reported on standard error.
+  
+         124 on command line parsing errors.
+  
+         125 on unexpected internal errors (bugs).
   
 
   $ cat default.err

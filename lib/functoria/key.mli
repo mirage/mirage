@@ -117,6 +117,8 @@ module Arg : sig
       {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#VALflag}
       Cmdliner.Arg.flag} but for cross-stage command-line flags. If not set,
       [stage] is [`Both]. *)
+
+  val opt_all : ?stage:stage -> 'a converter -> info -> 'a list t
 end
 
 (** {1 Configuration Keys} *)

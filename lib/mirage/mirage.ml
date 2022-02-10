@@ -254,9 +254,9 @@ type git_client = Mirage_impl_git.git_client
 
 let git_client = Mirage_impl_git.git_client
 
-type dns = Mirage_impl_git.dns
+type dns_client = Mirage_impl_git.dns_client
 
-let dns = Mirage_impl_git.dns
+let dns_client = Mirage_impl_git.dns_client
 (* TODO(dinosaure): we should move [dns] to the [mimic] distribution
  * instead of [git]. *)
 

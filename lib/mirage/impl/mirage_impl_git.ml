@@ -10,9 +10,9 @@ type git_client = Git_client
 
 let git_client = Type.v Git_client
 
-type dns = Dns
+type dns_client = Dns_client
 
-let dns = Type.v Dns
+let dns_client = Type.v Dns_client
 (* TODO(dinosaure): we should move [dns] into the [mimic] distribution. *)
 
 let git_merge_clients =
@@ -38,7 +38,7 @@ let git_happy_eyeballs =
     | _ -> assert false
   in
   impl ~packages ~connect "Git_mirage_happy_eyeballs.Make"
-    (random @-> time @-> mclock @-> pclock @-> stackv4v6 @-> dns)
+    (random @-> time @-> mclock @-> pclock @-> stackv4v6 @-> dns_client)
 
 let git_tcp =
   let packages =
@@ -48,7 +48,8 @@ let git_tcp =
     | [ _tcpv4v6; ctx ] -> Fmt.str {ocaml|%s.connect %s|ocaml} modname ctx
     | _ -> assert false
   in
-  impl ~packages ~connect "Git_mirage_tcp.Make" (tcpv4v6 @-> dns @-> git_client)
+  impl ~packages ~connect "Git_mirage_tcp.Make"
+    (tcpv4v6 @-> dns_client @-> git_client)
 
 let git_ssh ?authenticator key =
   let packages =
@@ -74,7 +75,7 @@ let git_ssh ?authenticator key =
     | None -> [ Key.v key ]
   in
   impl ~packages ~connect ~keys "Git_mirage_ssh.Make"
-    (mclock @-> tcpv4v6 @-> time @-> dns @-> git_client)
+    (mclock @-> tcpv4v6 @-> time @-> dns_client @-> git_client)
 
 let git_http ?authenticator headers =
   let packages =
@@ -112,7 +113,7 @@ let git_http ?authenticator headers =
     | _ -> assert false
   in
   impl ~packages ~connect ~keys "Git_mirage_http.Make"
-    (time @-> pclock @-> tcpv4v6 @-> dns @-> git_client)
+    (time @-> pclock @-> tcpv4v6 @-> dns_client @-> git_client)
 
 let git_tcpv4v6_of_stackv4v6 =
   let connect _ modname = function

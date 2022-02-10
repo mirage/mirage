@@ -798,10 +798,10 @@ type git_client
 
 val git_client : git_client typ
 
-type dns
+type dns_client
 (** The type for devices that resolve domain names. *)
 
-val dns : dns typ
+val dns_client : dns_client typ
 
 val happy_eyeballs :
   ?random:random impl ->
@@ -809,15 +809,15 @@ val happy_eyeballs :
   ?mclock:mclock impl ->
   ?pclock:pclock impl ->
   stackv4v6 impl ->
-  dns impl
-(** [happy_eyeballs stackv4v6] is a {!dns} device that resolve domain names
-    using the happy-eyeballs protocol (RFC 8305). *)
+  dns_client impl
+(** [happy_eyeballs stackv4v6] is a {!dns_client} device that resolve domain
+    names using the happy-eyeballs protocol (RFC 8305). *)
 
 val merge_git_clients : git_client impl -> git_client impl -> git_client impl
 (** [merge_git_clients a b] is a device that can connect to remote Git
     repositories using either the device [a] or the device [b]. *)
 
-val git_tcp : tcpv4v6 impl -> dns impl -> git_client impl
+val git_tcp : tcpv4v6 impl -> dns_client impl -> git_client impl
 (** [git_tcp tcpv4v6 dns] is a device able to connect to a remote Git repository
     using TCP/IP. *)
 
@@ -827,7 +827,7 @@ val git_ssh :
   ?mclock:mclock impl ->
   ?time:time impl ->
   tcpv4v6 impl ->
-  dns impl ->
+  dns_client impl ->
   git_client impl
 (** [git_ssh ?authenticator ~key tcpv4v6 dns] is a device able to connect to a
     remote Git repository using an SSH connection with the given private [key].
@@ -839,10 +839,10 @@ val git_ssh :
     the private key. Otherwise (if the type is Ed25519), we expect the
     b64-encoded private key.
 
-    The format of the authenticator is [SHA256:<b64-encoded-public-key>]. the
-    output of
-    [ssh-keygen -lf <(ssh-keyscan -t rsa|ed25519 remote
-    2>/dev/null)]. *)
+    The format of the authenticator is [SHA256:<b64-encoded-public-key>], the
+    output of:
+
+    {[ $ ssh-keygen -lf <(ssh-keyscan -t rsa|ed25519 remote 2>/dev/null) ]} *)
 
 val git_http :
   ?authenticator:string option key ->
@@ -850,7 +850,7 @@ val git_http :
   ?time:time impl ->
   ?pclock:pclock impl ->
   tcpv4v6 impl ->
-  dns impl ->
+  dns_client impl ->
   git_client impl
 (** [git_http ?authenticator ?headers tcpv4v6 dns] is a device able to connect
     to a remote Git repository via an HTTP(S) connection, using the provided
@@ -859,10 +859,12 @@ val git_http :
 
     The format of it is:
 
-    - [none] no authentication - key(:<hash>)?:<b64-encoded fingerprint> to
-      authenticate via the key fingerprint - cert(:<hash>)?:<b64-encoded
-      fingerprint> to authenticate via the cert fingerprint -
-      trust-anchor(:<der-encoded cert>)+ to authenticate via a list of
+    - [none] no authentication
+    - key(:<hash>)?:<b64-encoded fingerprint> to authenticate via the key
+      fingerprint
+    - cert(:<hash>)?:<b64-encoded fingerprint> to authenticate via the cert
+      fingerprint
+    - trust-anchor(:<der-encoded cert>)+ to authenticate via a list of
       certificates - By default, we use X.509 trust anchors extracted from
       Mozilla's NSS *)
 

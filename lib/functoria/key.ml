@@ -480,7 +480,7 @@ let context ?(stage = `Both) ~with_required l =
     | Arg.Opt _ -> Cmdliner.Term.(pure f $ key $ rest)
     | Arg.Required _ -> Cmdliner.Term.(pure f $ key $ rest)
     | Arg.Flag -> Cmdliner.Term.(pure f $ key $ rest)
-    | Arg.Opt_all _ -> assert false
+    | Arg.Opt_all _ -> Cmdliner.Term.(pure f $ key $ rest)
   in
   Names.fold gather names (Cmdliner.Term.pure empty_context)
 

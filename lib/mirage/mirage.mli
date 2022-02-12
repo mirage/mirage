@@ -687,6 +687,10 @@ val generic_stackv4v6 :
     If a key is not provided, it uses {!Key.net} (with the [group] argument) to
     create it. *)
 
+val tcpv4v6_of_stackv4v6 : stackv4v6 impl -> tcpv4v6 impl
+(** [tcpv4v6 stackv4v6] is an helper to extract the TCP/IP stack regardless the
+    UDP/IP stack expected by some {i devices} such as protocols. *)
+
 (** {2 Resolver configuration} *)
 
 type resolver

@@ -102,7 +102,14 @@ let test_opt_all () =
   in
   Alcotest.(check (list int)) "get d" [ 1; 2; 3 ] (Key.get context key_d);
   let context = eval (Key.context ~with_required:false) keys [] in
-  Alcotest.(check (list int)) "get d" [] (Key.get context key_d)
+  Alcotest.(check (list int)) "get d" [] (Key.get context key_d);
+  match
+    Cmdliner.Term.eval ~argv:[| ""; "-d" |]
+      (Key.context ~with_required:false keys, Cmdliner.Term.info "keys")
+  with
+  | `Ok _ | `Help | `Version ->
+      Alcotest.failf "Invalid given command-line, eval must fail."
+  | `Error _ -> Alcotest.(check pass) "invalid opt-all argument" () ()
 
 let suite =
   List.map

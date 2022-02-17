@@ -157,9 +157,7 @@ let pp_packages ppf packages =
 let pp_pins ppf = function
   | [] -> ()
   | pins ->
-      let pp_pin ppf (package, url) =
-        Fmt.pf ppf "[\"%s.dev\" %S]" package url
-      in
+      let pp_pin ppf (package, url) = Fmt.pf ppf "[\"%s\" %S]" package url in
       Fmt.pf ppf "@.pin-depends: [ @[<hv>%a@]@ ]@."
         Fmt.(list ~sep:(any "@ ") pp_pin)
         pins

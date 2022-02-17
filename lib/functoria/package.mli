@@ -35,6 +35,7 @@ val v :
   ?min:string ->
   ?max:string ->
   ?pin:string ->
+  ?pin_version:string ->
   string ->
   t
 (** [v ~scope ~build ~sublibs ~libs ~min ~max ~pin opam] is a [package]. [Build]
@@ -46,8 +47,8 @@ val v :
     leads to an invalid argument. Version constraints are given as [min]
     (inclusive) and [max] (exclusive). If [pin] is provided, a
     {{:https://opam.ocaml.org/doc/Manual.html#opamfield-pin-depends}
-    pin-depends} is generated. [~scope] specifies the installation location of
-    the package. *)
+    pin-depends} is generated, [pin_version] is ["dev"] by default. [~scope]
+    specifies the installation location of the package. *)
 
 val with_scope : scope:scope -> t -> t
 (** [with_scope t] returns t with chosen installation location.*)
@@ -61,8 +62,8 @@ val key : t -> string
 val scope : t -> scope
 (** [scope t] is [t]'s installation scope. *)
 
-val pin : t -> string option
-(** [pin t] is [Some r] iff [t] is pinned to the repository [r]. *)
+val pin : t -> (string * string) option
+(** [pin t] is [Some (name_version, r)] iff [t] is pinned to the repository [r]. *)
 
 val build_dependency : t -> bool
 (** [build_dependency t] is [true] iff [t] is a build-time dependency. *)

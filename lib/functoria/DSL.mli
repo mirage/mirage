@@ -108,6 +108,7 @@ val package :
   ?min:string ->
   ?max:string ->
   ?pin:string ->
+  ?pin_version:string ->
   string ->
   package
 (** Same as {!Functoria.Package.val-v} *)

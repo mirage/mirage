@@ -22,7 +22,7 @@ type scope = [ `Switch | `Monorepo ]
 
 type t = {
   name : string;
-  pin : string option;
+  pin : (string * string) option;  (** [name_version * url] *)
   scope : scope;
   build : bool;
   libs : String.Set.t;
@@ -56,7 +56,9 @@ let merge a b =
       match (a.pin, b.pin) with
       | None, None -> None
       | None, Some a | Some a, None -> Some a
-      | Some a, Some b when String.equal a b -> Some a
+      | Some (an, au), Some (bn, bu)
+        when String.equal an au && String.equal bn bu ->
+          a.pin
       | _ -> invalid_arg ("conflicting pin depends for " ^ name)
     and build = a.build || b.build
     and scope = a.scope in
@@ -67,7 +69,8 @@ let merge a b =
         let empty = String.Set.empty in
         Some { name; build; scope; libs; min = empty; max = empty; pin }
 
-let v ?(scope = `Monorepo) ?(build = false) ?sublibs ?libs ?min ?max ?pin name =
+let v ?(scope = `Monorepo) ?(build = false) ?sublibs ?libs ?min ?max ?pin
+    ?(pin_version = "dev") name =
   let libs =
     match (sublibs, libs) with
     | None, None -> [ name ]
@@ -82,7 +85,11 @@ let v ?(scope = `Monorepo) ?(build = false) ?sublibs ?libs ?min ?max ?pin name =
     | None -> String.Set.empty
     | Some m -> String.Set.singleton m
   in
-  let min = to_set min and max = to_set max in
+  let min = to_set min
+  and max = to_set max
+  and pin =
+    match pin with Some p -> Some (name ^ "." ^ pin_version, p) | None -> None
+  in
   { name; build; scope; libs; min; max; pin }
 
 let with_scope ~scope t = { t with scope }

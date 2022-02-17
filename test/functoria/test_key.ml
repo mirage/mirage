@@ -6,6 +6,7 @@ let key_b = Key.create "b" Key.Arg.(opt int 0 @@ info [ "b" ])
 let key_c =
   Key.create "c" Key.Arg.(required ~stage:`Configure string @@ info [ "c" ])
 
+let key_d = Key.create "d" Key.Arg.(opt_all int @@ info [ "d" ])
 let empty = Key.empty_context
 let ( & ) (k, v) c = Key.add_to_context k v c
 let ( && ) x y = x & y & empty
@@ -31,7 +32,7 @@ let test_eval () =
   let r = Key.eval context match_2 in
   Alcotest.(check string) "match 1" "hello" r
 
-let keys = Key.Set.of_list Key.[ v key_a; v key_b; v key_c ]
+let keys = Key.Set.of_list Key.[ v key_a; v key_b; v key_c; v key_d ]
 
 let eval f keys argv =
   let argv = Array.of_list ("" :: argv) in
@@ -92,6 +93,24 @@ let test_cmdliner () =
   let _ = eval (fun x -> x) context [] in
   ()
 
+let test_opt_all () =
+  let context =
+    eval
+      (Key.context ~with_required:false)
+      keys
+      [ "-d"; "1"; "-d"; "2"; "-d"; "3" ]
+  in
+  Alcotest.(check (list int)) "get d" [ 1; 2; 3 ] (Key.get context key_d);
+  let context = eval (Key.context ~with_required:false) keys [] in
+  Alcotest.(check (list int)) "get d" [] (Key.get context key_d);
+  match
+    Cmdliner.Term.eval ~argv:[| ""; "-d" |]
+      (Key.context ~with_required:false keys, Cmdliner.Term.info "keys")
+  with
+  | `Ok _ | `Help | `Version ->
+      Alcotest.failf "Invalid given command-line, eval must fail."
+  | `Error _ -> Alcotest.(check pass) "invalid opt-all argument" () ()
+
 let suite =
   List.map
     (fun (n, f) -> (n, `Quick, f))
@@ -102,4 +121,5 @@ let suite =
       ("find", test_find);
       ("merge", test_merge);
       ("cmdliner", test_cmdliner);
+      ("opt-all", test_opt_all);
     ]

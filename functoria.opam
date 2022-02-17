@@ -24,7 +24,7 @@ depends: [
   "ocaml" {>= "4.08.0"}
   "dune" {>= "2.8.0"}
   "base-unix"
-  "cmdliner" {>= "0.9.8"}
+  "cmdliner" {>= "0.9.8" & < "1.1.0"}
   "rresult" {>= "0.7.0"}
   "result" {>= "1.5"}
   "astring"

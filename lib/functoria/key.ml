@@ -104,6 +104,7 @@ module Arg = struct
 
   type 'a kind =
     | Opt : 'a * 'a converter -> 'a kind
+    | Opt_all : 'a converter -> 'a list kind
     | Required : 'a converter -> 'a option kind
     | Flag : bool kind
 
@@ -113,12 +114,14 @@ module Arg = struct
 
   let pp_kind : type a. a kind -> a Fmt.t = function
     | Opt (_, c) -> pp_conv c
+    | Opt_all c -> pp_conv (list c)
     | Required c -> pp_conv (some c)
     | Flag -> Fmt.bool
 
   let hash_of_kind : type a. a kind -> int = function
     | Opt (x, _) -> Hashtbl.hash (`Opt x)
     | Required _ -> Hashtbl.hash `Required
+    | Opt_all _ -> Hashtbl.hash `All
     | Flag -> Hashtbl.hash `Flag
 
   let compare_kind : type a b. a kind -> b kind -> int =
@@ -127,11 +130,14 @@ module Arg = struct
     match (a, b) with
     | Opt (x, cx), Opt (y, cy) -> String.compare (default cx x) (default cy y)
     | Required _, Required _ -> 0
+    | Opt_all _, Opt_all _ -> 0
     | Flag, Flag -> 0
     | Opt _, _ -> 1
     | _, Opt _ -> -1
     | Required _, _ -> 1
     | _, Required _ -> -1
+    | Opt_all _, _ -> 1
+    | _, Opt_all _ -> -1
 
   type 'a t = { stage : stage; info : info; kind : 'a kind }
 
@@ -161,11 +167,17 @@ module Arg = struct
   let required ?(stage = `Both) conv info =
     { stage; info; kind = Required conv }
 
+  let opt_all ?(stage = `Both) conv info = { stage; info; kind = Opt_all conv }
+
   let default (type a) (t : a t) =
     match t.kind with
     | Opt (d, _) -> d
     | Flag -> (false : bool)
     | Required _ -> (None : _ option)
+    | Opt_all _ -> ([] : _ list)
+
+  (* XXX(dinosaure): I don't understand why we wrapped
+   * value with ['a option]. *)
 
   let make_opt_cmdliner wrap i default desc =
     let none =
@@ -174,6 +186,9 @@ module Arg = struct
       | None -> None
     in
     Cmdliner.Arg.(wrap @@ opt (some ?none @@ converter desc) None i)
+
+  let make_opt_all_cmdliner wrap i desc =
+    Cmdliner.Arg.(wrap @@ opt_all (converter desc) [] i)
 
   let to_cmdliner ~with_required (type a) (t : a t) : a option Cmdliner.Term.t =
     let i = cmdliner_of_info t.info in
@@ -184,6 +199,16 @@ module Arg = struct
     | Required desc when with_required && t.stage = `Configure ->
         make_opt_cmdliner Cmdliner.Arg.required i None (some (some desc))
     | Required desc -> make_opt_cmdliner Cmdliner.Arg.value i None (some desc)
+    | Opt_all desc ->
+        let list_to_option = function
+          | [] -> None
+          | _ :: _ as lst -> Some lst
+        in
+        let wrap arg =
+          let open Cmdliner in
+          Term.(const list_to_option $ Arg.value arg)
+        in
+        make_opt_all_cmdliner wrap i desc
 
   let serialize_value (type a) (v : a) ppf (t : a t) =
     match t.kind with
@@ -191,6 +216,7 @@ module Arg = struct
     | Opt (_, c) -> (serialize c) ppf v
     | Required c -> (
         match v with Some v -> (serialize c) ppf v | None -> assert false)
+    | Opt_all c -> (serialize (list c)) ppf v
 
   (* This is only called by serialize_ro, hence a configure time
            key, so the value is known. *)
@@ -206,6 +232,10 @@ module Arg = struct
         Fmt.pf ppf "Functoria_runtime.Arg.key ?default:(%a) %s %a"
           (serialize @@ some c)
           v (runtime_conv c) serialize_info t.info
+    | Opt_all c ->
+        Fmt.pf ppf "Functoria_runtime.Arg.opt_all %s %a %a" (runtime_conv c)
+          (serialize (list c))
+          v serialize_info t.info
 end
 
 type 'a key = {
@@ -382,6 +412,7 @@ let pps p =
     | Arg.Opt _, v -> pp' fmt k v
     | Arg.Required _, v -> pp' fmt k v
     | Arg.Flag, v -> pp' fmt k v
+    | Arg.Opt_all _, v -> pp' fmt k v
     (* Warning 4 and GADT don't interact well. *)
   in
   Fmt.vbox @@ fun ppf s -> Set.(pp_gen f ppf @@ s)
@@ -403,6 +434,7 @@ let info_arg (type a) (arg : a Arg.kind) =
   | Arg.Required _ -> "This key is required."
   | Arg.Flag -> ""
   | Arg.Opt _ -> ""
+  | Arg.Opt_all _ -> ""
 
 let add_extra_info setters arg =
   match arg.Arg.info.doc with
@@ -444,7 +476,11 @@ let context ?(stage = `Both) ~with_required l =
           Alias.apply v k.setters p
     in
     let key = Arg.to_cmdliner k.arg ~with_required in
-    Cmdliner.Term.(pure f $ key $ rest)
+    match k.arg.Arg.kind with
+    | Arg.Opt _ -> Cmdliner.Term.(pure f $ key $ rest)
+    | Arg.Required _ -> Cmdliner.Term.(pure f $ key $ rest)
+    | Arg.Flag -> Cmdliner.Term.(pure f $ key $ rest)
+    | Arg.Opt_all _ -> Cmdliner.Term.(pure f $ key $ rest)
   in
   Names.fold gather names (Cmdliner.Term.pure empty_context)
 

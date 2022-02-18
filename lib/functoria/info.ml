@@ -55,10 +55,7 @@ let libraries t = libraries (packages t)
 
 let pins packages =
   List.fold_left
-    (fun acc p ->
-      match Package.pin p with
-      | None -> acc
-      | Some u -> (Package.name p, u) :: acc)
+    (fun acc p -> match Package.pin p with None -> acc | Some u -> u :: acc)
     [] packages
 
 let keys t = Key.Set.elements t.keys

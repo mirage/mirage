@@ -300,12 +300,11 @@ val docteur :
   ?analyze:bool Key.key ->
   string ->
   kv_ro impl
-(** [docteur ?mode ?disk ?analyze remote] creates a {i docteur} image which can
-    be used by the produced {i unikernel} as an external block-device. It
-    permits to attach a read-only (probably huge) file-system. The format of the
-    file-system is the Git PACK file (version 2). It permits to store a huge
-    amount of files into a small image (for instance, 14Gb of documentation can
-    be compiled into a {i docteur} image of 240Mb).
+(** [docteur ?mode ?disk ?analyze remote] is a read-only, key-value store
+    device. Data is stored on that device using the Git PACK file format,
+    version 2. This format has very good compression factors for many similar
+    files of relatively small size. For instance, 14Gb of HTML files can be
+    compressed into a disk image of 240Mb.
 
     Unlike {!crunch}, [docteur] produces an external image which means that less
     memory is used to keep and get files. The image can be produced from many
@@ -313,7 +312,7 @@ val docteur :
 
     - A local Git repository (like [file://path/to/the/git/repository/])
     - A simple directory (like [file://path/to/a/simple/directory/])
-    - A remove Git repository (via SSH, HTTP(S) or TCP/IP as what [git clone]
+    - A remote Git repository (via SSH, HTTP(S) or TCP/IP as what [git clone]
       expects)
 
     For a Solo5 target, users must {i attach} the image as a block device:
@@ -321,26 +320,20 @@ val docteur :
     {[ $ solo5-hvt --block:<name>=<path-to-the-image> -- unikernel.{hvt,...} ]}
 
     For the Unix target, the program [open] the image at the beginning of the
-    process.
-
-    [docteur] becomes useful to load some files without the memory restriction
-    when the unikernel is launched (~ 1Go) with Solo5.
-
-    An integrity check of the image can be done via the [analyze] value
+    process. An integrity check of the image can be done via the [analyze] value
     (defaults to [true]).
 
     It's possible to use the file-system into 2 modes:
 
-    - [`Light]: an access requires that we reconstruct the path to the requested
-      file. That mostly means that we probably need to extract few objects
-      before the extraction of the requested one. This choice does not require a
-      huge usage of memory but it can be slower if the requested file is deep in
-      the structure.
-    - [`Fast]: reconstructs the layout of your file-system at the boot time (so
-      it can take a time at the beginning). Then, if the user wants a specific
-      file, we ensure that only the requested object is extracted. However,
-      depending on your image, this mode can require a huge amount of memory.
-      Indeed, it keeps the structure of your file-system in memory. *)
+    - [`Light]: any access requires that we reconstruct the path to the
+      requested file. That means that we will need to extract a few additional
+      objects before the extraction of the requested one. [`Light] does not
+      cache anything in memory but it can be slower if the requested file is
+      deep in the directory structure.
+    - [`Fast]: reconstructs and cache the layout of the directory structure when
+      the unikernel starts: it might increase boot-time and bigger memory
+      requirements. However, [`Fast] allows the device to decode only the
+      requested object so it is faster than the [`Light] mode. *)
 
 type kv_rw
 (** Abstract type for read-write key/value store. *)

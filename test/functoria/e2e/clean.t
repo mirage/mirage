@@ -38,7 +38,6 @@ Make sure that clean remove everything:
                        vote=cat (default),
                        warn_error=false (default)
   test.exe: [INFO] Skipped ./app
-  test.exe: [INFO] Skipped ./clean.t
   test.exe: [INFO] Skipped ./help.exe
   test.exe: [INFO] Skipped ./lib
   test.exe: [INFO] Skipped ./test.exe
@@ -88,7 +87,6 @@ Check that clean works with `--output`:
                        vote=cat (default),
                        warn_error=false (default)Output     toto
   test.exe: [INFO] Skipped ./app
-  test.exe: [INFO] Skipped ./clean.t
   test.exe: [INFO] Skipped ./help.exe
   test.exe: [INFO] Skipped ./lib
   test.exe: [INFO] Skipped ./test.exe

@@ -15,6 +15,13 @@ val block_of_xenstore_id : string -> block Functoria.impl
 val block_of_file : string -> block Functoria.impl
 val block_conf : string -> block Functoria.device
 
+val docteur :
+  ?mode:[ `Fast | `Light ] ->
+  ?disk:string Functoria.Key.key ->
+  ?analyze:bool Functoria.Key.key ->
+  string ->
+  Mirage_impl_kv.ro Functoria.impl
+
 type block_t = { filename : string; number : int }
 
 val all_blocks : (string, block_t) Hashtbl.t

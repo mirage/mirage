@@ -294,6 +294,47 @@ val generic_kv_ro :
 
     If no key is provided, it uses {!Key.kv_ro} to create a new one. *)
 
+val docteur :
+  ?mode:[ `Fast | `Light ] ->
+  ?disk:string Key.key ->
+  ?analyze:bool Key.key ->
+  string ->
+  kv_ro impl
+(** [docteur ?mode ?disk ?analyze remote] is a read-only, key-value store
+    device. Data is stored on that device using the Git PACK file format,
+    version 2. This format has very good compression factors for many similar
+    files of relatively small size. For instance, 14Gb of HTML files can be
+    compressed into a disk image of 240Mb.
+
+    Unlike {!crunch}, [docteur] produces an external image which means that less
+    memory is used to keep and get files. The image can be produced from many
+    sources:
+
+    - A local Git repository (like [file://path/to/the/git/repository/])
+    - A simple directory (like [file://path/to/a/simple/directory/])
+    - A remote Git repository (via SSH, HTTP(S) or TCP/IP as what [git clone]
+      expects)
+
+    For a Solo5 target, users must {i attach} the image as a block device:
+
+    {[ $ solo5-hvt --block:<name>=<path-to-the-image> -- unikernel.{hvt,...} ]}
+
+    For the Unix target, the program [open] the image at the beginning of the
+    process. An integrity check of the image can be done via the [analyze] value
+    (defaults to [true]).
+
+    It's possible to use the file-system into 2 modes:
+
+    - [`Light]: any access requires that we reconstruct the path to the
+      requested file. That means that we will need to extract a few additional
+      objects before the extraction of the requested one. [`Light] does not
+      cache anything in memory but it can be slower if the requested file is
+      deep in the directory structure.
+    - [`Fast]: reconstructs and cache the layout of the directory structure when
+      the unikernel starts: it might increase boot-time and bigger memory
+      requirements. However, [`Fast] allows the device to decode only the
+      requested object so it is faster than the [`Light] mode. *)
+
 type kv_rw
 (** Abstract type for read-write key/value store. *)
 

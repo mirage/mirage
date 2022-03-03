@@ -19,6 +19,7 @@ val docteur :
   ?mode:[ `Fast | `Light ] ->
   ?disk:string Functoria.Key.key ->
   ?analyze:bool Functoria.Key.key ->
+  ?branch:string ->
   string ->
   Mirage_impl_kv.ro Functoria.impl
 

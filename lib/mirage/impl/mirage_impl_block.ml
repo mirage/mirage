@@ -141,7 +141,11 @@ let pp_mode ppf = function
   | `Fast -> Fmt.string ppf "Fast"
   | `Light -> Fmt.string ppf "Light"
 
-let docteur_unix (mode : mode) disk analyze remote =
+let pp_branch ppf = function
+  | None -> ()
+  | Some branch -> Fmt.pf ppf " -b %s" branch
+
+let docteur_unix (mode : mode) disk branch analyze remote =
   let dune info =
     let ctx = Info.context info in
     let disk = Key.get ctx disk in
@@ -151,9 +155,9 @@ let docteur_unix (mode : mode) disk analyze remote =
 (rule
  (targets %s)
  (deps (:make %%{bin:docteur.make}))
- (action (run %%{make} %s %s)))
+ (action (run %%{make} %s%a %s)))
 |dune}
-        disk remote disk
+        disk remote pp_branch branch disk
     in
     [ dune ]
   in
@@ -182,7 +186,7 @@ let docteur_unix (mode : mode) disk analyze remote =
     (Fmt.str "Docteur_unix.%a" pp_mode mode)
     ro
 
-let docteur_solo5 (mode : mode) disk analyze remote =
+let docteur_solo5 (mode : mode) disk branch analyze remote =
   let dune info =
     let ctx = Info.context info in
     let disk = Key.get ctx disk in
@@ -192,9 +196,9 @@ let docteur_solo5 (mode : mode) disk analyze remote =
 (rule
  (targets %s)
  (deps (:make %%{bin:docteur.make}))
- (action (run %%{make} %s %s)))
+ (action (run %%{make} %s%a %s)))
 |dune}
-        disk remote disk
+        disk remote pp_branch branch disk
     in
     [ dune ]
   in
@@ -240,16 +244,16 @@ let analyze =
   in
   Key.(create "analyze" Arg.(opt bool true doc))
 
-let docteur ?(mode = `Fast) ?(disk = disk) ?(analyze = analyze) remote =
+let docteur ?(mode = `Fast) ?(disk = disk) ?(analyze = analyze) ?branch remote =
   match_impl
     Key.(value target)
     [
-      (`Xen, docteur_solo5 mode disk analyze remote);
-      (`Qubes, docteur_solo5 mode disk analyze remote);
-      (`Virtio, docteur_solo5 mode disk analyze remote);
-      (`Hvt, docteur_solo5 mode disk analyze remote);
-      (`Spt, docteur_solo5 mode disk analyze remote);
-      (`Muen, docteur_solo5 mode disk analyze remote);
-      (`Genode, docteur_solo5 mode disk analyze remote);
+      (`Xen, docteur_solo5 mode disk branch analyze remote);
+      (`Qubes, docteur_solo5 mode disk branch analyze remote);
+      (`Virtio, docteur_solo5 mode disk branch analyze remote);
+      (`Hvt, docteur_solo5 mode disk branch analyze remote);
+      (`Spt, docteur_solo5 mode disk branch analyze remote);
+      (`Muen, docteur_solo5 mode disk branch analyze remote);
+      (`Genode, docteur_solo5 mode disk branch analyze remote);
     ]
-    ~default:(docteur_unix mode disk analyze remote)
+    ~default:(docteur_unix mode disk branch analyze remote)

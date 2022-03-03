@@ -298,6 +298,7 @@ val docteur :
   ?mode:[ `Fast | `Light ] ->
   ?disk:string Key.key ->
   ?analyze:bool Key.key ->
+  ?branch:string ->
   string ->
   kv_ro impl
 (** [docteur ?mode ?disk ?analyze remote] is a read-only, key-value store
@@ -314,6 +315,10 @@ val docteur :
     - A simple directory (like [file://path/to/a/simple/directory/])
     - A remote Git repository (via SSH, HTTP(S) or TCP/IP as what [git clone]
       expects)
+
+    If you use a Git repository, you can choose a specific branch with the
+    [?branch] argument (like [refs/heads/main]). Otherwise, this argument is
+    ignored.
 
     For a Solo5 target, users must {i attach} the image as a block device:
 

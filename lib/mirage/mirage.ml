@@ -76,8 +76,8 @@ let kv_rw = Mirage_impl_kv.rw
 let direct_kv_rw = Mirage_impl_kv.direct_kv_rw
 let kv_rw_mem = Mirage_impl_kv.mem_kv_rw
 
-let docteur ?mode ?disk ?analyze remote =
-  Mirage_impl_block.docteur ?mode ?disk ?analyze remote
+let docteur ?mode ?disk ?analyze ?branch remote =
+  Mirage_impl_block.docteur ?mode ?disk ?analyze ?branch remote
 
 type block = Mirage_impl_block.block
 

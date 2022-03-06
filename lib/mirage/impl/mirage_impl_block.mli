@@ -27,3 +27,7 @@ val docteur :
 type block_t = { filename : string; number : int }
 
 val all_blocks : (string, block_t) Hashtbl.t
+
+val chamelon :
+  program_block_size:int Functoria.key ->
+  (block -> Mirage_impl_pclock.pclock -> Mirage_impl_kv.rw) Functoria.impl

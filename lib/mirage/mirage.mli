@@ -361,6 +361,9 @@ val direct_kv_rw : string -> kv_rw impl
 val kv_rw_mem : ?clock:pclock impl -> unit -> kv_rw impl
 (** An in-memory key-value store using [mirage-kv-mem]. *)
 
+val chamelon :
+  program_block_size:int key -> ?pclock:pclock impl -> block impl -> kv_rw impl
+
 (** {2 Filesystem} *)
 
 type fs

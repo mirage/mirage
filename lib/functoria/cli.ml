@@ -89,7 +89,7 @@ let extra_repos doc_section =
     let pp ppf (name, repository) = Fmt.pf ppf "%s:%s" name repository in
     Arg.conv (parser, pp)
   in
-  let env = Arg.env_var "MIRAGE_EXTRA_REPOS" in
+  let env = Cmd.Env.info "MIRAGE_EXTRA_REPOS" in
   let doc =
     Arg.info ~docs:doc_section ~docv:"NAME1:URL1,NAME2:URL2,..." ~env
       ~doc:
@@ -312,6 +312,8 @@ let args ~with_setup context mname =
  *)
 
 module Subcommands = struct
+  [@@@warning "-d"]
+
   (** The 'configure' subcommand *)
   let configure ~with_setup mname context =
     ( Term.(
@@ -450,19 +452,20 @@ end
  *)
 
 let peek_full_eval argv =
-  match Term.eval_peek_opts ~argv full_eval with _, `Ok b -> b | _ -> None
+  match Cmd.eval_peek_opts ~argv full_eval with _, Ok (`Ok b) -> b | _ -> None
 
 let peek_output argv =
-  match Term.eval_peek_opts ~argv output with _, `Ok b -> b | _ -> None
+  match Cmd.eval_peek_opts ~argv output with _, Ok (`Ok b) -> b | _ -> None
 
 let peek_args ?(with_setup = false) ~mname argv =
-  match Term.eval_peek_opts ~argv (args ~with_setup (Term.pure ()) mname) with
-  | _, `Ok b | Some b, _ -> b
+  match Cmd.eval_peek_opts ~argv (args ~with_setup (Term.const ()) mname) with
+  | _, Ok (`Ok b) | Some b, _ -> b
   | _ -> assert false
 
 let eval ?(with_setup = true) ?help_ppf ?err_ppf ~name ~version ~configure
     ~query ~describe ~build ~clean ~help ~mname argv =
-  Cmdliner.Term.eval_choice ?help:help_ppf ?err:err_ppf ~argv ~catch:false
+  (Cmdliner.Term.eval_choice [@warning "-d"]) ?help:help_ppf ?err:err_ppf ~argv
+    ~catch:false
     (Subcommands.default ~with_setup ~name ~version)
     [
       Subcommands.configure ~with_setup mname configure;
@@ -547,15 +550,15 @@ type 'a result =
   [ `Ok of 'a action | `Error of 'a args * [ `Exn | `Parse | `Term ] | `Version ]
 
 let peek ?(with_setup = false) ~mname argv : unit result =
-  let niet = Term.pure () in
+  let niet = Term.const () in
   let peek t =
-    match Term.eval_peek_opts ~argv ~version_opt:true (fst t) with
-    | _, `Version -> `Version
-    | _, `Error e -> `Error (peek_args ~with_setup:false ~mname argv, e)
-    | _, `Help ->
+    match Cmd.eval_peek_opts ~argv ~version_opt:true (fst t) with
+    | _, Ok `Version -> `Version
+    | _, Error e -> `Error (peek_args ~with_setup:false ~mname argv, e)
+    | _, Ok `Help ->
         let args = peek_args ~with_setup:false ~mname argv in
         `Ok (Help args)
-    | Some v, _ | _, `Ok v -> `Ok v
+    | Some v, _ | _, Ok (`Ok v) -> `Ok v
   in
   let peek_cmd t = peek (t niet) in
   match peek_choice argv with

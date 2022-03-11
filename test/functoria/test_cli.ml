@@ -20,7 +20,7 @@ let test_configure () =
   let extra_term =
     Cmdliner.(
       Term.(
-        pure (fun xyz cde -> (xyz, cde))
+        const (fun xyz cde -> (xyz, cde))
         $ Arg.(value (flag (info [ "x"; "xyz" ])))
         $ Arg.(value (flag (info [ "c"; "cde" ])))))
   in
@@ -57,7 +57,7 @@ let test_describe () =
   let extra_term =
     Cmdliner.(
       Term.(
-        pure (fun xyz cde -> (xyz, cde))
+        const (fun xyz cde -> (xyz, cde))
         $ Arg.(value (flag (info [ "x"; "xyz" ])))
         $ Arg.(value (flag (info [ "c"; "cde" ])))))
   in
@@ -97,7 +97,7 @@ let test_build () =
   let extra_term =
     Cmdliner.(
       Term.(
-        pure (fun xyz cde -> (xyz, cde))
+        const (fun xyz cde -> (xyz, cde))
         $ Arg.(value (flag (info [ "x"; "xyz" ])))
         $ Arg.(value (flag (info [ "c"; "cde" ])))))
   in
@@ -123,7 +123,7 @@ let test_clean () =
   let extra_term =
     Cmdliner.(
       Term.(
-        pure (fun xyz cde -> (xyz, cde))
+        const (fun xyz cde -> (xyz, cde))
         $ Arg.(value (flag (info [ "x"; "xyz" ])))
         $ Arg.(value (flag (info [ "c"; "cde" ])))))
   in
@@ -149,7 +149,7 @@ let test_help () =
   let extra_term =
     Cmdliner.(
       Term.(
-        pure (fun xyz cde -> (xyz, cde))
+        const (fun xyz cde -> (xyz, cde))
         $ Arg.(value (flag (info [ "x"; "xyz" ])))
         $ Arg.(value (flag (info [ "c"; "cde" ])))))
   in
@@ -166,7 +166,7 @@ let test_default () =
   let extra_term =
     Cmdliner.(
       Term.(
-        pure (fun xyz cde -> (xyz, cde))
+        const (fun xyz cde -> (xyz, cde))
         $ Arg.(value (flag (info [ "x"; "xyz" ])))
         $ Arg.(value (flag (info [ "c"; "cde" ])))))
   in

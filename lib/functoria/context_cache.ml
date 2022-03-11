@@ -64,8 +64,8 @@ let read file =
     with Failure e -> Action.error e
 
 let peek t term =
-  match Cmdliner.Term.eval_peek_opts ~argv:t term with
-  | Some c, _ | _, `Ok c -> Some c
+  match Cmdliner.Cmd.eval_peek_opts ~argv:t term with
+  | Some c, _ | _, Ok (`Ok c) -> Some c
   | _ ->
       Fmt.failwith "Invalid cached configuration. Please run configure again."
 
@@ -74,7 +74,7 @@ let merge t term =
     match peek t term with None -> Key.empty_context | Some c -> c
   in
   let f term = Key.merge_context ~default:cache term in
-  Cmdliner.Term.(pure f $ term)
+  Cmdliner.Term.(const f $ term)
 
 let peek_output t = Cli.peek_output t
 

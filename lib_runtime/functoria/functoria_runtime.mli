@@ -29,18 +29,17 @@ module Arg : sig
   (** The type for runtime command-line arguments. Similar to
       [Functoria.Key.Arg.t] but only available at runtime. *)
 
-  val opt : 'a Cmdliner.Arg.converter -> 'a -> Cmdliner.Arg.info -> 'a t
+  val opt : 'a Cmdliner.Arg.conv -> 'a -> Cmdliner.Arg.info -> 'a t
   (** [opt] is the runtime companion of [Functoria.Ky.Arg.opt]. *)
 
   val opt_all :
-    'a Cmdliner.Arg.converter -> 'a list -> Cmdliner.Arg.info -> 'a list t
+    'a Cmdliner.Arg.conv -> 'a list -> Cmdliner.Arg.info -> 'a list t
   (** [opt_all] is the runtime companion of [Functoria.Key.Arg.opt_all]. *)
 
-  val required : 'a Cmdliner.Arg.converter -> Cmdliner.Arg.info -> 'a t
+  val required : 'a Cmdliner.Arg.conv -> Cmdliner.Arg.info -> 'a t
   (** [required] is the runtime companion of [Functoria.Key.Arg.required]. *)
 
-  val key :
-    ?default:'a -> 'a Cmdliner.Arg.converter -> Cmdliner.Arg.info -> 'a t
+  val key : ?default:'a -> 'a Cmdliner.Arg.conv -> Cmdliner.Arg.info -> 'a t
   (** [key] is either {!opt} or {!required}, depending if [~default] is
       provided. *)
 

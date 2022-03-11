@@ -31,7 +31,7 @@ module Arg = struct
   type 'a runtime_conv = string
 
   type 'a converter = {
-    conv : 'a Cmdliner.Arg.converter;
+    conv : 'a Cmdliner.Arg.conv;
     serialize : 'a serialize;
     runtime_conv : 'a runtime_conv;
   }
@@ -84,7 +84,7 @@ module Arg = struct
 
   let cmdliner_of_info { docs; docv; doc; env; names } =
     let env =
-      match env with Some s -> Some (Cmdliner.Arg.env_var s) | None -> None
+      match env with Some s -> Some (Cmdliner.Cmd.Env.info s) | None -> None
     in
     Cmdliner.Arg.info ~docs ?docv ?doc ?env names
 
@@ -481,12 +481,12 @@ let context ?(stage = `Both) ~with_required l =
     in
     let key = Arg.to_cmdliner k.arg ~with_required in
     match k.arg.Arg.kind with
-    | Arg.Opt _ -> Cmdliner.Term.(pure f $ key $ rest)
-    | Arg.Required _ -> Cmdliner.Term.(pure f $ key $ rest)
-    | Arg.Flag -> Cmdliner.Term.(pure f $ key $ rest)
-    | Arg.Opt_all _ -> Cmdliner.Term.(pure f $ key $ rest)
+    | Arg.Opt _ -> Cmdliner.Term.(const f $ key $ rest)
+    | Arg.Required _ -> Cmdliner.Term.(const f $ key $ rest)
+    | Arg.Flag -> Cmdliner.Term.(const f $ key $ rest)
+    | Arg.Opt_all _ -> Cmdliner.Term.(const f $ key $ rest)
   in
-  Names.fold gather names (Cmdliner.Term.pure empty_context)
+  Names.fold gather names (Cmdliner.Term.const empty_context)
 
 (* {2 Code emission} *)
 

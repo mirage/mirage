@@ -17,6 +17,7 @@
 module Arg = struct
   type 'a kind =
     | Opt : 'a * 'a Cmdliner.Arg.converter -> 'a kind
+    | Opt_all : 'a list * 'a Cmdliner.Arg.converter -> 'a list kind
     | Flag : bool kind
     | Required : 'a Cmdliner.Arg.converter -> 'a kind
 
@@ -24,6 +25,7 @@ module Arg = struct
 
   let flag info = { info; kind = Flag }
   let opt conv default info = { info; kind = Opt (default, conv) }
+  let opt_all conv default info = { info; kind = Opt_all (default, conv) }
   let required conv info = { info; kind = Required conv }
 
   let key ?default c i =
@@ -32,6 +34,7 @@ module Arg = struct
   let default (type a) (t : a t) =
     match t.kind with
     | Opt (d, _) -> Some d
+    | Opt_all (d, _) -> Some d
     | Flag -> Some false
     | Required _ -> None
 
@@ -62,6 +65,8 @@ module Key = struct
     | Arg.Flag -> term @@ Cmdliner.Arg.(value & flag doc)
     | Arg.Opt (default, desc) ->
         term @@ Cmdliner.Arg.(value & opt desc default doc)
+    | Arg.Opt_all (default, desc) ->
+        term @@ Cmdliner.Arg.(value & opt_all desc default doc)
     | Arg.Required desc ->
         term @@ Cmdliner.Arg.(required & opt (some desc) None doc)
 end

@@ -32,6 +32,10 @@ module Arg : sig
   val opt : 'a Cmdliner.Arg.converter -> 'a -> Cmdliner.Arg.info -> 'a t
   (** [opt] is the runtime companion of [Functoria.Ky.Arg.opt]. *)
 
+  val opt_all :
+    'a Cmdliner.Arg.converter -> 'a list -> Cmdliner.Arg.info -> 'a list t
+  (** [opt_all] is the runtime companion of [Functoria.Key.Arg.opt_all]. *)
+
   val required : 'a Cmdliner.Arg.converter -> Cmdliner.Arg.info -> 'a t
   (** [required] is the runtime companion of [Functoria.Key.Arg.required]. *)
 

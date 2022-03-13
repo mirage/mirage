@@ -89,7 +89,7 @@ module Arg = struct
     Cmdliner.Arg.info ~docs ?docv ?doc ?env names
 
   let serialize_env fmt =
-    Fmt.pf fmt "(Cmdliner.Arg.env_var %a)" Serialize.string
+    Fmt.pf fmt "(Cmdliner.Cmd.Env.info %a)" Serialize.string
 
   let serialize_info fmt { docs; docv; doc; env; names } =
     Format.fprintf fmt

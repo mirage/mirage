@@ -202,10 +202,10 @@ Configure help
 Help no config
   $ ./test.exe help --file=empty/config.ml --man-format=plain 2> help-no-config.err
   NAME
-         test-test - The test application builder
+         test - The test application builder
   
   SYNOPSIS
-         test test [COMMAND] …
+         test [COMMAND] …
   
   DESCRIPTION
          The test application builder. It glues together a set of libraries and
@@ -215,16 +215,16 @@ Help no config
          Use test help <command> for more information on a specific command.
   
   COMMANDS
-         build [OPTION]… 
+         build [OPTION]…
              Build a test application.
   
-         clean [OPTION]… 
+         clean [OPTION]…
              Clean the files produced by test for a given application.
   
-         configure [OPTION]… 
+         configure [OPTION]…
              Configure a test application.
   
-         describe [OPTION]… 
+         describe [OPTION]…
              Describe a test application.
   
          help [--man-format=FMT] [OPTION]… [TOPIC]
@@ -267,9 +267,6 @@ Help no config
   
          125 on unexpected internal errors (bugs).
   
-  SEE ALSO
-         test(1)
-  
   $ cat help-no-config.err
   * Is_file? empty/config.ml -> false
 
@@ -290,7 +287,7 @@ Build help no config with bad arguments
          test-build - Build a test application.
   
   SYNOPSIS
-         test build [OPTION]… 
+         test build [OPTION]…
   
   DESCRIPTION
          Build a test application.

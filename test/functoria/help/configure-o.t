@@ -4,7 +4,7 @@ Help configure -o --man-format=plain
          test-configure - Configure a test application.
   
   SYNOPSIS
-         test configure [OPTION]… 
+         test configure [OPTION]…
   
   DESCRIPTION
          The configure command initializes a fresh test application.
@@ -99,7 +99,7 @@ Help configure -o --help=plain
          test-configure - Configure a test application.
   
   SYNOPSIS
-         test configure [OPTION]… 
+         test configure [OPTION]…
   
   DESCRIPTION
          The configure command initializes a fresh test application.

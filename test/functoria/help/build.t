@@ -4,7 +4,7 @@ Help build --man-format=plain
          test-build - Build a test application.
   
   SYNOPSIS
-         test build [OPTION]… 
+         test build [OPTION]…
   
   DESCRIPTION
          Build a test application.
@@ -76,7 +76,7 @@ Help build --help=plain
          test-build - Build a test application.
   
   SYNOPSIS
-         test build [OPTION]… 
+         test build [OPTION]…
   
   DESCRIPTION
          Build a test application.

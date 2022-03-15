@@ -6,7 +6,7 @@ Help configure --man-format=plain
          mirage-configure - Configure a mirage application.
   
   SYNOPSIS
-         mirage configure [OPTION]… 
+         mirage configure [OPTION]…
   
   DESCRIPTION
          The configure command initializes a fresh mirage application.
@@ -170,7 +170,7 @@ Configure help --help=plain
          mirage-configure - Configure a mirage application.
   
   SYNOPSIS
-         mirage configure [OPTION]… 
+         mirage configure [OPTION]…
   
   DESCRIPTION
          The configure command initializes a fresh mirage application.

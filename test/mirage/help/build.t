@@ -6,7 +6,7 @@ Help build --man-format=plain
          mirage-build - Build a mirage application.
   
   SYNOPSIS
-         mirage build [OPTION]… 
+         mirage build [OPTION]…
   
   DESCRIPTION
          Build a mirage application.
@@ -150,7 +150,7 @@ Help build --help=plain
          mirage-build - Build a mirage application.
   
   SYNOPSIS
-         mirage build [OPTION]… 
+         mirage build [OPTION]…
   
   DESCRIPTION
          Build a mirage application.

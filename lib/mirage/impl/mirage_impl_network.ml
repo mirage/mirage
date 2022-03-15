@@ -11,7 +11,7 @@ let network_conf (intf : string Key.key) =
   let keys = [ key ] in
   let packages_v =
     Key.match_ Key.(value target) @@ function
-    | `Unix -> [ package ~min:"2.7.0" ~max:"3.0.0" "mirage-net-unix" ]
+    | `Unix -> [ package ~min:"3.0.0" ~max:"4.0.0" "mirage-net-unix" ]
     | `MacOSX -> [ package ~min:"1.8.0" ~max:"2.0.0" "mirage-net-macosx" ]
     | `Xen -> [ package ~min:"2.1.0" ~max:"3.0.0" "mirage-net-xen" ]
     | `Qubes ->

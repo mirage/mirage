@@ -33,5 +33,19 @@ let test_package_pp () =
   Alcotest.(check string) "key(x)" (Package.key x) "monorepo-foo";
   Alcotest.(check string) "key(w)" (Package.key w) "switch-foo"
 
+let test_invalid_package_names () =
+  let check_name_is_invalid name =
+    Alcotest.check_raises name
+      (Invalid_argument (Fmt.str "package name %S is invalid" name))
+      (fun () -> Package.v name |> ignore)
+  in
+  check_name_is_invalid "bar.subfoo";
+  check_name_is_invalid "000";
+  check_name_is_invalid "é"
+
 let suite =
-  [ ("merge", `Quick, test_package_merge); ("pp", `Quick, test_package_pp) ]
+  [
+    ("merge", `Quick, test_package_merge);
+    ("pp", `Quick, test_package_pp);
+    ("invalid names", `Quick, test_invalid_package_names);
+  ]

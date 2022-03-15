@@ -69,8 +69,20 @@ let merge a b =
         let empty = String.Set.empty in
         Some { name; build; scope; libs; min = empty; max = empty; pin }
 
+let package_name_is_valid name =
+  let has_letter = String.exists Char.Ascii.is_letter name in
+  let only_allowed_chars =
+    String.for_all
+      (function
+        | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_' | '-' -> true | _ -> false)
+      name
+  in
+  only_allowed_chars && has_letter
+
 let v ?(scope = `Monorepo) ?(build = false) ?sublibs ?libs ?min ?max ?pin
     ?(pin_version = "dev") name =
+  if not (package_name_is_valid name) then
+    Fmt.invalid_arg "package name %S is invalid" name;
   let libs =
     match (sublibs, libs) with
     | None, None -> [ name ]

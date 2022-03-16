@@ -212,10 +212,10 @@ type dns_client = Mirage_impl_dns.dns_client
 
 let dns_client = Mirage_impl_dns.dns_client
 
-let generic_dns_client ?timeout ?nameservers ?(random = default_random)
+let generic_dns_client ~timeout ?nameservers ?(random = default_random)
     ?(time = default_time) ?(mclock = default_monotonic_clock)
     ?(pclock = default_posix_clock) stackv4v6 =
-  Mirage_impl_dns.generic_dns_client ?timeout nameservers
+  Mirage_impl_dns.generic_dns_client timeout nameservers
   $ random
   $ time
   $ mclock

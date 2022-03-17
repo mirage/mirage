@@ -29,7 +29,7 @@ let generic_dns_client timeout nameservers =
         let pp_timeout ppf = function
           | None -> ()
           | Some timeout ->
-              Fmt.pf ppf "~timeout:%a " Key.serialize_call (Key.v timeout)
+              Fmt.pf ppf "?timeout:%a " Key.serialize_call (Key.v timeout)
         in
         Fmt.str {ocaml|%s.connect ~nameservers:%a %a%s|ocaml} modname
           pp_nameservers nameservers pp_timeout timeout stackv4v6

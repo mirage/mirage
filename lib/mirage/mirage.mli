@@ -719,7 +719,7 @@ type dns_client
 val dns_client : dns_client typ
 
 val generic_dns_client :
-  ?timeout:int64 key ->
+  ?timeout:int64 option key ->
   ?nameservers:string list key ->
   ?random:random impl ->
   ?time:time impl ->

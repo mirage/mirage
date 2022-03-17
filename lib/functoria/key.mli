@@ -62,6 +62,9 @@ module Arg : sig
   val int : int converter
   (** [int] converts integers. *)
 
+  val int64 : int64 converter
+  (** [int64] converts 64-bits integers. *)
+
   val list : 'a converter -> 'a list converter
   (** [list t] converts lists of [t]s. *)
 

@@ -208,6 +208,20 @@ let resolver = Mirage_impl_resolver.resolver
 let resolver_unix_system = Mirage_impl_resolver.resolver_unix_system
 let resolver_dns = Mirage_impl_resolver.resolver_dns
 
+type dns_client = Mirage_impl_dns.dns_client
+
+let dns_client = Mirage_impl_dns.dns_client
+
+let generic_dns_client ?timeout ?nameservers ?(random = default_random)
+    ?(time = default_time) ?(mclock = default_monotonic_clock)
+    ?(pclock = default_posix_clock) stackv4v6 =
+  Mirage_impl_dns.generic_dns_client timeout nameservers
+  $ random
+  $ time
+  $ mclock
+  $ pclock
+  $ stackv4v6
+
 type syslog = Mirage_impl_syslog.syslog
 
 let syslog = Mirage_impl_syslog.syslog

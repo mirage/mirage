@@ -297,19 +297,6 @@ let pp_action pp_a ppf = function
   | Help h -> Fmt.pf ppf "@[help:@ @[<2>%a@]@]" (pp_help pp_a) h
 
 (*
-let args ~with_setup context mname =
-  Term.(
-    const (fun () config_file context_file dry_run output context ->
-        { config_file; context_file; dry_run; output; context })
-    $ setup ~with_setup
-    $ config_file
-    $ context_file mname
-    $ dry_run
-    $ output
-    $ context)
-*)
-
-(*
  * Subcommand specifications
  *)
 

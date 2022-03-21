@@ -38,7 +38,7 @@ let dune i =
 )
 |}
       public_name main main (pp_list "libraries") libraries Fpath.pp
-      (Fpath.rem_ext (Info.config_file i))
+      (Fpath.rem_ext (Fpath.base (Info.config_file i)))
       (pp_list "flags") flags
   in
   [ dune ]

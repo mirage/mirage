@@ -167,7 +167,7 @@ let main i =
 |}
     (context_name i) main (pp_list "libraries") libraries (pp_list "link_flags")
     flags (solo5_abi target) Fpath.pp
-    (Fpath.rem_ext (Info.config_file i))
+    (Fpath.rem_ext (Fpath.base (Info.config_file i)))
 
 let subdir name s = Dune.stanzaf "(subdir %s\n %a)\n" name Dune.pp (Dune.v s)
 

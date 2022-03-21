@@ -11,7 +11,7 @@ let happy_eyeballs = Type.v Happy_eyeballs
 let generic_happy_eyeballs aaaa_timeout v6_connect_timeout connect_timeout
     resolve_timeout resolve_retries timer_interval =
   let packages =
-    [ package "happy-eyeballs-mirage" ~min:"0.2.0" ~max:"1.0.0" ]
+    [ package "happy-eyeballs-mirage" ~min:"0.3.0" ~max:"1.0.0" ]
   in
   let keys =
     let cons_if_some v l = match v with Some x -> x :: l | None -> l in
@@ -28,7 +28,7 @@ let generic_happy_eyeballs aaaa_timeout v6_connect_timeout connect_timeout
           | None -> ()
           | Some key -> Fmt.pf ppf "?%s:%a " name Key.serialize_call (Key.v key)
         in
-        Fmt.str {ocaml|%s.connect_device %a%a%a%a%a%a 0L %s %s"|ocaml} modname
+        Fmt.str {ocaml|%s.connect_device %a%a%a%a%a%a %s %s"|ocaml} modname
           (pp_optional_argument ~name:"aaaa_timeout")
           aaaa_timeout
           (pp_optional_argument ~name:"v6_connect_timeout")
@@ -39,7 +39,7 @@ let generic_happy_eyeballs aaaa_timeout v6_connect_timeout connect_timeout
           resolve_timeout
           (pp_optional_argument ~name:"resolve_retries")
           resolve_retries
-          (pp_optional_argument ~name:"timer_internal")
+          (pp_optional_argument ~name:"timer_interval")
           timer_interval dns stack
     | _ -> assert false
   in

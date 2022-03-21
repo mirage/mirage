@@ -28,7 +28,7 @@ let generic_happy_eyeballs aaaa_timeout v6_connect_timeout connect_timeout
           | None -> ()
           | Some key -> Fmt.pf ppf "?%s:%a " name Key.serialize_call (Key.v key)
         in
-        Fmt.str {ocaml|%s.connect_device %a%a%a%a%a%a %s %s"|ocaml} modname
+        Fmt.str {ocaml|%s.connect_device %a%a%a%a%a%a %s %s|ocaml} modname
           (pp_optional_argument ~name:"aaaa_timeout")
           aaaa_timeout
           (pp_optional_argument ~name:"v6_connect_timeout")

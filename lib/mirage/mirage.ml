@@ -222,6 +222,21 @@ let generic_dns_client ?timeout ?nameservers ?(random = default_random)
   $ pclock
   $ stackv4v6
 
+type happy_eyeballs = Mirage_impl_happy_eyeballs.happy_eyeballs
+
+let happy_eyeballs = Mirage_impl_happy_eyeballs.happy_eyeballs
+
+let generic_happy_eyeballs ?aaaa_timeout ?v6_connect_timeout ?connect_timeout
+    ?resolve_timeout ?resolve_retries ?timer_interval ?(time = default_time)
+    ?(mclock = default_monotonic_clock) stackv4v6 dns_client =
+  Mirage_impl_happy_eyeballs.generic_happy_eyeballs aaaa_timeout
+    v6_connect_timeout connect_timeout resolve_timeout resolve_retries
+    timer_interval
+  $ time
+  $ mclock
+  $ stackv4v6
+  $ dns_client
+
 type syslog = Mirage_impl_syslog.syslog
 
 let syslog = Mirage_impl_syslog.syslog

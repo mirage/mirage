@@ -21,6 +21,9 @@
 type t
 (** The type for information about the final application. *)
 
+val config_file : t -> Fpath.t
+(** [config_file t] is the configuration file of the application. *)
+
 val name : t -> string
 (** [name t] is the name of the application. *)
 
@@ -52,6 +55,7 @@ val get : t -> 'a Key.key -> 'a
 (** [get i k] is the value associated with [k] in [context i]. *)
 
 val v :
+  config_file:Fpath.t ->
   packages:Package.t list ->
   keys:Key.t list ->
   context:Key.context ->

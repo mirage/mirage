@@ -161,12 +161,13 @@ let main i =
  (modes (native exe))
  (libraries %a)
  (link_flags %a -cclib "-z solo5-abi=%s")
- (modules (:standard \ config manifest))
+ (modules (:standard \ %a manifest))
  (foreign_stubs (language c) (names manifest))
 )
 |}
     (context_name i) main (pp_list "libraries") libraries (pp_list "link_flags")
-    flags (solo5_abi target)
+    flags (solo5_abi target) Fpath.pp
+    (Fpath.rem_ext (Info.config_file i))
 
 let subdir name s = Dune.stanzaf "(subdir %s\n %a)\n" name Dune.pp (Dune.v s)
 

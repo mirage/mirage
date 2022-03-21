@@ -55,8 +55,8 @@ module Config = struct
     in
     Key.Set.fold f all_keys skeys
 
-  let v ~config_file ?(keys = []) ?(packages = []) ?(init = []) ~build_cmd ~src
-      name jobs =
+  let v ?(config_file = Fpath.v "config.ml") ?(keys = []) ?(packages = [])
+      ?(init = []) ~build_cmd ~src name jobs =
     let packages = Key.pure @@ packages in
     let jobs = Impl.abstract jobs in
     let keys = Key.Set.(union (of_list keys) (get_if_context jobs)) in

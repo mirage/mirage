@@ -19,6 +19,7 @@
 open Astring
 
 type t = {
+  config_file : Fpath.t;
   name : string;
   output : string option;
   keys : Key.Set.t;
@@ -29,6 +30,7 @@ type t = {
 }
 
 let name t = t.name
+let config_file t = t.config_file
 
 let main t =
   let main = match t.output with None -> "main" | Some f -> f in
@@ -61,7 +63,8 @@ let pins packages =
 let keys t = Key.Set.elements t.keys
 let context t = t.context
 
-let v ~packages ~keys ~context ~build_cmd ~src name =
+let v ?(config_file = Fpath.v "config.ml") ~packages ~keys ~context ~build_cmd
+    ~src name =
   let keys = Key.Set.of_list keys in
   let monorepo_packages, switch_packages =
     List.partition (fun pkg -> Package.scope pkg == `Monorepo) packages
@@ -86,7 +89,16 @@ let v ~packages ~keys ~context ~build_cmd ~src name =
             | None -> m))
       String.Map.empty packages
   in
-  { name; keys; packages; context; output = None; opam_monorepo; opam_switch }
+  {
+    config_file;
+    name;
+    keys;
+    packages;
+    context;
+    output = None;
+    opam_monorepo;
+    opam_switch;
+  }
 
 let pp_packages ?(surround = "") ?sep ppf t =
   let pkgs = packages t in
@@ -112,7 +124,7 @@ let pp verbose ppf ({ name; keys; context; output; _ } as t) =
 
 let t =
   let i =
-    v ~packages:[] ~keys:[] ~build_cmd:[ "dummy" ] ~context:Key.empty_context
-      ~src:`None "dummy"
+    v ~config_file:(Fpath.v "config.ml") ~packages:[] ~keys:[]
+      ~build_cmd:[ "dummy" ] ~context:Key.empty_context ~src:`None "dummy"
   in
   Type.v i

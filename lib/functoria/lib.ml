@@ -27,6 +27,7 @@ module Log = (val Logs.src_log src : Logs.LOG)
 
 module Config = struct
   type t = {
+    config_file : Fpath.t;
     name : string;
     build_cmd : string list;
     packages : package list Key.value;
@@ -54,20 +55,23 @@ module Config = struct
     in
     Key.Set.fold f all_keys skeys
 
-  let v ?(keys = []) ?(packages = []) ?(init = []) ~build_cmd ~src name jobs =
+  let v ?(config_file = Fpath.v "config.ml") ?(keys = []) ?(packages = [])
+      ?(init = []) ~build_cmd ~src name jobs =
     let packages = Key.pure @@ packages in
     let jobs = Impl.abstract jobs in
     let keys = Key.Set.(union (of_list keys) (get_if_context jobs)) in
-    { packages; keys; name; init; build_cmd; jobs; src }
+    { config_file; packages; keys; name; init; build_cmd; jobs; src }
 
   let eval ~full context
-      { name = n; build_cmd; packages; keys; jobs; init; src } =
+      { config_file; name = n; build_cmd; packages; keys; jobs; init; src } =
     let jobs = Impl.simplify ~full ~context jobs in
     let device_graph = Impl.eval ~context jobs in
     let packages = Key.(pure List.append $ packages $ Engine.packages jobs) in
     let keys = Key.Set.elements (Key.Set.union keys @@ Engine.all_keys jobs) in
     let mk packages _ context =
-      let info = Info.v ~packages ~keys ~context ~build_cmd ~src n in
+      let info =
+        Info.v ~config_file ~packages ~keys ~context ~build_cmd ~src n
+      in
       { init; jobs; info; device_graph }
     in
     Key.(pure mk $ packages $ of_deps (Set.of_list keys))
@@ -93,6 +97,7 @@ module Make (P : S) = struct
 
   let default_init = [ Job.keys Argv.sys_argv ]
   let build_dir args = Fpath.parent args.Cli.config_file
+  let config_file args = args.Cli.config_file
   let mirage_dir args = Fpath.(build_dir args / P.name)
   let artifacts_dir args = Fpath.(build_dir args / "dist")
 
@@ -467,10 +472,14 @@ module Make (P : S) = struct
     let argv = Sys.argv in
     (* TODO: do not are parse the command-line twice *)
     let args = Cli.peek_args ~with_setup:true ~mname:P.name argv in
+    let config_file = config_file args in
     let run () =
       let build_cmd = get_build_cmd args in
       let main_dev = P.create (init @ jobs) in
-      let c = Config.v ?keys ?packages ~init ~build_cmd ~src name main_dev in
+      let c =
+        Config.v ~config_file ?keys ?packages ~init ~build_cmd ~src name
+          main_dev
+      in
       run_configure_with_argv argv args c
     in
     run () |> action_run args |> exit_err args

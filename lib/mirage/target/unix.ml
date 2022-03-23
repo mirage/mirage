@@ -32,13 +32,14 @@ let dune i =
  (name %s)
  (libraries %a)
  (link_flags (-thread))
- (modules (:standard \ config))
+ (modules (:standard \ %a))
  (flags %a)
  (enabled_if (= %%{context_name} "default"))
 )
 |}
-      public_name main main (pp_list "libraries") libraries (pp_list "flags")
-      flags
+      public_name main main (pp_list "libraries") libraries Fpath.pp
+      (Fpath.rem_ext (Fpath.base (Info.config_file i)))
+      (pp_list "flags") flags
   in
   [ dune ]
 

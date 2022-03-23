@@ -11,6 +11,7 @@ dev-repo:     "git+https://github.com/mirage/mirage.git"
 doc:          "https://mirage.github.io/mirage/"
 license:      "ISC"
 tags:         ["org:mirage"]
+available: opam-version >= "2.1.0"
 
 build: [
   ["dune" "subst"] {dev}

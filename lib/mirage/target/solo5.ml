@@ -138,6 +138,15 @@ let manifest _i =
   (run solo5-elftool gen-manifest manifest.json manifest.c)))
 |}
 
+let solo5_abi = function
+  | #Key.mode_unix -> assert false
+  | #Key.mode_xen -> "xen"
+  | `Virtio -> "virtio"
+  | `Hvt -> "hvt"
+  | `Muen -> "muen"
+  | `Genode -> "genode"
+  | `Spt -> "spt"
+
 let main i =
   let libraries = Info.libraries i in
   let flags = Mirage_dune.flags i in
@@ -151,13 +160,13 @@ let main i =
  (name %s)
  (modes (native exe))
  (libraries %a)
- (link_flags %a -cclib "-z solo5-abi=%a")
+ (link_flags %a -cclib "-z solo5-abi=%s")
  (modules (:standard \ config manifest))
  (foreign_stubs (language c) (names manifest))
 )
 |}
     (context_name i) main (pp_list "libraries") libraries (pp_list "link_flags")
-    flags Key.pp_target target
+    flags (solo5_abi target)
 
 let subdir name s = Dune.stanzaf "(subdir %s\n %a)\n" name Dune.pp (Dune.v s)
 

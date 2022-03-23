@@ -135,16 +135,16 @@ As well as the default command:
          Use test help <command> for more information on a specific command.
   
   COMMANDS
-         build [OPTION]…
+         build [OPTION]… 
              Build a test application.
   
-         clean [OPTION]…
+         clean [OPTION]… 
              Clean the files produced by test for a given application.
   
-         configure [OPTION]…
+         configure [OPTION]… 
              Configure a test application.
   
-         describe [OPTION]…
+         describe [OPTION]… 
              Describe a test application.
   
          help [--man-format=FMT] [OPTION]… [TOPIC]
@@ -162,6 +162,11 @@ As well as the default command:
              pager, groff or plain. With auto, the format is pager or plain
              whenever the TERM env var is dumb or undefined.
   
+         --help[=FMT] (default=auto)
+             Show this help in format FMT. The value FMT must be one of auto,
+             pager, groff or plain. With auto, the format is pager or plain
+             whenever the TERM env var is dumb or undefined.
+  
          -q, --quiet
              Be quiet. Takes over -v and --verbosity.
   
@@ -172,6 +177,9 @@ As well as the default command:
          --verbosity=LEVEL (absent=warning)
              Be more or less verbose. LEVEL must be one of quiet, error,
              warning, info or debug. Takes over -v.
+  
+         --version
+             Show version information.
   
          --version
              Show version information.

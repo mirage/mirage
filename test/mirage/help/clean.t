@@ -7,7 +7,7 @@ Help clean --man-format=plain
          application.
   
   SYNOPSIS
-         mirage clean [OPTION]…
+         mirage clean [OPTION]… 
   
   DESCRIPTION
          Clean the files produced by mirage for a given application.
@@ -152,7 +152,7 @@ Help clean --help=plain
          application.
   
   SYNOPSIS
-         mirage clean [OPTION]…
+         mirage clean [OPTION]… 
   
   DESCRIPTION
          Clean the files produced by mirage for a given application.

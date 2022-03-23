@@ -4,7 +4,7 @@ Help describe --man-format=plain
          test-describe - Describe a test application.
   
   SYNOPSIS
-         test describe [OPTION]…
+         test describe [OPTION]… 
   
   DESCRIPTION
          The describe command describes the configuration of a test
@@ -108,7 +108,7 @@ Help describe --help=plain
          test-describe - Describe a test application.
   
   SYNOPSIS
-         test describe [OPTION]…
+         test describe [OPTION]… 
   
   DESCRIPTION
          The describe command describes the configuration of a test

@@ -4,7 +4,7 @@ Configure
 
   $ cat configure.err
   test: too many arguments, don't know what to do with 'a', 'b', 'c'
-  Usage: test configure [OPTION]…
+  Usage: test configure [OPTION]… 
   Try 'test configure --help' or 'test --help' for more information.
 
 Build
@@ -13,7 +13,7 @@ Build
 
   $ cat build.err
   test: too many arguments, don't know what to do with 'a', 'b', 'c'
-  Usage: test build [OPTION]…
+  Usage: test build [OPTION]… 
   Try 'test build --help' or 'test --help' for more information.
 
 Clean
@@ -22,7 +22,7 @@ Clean
 
   $ cat clean.err
   test: too many arguments, don't know what to do with 'a', 'b', 'c'
-  Usage: test clean [OPTION]…
+  Usage: test clean [OPTION]… 
   Try 'test clean --help' or 'test --help' for more information.
 
 Query
@@ -40,7 +40,7 @@ Describe
 
   $ cat describe.err
   test: too many arguments, don't know what to do with 'a', 'b', 'c'
-  Usage: test describe [OPTION]…
+  Usage: test describe [OPTION]… 
   Try 'test describe --help' or 'test --help' for more information.
 
 Help
@@ -55,10 +55,10 @@ Help
 Simple help
   $ ./config.exe help --man-format=plain 2> simple-help.err
   NAME
-         test - The test application builder
+         test-test - The test application builder
   
   SYNOPSIS
-         test [COMMAND] …
+         test test [COMMAND] …
   
   DESCRIPTION
          The test application builder. It glues together a set of libraries and
@@ -68,16 +68,16 @@ Simple help
          Use test help <command> for more information on a specific command.
   
   COMMANDS
-         build [OPTION]…
+         build [OPTION]… 
              Build a test application.
   
-         clean [OPTION]…
+         clean [OPTION]… 
              Clean the files produced by test for a given application.
   
-         configure [OPTION]…
+         configure [OPTION]… 
              Configure a test application.
   
-         describe [OPTION]…
+         describe [OPTION]… 
              Describe a test application.
   
          help [--man-format=FMT] [OPTION]… [TOPIC]
@@ -120,6 +120,9 @@ Simple help
   
          125 on unexpected internal errors (bugs).
   
+  SEE ALSO
+         test(1)
+  
 
   $ cat simple-help.err
 
@@ -129,7 +132,7 @@ Help configure
          test-configure - Configure a test application.
   
   SYNOPSIS
-         test configure [OPTION]…
+         test configure [OPTION]… 
   
   DESCRIPTION
          The configure command initializes a fresh test application.
@@ -223,16 +226,16 @@ Configure help
 
   $ cat configure-help.err
   test: too many arguments, don't know what to do with 'help'
-  Usage: test configure [OPTION]…
+  Usage: test configure [OPTION]… 
   Try 'test configure --help' or 'test --help' for more information.
 
 Help no config
   $ ./config.exe help --file=empty/config.ml --man-format=plain 2> help-no-config.err
   NAME
-         test - The test application builder
+         test-test - The test application builder
   
   SYNOPSIS
-         test [COMMAND] …
+         test test [COMMAND] …
   
   DESCRIPTION
          The test application builder. It glues together a set of libraries and
@@ -242,16 +245,16 @@ Help no config
          Use test help <command> for more information on a specific command.
   
   COMMANDS
-         build [OPTION]…
+         build [OPTION]… 
              Build a test application.
   
-         clean [OPTION]…
+         clean [OPTION]… 
              Clean the files produced by test for a given application.
   
-         configure [OPTION]…
+         configure [OPTION]… 
              Configure a test application.
   
-         describe [OPTION]…
+         describe [OPTION]… 
              Describe a test application.
   
          help [--man-format=FMT] [OPTION]… [TOPIC]
@@ -294,6 +297,9 @@ Help no config
   
          125 on unexpected internal errors (bugs).
   
+  SEE ALSO
+         test(1)
+  
   $ cat help-no-config.err
 
 Help no config with bad arguments
@@ -311,7 +317,7 @@ Build help no config with bad arguments
          test-build - Build a test application.
   
   SYNOPSIS
-         test build [OPTION]…
+         test build [OPTION]… 
   
   DESCRIPTION
          Build a test application.
@@ -404,16 +410,16 @@ Default
          Use test help <command> for more information on a specific command.
   
   COMMANDS
-         build [OPTION]…
+         build [OPTION]… 
              Build a test application.
   
-         clean [OPTION]…
+         clean [OPTION]… 
              Clean the files produced by test for a given application.
   
-         configure [OPTION]…
+         configure [OPTION]… 
              Configure a test application.
   
-         describe [OPTION]…
+         describe [OPTION]… 
              Describe a test application.
   
          help [--man-format=FMT] [OPTION]… [TOPIC]
@@ -431,6 +437,11 @@ Default
              pager, groff or plain. With auto, the format is pager or plain
              whenever the TERM env var is dumb or undefined.
   
+         --help[=FMT] (default=auto)
+             Show this help in format FMT. The value FMT must be one of auto,
+             pager, groff or plain. With auto, the format is pager or plain
+             whenever the TERM env var is dumb or undefined.
+  
          -q, --quiet
              Be quiet. Takes over -v and --verbosity.
   
@@ -441,6 +452,9 @@ Default
          --verbosity=LEVEL (absent=warning)
              Be more or less verbose. LEVEL must be one of quiet, error,
              warning, info or debug. Takes over -v.
+  
+         --version
+             Show version information.
   
          --version
              Show version information.

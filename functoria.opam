@@ -46,6 +46,3 @@ how to apply them in order to produce a complete application.
 The main use case is mirage. See the [mirage](https://github.com/mirage/mirage)
 repository for details.
 """
-pin-depends:[
-  [ "cmdliner.1.1.0" "git+https://github.com/dbuenzli/cmdliner.git#74daf226fbacdd29862a01c85fe37c6595b374bf" ]
-]

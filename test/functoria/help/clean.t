@@ -4,7 +4,7 @@ Help clean --man-format=plain
          test-clean - Clean the files produced by test for a given application.
   
   SYNOPSIS
-         test clean [OPTION]…
+         test clean [OPTION]… 
   
   DESCRIPTION
          Clean the files produced by test for a given application.
@@ -76,7 +76,7 @@ Help clean --help=plain
          test-clean - Clean the files produced by test for a given application.
   
   SYNOPSIS
-         test clean [OPTION]…
+         test clean [OPTION]… 
   
   DESCRIPTION
          Clean the files produced by test for a given application.

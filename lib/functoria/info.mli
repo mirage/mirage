@@ -55,7 +55,7 @@ val get : t -> 'a Key.key -> 'a
 (** [get i k] is the value associated with [k] in [context i]. *)
 
 val v :
-  config_file:Fpath.t ->
+  ?config_file:Fpath.t ->
   packages:Package.t list ->
   keys:Key.t list ->
   context:Key.context ->

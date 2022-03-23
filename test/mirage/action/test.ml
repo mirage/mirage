@@ -16,8 +16,8 @@ let print_banner s =
   print_newline ()
 
 let info context =
-  Info.v ~config_file:(Fpath.v "config.ml") ~packages:[] ~keys:[]
-    ~build_cmd:[ "mirage build" ] ~context ~src:`None "NAME"
+  Info.v ~packages:[] ~keys:[] ~build_cmd:[ "mirage build" ] ~context ~src:`None
+    "NAME"
 
 let test target =
   print_banner target;

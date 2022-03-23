@@ -63,7 +63,8 @@ let pins packages =
 let keys t = Key.Set.elements t.keys
 let context t = t.context
 
-let v ~config_file ~packages ~keys ~context ~build_cmd ~src name =
+let v ?(config_file = Fpath.v "config.ml") ~packages ~keys ~context ~build_cmd
+    ~src name =
   let keys = Key.Set.of_list keys in
   let monorepo_packages, switch_packages =
     List.partition (fun pkg -> Package.scope pkg == `Monorepo) packages

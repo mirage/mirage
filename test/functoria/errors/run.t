@@ -26,10 +26,10 @@ Clean does not fail
 Help does not fail
   $ ./test.exe help --man-format=plain
   NAME
-         test-test - The test application builder
+         test - The test application builder
   
   SYNOPSIS
-         test test [COMMAND] …
+         test [COMMAND] …
   
   DESCRIPTION
          The test application builder. It glues together a set of libraries and
@@ -39,16 +39,16 @@ Help does not fail
          Use test help <command> for more information on a specific command.
   
   COMMANDS
-         build [OPTION]… 
+         build [OPTION]…
              Build a test application.
   
-         clean [OPTION]… 
+         clean [OPTION]…
              Clean the files produced by test for a given application.
   
-         configure [OPTION]… 
+         configure [OPTION]…
              Configure a test application.
   
-         describe [OPTION]… 
+         describe [OPTION]…
              Describe a test application.
   
          help [--man-format=FMT] [OPTION]… [TOPIC]
@@ -90,7 +90,4 @@ Help does not fail
          124 on command line parsing errors.
   
          125 on unexpected internal errors (bugs).
-  
-  SEE ALSO
-         test(1)
   

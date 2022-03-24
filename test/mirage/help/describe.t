@@ -6,7 +6,7 @@ Help describe --man-format=plain
          mirage-describe - Describe a mirage application.
   
   SYNOPSIS
-         mirage describe [OPTION]… 
+         mirage describe [OPTION]…
   
   DESCRIPTION
          The describe command describes the configuration of a mirage
@@ -182,7 +182,7 @@ Help describe --help=plain
          mirage-describe - Describe a mirage application.
   
   SYNOPSIS
-         mirage describe [OPTION]… 
+         mirage describe [OPTION]…
   
   DESCRIPTION
          The describe command describes the configuration of a mirage

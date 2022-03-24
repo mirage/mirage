@@ -27,7 +27,7 @@ Query global opam
   depends: [
     "mirage" { build & >= "4.0" & < "4.1.0" }
     "ocaml" { build & >= "4.08.0" }
-    "ocaml-freestanding" { build & >= "0.7.0" }
+    "ocaml-solo5" { build & >= "0.8.0" }
     "opam-monorepo" { build & >= "0.2.6" }
   ]
   
@@ -64,7 +64,7 @@ Query packages
   "mirage-runtime" { >= "4.0" & < "4.1.0" }
   "mirage-solo5" { >= "0.7.0" & < "0.8.0" }
   "ocaml" { build & >= "4.08.0" }
-  "ocaml-freestanding" { build & >= "0.7.0" }
+  "ocaml-solo5" { build & >= "0.8.0" }
   "opam-monorepo" { build & >= "0.2.6" }
 
 Query files

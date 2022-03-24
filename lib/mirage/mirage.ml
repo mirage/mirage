@@ -197,6 +197,19 @@ let static_ipv4v6_stack = Mirage_impl_stack.static_ipv4v6_stack
 let direct_stackv4v6 = Mirage_impl_stack.direct_stackv4v6
 let socket_stackv4v6 = Mirage_impl_stack.socket_stackv4v6
 
+let tcpv4v6_of_stackv4v6 v =
+  let impl =
+    let packages =
+      [ package "tcpip" ~sublibs:[ "stack-direct" ] ~min:"7.1.0" ]
+    in
+    let connect _ modname = function
+      | [ stackv4v6 ] -> Fmt.str {ocaml|%s.connect %s|ocaml} modname stackv4v6
+      | _ -> assert false
+    in
+    impl ~packages ~connect "Tcpip_stack_direct.TCPV4V6" (stackv4v6 @-> tcpv4v6)
+  in
+  impl $ v
+
 type conduit = Mirage_impl_conduit.conduit
 
 let conduit = Mirage_impl_conduit.conduit

@@ -1,3 +1,7 @@
+### Unreleased
+
+- Add Git devices (#1291, @dinosaure, @samoht, @hannesm, @yomimono)
+
 ### v4.0.0~beta3 (2022-02-02)
 
 - Lint constraints on few packages to split the world between MirageOS 3.0 and

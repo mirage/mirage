@@ -874,6 +874,98 @@ val default_argv : argv impl
 val no_argv : argv impl
 (** [no_argv] Disable command line parsing and set argv to [|""|]. *)
 
+(** {2 Git client configuration} *)
+
+(** Users can connect to a remote Git repository in many ways:
+
+    - TCP/IP
+    - HTTP
+    - HTTP + TLS
+    - SSH
+
+    The devices defined below define these in composable ways. The
+    [git_client impl] returned from them can be passed to Git or Irmin in order
+    to be able to {i fetch} and {i push} from/into a Git repository.
+
+    The user is able to restrict or enlarge protocol possibilities needed for
+    its application. For instance, the user is able to restrict only the SSH
+    connection to communicate with a Git repository or the user can handle
+    TCP/IP and SSH as possible protocols to communicate with a peer.
+
+    For instance, a device which is able to communicate {i via} TCP/IP and SSH
+    can be implemented like:
+
+    {[
+      let git_client =
+        let dns = happy_eyeballs stackv4v6 in
+        let ssh = git_ssh ~key (tcpv4v6_of_stackv4v6 stackv4v6) dns in
+        let tcp = git_tcp (tcpv4v6_of_stackv4v6 stackv4v6) dns in
+        merge_git_clients ssh tcp
+    ]} *)
+
+type git_client
+(** The type for devices that implement the Git protocol. *)
+
+val git_client : git_client typ
+
+val merge_git_clients : git_client impl -> git_client impl -> git_client impl
+(** [merge_git_clients a b] is a device that can connect to remote Git
+    repositories using either the device [a] or the device [b]. *)
+
+val git_happy_eyeballs :
+  stackv4v6 impl -> dns_client impl -> happy_eyeballs impl -> git_client impl
+
+val git_tcp : tcpv4v6 impl -> git_client impl -> git_client impl
+(** [git_tcp tcpv4v6 dns] is a device able to connect to a remote Git repository
+    using TCP/IP. *)
+
+val git_ssh :
+  ?authenticator:string option key ->
+  key:string option key ->
+  ?mclock:mclock impl ->
+  ?time:time impl ->
+  tcpv4v6 impl ->
+  git_client impl ->
+  git_client impl
+(** [git_ssh ?authenticator ~key tcpv4v6 dns] is a device able to connect to a
+    remote Git repository using an SSH connection with the given private [key].
+    The identity of the remote Git repository can be verified using
+    [authenticator].
+
+    The format of the private key is: [<type>:<seed or b64 encoded>]. [<type>]
+    can be [rsa] or [ed25519] and, if the type is RSA, we expect the {b seed} of
+    the private key. Otherwise (if the type is Ed25519), we expect the
+    b64-encoded private key.
+
+    The format of the authenticator is [SHA256:<b64-encoded-public-key>], the
+    output of:
+
+    {[ $ ssh-keygen -lf <(ssh-keyscan -t rsa|ed25519 remote 2>/dev/null) ]} *)
+
+val git_http :
+  ?authenticator:string option key ->
+  ?headers:(string * string) list key ->
+  ?time:time impl ->
+  ?pclock:pclock impl ->
+  tcpv4v6 impl ->
+  git_client impl ->
+  git_client impl
+(** [git_http ?authenticator ?headers tcpv4v6 dns] is a device able to connect
+    to a remote Git repository via an HTTP(S) connection, using the provided
+    HTTP [headers]. The identity of the remote Git repository can be verified
+    using [authenticator].
+
+    The format of it is:
+
+    - [none] no authentication
+    - key(:<hash>)?:<b64-encoded fingerprint> to authenticate via the key
+      fingerprint
+    - cert(:<hash>)?:<b64-encoded fingerprint> to authenticate via the cert
+      fingerprint
+    - trust-anchor(:<der-encoded cert>)+ to authenticate via a list of
+      certificates - By default, we use X.509 trust anchors extracted from
+      Mozilla's NSS *)
+
 (** {2 Other devices} *)
 
 val job : job typ

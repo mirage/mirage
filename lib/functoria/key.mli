@@ -44,7 +44,7 @@ module Arg : sig
   (** The type for argument converters. *)
 
   val conv :
-    conv:'a Cmdliner.Arg.converter ->
+    conv:'a Cmdliner.Arg.conv ->
     serialize:'a serialize ->
     runtime_conv:'a runtime_conv ->
     'a converter

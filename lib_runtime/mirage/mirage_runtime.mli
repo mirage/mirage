@@ -35,7 +35,7 @@ module Arg : sig
   val make :
     (string -> ('a, [ `Msg of string ]) result) ->
     ('a -> string) ->
-    'a Cmdliner.Arg.converter
+    'a Cmdliner.Arg.conv
   (** [make of_string pp] is the command-line argument converter using on
       [of_string] and [pp]. *)
 
@@ -48,32 +48,32 @@ module Arg : sig
     val to_string : t -> string
   end
 
-  val of_module : (module S with type t = 'a) -> 'a Cmdliner.Arg.converter
+  val of_module : (module S with type t = 'a) -> 'a Cmdliner.Arg.conv
   (** [of module (module M)] creates a command-line argyument converter from a
       module satisfying the signature {!S}. *)
 
   (** {2 Mirage command-line argument converters} *)
 
-  val ip_address : Ipaddr.t Cmdliner.Arg.converter
+  val ip_address : Ipaddr.t Cmdliner.Arg.conv
   (** [ip] converts IP address. *)
 
-  val ipv4_address : Ipaddr.V4.t Cmdliner.Arg.converter
+  val ipv4_address : Ipaddr.V4.t Cmdliner.Arg.conv
   (** [ipv4_address] converts an IPv4 address. *)
 
-  val ipv4 : Ipaddr.V4.Prefix.t Cmdliner.Arg.converter
+  val ipv4 : Ipaddr.V4.Prefix.t Cmdliner.Arg.conv
   (** [ipv4] converts ipv4/netmask to Ipaddr.V4.t * Ipaddr.V4.Prefix.t . *)
 
-  val ipv6_address : Ipaddr.V6.t Cmdliner.Arg.converter
+  val ipv6_address : Ipaddr.V6.t Cmdliner.Arg.conv
   (** [ipv6_address]converts IPv6 address. *)
 
-  val ipv6 : Ipaddr.V6.Prefix.t Cmdliner.Arg.converter
+  val ipv6 : Ipaddr.V6.Prefix.t Cmdliner.Arg.conv
   (**[ipv6] converts IPv6 prefixes. *)
 
-  val log_threshold : log_threshold Cmdliner.Arg.converter
+  val log_threshold : log_threshold Cmdliner.Arg.conv
   (** [log_threshold] converts log reporter threshold. *)
 
   val allocation_policy :
-    [ `Next_fit | `First_fit | `Best_fit ] Cmdliner.Arg.converter
+    [ `Next_fit | `First_fit | `Best_fit ] Cmdliner.Arg.conv
   (** [allocation_policy] converts allocation policy. *)
 end
 

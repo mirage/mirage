@@ -36,11 +36,14 @@ let keys = Key.Set.of_list Key.[ v key_a; v key_b; v key_c; v key_d ]
 
 let eval f keys argv =
   let argv = Array.of_list ("" :: argv) in
-  match Cmdliner.Term.eval ~argv (f keys, Cmdliner.Term.info "keys") with
-  | `Error _ -> Alcotest.fail "Error"
-  | `Ok x -> x
-  | `Version -> Alcotest.fail "version"
-  | `Help -> Alcotest.fail "help"
+  match
+    Cmdliner.Cmd.eval_value ~argv
+      (Cmdliner.Cmd.v (Cmdliner.Cmd.info "keys") (f keys))
+  with
+  | Error _ -> Alcotest.fail "Error"
+  | Ok (`Ok x) -> x
+  | Ok `Version -> Alcotest.fail "version"
+  | Ok `Help -> Alcotest.fail "help"
 
 exception Error
 
@@ -104,12 +107,12 @@ let test_opt_all () =
   let context = eval (Key.context ~with_required:false) keys [] in
   Alcotest.(check (list int)) "get d" [] (Key.get context key_d);
   match
-    Cmdliner.Term.eval ~argv:[| ""; "-d" |]
-      (Key.context ~with_required:false keys, Cmdliner.Term.info "keys")
+    Cmdliner.Cmd.eval_value ~argv:[| ""; "-d" |]
+      Cmdliner.(Cmd.v (Cmd.info "keys") (Key.context ~with_required:false keys))
   with
-  | `Ok _ | `Help | `Version ->
+  | Ok (`Ok _ | `Help | `Version) ->
       Alcotest.failf "Invalid given command-line, eval must fail."
-  | `Error _ -> Alcotest.(check pass) "invalid opt-all argument" () ()
+  | Error _ -> Alcotest.(check pass) "invalid opt-all argument" () ()
 
 let suite =
   List.map

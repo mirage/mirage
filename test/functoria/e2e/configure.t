@@ -82,4 +82,4 @@ Check that `test help configure` works when no config.ml file is present.
 
   $ ./test.exe configure --help=plain > h0
   $ ./help.exe show h0 SYNOPSIS | xargs
-  test configure [OPTION]...
+  test configure [OPTION]…

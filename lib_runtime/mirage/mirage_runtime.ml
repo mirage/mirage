@@ -40,7 +40,7 @@ let set_level ~default l =
 module Arg = struct
   include Functoria_runtime.Arg
 
-  let make of_string to_string : _ Cmdliner.Arg.converter =
+  let make of_string to_string : _ Cmdliner.Arg.conv =
     let parser s =
       match of_string s with
       | Error (`Msg m) -> `Error ("Can't parse ip address: " ^ s ^ ": " ^ m)

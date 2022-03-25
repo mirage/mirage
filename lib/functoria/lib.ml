@@ -145,7 +145,7 @@ module Make (P : S) = struct
       | None -> config
       | Some o -> { config with info = Info.with_output config.info o }
     in
-    Cmdliner.Term.(pure f $ context)
+    Cmdliner.Term.(const f $ context)
 
   (* FIXME: describe init *)
   let describe (t : _ Cli.describe_args) =
@@ -429,8 +429,8 @@ module Make (P : S) = struct
         Key.context ~stage:`Configure ~with_required:false if_keys
       in
       let context =
-        match Cmdliner.Term.eval_peek_opts ~argv non_required_term with
-        | _, `Ok context -> context
+        match Cmdliner.Cmd.eval_peek_opts ~argv non_required_term with
+        | _, Ok (`Ok context) -> context
         | _ -> Key.empty_context
       in
       match Context_cache.peek cache non_required_term with

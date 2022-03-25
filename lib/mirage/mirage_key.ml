@@ -74,7 +74,7 @@ let ukvm_warning =
    will be removed in a future MirageOS release. Please reconfigure using `-t \
    hvt' at your earliest convenience."
 
-let target_conv : mode Cmdliner.Arg.converter =
+let target_conv : mode Cmdliner.Arg.conv =
   let parser, printer =
     Cmdliner.Arg.enum
       [

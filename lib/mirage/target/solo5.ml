@@ -18,7 +18,7 @@ let build_packages =
 let runtime_packages target =
   match target with
   | #solo5_target ->
-      [ Functoria.package ~min:"0.7.0" ~max:"0.8.0" "mirage-solo5" ]
+      [ Functoria.package ~min:"0.8.0" ~max:"0.9.0" "mirage-solo5" ]
   | #xen_target -> [ Functoria.package ~min:"7.0.0" ~max:"8.0.0" "mirage-xen" ]
 
 let packages target = build_packages @ runtime_packages target

@@ -15,7 +15,7 @@ let console_xen str =
   impl ~packages ~connect:(connect str) "Console_xen" console
 
 let console_solo5 str =
-  let packages = [ package ~min:"0.7.0" ~max:"0.8.0" "mirage-console-solo5" ] in
+  let packages = [ package ~min:"0.8.0" ~max:"0.9.0" "mirage-console-solo5" ] in
   impl ~packages ~connect:(connect str) "Console_solo5" console
 
 let custom_console str =

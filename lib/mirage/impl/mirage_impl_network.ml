@@ -20,7 +20,7 @@ let network_conf (intf : string Key.key) =
           Mirage_impl_qubesdb.pkg;
         ]
     | #Mirage_key.mode_solo5 ->
-        [ package ~min:"0.7.0" ~max:"0.8.0" "mirage-net-solo5" ]
+        [ package ~min:"0.8.0" ~max:"0.9.0" "mirage-net-solo5" ]
   in
   let connect _ modname _ =
     (* @samoht: why not just use the args paramater? *)

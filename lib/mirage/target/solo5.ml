@@ -22,9 +22,9 @@ let runtime_packages target =
   | #xen_target -> [ Functoria.package ~min:"7.0.0" ~max:"8.0.0" "mirage-xen" ]
 
 let packages target = build_packages @ runtime_packages target
-let context_name _i = "freestanding"
+let context_name _i = "solo5"
 
-(* OCaml freestanding build context. *)
+(* OCaml solo5 build context. *)
 let build_context ?build_dir:_ i =
   let profile_release = Dune.stanza "(profile release)" in
   let build_context =
@@ -33,7 +33,7 @@ let build_context ?build_dir:_ i =
   (context (default
   (name %s)
   (host default)
-  (toolchain freestanding)
+  (toolchain solo5)
   (disable_dynamically_linked_foreign_archives true)
   ))
   |}

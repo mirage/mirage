@@ -260,7 +260,7 @@ Query unikernel dune
    (modes (native exe))
    (libraries lwt mirage-bootvar-solo5 mirage-clock-solo5 mirage-logs
      mirage-runtime mirage-solo5)
-   (link_flags -w -70 -cclib "-z solo5-abi=hvt")
+   (link_flags :standard -w -70 -cclib "-z solo5-abi=hvt")
    (modules (:standard \ config manifest))
    (foreign_stubs (language c) (names manifest))
   )

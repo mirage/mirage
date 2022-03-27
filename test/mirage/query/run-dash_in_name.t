@@ -14,7 +14,7 @@ Query unikernel dune
      mirage-runtime mirage-unix)
    (link_flags (-thread))
    (modules (:standard \ config))
-   (flags -w -70)
+   (flags :standard -w -70)
    (enabled_if (= %{context_name} "default"))
   )
 
@@ -108,7 +108,7 @@ Query unikernel dune (hvt)
    (modes (native exe))
    (libraries lwt mirage-bootvar-solo5 mirage-clock-solo5 mirage-logs
      mirage-runtime mirage-solo5)
-   (link_flags -w -70 -cclib "-z solo5-abi=hvt")
+   (link_flags :standard -w -70 -cclib "-z solo5-abi=hvt")
    (modules (:standard \ config manifest))
    (foreign_stubs (language c) (names manifest))
   )

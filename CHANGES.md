@@ -1,6 +1,35 @@
-### Unreleased
+### v4.0.0 (2022-03-27)
 
+#### Fixed
+
+- use `--solo5-abi=xen` for qubes target (#1312, @hannesm)
+- Support using a different filename than `config.ml` with `-f`
+  (#1309, @dinosaure)
+- Fix build with dune 3.0 (#1296, @dinosaure)
+- Check that the package name respects opam conventions
+  (#1287, #1304, @TheLortex)
+- Allow to specify version of pinned packages (#1295, @Julow)
+
+#### Changed
+
+- Use the same compilation as dune (#1313, #1316, #1317, ,@samoht, @hannesm)
+- Require cmdliner 1.1 (#1289, @samoht, @dinosaure, @dbuenzli)
+- Require opam 2.1 to use MirageOS (#1239, 1311, @hannesm)
+- Require conduit 5.1 (#1297, @hannesm)
+- Rename `ocaml-freestanding` to `ocaml-solo5`
+  (#1314, @dinosaure, @samoht, @hannesm)
+
+#### Added
+
+- Add Key.opt_all to allows usage of an argument multiple times
+  (#1292, #1301, @dinosaure, @Drup)
 - Add Git devices (#1291, @dinosaure, @samoht, @hannesm, @yomimono)
+- Add happy-eyeballs devices (#1307, @dinosaure, @hannesm)
+- Add docteur device to manage read-only persistent key-value stores
+  (#1298, @dinosaure, @samoht)
+- Add tcpv4v6_of_stackv4v6 device (#1293, @dinosaure)
+- Add int64 converter (#1305, @dinosaure)
+- Add dns_client device (#1302, #1306, @dinosaure, @hannesm)
 
 ### v4.0.0~beta3 (2022-02-02)
 

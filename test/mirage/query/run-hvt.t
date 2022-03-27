@@ -27,7 +27,7 @@ Query global opam
   depends: [
     "mirage" { build & >= "4.0" & < "4.1.0" }
     "ocaml" { build & >= "4.08.0" }
-    "ocaml-freestanding" { build & >= "0.7.0" }
+    "ocaml-solo5" { build & >= "0.8.0" }
     "opam-monorepo" { build & >= "0.2.6" }
   ]
   
@@ -46,10 +46,10 @@ Query local opam
   depends: [
     "lwt"
     "mirage-bootvar-solo5" { >= "0.6.0" & < "0.7.0" }
-    "mirage-clock-freestanding" { >= "3.1.0" & < "5.0.0" }
+    "mirage-clock-solo5" { >= "4.2.0" & < "5.0.0" }
     "mirage-logs" { >= "1.2.0" & < "2.0.0" }
     "mirage-runtime" { >= "4.0" & < "4.1.0" }
-    "mirage-solo5" { >= "0.7.0" & < "0.8.0" }
+    "mirage-solo5" { >= "0.8.0" & < "0.9.0" }
   ]
   
   
@@ -59,12 +59,12 @@ Query packages
   "lwt"
   "mirage" { build & >= "4.0" & < "4.1.0" }
   "mirage-bootvar-solo5" { >= "0.6.0" & < "0.7.0" }
-  "mirage-clock-freestanding" { >= "3.1.0" & < "5.0.0" }
+  "mirage-clock-solo5" { >= "4.2.0" & < "5.0.0" }
   "mirage-logs" { >= "1.2.0" & < "2.0.0" }
   "mirage-runtime" { >= "4.0" & < "4.1.0" }
-  "mirage-solo5" { >= "0.7.0" & < "0.8.0" }
+  "mirage-solo5" { >= "0.8.0" & < "0.9.0" }
   "ocaml" { build & >= "4.08.0" }
-  "ocaml-freestanding" { build & >= "0.7.0" }
+  "ocaml-solo5" { build & >= "0.8.0" }
   "opam-monorepo" { build & >= "0.2.6" }
 
 Query files
@@ -255,10 +255,10 @@ Query unikernel dune
   (copy_files ./config/*)
   
   (executable
-   (enabled_if (= %{context_name} "freestanding"))
+   (enabled_if (= %{context_name} "solo5"))
    (name main)
    (modes (native exe))
-   (libraries lwt mirage-bootvar-solo5 mirage-clock-freestanding mirage-logs
+   (libraries lwt mirage-bootvar-solo5 mirage-clock-solo5 mirage-logs
      mirage-runtime mirage-solo5)
    (link_flags -g -w +A-4-41-42-44 -bin-annot -strict-sequence -principal
      -safe-string -cclib "-z solo5-abi=hvt")
@@ -274,14 +274,14 @@ Query unikernel dune
   
   (rule
    (target noop.hvt)
-   (enabled_if (= %{context_name} "freestanding"))
+   (enabled_if (= %{context_name} "solo5"))
    (deps main.exe)
    (action
     (copy main.exe %{target})))
   
   (alias
     (name default)
-    (enabled_if (= %{context_name} "freestanding"))
+    (enabled_if (= %{context_name} "solo5"))
     (deps (alias_rec all))
     )
 
@@ -315,8 +315,8 @@ Query dune-workspace
   (profile release)
   
   (context (default
-    (name freestanding)
+    (name solo5)
     (host default)
-    (toolchain freestanding)
+    (toolchain solo5)
     (disable_dynamically_linked_foreign_archives true)
     ))

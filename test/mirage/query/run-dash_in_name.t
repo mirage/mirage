@@ -104,10 +104,10 @@ Query unikernel dune (hvt)
   (copy_files ./config/*)
   
   (executable
-   (enabled_if (= %{context_name} "freestanding"))
+   (enabled_if (= %{context_name} "solo5"))
    (name main)
    (modes (native exe))
-   (libraries lwt mirage-bootvar-solo5 mirage-clock-freestanding mirage-logs
+   (libraries lwt mirage-bootvar-solo5 mirage-clock-solo5 mirage-logs
      mirage-runtime mirage-solo5)
    (link_flags -g -w +A-4-41-42-44 -bin-annot -strict-sequence -principal
      -safe-string -cclib "-z solo5-abi=hvt")
@@ -123,14 +123,14 @@ Query unikernel dune (hvt)
   
   (rule
    (target noop-functor.v0.hvt)
-   (enabled_if (= %{context_name} "freestanding"))
+   (enabled_if (= %{context_name} "solo5"))
    (deps main.exe)
    (action
     (copy main.exe %{target})))
   
   (alias
     (name default)
-    (enabled_if (= %{context_name} "freestanding"))
+    (enabled_if (= %{context_name} "solo5"))
     (deps (alias_rec all))
     )
 
@@ -139,7 +139,7 @@ Query dist dune (hvt)
   (rule
    (mode (promote (until-clean)))
    (target noop-functor.v0.hvt)
-   (enabled_if (= %{context_name} "freestanding"))
+   (enabled_if (= %{context_name} "solo5"))
    (action
     (copy ../noop-functor.v0.hvt %{target}))
   )

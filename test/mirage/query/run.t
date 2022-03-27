@@ -273,8 +273,7 @@ Query unikernel dune
      mirage-runtime mirage-unix)
    (link_flags (-thread))
    (modules (:standard \ config))
-   (flags -g -w +A-4-41-42-44 -bin-annot -strict-sequence -principal
-     -safe-string)
+   (flags -w -70)
    (enabled_if (= %{context_name} "default"))
   )
 

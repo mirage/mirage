@@ -1,4 +1,4 @@
-### v4.0.0 (2022-03-27)
+### v4.0.0 (2022-03-28)
 
 #### Fixed
 
@@ -12,7 +12,9 @@
 
 #### Changed
 
-- Use the same compilation as dune (#1313, #1316, #1317, ,@samoht, @hannesm)
+- Use the same compilation as dune (#1313, #1316, #1317, @samoht, @hannesm)
+- Remove unused `--warn-errors` and `--debug` flags (#1320, @samoht)
+- Remove the deprecated `--target=ukvm` (#1321, @hannesm)
 - Require cmdliner 1.1 (#1289, @samoht, @dinosaure, @dbuenzli)
 - Require opam 2.1 to use MirageOS (#1239, 1311, @hannesm)
 - Require conduit 5.1 (#1297, @hannesm)

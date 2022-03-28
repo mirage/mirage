@@ -67,13 +67,6 @@ type mode_xen = [ `Xen | `Qubes ]
 type mode_solo5 = [ `Hvt | `Spt | `Virtio | `Muen | `Genode ]
 type mode = [ mode_unix | mode_xen | mode_solo5 ]
 
-let first_ukvm_mention = ref true
-
-let ukvm_warning =
-  "The `ukvm' target has been renamed to `hvt'. Support for the `ukvm` target \
-   will be removed in a future MirageOS release. Please reconfigure using `-t \
-   hvt' at your earliest convenience."
-
 let target_conv : mode Cmdliner.Arg.conv =
   let parser, printer =
     Cmdliner.Arg.enum
@@ -89,18 +82,7 @@ let target_conv : mode Cmdliner.Arg.conv =
         ("spt", `Spt);
       ]
   in
-  let filter_ukvm s =
-    let str =
-      if s = "ukvm" then (
-        if !first_ukvm_mention then (
-          Logs.warn (fun m -> m "%s" ukvm_warning);
-          first_ukvm_mention := false);
-        "hvt")
-      else s
-    in
-    parser str
-  in
-  (filter_ukvm, printer)
+  (parser, printer)
 
 let target_serialize ppf = function
   | `Unix -> Fmt.pf ppf "`Unix"

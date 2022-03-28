@@ -156,21 +156,6 @@ let is_xen =
   | #mode_xen -> true
   | #mode_solo5 | #mode_unix -> false
 
-let warn_error =
-  let doc = "Enable -warn-error when compiling OCaml sources." in
-  let doc = Arg.info ~docs:mirage_section ~docv:"BOOL" ~doc [ "warn-error" ] in
-  let key = Arg.flag ~stage:`Configure doc in
-  Key.create "warn_error" key
-
-let target_debug =
-  let doc =
-    "Enables target-specific support for debugging. Supported targets: hvt \
-     (compiles solo5-hvt with GDB server support)."
-  in
-  let doc = Arg.info ~docs:mirage_section ~docv:"DEBUG" ~doc [ "g" ] in
-  let key = Arg.flag ~stage:`Configure doc in
-  Key.create "target_debug" key
-
 (** {3 Tracing} *)
 
 let tracing_size default =

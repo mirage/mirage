@@ -58,13 +58,6 @@ val is_solo5 : bool value
 val is_xen : bool value
 (** Is true iff the {!target} key is a Xen-based system (["xen" or "qubes"]). *)
 
-val warn_error : bool key
-(** [--warn-error]. Enable {i -warn-error} for OCaml sources. Set to [false] by
-    default, but might might enabled by default in later releases. *)
-
-val target_debug : bool key
-(** [-g]. Enables target-specific support for debugging. *)
-
 val tracing_size : int -> int key
 (** [--tracing-size]: Key setting the tracing ring buffer size. *)
 

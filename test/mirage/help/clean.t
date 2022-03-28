@@ -71,15 +71,9 @@ Help clean --man-format=plain
              Default: 80. 
   
   MIRAGE PARAMETERS
-         -g  Enables target-specific support for debugging. Supported targets:
-             hvt (compiles solo5-hvt with GDB server support). 
-  
          -t TARGET, --target=TARGET (absent=unix or MODE env)
              Target platform to compile the unikernel for. Valid values are:
              xen, qubes, unix, macosx, virtio, hvt, spt, muen, genode. 
-  
-         --warn-error
-             Enable -warn-error when compiling OCaml sources. 
   
   CONFIGURE OPTIONS
          --context-file=FILE (absent=mirage.context)
@@ -216,15 +210,9 @@ Help clean --help=plain
              Default: 80. 
   
   MIRAGE PARAMETERS
-         -g  Enables target-specific support for debugging. Supported targets:
-             hvt (compiles solo5-hvt with GDB server support). 
-  
          -t TARGET, --target=TARGET (absent=unix or MODE env)
              Target platform to compile the unikernel for. Valid values are:
              xen, qubes, unix, macosx, virtio, hvt, spt, muen, genode. 
-  
-         --warn-error
-             Enable -warn-error when compiling OCaml sources. 
   
   CONFIGURE OPTIONS
          --context-file=FILE (absent=mirage.context)

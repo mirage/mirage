@@ -387,7 +387,7 @@ let run t = %s.Main.run t ; exit 0|ocaml}
   let context_name i = Mirage_target.context_name i
 
   let create jobs =
-    let keys = Key.[ v target; v warn_error; v target_debug ] in
+    let keys = Key.[ v target ] in
     let packages_v =
       (* XXX: use %%VERSION_NUM%% here instead of hardcoding a version? *)
       let min = "4.0" and max = "4.1.0" in

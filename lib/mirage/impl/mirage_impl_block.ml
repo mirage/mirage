@@ -145,7 +145,7 @@ let pp_branch ppf = function
   | None -> ()
   | Some branch -> Fmt.pf ppf " -b %s" branch
 
-let docteur_unix (mode : mode) disk branch analyze remote =
+let docteur_unix (mode : mode) extra_deps disk branch analyze remote =
   let dune info =
     let ctx = Info.context info in
     let disk = Key.get ctx disk in
@@ -165,17 +165,20 @@ let docteur_unix (mode : mode) disk branch analyze remote =
         {dune|
 (rule
  (targets %s)
- (deps (:make %%{bin:docteur.make})%s)
+ (enabled_if (= %%{context_name} "default"))
+ (deps (:make %%{bin:docteur.make})%a%s)
  (action (run %%{make} %s%a %s)))
 |dune}
-        disk source_tree remote pp_branch branch disk
+        disk
+        Fmt.(list ~sep:nop (const string " " ++ string))
+        extra_deps source_tree remote pp_branch branch disk
     in
     [ dune ]
   in
   let install info =
     let ctx = Info.context info in
     let disk = Fpath.v (Key.get ctx disk) in
-    Install.v ~bin:[ (disk, disk) ] ()
+    Install.v ~etc:[ disk ] ()
   in
   let configure info =
     let ctx = Info.context info in
@@ -197,7 +200,7 @@ let docteur_unix (mode : mode) disk branch analyze remote =
     (Fmt.str "Docteur_unix.%a" pp_mode mode)
     ro
 
-let docteur_solo5 (mode : mode) disk branch analyze remote =
+let docteur_solo5 (mode : mode) extra_deps disk branch analyze remote =
   let dune info =
     let ctx = Info.context info in
     let disk = Key.get ctx disk in
@@ -217,17 +220,20 @@ let docteur_solo5 (mode : mode) disk branch analyze remote =
         {dune|
 (rule
  (targets %s)
- (deps (:make %%{bin:docteur.make})%s)
+ (enabled_if (= %%{context_name} "default"))
+ (deps (:make %%{bin:docteur.make})%a%s)
  (action (run %%{make} %s%a %s)))
 |dune}
-        disk source_tree remote pp_branch branch disk
+        disk
+        Fmt.(list ~sep:nop (const string " " ++ string))
+        extra_deps source_tree remote pp_branch branch disk
     in
     [ dune ]
   in
   let install info =
     let ctx = Info.context info in
     let disk = Fpath.v (Key.get ctx disk) in
-    Install.v ~bin:[ (disk, disk) ] ()
+    Install.v ~etc:[ disk ] ()
   in
   let configure info =
     let ctx = Info.context info in
@@ -266,16 +272,17 @@ let analyze =
   in
   Key.(create "analyze" Arg.(opt bool true doc))
 
-let docteur ?(mode = `Fast) ?(disk = disk) ?(analyze = analyze) ?branch remote =
+let docteur ?(mode = `Fast) ?(disk = disk) ?(analyze = analyze) ?branch
+    ?(extra_deps = []) remote =
   match_impl
     Key.(value target)
     [
-      (`Xen, docteur_solo5 mode disk branch analyze remote);
-      (`Qubes, docteur_solo5 mode disk branch analyze remote);
-      (`Virtio, docteur_solo5 mode disk branch analyze remote);
-      (`Hvt, docteur_solo5 mode disk branch analyze remote);
-      (`Spt, docteur_solo5 mode disk branch analyze remote);
-      (`Muen, docteur_solo5 mode disk branch analyze remote);
-      (`Genode, docteur_solo5 mode disk branch analyze remote);
+      (`Xen, docteur_solo5 mode extra_deps disk branch analyze remote);
+      (`Qubes, docteur_solo5 mode extra_deps disk branch analyze remote);
+      (`Virtio, docteur_solo5 mode extra_deps disk branch analyze remote);
+      (`Hvt, docteur_solo5 mode extra_deps disk branch analyze remote);
+      (`Spt, docteur_solo5 mode extra_deps disk branch analyze remote);
+      (`Muen, docteur_solo5 mode extra_deps disk branch analyze remote);
+      (`Genode, docteur_solo5 mode extra_deps disk branch analyze remote);
     ]
-    ~default:(docteur_unix mode disk branch analyze remote)
+    ~default:(docteur_unix mode extra_deps disk branch analyze remote)

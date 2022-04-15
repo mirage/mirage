@@ -20,6 +20,7 @@ val docteur :
   ?disk:string Functoria.Key.key ->
   ?analyze:bool Functoria.Key.key ->
   ?branch:string ->
+  ?extra_deps:string list ->
   string ->
   Mirage_impl_kv.ro Functoria.impl
 

@@ -242,7 +242,8 @@ module Make (P : S) = struct
     | `Dune `Dist ->
         let install = Key.eval (Info.context info) (Engine.install info jobs) in
         Fmt.pr "%a\n%!" Dune.pp
-          (Install.dune ~context_name:(P.context_name info) install)
+          (Install.dune ~context_name_for_bin:(P.context_name info)
+             ~context_name_for_etc:"default" install)
 
   (* Configuration step. *)
 
@@ -301,7 +302,8 @@ module Make (P : S) = struct
             Key.eval (Info.context info) (Engine.install info jobs)
           in
           Fmt.str "%a\n" Dune.pp
-            (Install.dune ~context_name:(P.context_name info) install)
+            (Install.dune ~context_name_for_bin:(P.context_name info)
+               ~context_name_for_etc:"default" install)
     in
     Filegen.write file contents
 

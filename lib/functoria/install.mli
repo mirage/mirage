@@ -20,7 +20,7 @@ type t
 
 val v : ?bin:(Fpath.t * Fpath.t) list -> ?etc:Fpath.t list -> unit -> t
 (** [v ~bin:\[(src,dst),...\] ~etc ()] is the installation of [src] as [dst] as
-    binary files, and [etc] as configuration. *)
+    binary files, and [etc] as configuration/artifact. *)
 
 val union : t -> t -> t
 (** [union a b] merge to sets of installation rules. *)
@@ -34,9 +34,12 @@ val pp : t Fmt.t
 val pp_opam : t Fmt.t
 (** Print the opam rules to install [t] *)
 
-val dune : context_name:string -> t -> Dune.t
-(** [dune ~context_name ()] is the dune rules to promote installed files back in
-    the source tree. *)
+val dune :
+  context_name_for_bin:string -> context_name_for_etc:string -> t -> Dune.t
+(** [dune ~context_name_for_bin ~context_name_for_etc ()] is the dune rules to
+    promote installed files back in the source tree. A context-name is required
+    for [bin] and [etc] artifacts. The first one should be the cross-compiler
+    context and the second one should be the host's compiler context. *)
 
 val dump : t Fmt.t
 (** Dump installation rules. *)

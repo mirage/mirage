@@ -277,12 +277,6 @@ Query unikernel dune
    (deps main.exe)
    (action
     (copy main.exe %{target})))
-  
-  (alias
-    (name default)
-    (enabled_if (= %{context_name} "solo5"))
-    (deps (alias_rec all))
-    )
 
 Query configuration dune
   $ ./config.exe query --target hvt dune.config

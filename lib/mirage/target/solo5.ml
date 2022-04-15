@@ -167,19 +167,7 @@ let main i =
     (Fpath.rem_ext (Fpath.base (Info.config_file i)))
 
 let subdir name s = Dune.stanzaf "(subdir %s\n %a)\n" name Dune.pp (Dune.v s)
-
-let alias_override i =
-  Dune.stanzaf
-    {|
-  (alias
-  (name default)
-  (enabled_if (= %%{context_name} "%s"))
-  (deps (alias_rec all))
-  )
-|}
-    (context_name i)
-
-let dune i = [ main i; manifest i; rename i; alias_override i ]
+let dune i = [ main i; manifest i; rename i ]
 
 let install i =
   let target = Info.get i Key.target in

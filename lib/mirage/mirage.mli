@@ -320,6 +320,10 @@ val docteur :
     [?branch] argument (like [refs/heads/main]). Otherwise, this argument is
     ignored.
 
+    If you use a simple directory, it can be a relative from your unikernel
+    project ([relativize://directory]) or an absolute path
+    ([file://home/user/directory]).
+
     For a Solo5 target, users must {i attach} the image as a block device:
 
     {[ $ solo5-hvt --block:<name>=<path-to-the-image> -- unikernel.{hvt,...} ]}

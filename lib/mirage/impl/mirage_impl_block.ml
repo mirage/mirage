@@ -149,15 +149,26 @@ let docteur_unix (mode : mode) disk branch analyze remote =
   let dune info =
     let ctx = Info.context info in
     let disk = Key.get ctx disk in
+    let source_tree =
+      let uri = Uri.of_string remote in
+      match Uri.scheme uri with
+      | Some "file" ->
+          let path = Uri.host_with_default ~default:"" uri ^ Uri.path uri in
+          Fmt.str " (source_tree /%s)" path
+      | Some "relativize" ->
+          let path = Uri.host_with_default ~default:"" uri ^ Uri.path uri in
+          Fmt.str " (source_tree %s)" path
+      | _ -> ""
+    in
     let dune =
       Dune.stanzaf
         {dune|
 (rule
  (targets %s)
- (deps (:make %%{bin:docteur.make}))
+ (deps (:make %%{bin:docteur.make})%s)
  (action (run %%{make} %s%a %s)))
 |dune}
-        disk remote pp_branch branch disk
+        disk source_tree remote pp_branch branch disk
     in
     [ dune ]
   in
@@ -181,7 +192,7 @@ let docteur_unix (mode : mode) disk branch analyze remote =
       (Key.v disk)
   in
   let keys = [ Key.v disk; Key.v analyze ] in
-  let packages = [ package "docteur-unix" ~min:"0.0.3" ] in
+  let packages = [ package "docteur-unix" ~min:"0.0.5" ] in
   impl ~keys ~packages ~dune ~install ~configure ~connect
     (Fmt.str "Docteur_unix.%a" pp_mode mode)
     ro
@@ -190,15 +201,26 @@ let docteur_solo5 (mode : mode) disk branch analyze remote =
   let dune info =
     let ctx = Info.context info in
     let disk = Key.get ctx disk in
+    let source_tree =
+      let uri = Uri.of_string remote in
+      match Uri.scheme uri with
+      | Some "file" ->
+          let path = Uri.host_with_default ~default:"" uri ^ Uri.path uri in
+          Fmt.str " (source_tree /%s)" path
+      | Some "relativize" ->
+          let path = Uri.host_with_default ~default:"" uri ^ Uri.path uri in
+          Fmt.str " (source_tree %s)" path
+      | _ -> ""
+    in
     let dune =
       Dune.stanzaf
         {dune|
 (rule
  (targets %s)
- (deps (:make %%{bin:docteur.make}))
+ (deps (:make %%{bin:docteur.make})%s)
  (action (run %%{make} %s%a %s)))
 |dune}
-        disk remote pp_branch branch disk
+        disk source_tree remote pp_branch branch disk
     in
     [ dune ]
   in
@@ -222,7 +244,7 @@ let docteur_solo5 (mode : mode) disk branch analyze remote =
       (Key.v disk)
   in
   let keys = [ Key.v disk; Key.v analyze ] in
-  let packages = [ package "docteur-solo5" ~min:"0.0.3" ] in
+  let packages = [ package "docteur-solo5" ~min:"0.0.5" ] in
   impl ~keys ~packages ~dune ~install ~configure ~connect
     (Fmt.str "Docteur_solo5.%a" pp_mode mode)
     ro

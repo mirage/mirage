@@ -35,8 +35,7 @@ Build an application.
   dune-workspace.config
   key_gen.ml
   main.ml
-  noop-monorepo.opam
-  noop-switch.opam
+  noop.opam
   vote
   warn_error
   $ ./app/main.exe
@@ -84,8 +83,7 @@ Test `--output`:
   context
   dune-workspace.config
   key_gen.ml
-  noop-monorepo.opam
-  noop-switch.opam
+  noop.opam
   toto.ml
   vote
   warn_error

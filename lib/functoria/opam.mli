@@ -17,14 +17,12 @@
  *)
 
 type t
-type target = [ `Switch | `Monorepo ]
 
 val v :
   ?build:string list ->
   ?install:Install.t ->
   ?depends:Package.t list ->
   ?pins:(string * string) list ->
-  target:target ->
   src:[ `Auto | `None | `Some of string ] ->
   string ->
   t

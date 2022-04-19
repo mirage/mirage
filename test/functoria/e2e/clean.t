@@ -18,8 +18,7 @@ Make sure that clean remove everything:
   dune-workspace.config
   key_gen.ml
   main.ml
-  noop-monorepo.opam
-  noop-switch.opam
+  noop.opam
   vote
   warn_error
   $ ./test.exe clean -v --file app/config.ml
@@ -66,8 +65,7 @@ Check that clean works with `--output`:
   context
   dune-workspace.config
   key_gen.ml
-  noop-monorepo.opam
-  noop-switch.opam
+  noop.opam
   toto.ml
   vote
   warn_error

@@ -106,15 +106,20 @@ let v ?(scope = `Monorepo) ?(build = false) ?sublibs ?libs ?min ?max ?pin
 
 let with_scope ~scope t = { t with scope }
 
-let exts_to_string ppf (min, max, build) =
+let exts_to_string ppf (min, max, build, scope) =
   let build_strs = if build then [ "build" ] else [] in
   let esc_prefix prefix e = Fmt.str "%s %S" prefix e in
   let min_strs = List.map (esc_prefix ">=") (String.Set.elements min)
   and max_strs = List.map (esc_prefix "<") (String.Set.elements max) in
   let constr_list = build_strs @ min_strs @ max_strs in
+  let constr_list =
+    match scope with
+    | `Monorepo -> "switch != \"\"" :: constr_list
+    | `Switch -> constr_list
+  in
   if List.length constr_list > 0 then
     Fmt.pf ppf " { %s }" (String.concat ~sep:" & " constr_list)
 
 let pp ?(surround = "") ppf p =
   Fmt.pf ppf "%s%s%s%a" surround p.name surround exts_to_string
-    (p.min, p.max, p.build)
+    (p.min, p.max, p.build, p.scope)

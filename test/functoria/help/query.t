@@ -42,9 +42,8 @@ Help query --man-format=plain
   
          INFO (absent=packages)
              The information to query. INFO must be one of 'name', 'packages',
-             'monorepo.opam', 'switch.opam', 'files', 'Makefile',
-             'dune.config', 'dune.build', 'dune-project', 'dune-workspace' or
-             'dune.dist'
+             'opam', 'files', 'Makefile', 'dune.config', 'dune.build',
+             'dune-project', 'dune-workspace' or 'dune.dist'
   
   APPLICATION OPTIONS
          --hello=VAL (absent=Hello World!)
@@ -144,9 +143,8 @@ Help query --help=plain
   
          INFO (absent=packages)
              The information to query. INFO must be one of 'name', 'packages',
-             'monorepo.opam', 'switch.opam', 'files', 'Makefile',
-             'dune.config', 'dune.build', 'dune-project', 'dune-workspace' or
-             'dune.dist'
+             'opam', 'files', 'Makefile', 'dune.config', 'dune.build',
+             'dune-project', 'dune-workspace' or 'dune.dist'
   
   APPLICATION OPTIONS
          --hello=VAL (absent=Hello World!)

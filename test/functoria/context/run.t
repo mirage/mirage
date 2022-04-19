@@ -1,26 +1,26 @@
 Query package - no target - x.context
   $ ./config.exe query package --context-file=x.context
-  "fmt"
-  "functoria-runtime"
-  "x"
+  "fmt" { switch != "" }
+  "functoria-runtime" { switch != "" }
+  "x" { switch != "" }
 
 Query package - no target - y.context
   $ ./config.exe query package --context-file=y.context
-  "fmt"
-  "functoria-runtime"
-  "y"
+  "fmt" { switch != "" }
+  "functoria-runtime" { switch != "" }
+  "y" { switch != "" }
 
 Query package - x target  - y.context
   $ ./config.exe query package -t x --context-file=y.context
-  "fmt"
-  "functoria-runtime"
-  "x"
+  "fmt" { switch != "" }
+  "functoria-runtime" { switch != "" }
+  "x" { switch != "" }
 
 Query package - y target  - x.context
   $ ./config.exe query package -t y --context-file=x.context
-  "fmt"
-  "functoria-runtime"
-  "y"
+  "fmt" { switch != "" }
+  "functoria-runtime" { switch != "" }
+  "y" { switch != "" }
 
 Describe - no target - x.context
   $ ./config.exe describe --context-file=x.context

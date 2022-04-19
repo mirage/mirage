@@ -25,8 +25,7 @@ type t = {
   keys : Key.Set.t;
   context : Key.context;
   packages : Package.t String.Map.t;
-  opam_monorepo : install:Install.t -> Opam.t;
-  opam_switch : install:Install.t -> Opam.t;
+  opam : install:Install.t -> Opam.t;
 }
 
 let name t = t.name
@@ -37,10 +36,7 @@ let main t =
   Fpath.v (main ^ ".ml")
 
 let get t k = Key.get t.context k
-
-let opam scope t =
-  match scope with `Monorepo -> t.opam_monorepo | `Switch -> t.opam_switch
-
+let opam t = t.opam
 let output t = t.output
 let with_output t output = { t with output = Some output }
 
@@ -66,16 +62,9 @@ let context t = t.context
 let v ?(config_file = Fpath.v "config.ml") ~packages ~keys ~context ~build_cmd
     ~src name =
   let keys = Key.Set.of_list keys in
-  let monorepo_packages, switch_packages =
-    List.partition (fun pkg -> Package.scope pkg == `Monorepo) packages
-  in
-  let opam_monorepo ~install:_ =
-    Opam.v ~depends:monorepo_packages ~pins:(pins monorepo_packages)
-      ~target:`Monorepo ~build:build_cmd ~src name
-  in
-  let opam_switch ~install =
-    Opam.v ~depends:switch_packages ~install ~pins:(pins switch_packages)
-      ~build:build_cmd ~target:`Switch ~src name
+  let opam ~install =
+    Opam.v ~depends:packages ~install ~pins:(pins packages) ~build:build_cmd
+      ~src name
   in
   let packages =
     List.fold_left
@@ -89,16 +78,7 @@ let v ?(config_file = Fpath.v "config.ml") ~packages ~keys ~context ~build_cmd
             | None -> m))
       String.Map.empty packages
   in
-  {
-    config_file;
-    name;
-    keys;
-    packages;
-    context;
-    output = None;
-    opam_monorepo;
-    opam_switch;
-  }
+  { config_file; name; keys; packages; context; output = None; opam }
 
 let pp_packages ?(surround = "") ?sep ppf t =
   let pkgs = packages t in

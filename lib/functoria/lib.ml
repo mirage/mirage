@@ -114,7 +114,7 @@ module Make (P : S) = struct
       |> Array.to_list
       |> List.tl
       |> List.filter (fun arg ->
-             arg <> "configure" && arg <> "query" && arg <> "switch.opam")
+             arg <> "configure" && arg <> "query" && arg <> "opam")
       |> List.map (fun x -> "\"" ^ x ^ "\"")
       |> String.concat ~sep:" "
     in
@@ -201,8 +201,8 @@ module Make (P : S) = struct
     | `Packages ->
         let pkgs = Info.packages info in
         List.iter (Fmt.pr "%a\n%!" (Package.pp ~surround:"\"")) pkgs
-    | `Opam scope ->
-        let opam = Info.opam ~install scope info in
+    | `Opam ->
+        let opam = Info.opam ~install info in
         Fmt.pr "%a\n%!" Opam.pp opam
     | `Files ->
         let files = files info jobs in
@@ -246,20 +246,15 @@ module Make (P : S) = struct
 
   (* Configuration step. *)
 
-  let generate_opam ~opam_name scope (args : _ Cli.args) () =
+  let generate_opam ~opam_name (args : _ Cli.args) () =
     let { Config.info; jobs; _ } = args.Cli.context in
     let install = Key.eval (Info.context info) (Engine.install info jobs) in
     let name = Misc.Name.Opam.to_string opam_name in
-    let fname =
-      match scope with
-      | `Monorepo -> "-monorepo.opam"
-      | `Switch -> "-switch.opam"
-    in
-    let opam = Info.opam ~install scope info in
+    let opam = Info.opam ~install info in
     let contents = Fmt.str "%a" Opam.pp opam in
-    let file = Fpath.(v (name ^ fname)) in
+    let file = Fpath.(v (name ^ ".opam")) in
     Log.info (fun m ->
-        m "Generating: %a (%a)" Fpath.pp file Cli.pp_query_kind (`Opam scope));
+        m "Generating: %a (%a)" Fpath.pp file Cli.pp_query_kind `Opam);
     Filegen.write file contents
 
   let generate_dune alias (args : _ Cli.args) () =
@@ -330,9 +325,8 @@ module Make (P : S) = struct
     let* _ = Action.mkdir (mirage_dir args) in
     let* () =
       Action.with_dir (mirage_dir args) (fun () ->
-          (* OPAM files *)
-          let* () = generate_opam `Switch ~opam_name args () in
-          let* () = generate_opam `Monorepo ~opam_name args () in
+          (* OPAM file *)
+          let* () = generate_opam ~opam_name args () in
           (* Generate application specific-files *)
           Log.info (fun m -> m "in dir %a" (Cli.pp_args (fun _ _ -> ())) args);
           configure_main info init device_graph)

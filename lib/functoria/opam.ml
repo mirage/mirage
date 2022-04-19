@@ -130,8 +130,6 @@ let guess_src () =
       in
       Some (Fmt.str "%s#%s" public branch)
 
-type target = [ `Switch | `Monorepo ]
-
 type t = {
   name : string;
   depends : Package.t list;
@@ -139,15 +137,14 @@ type t = {
   install : Install.t;
   pins : (string * string) list;
   src : string option;
-  target : target;
 }
 
-let v ?(build = []) ?(install = Install.empty) ?(depends = []) ?(pins = [])
-    ~target ~src name =
+let v ?(build = []) ?(install = Install.empty) ?(depends = []) ?(pins = []) ~src
+    name =
   let src =
     match src with `Auto -> guess_src () | `None -> None | `Some d -> Some d
   in
-  { name; depends; build; install; pins; target; src }
+  { name; depends; build; install; pins; src }
 
 let pp_packages ppf packages =
   Fmt.pf ppf "\n  %a\n"
@@ -166,14 +163,22 @@ let pp_src ppf = function
   | None -> ()
   | Some src -> Fmt.pf ppf {|@.url { src: %S }|} src
 
+let pp_switch_package ppf s = Fmt.pf ppf "%S" s
+
 let pp ppf t =
   let pp_build ppf =
     Fmt.pf ppf "\n%a\n" (Fmt.list ~sep:(Fmt.any "\n") (Fmt.fmt "  [ %s ]"))
   in
-  match t.target with
-  | `Switch ->
-      Fmt.pf ppf
-        {|opam-version: "2.0"
+  let switch_packages =
+    List.filter_map
+      (fun p ->
+        match Package.scope p with
+        | `Switch -> Some (Package.name p)
+        | `Monorepo -> None)
+      t.depends
+  in
+  Fmt.pf ppf
+    {|opam-version: "2.0"
 name: "%s"
 maintainer: "dummy"
 authors: "dummy"
@@ -191,21 +196,10 @@ build: [%a]
 install: [%a]
 
 depends: [%a]
-%a%a|}
-        t.name t.name pp_build t.build Install.pp_opam t.install pp_packages
-        t.depends pp_src t.src pp_pins t.pins
-  | `Monorepo ->
-      Fmt.pf ppf
-        {|opam-version: "2.0"
-name: "%s"
-maintainer: "dummy"
-authors: "dummy"
-homepage: "dummy"
-bug-reports: "dummy"
-dev-repo: "git://dummy"
-synopsis: "Unikernel %s - monorepo dependencies"
 
-depends: [%a]
-%a
-|}
-        t.name t.name pp_packages t.depends pp_pins t.pins
+x-opam-monorepo-opam-provided: [%a]
+%a%a|}
+    t.name t.name pp_build t.build Install.pp_opam t.install pp_packages
+    t.depends
+    (Fmt.list pp_switch_package)
+    switch_packages pp_src t.src pp_pins t.pins

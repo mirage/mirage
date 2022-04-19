@@ -1,0 +1,6 @@
+opam-version: "2.0"
+depends: ["ocaml-base-compiler"]
+dev-repo: ""
+url {
+  src: "https://mirage.src"
+}

@@ -29,6 +29,7 @@ depends: [
   "opam-monorepo" {>= "0.2.6"}
   "alcotest" {with-test}
   "fmt" {>= "0.8.7" & with-test}
+  "opam-monorepo" {>= "0.3.0" & with-test}
 ]
 synopsis: "The MirageOS library operating system"
 description: """

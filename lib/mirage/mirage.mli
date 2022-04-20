@@ -299,6 +299,7 @@ val docteur :
   ?disk:string Key.key ->
   ?analyze:bool Key.key ->
   ?branch:string ->
+  ?extra_deps:string list ->
   string ->
   kv_ro impl
 (** [docteur ?mode ?disk ?analyze remote] is a read-only, key-value store
@@ -323,6 +324,9 @@ val docteur :
     If you use a simple directory, it can be a relative from your unikernel
     project ([relativize://directory]) or an absolute path
     ([file://home/user/directory]).
+
+    If a required file is produced by a [dune] rule, you must notice it via the
+    [extra_deps] argument.
 
     For a Solo5 target, users must {i attach} the image as a block device:
 

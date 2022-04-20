@@ -69,12 +69,18 @@ let promote_artifact ~context_name ~src ~dst =
     Fpath.pp dst context_name Fpath.pp
     Fpath.(v ".." // src)
 
-let dune ~context_name t =
+let dune ~context_name_for_bin ~context_name_for_etc t =
   let bin_rules =
-    List.map (fun (src, dst) -> promote_artifact ~context_name ~src ~dst) t.bin
+    List.map
+      (fun (src, dst) ->
+        promote_artifact ~context_name:context_name_for_bin ~src ~dst)
+      t.bin
   in
   let etc_rules =
-    List.map (fun etc -> promote_artifact ~context_name ~src:etc ~dst:etc) t.etc
+    List.map
+      (fun etc ->
+        promote_artifact ~context_name:context_name_for_etc ~src:etc ~dst:etc)
+      t.etc
   in
   Dune.v (bin_rules @ etc_rules)
 

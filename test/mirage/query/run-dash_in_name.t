@@ -125,12 +125,6 @@ Query unikernel dune (hvt)
    (deps main.exe)
    (action
     (copy main.exe %{target})))
-  
-  (alias
-    (name default)
-    (enabled_if (= %{context_name} "solo5"))
-    (deps (alias_rec all))
-    )
 
 Query dist dune (hvt)
   $ ./config_dash_in_name.exe query --target hvt dune.dist

@@ -290,7 +290,7 @@ let docteur ?(mode = `Fast) ?(disk = disk) ?(analyze = analyze) ?branch
 
 let chamelon ~program_block_size =
   let keys = [ Key.v program_block_size ] in
-  let packages = [ package "chamelon" ~sublibs:[ "kv" ] ] in
+  let packages = [ package "chamelon" ~sublibs:[ "kv" ] ~min:"0.0.8" ] in
   let connect _ modname = function
     | [ block; _ ] ->
         Fmt.str

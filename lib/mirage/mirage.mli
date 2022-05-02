@@ -361,6 +361,33 @@ val direct_kv_rw : string -> kv_rw impl
 val kv_rw_mem : ?clock:pclock impl -> unit -> kv_rw impl
 (** An in-memory key-value store using [mirage-kv-mem]. *)
 
+val chamelon :
+  program_block_size:int key -> ?pclock:pclock impl -> block impl -> kv_rw impl
+(** [chamelon ~program_block_size] returns a {!kv_rw} filesystem which is an
+    implementation of {{:https://github.com/littlefs-project/littlefs} littlefs}
+    in OCaml. The [chamelon] device expects a {i block-device}:
+
+    {[
+      let program_block_size =
+        let doc = Key.Arg.info [ "program-block-size" ] in
+        Key.(create "program_block_size" Arg.(opt int 16 doc))
+
+      let block = block_of_file "db"
+      let fs = chamelon ~program_block_size block
+    ]}
+
+    For Solo5 targets, you finally can launch the unikernel with:
+
+    {[ $ solo5-hvt --block:db=db.img unikernel.hvt ]}
+
+    The block-device must be well-formed and {i formatted} by the [chamelon]
+    tool:
+
+    {[
+      $ dd if=/dev/zero if=db.img bs=1M count=1
+      $ chamelon format 512 db.img
+    ]} *)
+
 (** {2 Filesystem} *)
 
 type fs

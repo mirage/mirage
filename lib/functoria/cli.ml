@@ -31,7 +31,7 @@ let description_section = "DESCRIBE OPTIONS"
 type query_kind =
   [ `Name
   | `Packages
-  | `Opam of [ `Switch | `Monorepo ]
+  | `Opam
   | `Files
   | `Dune of [ `Config | `Build | `Project | `Workspace | `Dist ]
   | `Makefile ]
@@ -40,8 +40,7 @@ let query_kinds : (string * query_kind) list =
   [
     ("name", `Name);
     ("packages", `Packages);
-    ("monorepo.opam", `Opam `Monorepo);
-    ("switch.opam", `Opam `Switch);
+    ("opam", `Opam);
     ("files", `Files);
     ("Makefile", `Makefile);
     ("dune.config", `Dune `Config);

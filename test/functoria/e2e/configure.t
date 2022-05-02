@@ -22,8 +22,7 @@ is passed:
                        hello=Hello World! (default),
                        vote=cat (default),
                        warn_error=false (default)
-  config.exe: [INFO] Generating: noop-switch.opam (switch.opam)
-  config.exe: [INFO] Generating: noop-monorepo.opam (monorepo.opam)
+  config.exe: [INFO] Generating: noop.opam (opam)
   config.exe: [INFO] in dir { "context" = ;
                               "config_file" = app/config.ml;
                               "output" = None;
@@ -51,8 +50,7 @@ is passed:
   dune-workspace.config
   key_gen.ml
   main.ml
-  noop-monorepo.opam
-  noop-switch.opam
+  noop.opam
   vote
   warn_error
   $ ./test.exe clean --file app/config.ml

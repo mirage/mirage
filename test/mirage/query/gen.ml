@@ -47,8 +47,7 @@ let of_target target =
   List.iter gen
     [
       v "name" target;
-      v "monorepo.opam" target;
-      v "switch.opam" target;
+      v "opam" target;
       v "packages" target;
       v "files" target;
       v "Makefile" target;

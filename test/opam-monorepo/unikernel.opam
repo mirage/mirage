@@ -1,0 +1,35 @@
+opam-version: "2.0"
+name: "noop"
+maintainer: "dummy"
+authors: "dummy"
+homepage: "dummy"
+bug-reports: "dummy"
+dev-repo: "git://dummy"
+synopsis: "Unikernel noop - switch dependencies"
+description: """
+It assumes that local dependencies are already
+fetched.
+"""
+
+build: [
+[ "test" "configure"  ]
+[ "test" "build" ]
+]
+
+install: [
+[ "cp" "dist/f0.exe" "%{bin}%/f0" ]
+]
+
+depends: [
+    "ocaml-solo5"
+    "mirage-runtime"
+    "fmt"
+    "zarith"
+]
+
+x-opam-monorepo-opam-provided: [ "ocaml-solo5" ]
+
+x-opam-monorepo-opam-repositories: [
+    "file://$OPAM_MONOREPO_CWD/mini-opam-overlays"
+    "file://$OPAM_MONOREPO_CWD/mini-opam-repository"
+]

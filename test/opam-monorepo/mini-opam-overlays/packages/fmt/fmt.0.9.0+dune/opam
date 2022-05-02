@@ -1,0 +1,6 @@
+opam-version: "2.0"
+depends: ["dune"]
+dev-repo: "fmt"
+url {
+  src: "https://fmt.src"
+}

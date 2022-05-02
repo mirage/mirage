@@ -24,11 +24,14 @@ let test_package_merge () =
 let test_package_pp () =
   let str = Fmt.to_to_string Package.pp in
   let str' = Fmt.to_to_string (Package.pp ~surround:"x") in
-  Alcotest.(check string) "pp(x)" (str x) {|foo { >= "1.0" & < "2.0" }|};
   Alcotest.(check string)
-    "pp(xy)" (str xy) {|foo { >= "0.9" & >= "1.0" & < "1.9" & < "2.0" }|};
-  Alcotest.(check string) "pp(z)" (str z) {|bar { >= "42" }|};
-  Alcotest.(check string) "pp'(x)" (str' x) {|xfoox { >= "1.0" & < "2.0" }|};
+    "pp(x)" (str x) {|foo { switch != "" & >= "1.0" & < "2.0" }|};
+  Alcotest.(check string)
+    "pp(xy)" (str xy)
+    {|foo { switch != "" & >= "0.9" & >= "1.0" & < "1.9" & < "2.0" }|};
+  Alcotest.(check string) "pp(z)" (str z) {|bar { switch != "" & >= "42" }|};
+  Alcotest.(check string)
+    "pp'(x)" (str' x) {|xfoox { switch != "" & >= "1.0" & < "2.0" }|};
   Alcotest.(check string) "pp(w)" (str w) {|foo { >= "1.0" & < "2.0" }|};
   Alcotest.(check string) "key(x)" (Package.key x) "monorepo-foo";
   Alcotest.(check string) "key(w)" (Package.key w) "switch-foo"

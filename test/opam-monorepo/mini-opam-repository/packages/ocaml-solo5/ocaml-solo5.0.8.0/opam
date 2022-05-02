@@ -1,0 +1,6 @@
+opam-version: "2.0"
+depends: ["solo5"]
+dev-repo: "ocaml-solo5"
+url {
+  src: "https://ocaml-solo5.src"
+}

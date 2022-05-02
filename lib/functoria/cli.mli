@@ -62,7 +62,7 @@ type 'a help_args = 'a args
 type query_kind =
   [ `Name
   | `Packages
-  | `Opam of [ `Monorepo | `Switch ]
+  | `Opam
   | `Files
   | `Dune of [ `Config | `Build | `Project | `Workspace | `Dist ]
   | `Makefile ]

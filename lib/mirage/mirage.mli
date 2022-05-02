@@ -380,7 +380,9 @@ val chamelon :
 
     For Solo5 targets, you finally can launch the unikernel with:
 
-    {[ $ solo5-hvt --block:db=db.img unikernel.hvt ]}
+    {[
+      $ solo5-hvt --block:db=db.img unikernel.hvt
+    ]}
 
     The block-device must be well-formed and {i formatted} by the [chamelon]
     tool:

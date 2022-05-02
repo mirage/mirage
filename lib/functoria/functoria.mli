@@ -36,7 +36,9 @@
     with the {!Type} combinators, like the [@->] operator, which represents a
     functor arrow.
 
-    {[ let main = main "Unikernel.Main" (m @-> job) ]}
+    {[
+      let main = main "Unikernel.Main" (m @-> job)
+    ]}
 
     This declares that the functor [Unikernel.Main] takes a module of type [m]
     and returns a module of type {!module-DSL.job}. [job] has a specific meaning
@@ -90,7 +92,9 @@
 
     To register a new application, use [register]:
 
-    {[ let () = register "app" [ main $ impl ] ]}
+    {[
+      let () = register "app" [ main $ impl ]
+    ]}
 
     This function (which should only be called once) takes as argument the name
     of the application and a list of jobs. The jobs are defined using the
@@ -104,12 +108,16 @@
     time. This is done by using the {!Key} DSL, for instance to check whether
     [lang_key] is instanciated with a given string:
 
-    {[ let lang_is "s" = Key.(pure (( = ) s) $ value lang_key) ]}
+    {[
+      let lang_is "s" = Key.(pure (( = ) s) $ value lang_key)
+    ]}
 
     Then by using the {!if_impl} combinator to choose between two
     implementations depending on the value of the key:
 
-    {[ let impl = if_impl (is "fi") finnish_impl not_finnish_implementation ]} *)
+    {[
+      let impl = if_impl (is "fi") finnish_impl not_finnish_implementation
+    ]} *)
 
 module type DSL = module type of DSL
 

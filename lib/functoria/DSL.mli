@@ -42,7 +42,9 @@ val ( @-> ) : 'a typ -> 'b typ -> ('a -> 'b) typ
     corresponds to prepending a parameter to the list of functor parameters. For
     example:
 
-    {[ kv_ro @-> ip @-> kv_ro ]}
+    {[
+      kv_ro @-> ip @-> kv_ro
+    ]}
 
     This describes a functor type that accepts two arguments -- a [kv_ro] and an
     [ip] device -- and returns a [kv_ro]. *)

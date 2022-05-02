@@ -22,6 +22,7 @@ module Serialize = struct
   let string fmt s = Format.fprintf fmt "%S" s
   let option x = Fmt.(parens @@ Dump.option x)
   let list x = Fmt.Dump.list x
+  let pair a b = Fmt.Dump.pair a b
 end
 
 module Arg = struct
@@ -62,6 +63,13 @@ module Arg = struct
       ~conv:(Cmdliner.Arg.list (converter d))
       ~runtime_conv:(Fmt.str "(Cmdliner.Arg.list %s)" (runtime_conv d))
       ~serialize:(Serialize.list (serialize d))
+
+  let pair ?sep a b =
+    conv
+      ~conv:(Cmdliner.Arg.pair ?sep (converter a) (converter b))
+      ~runtime_conv:
+        (Fmt.str "(Cmdliner.Arg.pair %s %s)" (runtime_conv a) (runtime_conv b))
+      ~serialize:(Serialize.pair (serialize a) (serialize b))
 
   let some d =
     conv

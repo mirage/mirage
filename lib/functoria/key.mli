@@ -68,6 +68,9 @@ module Arg : sig
   val list : 'a converter -> 'a list converter
   (** [list t] converts lists of [t]s. *)
 
+  val pair : ?sep:char -> 'a converter -> 'b converter -> ('a * 'b) converter
+  (** [pair a b] converts [a] and [b] to a pair of [a, b]. *)
+
   val some : 'a converter -> 'a option converter
   (** [some t] converts [t] options. *)
 

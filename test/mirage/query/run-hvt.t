@@ -26,11 +26,11 @@ Query opam file
   
   depends: [
     "lwt" { switch != "" }
-    "mirage" { build & >= "4.0" & < "4.1.0" }
+    "mirage" { build & >= "4.1.0" & < "4.2.0" }
     "mirage-bootvar-solo5" { switch != "" & >= "0.6.0" & < "0.7.0" }
     "mirage-clock-solo5" { switch != "" & >= "4.2.0" & < "5.0.0" }
     "mirage-logs" { switch != "" & >= "1.2.0" & < "2.0.0" }
-    "mirage-runtime" { switch != "" & >= "4.0" & < "4.1.0" }
+    "mirage-runtime" { switch != "" & >= "4.1.0" & < "4.2.0" }
     "mirage-solo5" { switch != "" & >= "0.8.0" & < "0.9.0" }
     "ocaml" { build & >= "4.08.0" }
     "ocaml-solo5" { build & >= "0.8.0" }
@@ -46,11 +46,11 @@ Query opam file
 Query packages
   $ ./config.exe query --target hvt packages
   "lwt" { switch != "" }
-  "mirage" { build & >= "4.0" & < "4.1.0" }
+  "mirage" { build & >= "4.1.0" & < "4.2.0" }
   "mirage-bootvar-solo5" { switch != "" & >= "0.6.0" & < "0.7.0" }
   "mirage-clock-solo5" { switch != "" & >= "4.2.0" & < "5.0.0" }
   "mirage-logs" { switch != "" & >= "1.2.0" & < "2.0.0" }
-  "mirage-runtime" { switch != "" & >= "4.0" & < "4.1.0" }
+  "mirage-runtime" { switch != "" & >= "4.1.0" & < "4.2.0" }
   "mirage-solo5" { switch != "" & >= "0.8.0" & < "0.9.0" }
   "ocaml" { build & >= "4.08.0" }
   "ocaml-solo5" { build & >= "0.8.0" }

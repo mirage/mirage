@@ -1,3 +1,9 @@
+### v4.1.1 (2022-04-05)
+
+#### Fixed
+
+- Update constraints on generated OPAM files (d21de15, @dinosaure)
+
 ### v4.1.0 (2022-05-02)
 
 #### Changed

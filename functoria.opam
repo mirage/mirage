@@ -23,7 +23,7 @@ build: [
 
 depends: [
   "ocaml" {>= "4.08.0"}
-  "dune" {>= "2.8.0" | (with-test & >= "3.0.0")}
+  "dune" {>= "2.9.0" | (with-test & >= "3.0.0")}
   "base-unix"
   "cmdliner" {>= "1.1.1"}
   "rresult" {>= "0.7.0"}

@@ -1,3 +1,20 @@
+### v4.1.0 (2022-05-02)
+
+#### Changed
+
+- Be able to make a docteur image with a relative path (@dinosaure, #1324)
+- Update the project with `ocamlformat.0.21.0` (@gpetiot, @dinosaure, #1286)
+- Upgrade the `mirage` tool with `opam-monorepo.0.3.0` and generate
+  a single OPAM file (@TheLortex, @hannesm, @dinosaure, #1327)
+
+  You should check the `opam-monorepo.0.3.0` release to get more details about
+  updates and fixes.
+
+#### Added
+
+- Add `chamelon` device, a filesystem with `littlefs` (@dinosaure, @yomimono, #1300)
+- Add `pair` combinator for MirageOS key (@dinosaure, #1328)
+
 ### v4.0.0 (2022-03-28)
 
 #### Fixed

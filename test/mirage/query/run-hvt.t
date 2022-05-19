@@ -34,7 +34,7 @@ Query opam file
     "mirage-solo5" { switch != "" & >= "0.8.0" & < "0.9.0" }
     "ocaml" { build & >= "4.08.0" }
     "ocaml-solo5" { build & >= "0.8.0" }
-    "opam-monorepo" { build & >= "0.2.6" }
+    "opam-monorepo" { build & >= "0.3.1" }
   ]
   
   x-opam-monorepo-opam-provided: ["mirage"
@@ -54,7 +54,7 @@ Query packages
   "mirage-solo5" { switch != "" & >= "0.8.0" & < "0.9.0" }
   "ocaml" { build & >= "4.08.0" }
   "ocaml-solo5" { build & >= "0.8.0" }
-  "opam-monorepo" { build & >= "0.2.6" }
+  "opam-monorepo" { build & >= "0.3.1" }
 
 Query files
   $ ./config.exe query --target hvt files

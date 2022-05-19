@@ -37,7 +37,7 @@ Query opam file
     "mirage-runtime" { switch != "" & >= "4.1.0" & < "4.2.0" }
     "mirage-unix" { switch != "" & >= "5.0.0" & < "6.0.0" }
     "ocaml" { build & >= "4.08.0" }
-    "opam-monorepo" { build & >= "0.2.6" }
+    "opam-monorepo" { build & >= "0.3.1" }
   ]
   
   x-opam-monorepo-opam-provided: ["mirage"
@@ -56,7 +56,7 @@ Query packages
   "mirage-runtime" { switch != "" & >= "4.1.0" & < "4.2.0" }
   "mirage-unix" { switch != "" & >= "5.0.0" & < "6.0.0" }
   "ocaml" { build & >= "4.08.0" }
-  "opam-monorepo" { build & >= "0.2.6" }
+  "opam-monorepo" { build & >= "0.3.1" }
 
 Query files
   $ ./config.exe query files

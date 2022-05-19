@@ -1,26 +1,26 @@
 Query package - no target - x.context
   $ ./config.exe query package --context-file=x.context
-  "fmt" { switch != "" }
-  "functoria-runtime" { switch != "" }
-  "x" { switch != "" }
+  "fmt" { switch = "monorepo" }
+  "functoria-runtime" { switch = "monorepo" }
+  "x" { switch = "monorepo" }
 
 Query package - no target - y.context
   $ ./config.exe query package --context-file=y.context
-  "fmt" { switch != "" }
-  "functoria-runtime" { switch != "" }
-  "y" { switch != "" }
+  "fmt" { switch = "monorepo" }
+  "functoria-runtime" { switch = "monorepo" }
+  "y" { switch = "monorepo" }
 
 Query package - x target  - y.context
   $ ./config.exe query package -t x --context-file=y.context
-  "fmt" { switch != "" }
-  "functoria-runtime" { switch != "" }
-  "x" { switch != "" }
+  "fmt" { switch = "monorepo" }
+  "functoria-runtime" { switch = "monorepo" }
+  "x" { switch = "monorepo" }
 
 Query package - y target  - x.context
   $ ./config.exe query package -t y --context-file=x.context
-  "fmt" { switch != "" }
-  "functoria-runtime" { switch != "" }
-  "y" { switch != "" }
+  "fmt" { switch = "monorepo" }
+  "functoria-runtime" { switch = "monorepo" }
+  "y" { switch = "monorepo" }
 
 Describe - no target - x.context
   $ ./config.exe describe --context-file=x.context

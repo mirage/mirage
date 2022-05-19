@@ -114,7 +114,7 @@ let exts_to_string ppf (min, max, build, scope) =
   let constr_list = build_strs @ min_strs @ max_strs in
   let constr_list =
     match scope with
-    | `Monorepo -> "switch != \"\"" :: constr_list
+    | `Monorepo -> "switch = \"monorepo\"" :: constr_list
     | `Switch -> constr_list
   in
   if List.length constr_list > 0 then

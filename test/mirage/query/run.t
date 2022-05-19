@@ -29,13 +29,13 @@ Query opam file
   ]
   
   depends: [
-    "lwt" { switch != "" }
+    "lwt" { switch = "monorepo" }
     "mirage" { build & >= "4.1.0" & < "4.2.0" }
-    "mirage-bootvar-unix" { switch != "" & >= "0.1.0" & < "0.2.0" }
-    "mirage-clock-unix" { switch != "" & >= "3.0.0" & < "5.0.0" }
-    "mirage-logs" { switch != "" & >= "1.2.0" & < "2.0.0" }
-    "mirage-runtime" { switch != "" & >= "4.1.0" & < "4.2.0" }
-    "mirage-unix" { switch != "" & >= "5.0.0" & < "6.0.0" }
+    "mirage-bootvar-unix" { switch = "monorepo" & >= "0.1.0" & < "0.2.0" }
+    "mirage-clock-unix" { switch = "monorepo" & >= "3.0.0" & < "5.0.0" }
+    "mirage-logs" { switch = "monorepo" & >= "1.2.0" & < "2.0.0" }
+    "mirage-runtime" { switch = "monorepo" & >= "4.1.0" & < "4.2.0" }
+    "mirage-unix" { switch = "monorepo" & >= "5.0.0" & < "6.0.0" }
     "ocaml" { build & >= "4.08.0" }
     "opam-monorepo" { build & >= "0.3.1" }
   ]
@@ -48,13 +48,13 @@ Query opam file
 
 Query packages
   $ ./config.exe query packages
-  "lwt" { switch != "" }
+  "lwt" { switch = "monorepo" }
   "mirage" { build & >= "4.1.0" & < "4.2.0" }
-  "mirage-bootvar-unix" { switch != "" & >= "0.1.0" & < "0.2.0" }
-  "mirage-clock-unix" { switch != "" & >= "3.0.0" & < "5.0.0" }
-  "mirage-logs" { switch != "" & >= "1.2.0" & < "2.0.0" }
-  "mirage-runtime" { switch != "" & >= "4.1.0" & < "4.2.0" }
-  "mirage-unix" { switch != "" & >= "5.0.0" & < "6.0.0" }
+  "mirage-bootvar-unix" { switch = "monorepo" & >= "0.1.0" & < "0.2.0" }
+  "mirage-clock-unix" { switch = "monorepo" & >= "3.0.0" & < "5.0.0" }
+  "mirage-logs" { switch = "monorepo" & >= "1.2.0" & < "2.0.0" }
+  "mirage-runtime" { switch = "monorepo" & >= "4.1.0" & < "4.2.0" }
+  "mirage-unix" { switch = "monorepo" & >= "5.0.0" & < "6.0.0" }
   "ocaml" { build & >= "4.08.0" }
   "opam-monorepo" { build & >= "0.3.1" }
 
@@ -91,24 +91,24 @@ Query Makefile
   
   depext-lockfile: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked
   	echo " ↳ install external dependencies for monorepo"
-  	$(OPAM) monorepo depext -y -l $<
+  	env OPAMVAR_switch="monorepo" $(OPAM) monorepo depext -y -l $<
   
   
   $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam
   	@$(MAKE) -s repo-add
   	@echo " ↳ generate lockfile for monorepo dependencies"
-  	@$(OPAM) monorepo lock --require-cross-compile --build-only $(UNIKERNEL_NAME) -l $@ --ocaml-version $(shell ocamlc --version); (ret=$$?; $(MAKE) -s repo-rm && exit $$ret)
+  	@env OPAMVAR_switch="monorepo" $(OPAM) monorepo lock --require-cross-compile --build-only $(UNIKERNEL_NAME) -l $@ --ocaml-version $(shell ocamlc --version); (ret=$$?; $(MAKE) -s repo-rm && exit $$ret)
   
   lock::
   	@$(MAKE) -B $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked
   
   pull:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked
   	@echo " ↳ fetch monorepo rependencies in the duniverse folder"
-  	@$(OPAM) monorepo pull -l $< -r $(abspath $(BUILD_DIR))
+  	@env OPAMVAR_switch="monorepo" $(OPAM) monorepo pull -l $< -r $(abspath $(BUILD_DIR))
   
   install-switch:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam
   	@echo " ↳ opam install switch dependencies"
-  	@env OPAMVAR_switch="" $(OPAM) install $< --deps-only --yes
+  	@$(OPAM) install $< --deps-only --yes
   	@$(MAKE) -s depext-lockfile
   
   depends depend::
@@ -153,18 +153,18 @@ Query Makefile without depexts
   $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam
   	@$(MAKE) -s repo-add
   	@echo " ↳ generate lockfile for monorepo dependencies"
-  	@$(OPAM) monorepo lock --require-cross-compile --build-only $(UNIKERNEL_NAME) -l $@ --ocaml-version $(shell ocamlc --version); (ret=$$?; $(MAKE) -s repo-rm && exit $$ret)
+  	@env OPAMVAR_switch="monorepo" $(OPAM) monorepo lock --require-cross-compile --build-only $(UNIKERNEL_NAME) -l $@ --ocaml-version $(shell ocamlc --version); (ret=$$?; $(MAKE) -s repo-rm && exit $$ret)
   
   lock::
   	@$(MAKE) -B $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked
   
   pull:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked
   	@echo " ↳ fetch monorepo rependencies in the duniverse folder"
-  	@$(OPAM) monorepo pull -l $< -r $(abspath $(BUILD_DIR))
+  	@env OPAMVAR_switch="monorepo" $(OPAM) monorepo pull -l $< -r $(abspath $(BUILD_DIR))
   
   install-switch:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam
   	@echo " ↳ opam install switch dependencies"
-  	@env OPAMVAR_switch="" $(OPAM) install $< --deps-only --yes --no-depexts
+  	@$(OPAM) install $< --deps-only --yes --no-depexts
   
   depends depend::
   	@$(MAKE) --no-print-directory lock
@@ -208,24 +208,24 @@ Query Makefile with depext
   
   depext-lockfile: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked
   	echo " ↳ install external dependencies for monorepo"
-  	$(OPAM) monorepo depext -y -l $<
+  	env OPAMVAR_switch="monorepo" $(OPAM) monorepo depext -y -l $<
   
   
   $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam
   	@$(MAKE) -s repo-add
   	@echo " ↳ generate lockfile for monorepo dependencies"
-  	@$(OPAM) monorepo lock --require-cross-compile --build-only $(UNIKERNEL_NAME) -l $@ --ocaml-version $(shell ocamlc --version); (ret=$$?; $(MAKE) -s repo-rm && exit $$ret)
+  	@env OPAMVAR_switch="monorepo" $(OPAM) monorepo lock --require-cross-compile --build-only $(UNIKERNEL_NAME) -l $@ --ocaml-version $(shell ocamlc --version); (ret=$$?; $(MAKE) -s repo-rm && exit $$ret)
   
   lock::
   	@$(MAKE) -B $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked
   
   pull:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked
   	@echo " ↳ fetch monorepo rependencies in the duniverse folder"
-  	@$(OPAM) monorepo pull -l $< -r $(abspath $(BUILD_DIR))
+  	@env OPAMVAR_switch="monorepo" $(OPAM) monorepo pull -l $< -r $(abspath $(BUILD_DIR))
   
   install-switch:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam
   	@echo " ↳ opam install switch dependencies"
-  	@env OPAMVAR_switch="" $(OPAM) install $< --deps-only --yes
+  	@$(OPAM) install $< --deps-only --yes
   	@$(MAKE) -s depext-lockfile
   
   depends depend::

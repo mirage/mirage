@@ -40,7 +40,7 @@ Query makefile
   	@$(MAKE) --no-print-directory depends
   	@$(MAKE) --no-print-directory build
   
-  .PHONY: all lock install-switch pull clean depend depends build mirage-repo-add mirage-repo-rm repo-add repo-rm depext-lockfile
+  .PHONY: all lock install-switch pull clean depend depends build repo-add repo-rm depext-lockfile
   
   repo-add:
   	@echo -e "\e[2musing overlay repository mirage: [opam-overlays, mirage-overlays] \e[0m"

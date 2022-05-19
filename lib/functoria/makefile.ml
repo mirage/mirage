@@ -112,7 +112,7 @@ all::
 	@@$(MAKE) --no-print-directory depends
 	@@$(MAKE) --no-print-directory build
 
-.PHONY: all lock install-switch pull clean depend depends build mirage-repo-add mirage-repo-rm%a
+.PHONY: all lock install-switch pull clean depend depends build%a
 
 $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam%a
 	@@echo " ↳ generate lockfile for monorepo dependencies"

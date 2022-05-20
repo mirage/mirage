@@ -179,7 +179,6 @@ let pp ppf t =
   in
   Fmt.pf ppf
     {|opam-version: "2.0"
-name: "%s"
 maintainer: "dummy"
 authors: "dummy"
 homepage: "dummy"
@@ -199,7 +198,6 @@ depends: [%a]
 
 x-opam-monorepo-opam-provided: [%a]
 %a%a|}
-    t.name t.name pp_build t.build Install.pp_opam t.install pp_packages
-    t.depends
+    t.name pp_build t.build Install.pp_opam t.install pp_packages t.depends
     (Fmt.list pp_switch_package)
     switch_packages pp_src t.src pp_pins t.pins

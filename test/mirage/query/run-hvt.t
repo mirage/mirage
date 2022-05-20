@@ -3,7 +3,6 @@
 Query opam file
   $ ./config.exe query --target hvt opam
   opam-version: "2.0"
-  name: "noop"
   maintainer: "dummy"
   authors: "dummy"
   homepage: "dummy"

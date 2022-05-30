@@ -24,5 +24,4 @@ Test that `describe` works as expected:
     hello=Hello World! (default),
     vote=cat (default),
     warn_error=false (default)Libraries  fmt, functoria-runtime
-  Packages   fmt { switch = "monorepo" },
-    functoria-runtime { switch = "monorepo" }
+  Packages   fmt { ?monorepo }, functoria-runtime { ?monorepo }

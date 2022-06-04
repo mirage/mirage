@@ -23,6 +23,7 @@ val v :
   ?depend:string ->
   ?build:string ->
   ?install:Install.t ->
+  ?extra_repo:(string * string) list ->
   ?depends:Package.t list ->
   ?pins:(string * string) list ->
   src:[ `Auto | `None | `Some of string ] ->

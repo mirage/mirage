@@ -204,7 +204,7 @@ module Make (P : S) = struct
         let pkgs = Info.packages info in
         List.iter (Fmt.pr "%a\n%!" (Package.pp ~surround:"\"")) pkgs
     | `Opam ->
-        let opam = Info.opam ~install info in
+        let opam = Info.opam ~extra_repo ~install info in
         Fmt.pr "%a\n%!" Opam.pp opam
     | `Files ->
         let files = files info jobs in
@@ -249,11 +249,11 @@ module Make (P : S) = struct
 
   (* Configuration step. *)
 
-  let generate_opam ~opam_name (args : _ Cli.args) () =
+  let generate_opam ~opam_name ~extra_repo (args : _ Cli.args) () =
     let { Config.info; jobs; _ } = args.Cli.context in
     let install = Key.eval (Info.context info) (Engine.install info jobs) in
     let name = Misc.Name.Opam.to_string opam_name in
-    let opam = Info.opam ~install info in
+    let opam = Info.opam ~install ~extra_repo info in
     let contents = Fmt.str "%a" Opam.pp opam in
     let file = Fpath.(v (name ^ ".opam")) in
     Log.info (fun m ->
@@ -328,7 +328,7 @@ module Make (P : S) = struct
     let* () =
       Action.with_dir (mirage_dir args) (fun () ->
           (* OPAM file *)
-          let* () = generate_opam ~opam_name args () in
+          let* () = generate_opam ~opam_name ~extra_repo args () in
           (* Generate application specific-files *)
           Log.info (fun m -> m "in dir %a" (Cli.pp_args (fun _ _ -> ())) args);
           configure_main info init device_graph)

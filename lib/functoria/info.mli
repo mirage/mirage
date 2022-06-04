@@ -42,7 +42,7 @@ val libraries : t -> string list
 val packages : t -> Package.t list
 (** [packages t] are the opam package dependencies by the project. *)
 
-val opam : t -> install:Install.t -> Opam.t
+val opam : t -> extra_repo:(string * string) list -> install:Install.t -> Opam.t
 (** [opam scope t] is [t]'opam file to install in the [scope] context.*)
 
 val keys : t -> Key.t list

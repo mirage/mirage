@@ -44,6 +44,11 @@ Query opam file
     [ make "depend" ]
   ]
   
+  x-mirage-extra-repo: [
+  ["opam-overlays" "https://github.com/dune-universe/opam-overlays.git"]
+  
+  ["mirage-overlays" "https://github.com/dune-universe/mirage-opam-overlays.git"]]
+  
   x-opam-monorepo-opam-provided: ["mirage"
   "ocaml"
   "opam-monorepo"]

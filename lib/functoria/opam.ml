@@ -133,18 +133,20 @@ let guess_src () =
 type t = {
   name : string;
   depends : Package.t list;
-  build : string list;
+  configure : string option;
+  depend : string option;
+  build : string option;
   install : Install.t;
   pins : (string * string) list;
   src : string option;
 }
 
-let v ?(build = []) ?(install = Install.empty) ?(depends = []) ?(pins = []) ~src
-    name =
+let v ?configure ?depend ?build ?(install = Install.empty) ?(depends = [])
+    ?(pins = []) ~src name =
   let src =
     match src with `Auto -> guess_src () | `None -> None | `Some d -> Some d
   in
-  { name; depends; build; install; pins; src }
+  { name; depends; configure; depend; build; install; pins; src }
 
 let pp_packages ppf packages =
   Fmt.pf ppf "\n  %a\n"
@@ -166,8 +168,9 @@ let pp_src ppf = function
 let pp_switch_package ppf s = Fmt.pf ppf "%S" s
 
 let pp ppf t =
-  let pp_build ppf =
-    Fmt.pf ppf "\n%a\n" (Fmt.list ~sep:(Fmt.any "\n") (Fmt.fmt "  [ %s ]"))
+  let pp_build ppf (a, b) =
+    let vals = Option.to_list a @ Option.to_list b in
+    Fmt.pf ppf "\n%a\n" (Fmt.list ~sep:(Fmt.any "\n") (Fmt.fmt "  [ %s ]")) vals
   in
   let switch_packages =
     List.filter_map
@@ -196,8 +199,12 @@ install: [%a]
 
 depends: [%a]
 
+x-mirage-pre-build: [%a]
+
 x-opam-monorepo-opam-provided: [%a]
 %a%a|}
-    t.name pp_build t.build Install.pp_opam t.install pp_packages t.depends
+    t.name pp_build (t.configure, t.build) Install.pp_opam t.install
+    pp_packages t.depends
+    pp_build (t.configure, t.depend)
     (Fmt.list pp_switch_package)
     switch_packages pp_src t.src pp_pins t.pins

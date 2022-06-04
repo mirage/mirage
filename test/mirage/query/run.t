@@ -39,6 +39,11 @@ Query opam file
     "opam-monorepo" { build & >= "0.3.1" }
   ]
   
+  x-mirage-pre-build: [
+    [ "mirage" "configure"  ]
+    [ make "depend" ]
+  ]
+  
   x-opam-monorepo-opam-provided: ["mirage"
   "ocaml"
   "opam-monorepo"]

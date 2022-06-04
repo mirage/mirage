@@ -59,12 +59,12 @@ let pins packages =
 let keys t = Key.Set.elements t.keys
 let context t = t.context
 
-let v ?(config_file = Fpath.v "config.ml") ~packages ~keys ~context ~build_cmd
-    ~src name =
+let v ?(config_file = Fpath.v "config.ml") ~packages ~keys ~context
+    ?configure_cmd ?depend_cmd ~build_cmd ~src name =
   let keys = Key.Set.of_list keys in
   let opam ~install =
-    Opam.v ~depends:packages ~install ~pins:(pins packages) ~build:build_cmd
-      ~src name
+    Opam.v ~depends:packages ~install ~pins:(pins packages)
+      ?configure:configure_cmd ?depend:depend_cmd ~build:build_cmd ~src name
   in
   let packages =
     List.fold_left
@@ -105,6 +105,6 @@ let pp verbose ppf ({ name; keys; context; output; _ } as t) =
 let t =
   let i =
     v ~config_file:(Fpath.v "config.ml") ~packages:[] ~keys:[]
-      ~build_cmd:[ "dummy" ] ~context:Key.empty_context ~src:`None "dummy"
+      ~build_cmd:"dummy" ~context:Key.empty_context ~src:`None "dummy"
   in
   Type.v i

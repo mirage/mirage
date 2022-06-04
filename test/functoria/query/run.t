@@ -31,6 +31,11 @@ Query opam file
     "functoria-runtime" { ?monorepo }
   ]
   
+  x-mirage-pre-build: [
+    [ "test" "configure"  ]
+    [ make "depend" ]
+  ]
+  
   x-opam-monorepo-opam-provided: []
   
 

@@ -59,7 +59,9 @@ val v :
   packages:Package.t list ->
   keys:Key.t list ->
   context:Key.context ->
-  build_cmd:string list ->
+  ?configure_cmd:string ->
+  ?depend_cmd:string ->
+  build_cmd:string ->
   src:[ `Auto | `None | `Some of string ] ->
   string ->
   t

@@ -17,7 +17,7 @@ let run ?(keys = []) ?init context device =
   let keys = keys @ Key.Set.elements (Engine.all_keys t) in
   let packages = Key.eval context (Engine.packages t) in
   let info =
-    Functoria.Info.v ~packages ~context ~keys ~build_cmd:[ "build"; "me" ]
+    Functoria.Info.v ~packages ~context ~keys ~build_cmd:"build me"
       ~src:`None "foo"
   in
   let t = Impl.eval ~context t in

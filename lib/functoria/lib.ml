@@ -29,7 +29,9 @@ module Config = struct
   type t = {
     config_file : Fpath.t;
     name : string;
-    build_cmd : string list;
+    configure_cmd : string;
+    depend_cmd : string;
+    build_cmd : string;
     packages : package list Key.value;
     keys : Key.Set.t;
     init : job impl list;
@@ -56,21 +58,22 @@ module Config = struct
     Key.Set.fold f all_keys skeys
 
   let v ?(config_file = Fpath.v "config.ml") ?(keys = []) ?(packages = [])
-      ?(init = []) ~build_cmd ~src name jobs =
+      ?(init = []) ~configure_cmd ~depend_cmd ~build_cmd ~src name jobs =
     let packages = Key.pure @@ packages in
     let jobs = Impl.abstract jobs in
     let keys = Key.Set.(union (of_list keys) (get_if_context jobs)) in
-    { config_file; packages; keys; name; init; build_cmd; jobs; src }
+    { config_file; packages; keys; name; init; configure_cmd; depend_cmd; build_cmd; jobs; src }
 
   let eval ~full context
-      { config_file; name = n; build_cmd; packages; keys; jobs; init; src } =
+      { config_file; name = n; configure_cmd; depend_cmd; build_cmd; packages; keys; jobs; init; src } =
     let jobs = Impl.simplify ~full ~context jobs in
     let device_graph = Impl.eval ~context jobs in
     let packages = Key.(pure List.append $ packages $ Engine.packages jobs) in
     let keys = Key.Set.elements (Key.Set.union keys @@ Engine.all_keys jobs) in
     let mk packages _ context =
       let info =
-        Info.v ~config_file ~packages ~keys ~context ~build_cmd ~src n
+        Info.v ~config_file ~packages ~keys ~context ~configure_cmd ~depend_cmd
+          ~build_cmd ~src n
       in
       { init; jobs; info; device_graph }
     in
@@ -118,10 +121,9 @@ module Make (P : S) = struct
       |> List.map (fun x -> "\"" ^ x ^ "\"")
       |> String.concat ~sep:" "
     in
-    [
-      Fmt.str {|"%s" "configure" %s|} P.name command_line_arguments;
-      Fmt.str {|"%s" "build"|} P.name;
-    ]
+    Fmt.str {|"%s" "configure" %s|} P.name command_line_arguments,
+    Fmt.str {|make "depend"|},
+    Fmt.str {|"%s" "build"|} P.name
 
   (* STAGE 2 *)
 
@@ -468,11 +470,11 @@ module Make (P : S) = struct
     let args = Cli.peek_args ~with_setup:true ~mname:P.name argv in
     let config_file = config_file args in
     let run () =
-      let build_cmd = get_build_cmd args in
+      let configure_cmd, depend_cmd, build_cmd = get_build_cmd args in
       let main_dev = P.create (init @ jobs) in
       let c =
-        Config.v ~config_file ?keys ?packages ~init ~build_cmd ~src name
-          main_dev
+        Config.v ~config_file ?keys ?packages ~init ~configure_cmd
+          ~depend_cmd ~build_cmd ~src name main_dev
       in
       run_configure_with_argv argv args c
     in

@@ -19,7 +19,9 @@
 type t
 
 val v :
-  ?build:string list ->
+  ?configure:string ->
+  ?depend:string ->
+  ?build:string ->
   ?install:Install.t ->
   ?depends:Package.t list ->
   ?pins:(string * string) list ->

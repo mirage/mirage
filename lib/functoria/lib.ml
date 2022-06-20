@@ -321,9 +321,7 @@ module Make (P : S) = struct
     let build_dir = build_dir args in
     let name = P.name_of_target info in
     let opam_name = Misc.Name.opamify name in
-    let* () =
-      generate_makefile ~build_dir ~depext ~extra_repo (Misc.Name.opamify name)
-    in
+    let* () = generate_makefile ~build_dir ~depext ~extra_repo opam_name in
     let* _ = Action.mkdir (mirage_dir args) in
     let* () =
       Action.with_dir (mirage_dir args) (fun () ->

@@ -26,7 +26,7 @@ depends: [
   "astring"
   "logs"
   "mirage-runtime" {= version}
-  "opam-monorepo" {>= "0.3.0"}
+  "opam-monorepo" {>= "0.3.2"}
   "alcotest" {with-test}
   "fmt" {>= "0.8.7" & with-test}
 ]

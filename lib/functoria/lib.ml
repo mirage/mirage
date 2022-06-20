@@ -62,10 +62,32 @@ module Config = struct
     let packages = Key.pure @@ packages in
     let jobs = Impl.abstract jobs in
     let keys = Key.Set.(union (of_list keys) (get_if_context jobs)) in
-    { config_file; packages; keys; name; init; configure_cmd; depend_cmd; build_cmd; jobs; src }
+    {
+      config_file;
+      packages;
+      keys;
+      name;
+      init;
+      configure_cmd;
+      depend_cmd;
+      build_cmd;
+      jobs;
+      src;
+    }
 
   let eval ~full context
-      { config_file; name = n; configure_cmd; depend_cmd; build_cmd; packages; keys; jobs; init; src } =
+      {
+        config_file;
+        name = n;
+        configure_cmd;
+        depend_cmd;
+        build_cmd;
+        packages;
+        keys;
+        jobs;
+        init;
+        src;
+      } =
     let jobs = Impl.simplify ~full ~context jobs in
     let device_graph = Impl.eval ~context jobs in
     let packages = Key.(pure List.append $ packages $ Engine.packages jobs) in
@@ -121,9 +143,9 @@ module Make (P : S) = struct
       |> List.map (fun x -> "\"" ^ x ^ "\"")
       |> String.concat ~sep:" "
     in
-    Fmt.str {|"%s" "configure" %s|} P.name command_line_arguments,
-    Fmt.str {|make "depend"|},
-    Fmt.str {|"%s" "build"|} P.name
+    ( Fmt.str {|"%s" "configure" %s|} P.name command_line_arguments,
+      Fmt.str {|make "depend"|},
+      Fmt.str {|"%s" "build"|} P.name )
 
   (* STAGE 2 *)
 
@@ -473,8 +495,8 @@ module Make (P : S) = struct
       let configure_cmd, depend_cmd, build_cmd = get_build_cmd args in
       let main_dev = P.create (init @ jobs) in
       let c =
-        Config.v ~config_file ?keys ?packages ~init ~configure_cmd
-          ~depend_cmd ~build_cmd ~src name main_dev
+        Config.v ~config_file ?keys ?packages ~init ~configure_cmd ~depend_cmd
+          ~build_cmd ~src name main_dev
       in
       run_configure_with_argv argv args c
     in

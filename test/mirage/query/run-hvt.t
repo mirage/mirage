@@ -14,10 +14,7 @@ Query opam file
   fetched.
   """
   
-  build: [
-    [ "mirage" "configure" "--target" "hvt" ]
-    [ "mirage" "build" ]
-  ]
+  build: ["sh" "-exc" "mirage build"]
   
   install: [
     [ "cp" "dist/noop.hvt" "%{bin}%/noop.hvt" ]
@@ -37,7 +34,7 @@ Query opam file
   ]
   
   x-mirage-pre-build: [
-    [ "mirage" "configure" "--target" "hvt" ]
+    [ "sh" "-exc" "mirage configure --target hvt" ]
     [ make "depend" ]
   ]
   

@@ -20,12 +20,13 @@ type t
 
 val v :
   ?configure:string ->
-  ?depend:string ->
+  ?depend:(Fpath.t option -> string) ->
   ?build:string ->
   ?install:Install.t ->
   ?extra_repo:(string * string) list ->
   ?depends:Package.t list ->
   ?pins:(string * string) list ->
+  ?subdir:Fpath.t ->
   src:[ `Auto | `None | `Some of string ] ->
   string ->
   t

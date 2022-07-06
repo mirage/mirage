@@ -30,7 +30,7 @@ module Config = struct
     config_file : Fpath.t;
     name : string;
     configure_cmd : string;
-    depend_cmd : string;
+    depend_cmd : (Fpath.t option -> string);
     build_cmd : string;
     packages : package list Key.value;
     keys : Key.Set.t;
@@ -140,12 +140,17 @@ module Make (P : S) = struct
       |> List.tl
       |> List.filter (fun arg ->
              arg <> "configure" && arg <> "query" && arg <> "opam")
-      |> List.map (fun x -> "\"" ^ x ^ "\"")
       |> String.concat ~sep:" "
     in
-    ( Fmt.str {|"%s" "configure" %s|} P.name command_line_arguments,
-      Fmt.str {|make "depend"|},
-      Fmt.str {|"%s" "build"|} P.name )
+    let opts =
+      if command_line_arguments = "" then None else Some command_line_arguments
+    in
+    ( Fmt.str {|%s configure%a|} P.name
+        Fmt.(option ~none:(any "") (any " " ++ string)) opts,
+      (fun sub -> Fmt.str {|make %a"depend"|}
+          Fmt.(option ~none:(any "")
+                 (any "\"-C" ++ Fpath.pp ++ any "\" ")) sub),
+      Fmt.str {|%s build|} P.name )
 
   (* STAGE 2 *)
 

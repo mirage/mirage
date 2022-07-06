@@ -16,10 +16,7 @@ Query opam file
   fetched.
   """
   
-  build: [
-    [ "test" "configure"  ]
-    [ "test" "build" ]
-  ]
+  build: ["sh" "-exc" "test build"]
   
   install: [
     [ "cp" "dist/f0.exe" "%{bin}%/f0" ]
@@ -32,7 +29,7 @@ Query opam file
   ]
   
   x-mirage-pre-build: [
-    [ "test" "configure"  ]
+    [ "sh" "-exc" "test configure" ]
     [ make "depend" ]
   ]
   

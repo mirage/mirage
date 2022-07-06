@@ -18,10 +18,7 @@ Query opam file
   fetched.
   """
   
-  build: [
-    [ "mirage" "configure"  ]
-    [ "mirage" "build" ]
-  ]
+  build: ["sh" "-exc" "mirage build"]
   
   install: [
     [ "cp" "dist/noop" "%{bin}%/noop" ]
@@ -40,7 +37,7 @@ Query opam file
   ]
   
   x-mirage-pre-build: [
-    [ "mirage" "configure"  ]
+    [ "sh" "-exc" "mirage configure" ]
     [ make "depend" ]
   ]
   

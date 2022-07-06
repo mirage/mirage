@@ -31,7 +31,7 @@ val empty : t
 val pp : t Fmt.t
 (** Print the .install rules to install [t] *)
 
-val pp_opam : t Fmt.t
+val pp_opam : ?subdir:Fpath.t -> unit -> t Fmt.t
 (** Print the opam rules to install [t] *)
 
 val dune :

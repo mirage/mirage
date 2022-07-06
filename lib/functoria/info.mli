@@ -60,7 +60,7 @@ val v :
   keys:Key.t list ->
   context:Key.context ->
   ?configure_cmd:string ->
-  ?depend_cmd:string ->
+  ?depend_cmd:(Fpath.t option -> string) ->
   build_cmd:string ->
   src:[ `Auto | `None | `Some of string ] ->
   string ->

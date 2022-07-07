@@ -34,7 +34,7 @@ Query opam file
   ]
   
   x-mirage-pre-build: [
-    [ "sh" "-exc" "mirage configure --target hvt" ]
+    [ "sh" "-exc" "mirage configure --target hvt --no-extra-repo" ]
     [ make "depend" ]
   ]
   

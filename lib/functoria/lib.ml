@@ -145,7 +145,7 @@ module Make (P : S) = struct
     let opts =
       if command_line_arguments = "" then None else Some command_line_arguments
     in
-    ( Fmt.str {|%s configure%a|} P.name
+    ( Fmt.str {|%s configure%a --no-extra-repo|} P.name
         Fmt.(option ~none:(any "") (any " " ++ string)) opts,
       (fun sub -> Fmt.str {|make %a"depend"|}
           Fmt.(option ~none:(any "")

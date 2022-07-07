@@ -37,7 +37,7 @@ Query opam file
   ]
   
   x-mirage-pre-build: [
-    [ "sh" "-exc" "mirage configure" ]
+    [ "sh" "-exc" "mirage configure --no-extra-repo" ]
     [ make "depend" ]
   ]
   

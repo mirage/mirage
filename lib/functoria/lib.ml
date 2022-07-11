@@ -147,7 +147,7 @@ module Make (P : S) = struct
     in
     ( Fmt.str {|%s configure%a --no-extra-repo|} P.name
         Fmt.(option ~none:(any "") (any " " ++ string)) opts,
-      (fun sub -> Fmt.str {|make %a"depend"|}
+      (fun sub -> Fmt.str {|make %a"lock" "pull"|}
           Fmt.(option ~none:(any "")
                  (any "\"-C" ++ Fpath.pp ++ any "\" ")) sub),
       Fmt.str {|%s build|} P.name )

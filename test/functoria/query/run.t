@@ -30,7 +30,7 @@ Query opam file
   
   x-mirage-pre-build: [
     [ "sh" "-exc" "test configure --no-extra-repo" ]
-    [ make "depend" ]
+    [ make "lock" "pull" ]
   ]
   
   x-mirage-extra-repo: [

@@ -189,11 +189,10 @@ let pp ppf t =
         t.subdir
         cmd
   in
-  let pp_pre_build ppf (configure, depend) =
-    Fmt.pf ppf "\n  [ %s ]\n" (pp_build configure);
-    match depend with
+  let pp_pre_build ppf pre_build =
+    match pre_build with
     | None -> ()
-    | Some f -> Fmt.pf ppf "  [ %s ]\n" (f t.subdir)
+    | Some f -> Fmt.string ppf (f t.subdir)
   in
   let pp_repo =
     Fmt.(
@@ -229,6 +228,8 @@ depends: [%a]
 
 x-mirage-opam-lock-location: %S
 
+x-mirage-configure: [%s]
+
 x-mirage-pre-build: [%a]
 
 x-mirage-extra-repo: [%a]
@@ -238,7 +239,8 @@ x-opam-monorepo-opam-provided: [%a]
     t.name (pp_build t.build) (Install.pp_opam ?subdir:t.subdir ()) t.install
     pp_packages t.depends
     (Option.fold ~none:"" ~some:(fun l -> l t.subdir t.opam_name) t.lock_location)
-    pp_pre_build (t.configure, t.pre_build)
+    (pp_build t.configure)
+    pp_pre_build t.pre_build
     pp_repo t.extra_repo
     (Fmt.list pp_switch_package)
     switch_packages pp_src t.src pp_pins t.pins

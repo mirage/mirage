@@ -38,10 +38,9 @@ Query opam file
   
   x-mirage-opam-lock-location: "mirage/noop-unix.opam.locked"
   
-  x-mirage-pre-build: [
-    [ "sh" "-exc" "mirage configure --no-extra-repo" ]
-    [ make "lock" "pull" ]
-  ]
+  x-mirage-configure: ["sh" "-exc" "mirage configure --no-extra-repo"]
+  
+  x-mirage-pre-build: [make "lock" "pull"]
   
   x-mirage-extra-repo: [
   ["opam-overlays" "https://github.com/dune-universe/opam-overlays.git"]

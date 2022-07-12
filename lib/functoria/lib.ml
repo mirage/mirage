@@ -30,8 +30,8 @@ module Config = struct
     config_file : Fpath.t;
     name : string;
     configure_cmd : string;
-    pre_build_cmd : (Fpath.t option -> string);
-    lock_location : (Fpath.t option -> string -> string);
+    pre_build_cmd : Fpath.t option -> string;
+    lock_location : Fpath.t option -> string -> string;
     build_cmd : string;
     packages : package list Key.value;
     keys : Key.Set.t;
@@ -150,13 +150,16 @@ module Make (P : S) = struct
       if command_line_arguments = "" then None else Some command_line_arguments
     in
     ( Fmt.str {|%s configure%a --no-extra-repo|} P.name
-        Fmt.(option ~none:(any "") (any " " ++ string)) opts,
-      (fun sub -> Fmt.str {|make %a"lock" "pull"|}
-          Fmt.(option ~none:(any "")
-                 (any "\"-C" ++ Fpath.pp ++ any "\" ")) sub),
-      (fun sub unikernel -> Fmt.str {|%amirage/%s.opam.locked|}
-          Fmt.(option ~none:(any "") Fpath.pp) sub
-          unikernel),
+        Fmt.(option ~none:(any "") (any " " ++ string))
+        opts,
+      (fun sub ->
+        Fmt.str {|make %a"lock" "pull"|}
+          Fmt.(option ~none:(any "") (any "\"-C" ++ Fpath.pp ++ any "\" "))
+          sub),
+      (fun sub unikernel ->
+        Fmt.str {|%amirage/%s.opam.locked|}
+          Fmt.(option ~none:(any "") Fpath.pp)
+          sub unikernel),
       Fmt.str {|%s build|} P.name )
 
   (* STAGE 2 *)

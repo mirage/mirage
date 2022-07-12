@@ -105,7 +105,7 @@ let guess_src () =
     | Ok (Some (subdir, branch, git_url)) -> Some (subdir, branch, git_url)
   in
   match git_info with
-  | None -> None, None
+  | None -> (None, None)
   | Some (subdir, branch, origin) ->
       (* TODO is there a library for git urls anywhere? *)
       let public =
@@ -129,7 +129,7 @@ let guess_src () =
             Fmt.str "git+https://%s:%d/%s" hostname port path
         | _ -> "git+https://invalid/endpoint"
       in
-      subdir, Some (Fmt.str "%s#%s" public branch)
+      (subdir, Some (Fmt.str "%s#%s" public branch))
 
 type t = {
   name : string;
@@ -147,18 +147,30 @@ type t = {
 }
 
 let v ?configure ?pre_build ?lock_location ?build ?(install = Install.empty)
-    ?(extra_repo = []) ?(depends = []) ?(pins = []) ?subdir ~src ~opam_name
-    name =
+    ?(extra_repo = []) ?(depends = []) ?(pins = []) ?subdir ~src ~opam_name name
+    =
   let subdir, src =
     match src with
     | `Auto ->
-      let subdir', src = guess_src () in
-      (match subdir with None -> subdir' | Some _ as s -> s),
-      src
-    | `None -> subdir, None
-    | `Some d -> subdir, Some d
+        let subdir', src = guess_src () in
+        ((match subdir with None -> subdir' | Some _ as s -> s), src)
+    | `None -> (subdir, None)
+    | `Some d -> (subdir, Some d)
   in
-  { name; depends; configure; pre_build; lock_location; build; install; extra_repo; pins; src ; subdir ; opam_name }
+  {
+    name;
+    depends;
+    configure;
+    pre_build;
+    lock_location;
+    build;
+    install;
+    extra_repo;
+    pins;
+    src;
+    subdir;
+    opam_name;
+  }
 
 let pp_packages ppf packages =
   Fmt.pf ppf "\n  %a\n"
@@ -183,16 +195,12 @@ let pp ppf t =
   let pp_build = function
     | None -> ""
     | Some cmd ->
-      Fmt.str {|"sh" "-exc" "%a%s"|}
-        Fmt.(option ~none:(any "")
-               (any "cd " ++ Fpath.pp ++ any " && "))
-        t.subdir
-        cmd
+        Fmt.str {|"sh" "-exc" "%a%s"|}
+          Fmt.(option ~none:(any "") (any "cd " ++ Fpath.pp ++ any " && "))
+          t.subdir cmd
   in
   let pp_pre_build ppf pre_build =
-    match pre_build with
-    | None -> ()
-    | Some f -> Fmt.string ppf (f t.subdir)
+    match pre_build with None -> () | Some f -> Fmt.string ppf (f t.subdir)
   in
   let pp_repo =
     Fmt.(
@@ -236,11 +244,12 @@ x-mirage-extra-repo: [%a]
 
 x-opam-monorepo-opam-provided: [%a]
 %a%a|}
-    t.name (pp_build t.build) (Install.pp_opam ?subdir:t.subdir ()) t.install
-    pp_packages t.depends
-    (Option.fold ~none:"" ~some:(fun l -> l t.subdir t.opam_name) t.lock_location)
-    (pp_build t.configure)
-    pp_pre_build t.pre_build
-    pp_repo t.extra_repo
+    t.name (pp_build t.build)
+    (Install.pp_opam ?subdir:t.subdir ())
+    t.install pp_packages t.depends
+    (Option.fold ~none:""
+       ~some:(fun l -> l t.subdir t.opam_name)
+       t.lock_location)
+    (pp_build t.configure) pp_pre_build t.pre_build pp_repo t.extra_repo
     (Fmt.list pp_switch_package)
     switch_packages pp_src t.src pp_pins t.pins

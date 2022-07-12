@@ -25,8 +25,11 @@ type t = {
   keys : Key.Set.t;
   context : Key.context;
   packages : Package.t String.Map.t;
-  opam : extra_repo:(string * string) list -> install:Install.t ->
-    opam_name:string -> Opam.t;
+  opam :
+    extra_repo:(string * string) list ->
+    install:Install.t ->
+    opam_name:string ->
+    Opam.t;
 }
 
 let name t = t.name

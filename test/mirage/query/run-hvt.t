@@ -33,6 +33,8 @@ Query opam file
     "opam-monorepo" { build & >= "0.3.1" }
   ]
   
+  x-mirage-opam-lock-location: "mirage/noop-hvt.opam.locked"
+  
   x-mirage-pre-build: [
     [ "sh" "-exc" "mirage configure --target hvt --no-extra-repo" ]
     [ make "lock" "pull" ]

@@ -30,7 +30,8 @@ module Config = struct
     config_file : Fpath.t;
     name : string;
     configure_cmd : string;
-    depend_cmd : (Fpath.t option -> string);
+    pre_build_cmd : (Fpath.t option -> string);
+    lock_location : (Fpath.t option -> string -> string);
     build_cmd : string;
     packages : package list Key.value;
     keys : Key.Set.t;
@@ -58,7 +59,8 @@ module Config = struct
     Key.Set.fold f all_keys skeys
 
   let v ?(config_file = Fpath.v "config.ml") ?(keys = []) ?(packages = [])
-      ?(init = []) ~configure_cmd ~depend_cmd ~build_cmd ~src name jobs =
+      ?(init = []) ~configure_cmd ~pre_build_cmd ~lock_location ~build_cmd ~src
+      name jobs =
     let packages = Key.pure @@ packages in
     let jobs = Impl.abstract jobs in
     let keys = Key.Set.(union (of_list keys) (get_if_context jobs)) in
@@ -69,7 +71,8 @@ module Config = struct
       name;
       init;
       configure_cmd;
-      depend_cmd;
+      pre_build_cmd;
+      lock_location;
       build_cmd;
       jobs;
       src;
@@ -80,7 +83,8 @@ module Config = struct
         config_file;
         name = n;
         configure_cmd;
-        depend_cmd;
+        pre_build_cmd;
+        lock_location;
         build_cmd;
         packages;
         keys;
@@ -94,8 +98,8 @@ module Config = struct
     let keys = Key.Set.elements (Key.Set.union keys @@ Engine.all_keys jobs) in
     let mk packages _ context =
       let info =
-        Info.v ~config_file ~packages ~keys ~context ~configure_cmd ~depend_cmd
-          ~build_cmd ~src n
+        Info.v ~config_file ~packages ~keys ~context ~configure_cmd
+          ~pre_build_cmd ~lock_location ~build_cmd ~src n
       in
       { init; jobs; info; device_graph }
     in
@@ -150,6 +154,9 @@ module Make (P : S) = struct
       (fun sub -> Fmt.str {|make %a"lock" "pull"|}
           Fmt.(option ~none:(any "")
                  (any "\"-C" ++ Fpath.pp ++ any "\" ")) sub),
+      (fun sub unikernel -> Fmt.str {|%amirage/%s.opam.locked|}
+          Fmt.(option ~none:(any "") Fpath.pp) sub
+          unikernel),
       Fmt.str {|%s build|} P.name )
 
   (* STAGE 2 *)
@@ -231,7 +238,8 @@ module Make (P : S) = struct
         let pkgs = Info.packages info in
         List.iter (Fmt.pr "%a\n%!" (Package.pp ~surround:"\"")) pkgs
     | `Opam ->
-        let opam = Info.opam ~extra_repo ~install info in
+        let opam_name = Misc.Name.(Opam.to_string (opamify name)) in
+        let opam = Info.opam ~extra_repo ~install ~opam_name info in
         Fmt.pr "%a\n%!" Opam.pp opam
     | `Files ->
         let files = files info jobs in
@@ -280,7 +288,7 @@ module Make (P : S) = struct
     let { Config.info; jobs; _ } = args.Cli.context in
     let install = Key.eval (Info.context info) (Engine.install info jobs) in
     let name = Misc.Name.Opam.to_string opam_name in
-    let opam = Info.opam ~install ~extra_repo info in
+    let opam = Info.opam ~install ~extra_repo ~opam_name:name info in
     let contents = Fmt.str "%a" Opam.pp opam in
     let file = Fpath.(v (name ^ ".opam")) in
     Log.info (fun m ->
@@ -497,11 +505,13 @@ module Make (P : S) = struct
     let args = Cli.peek_args ~with_setup:true ~mname:P.name argv in
     let config_file = config_file args in
     let run () =
-      let configure_cmd, depend_cmd, build_cmd = get_build_cmd args in
+      let configure_cmd, pre_build_cmd, lock_location, build_cmd =
+        get_build_cmd args
+      in
       let main_dev = P.create (init @ jobs) in
       let c =
-        Config.v ~config_file ?keys ?packages ~init ~configure_cmd ~depend_cmd
-          ~build_cmd ~src name main_dev
+        Config.v ~config_file ?keys ?packages ~init ~configure_cmd
+          ~pre_build_cmd ~lock_location ~build_cmd ~src name main_dev
       in
       run_configure_with_argv argv args c
     in

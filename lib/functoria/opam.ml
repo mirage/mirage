@@ -135,17 +135,20 @@ type t = {
   name : string;
   depends : Package.t list;
   configure : string option;
-  depend : (Fpath.t option -> string) option;
+  pre_build : (Fpath.t option -> string) option;
+  lock_location : (Fpath.t option -> string -> string) option;
   build : string option;
   install : Install.t;
   extra_repo : (string * string) list;
   pins : (string * string) list;
   src : string option;
   subdir : Fpath.t option;
+  opam_name : string;
 }
 
-let v ?configure ?depend ?build ?(install = Install.empty) ?(extra_repo = [])
-    ?(depends = []) ?(pins = []) ?subdir ~src name =
+let v ?configure ?pre_build ?lock_location ?build ?(install = Install.empty)
+    ?(extra_repo = []) ?(depends = []) ?(pins = []) ?subdir ~src ~opam_name
+    name =
   let subdir, src =
     match src with
     | `Auto ->
@@ -155,7 +158,7 @@ let v ?configure ?depend ?build ?(install = Install.empty) ?(extra_repo = [])
     | `None -> subdir, None
     | `Some d -> subdir, Some d
   in
-  { name; depends; configure; depend; build; install; extra_repo; pins; src ; subdir }
+  { name; depends; configure; pre_build; lock_location; build; install; extra_repo; pins; src ; subdir ; opam_name }
 
 let pp_packages ppf packages =
   Fmt.pf ppf "\n  %a\n"
@@ -224,6 +227,8 @@ install: [%a]
 
 depends: [%a]
 
+x-mirage-opam-lock-location: %S
+
 x-mirage-pre-build: [%a]
 
 x-mirage-extra-repo: [%a]
@@ -231,7 +236,9 @@ x-mirage-extra-repo: [%a]
 x-opam-monorepo-opam-provided: [%a]
 %a%a|}
     t.name (pp_build t.build) (Install.pp_opam ?subdir:t.subdir ()) t.install
-    pp_packages t.depends pp_pre_build (t.configure, t.depend)
+    pp_packages t.depends
+    (Option.fold ~none:"" ~some:(fun l -> l t.subdir t.opam_name) t.lock_location)
+    pp_pre_build (t.configure, t.pre_build)
     pp_repo t.extra_repo
     (Fmt.list pp_switch_package)
     switch_packages pp_src t.src pp_pins t.pins

@@ -36,6 +36,8 @@ Query opam file
     "opam-monorepo" { build & >= "0.3.1" }
   ]
   
+  x-mirage-opam-lock-location: "mirage/noop-unix.opam.locked"
+  
   x-mirage-pre-build: [
     [ "sh" "-exc" "mirage configure --no-extra-repo" ]
     [ make "lock" "pull" ]

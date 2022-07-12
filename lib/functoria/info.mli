@@ -42,7 +42,8 @@ val libraries : t -> string list
 val packages : t -> Package.t list
 (** [packages t] are the opam package dependencies by the project. *)
 
-val opam : t -> extra_repo:(string * string) list -> install:Install.t -> Opam.t
+val opam : t -> extra_repo:(string * string) list -> install:Install.t ->
+  opam_name:string -> Opam.t
 (** [opam scope t] is [t]'opam file to install in the [scope] context.*)
 
 val keys : t -> Key.t list
@@ -60,7 +61,8 @@ val v :
   keys:Key.t list ->
   context:Key.context ->
   ?configure_cmd:string ->
-  ?depend_cmd:(Fpath.t option -> string) ->
+  ?pre_build_cmd:(Fpath.t option -> string) ->
+  ?lock_location:(Fpath.t option -> string -> string) ->
   build_cmd:string ->
   src:[ `Auto | `None | `Some of string ] ->
   string ->

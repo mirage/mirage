@@ -28,6 +28,8 @@ Query opam file
     "functoria-runtime" { ?monorepo }
   ]
   
+  x-mirage-opam-lock-location: "mirage/noop.opam.locked"
+  
   x-mirage-pre-build: [
     [ "sh" "-exc" "test configure --no-extra-repo" ]
     [ make "lock" "pull" ]

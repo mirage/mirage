@@ -25,7 +25,8 @@ type t = {
   keys : Key.Set.t;
   context : Key.context;
   packages : Package.t String.Map.t;
-  opam : extra_repo:(string * string) list -> install:Install.t -> Opam.t;
+  opam : extra_repo:(string * string) list -> install:Install.t ->
+    opam_name:string -> Opam.t;
 }
 
 let name t = t.name
@@ -60,11 +61,12 @@ let keys t = Key.Set.elements t.keys
 let context t = t.context
 
 let v ?(config_file = Fpath.v "config.ml") ~packages ~keys ~context
-    ?configure_cmd ?depend_cmd ~build_cmd ~src name =
+    ?configure_cmd ?pre_build_cmd ?lock_location ~build_cmd ~src name =
   let keys = Key.Set.of_list keys in
-  let opam ~extra_repo ~install =
+  let opam ~extra_repo ~install ~opam_name =
     Opam.v ~depends:packages ~install ~pins:(pins packages) ~extra_repo
-      ?configure:configure_cmd ?depend:depend_cmd ~build:build_cmd ~src name
+      ?configure:configure_cmd ?pre_build:pre_build_cmd ?lock_location
+      ~build:build_cmd ~src ~opam_name name
   in
   let packages =
     List.fold_left

@@ -158,7 +158,7 @@ type time
 (** Abstract type for timers. *)
 
 val time : time typ
-(** Implementations of the [Mirage_types.TIME] signature. *)
+(** Implementations of the [Mirage_time.S] signature. *)
 
 val default_time : time impl
 (** The default timer implementation. *)
@@ -211,7 +211,7 @@ type random
 (** Abstract type for random sources. *)
 
 val random : random typ
-(** Implementations of the [Mirage_types.RANDOM] signature. *)
+(** Implementations of the [Mirage_random.S] signature. *)
 
 val stdlib_random : random impl
   [@@ocaml.deprecated "Mirage will always use a Fortuna PRNG."]
@@ -234,7 +234,7 @@ type console
 (** Abstract type for consoles. *)
 
 val console : console typ
-(** Implementations of the [Mirage_types.CONSOLE] signature. *)
+(** Implementations of the [Mirage_console.S] signature. *)
 
 val default_console : console impl
 (** Default console implementation. *)
@@ -248,7 +248,7 @@ type block
 (** Abstract type for raw block device configurations. *)
 
 val block : block typ
-(** Implementations of the [Mirage_types.BLOCK] signature. *)
+(** Implementations of the [Mirage_block.S] signature. *)
 
 val block_of_file : string -> block impl
 (** Use the given file as a raw block device. *)
@@ -272,7 +272,7 @@ type kv_ro
 (** Abstract type for read-only key/value store. *)
 
 val kv_ro : kv_ro typ
-(** Implementations of the [Mirage_types.KV_RO] signature. *)
+(** Implementations of the [Mirage_kv.RO] signature. *)
 
 val crunch : string -> kv_ro impl
 (** Crunch a directory. *)
@@ -354,7 +354,7 @@ type kv_rw
 (** Abstract type for read-write key/value store. *)
 
 val kv_rw : kv_rw typ
-(** Implementations of the [Mirage_types.KV_RW] signature. *)
+(** Implementations of the [Mirage_kv.RW] signature. *)
 
 val direct_kv_rw : string -> kv_rw impl
 (** Direct access to the underlying filesystem as a key/value store. Only
@@ -398,7 +398,7 @@ type fs
 (** Abstract type for filesystems. *)
 
 val fs : fs typ
-(** Implementations of the [Mirage_types.FS] signature. *)
+(** Implementations of the [Mirage_kv.RW] signature. *)
 
 val fat : block impl -> fs impl
 (** Consider a raw block device as a FAT filesystem. *)
@@ -417,7 +417,7 @@ type network
 (** Abstract type for network configurations. *)
 
 val network : network typ
-(** Implementations of the [Mirage_types.NETWORK] signature. *)
+(** Implementations of the [Mirage_net.S] signature. *)
 
 val default_network : network impl
 (** [default_network] is a dynamic network implementation * which attempts to do
@@ -431,7 +431,7 @@ val netif : ?group:string -> string -> network impl
 type ethernet
 
 val ethernet : ethernet typ
-(** Implementations of the [Mirage_types.ETHERNET] signature. *)
+(** Implementations of the [Ethernet.S] signature. *)
 
 val etif : network impl -> ethernet impl
 
@@ -440,14 +440,14 @@ val etif : network impl -> ethernet impl
 type arpv4
 
 val arpv4 : arpv4 typ
-(** Implementation of the [Mirage_types.ARPV4] signature. *)
+(** Implementation of the [Arp.S] signature. *)
 
 val arp : ?time:time impl -> ethernet impl -> arpv4 impl
 (** ARP implementation provided by the arp library *)
 
 (** {2 IP configuration}
 
-    Implementations of the [Mirage_types.IP] signature. *)
+    Implementations of the [Tcpip.Ip.S] signature. *)
 
 type v4
 type v6
@@ -461,13 +461,13 @@ type ipv6 = v6 ip
 type ipv4v6 = v4v6 ip
 
 val ipv4 : ipv4 typ
-(** The [Mirage_types.IPV4] module signature. *)
+(** The [Tcpip.Ip.S] module signature with ipaddr = Ipaddr.V4. *)
 
 val ipv6 : ipv6 typ
-(** The [Mirage_types.IPV6] module signature. *)
+(** The [Tcpip.Ip.S] module signature with ipaddr = Ipaddr.V6. *)
 
 val ipv4v6 : ipv4v6 typ
-(** The [Mirage_types.IP] module signature with ipaddr = Ipaddr.t. *)
+(** The [Tcpip.Ip.S] module signature with ipaddr = Ipaddr.t. *)
 
 type ipv4_config = {
   network : Ipaddr.V4.Prefix.t;
@@ -526,7 +526,7 @@ type udpv6 = v6 udp
 type udpv4v6 = v4v6 udp
 
 val udp : 'a udp typ
-(** Implementation of the [Mirage_types.UDP] signature. *)
+(** Implementation of the [Tcpip.Udp.S] signature. *)
 
 val udpv4 : udpv4 typ
 val udpv6 : udpv6 typ
@@ -546,7 +546,7 @@ type tcpv6 = v6 tcp
 type tcpv4v6 = v4v6 tcp
 
 val tcp : 'a tcp typ
-(** Implementation of the [Mirage_types.TCP] signature. *)
+(** Implementation of the [Tcpip.Tcp.S] signature. *)
 
 val tcpv4 : tcpv4 typ
 val tcpv6 : tcpv6 typ
@@ -571,7 +571,7 @@ type stackv4
 (** {3 IPv4} *)
 
 val stackv4 : stackv4 typ
-(** Implementation of the [Mirage_types.STACKV4] signature. *)
+(** Implementation of the [Tcpip.Stack.V4] signature. *)
 
 val direct_stackv4 :
   ?mclock:mclock impl ->
@@ -638,7 +638,7 @@ val generic_stackv4 :
 type stackv6
 
 val stackv6 : stackv6 typ
-(** Implementation of the [Mirage_stack.V6] signature. *)
+(** Implementation of the [Tcpip.Stack.V6] signature. *)
 
 val direct_stackv6 :
   ?mclock:mclock impl ->
@@ -679,7 +679,7 @@ val generic_stackv6 :
 type stackv4v6
 
 val stackv4v6 : stackv4v6 typ
-(** Implementation of the [Mirage_stack.V4V6] signature. *)
+(** Implementation of the [Tcpip.Stack.V4V6] signature. *)
 
 val direct_stackv4v6 :
   ?mclock:mclock impl ->

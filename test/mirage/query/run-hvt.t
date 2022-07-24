@@ -30,9 +30,9 @@ Query opam file
     "mirage-clock-solo5" { ?monorepo & >= "4.2.0" & < "5.0.0" }
     "mirage-logs" { ?monorepo & >= "1.2.0" & < "2.0.0" }
     "mirage-runtime" { ?monorepo & >= "4.1.0" & < "4.2.0" }
-    "mirage-solo5" { ?monorepo & >= "0.8.0" & < "0.9.0" }
+    "mirage-solo5" { ?monorepo & >= "0.9.0" & < "0.10.0" }
     "ocaml" { build & >= "4.08.0" }
-    "ocaml-solo5" { build & >= "0.8.0" }
+    "ocaml-solo5" { build & >= "0.8.1" }
     "opam-monorepo" { build & >= "0.3.1" }
   ]
   
@@ -50,9 +50,9 @@ Query packages
   "mirage-clock-solo5" { ?monorepo & >= "4.2.0" & < "5.0.0" }
   "mirage-logs" { ?monorepo & >= "1.2.0" & < "2.0.0" }
   "mirage-runtime" { ?monorepo & >= "4.1.0" & < "4.2.0" }
-  "mirage-solo5" { ?monorepo & >= "0.8.0" & < "0.9.0" }
+  "mirage-solo5" { ?monorepo & >= "0.9.0" & < "0.10.0" }
   "ocaml" { build & >= "4.08.0" }
-  "ocaml-solo5" { build & >= "0.8.0" }
+  "ocaml-solo5" { build & >= "0.8.1" }
   "opam-monorepo" { build & >= "0.3.1" }
 
 Query files

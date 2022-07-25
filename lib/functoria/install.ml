@@ -43,12 +43,12 @@ let pp ppf t =
 let pp_opam ?subdir () ppf t =
   let pp_bin ppf (src, dst) =
     Fmt.pf ppf {|"cp" "%adist/%a" "%%{bin}%%/%a"|}
-      Fmt.(option ~none:(any "") (Fpath.pp ++ any "/"))
+      Fmt.(option ~none:(any "") Fpath.pp)
       subdir Fpath.pp src Fpath.pp dst
   in
   let pp_etc ppf etc =
     Fmt.pf ppf {|"cp" "%adist/%a" "%%{etc}%%"|}
-      Fmt.(option ~none:(any "") (Fpath.pp ++ any "/"))
+      Fmt.(option ~none:(any "") Fpath.pp)
       subdir Fpath.pp etc
   in
   Fmt.pf ppf "\n%a\n"

@@ -32,7 +32,10 @@ val pp : t Fmt.t
 (** Print the .install rules to install [t] *)
 
 val pp_opam : ?subdir:Fpath.t -> unit -> t Fmt.t
-(** Print the opam rules to install [t] *)
+(** Print the opam rules to install [t]. If [~subdir] is provided, this will be
+    used as prefix (i.e. if your unikernel is in the "tutorial/hello/"
+    subdirectory (which is passed as [~subdir], the install instructions will
+    use "cp tutorial/hello/dist/hello.hvt %{bin}%/hello.hvt"). *)
 
 val dune :
   context_name_for_bin:string -> context_name_for_etc:string -> t -> Dune.t

@@ -16,10 +16,7 @@ Query opam file
   fetched.
   """
   
-  build: [
-    [ "test" "configure"  ]
-    [ "test" "build" ]
-  ]
+  build: ["sh" "-exc" "test build"]
   
   install: [
     [ "cp" "dist/f0.exe" "%{bin}%/f0" ]
@@ -30,6 +27,17 @@ Query opam file
     "fmt" { ?monorepo }
     "functoria-runtime" { ?monorepo }
   ]
+  
+  x-mirage-opam-lock-location: "mirage/noop.opam.locked"
+  
+  x-mirage-configure: ["sh" "-exc" "test configure --no-extra-repo"]
+  
+  x-mirage-pre-build: [make "lock" "pull"]
+  
+  x-mirage-extra-repo: [
+  ["opam-overlays" "https://github.com/dune-universe/opam-overlays.git"]
+  
+  ["mirage-overlays" "https://github.com/dune-universe/mirage-opam-overlays.git"]]
   
   x-opam-monorepo-opam-provided: []
   

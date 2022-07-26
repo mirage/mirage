@@ -29,7 +29,10 @@ module Config = struct
   type t = {
     config_file : Fpath.t;
     name : string;
-    build_cmd : string list;
+    configure_cmd : string;
+    pre_build_cmd : Fpath.t option -> string;
+    lock_location : Fpath.t option -> string -> string;
+    build_cmd : string;
     packages : package list Key.value;
     keys : Key.Set.t;
     init : job impl list;
@@ -56,21 +59,47 @@ module Config = struct
     Key.Set.fold f all_keys skeys
 
   let v ?(config_file = Fpath.v "config.ml") ?(keys = []) ?(packages = [])
-      ?(init = []) ~build_cmd ~src name jobs =
+      ?(init = []) ~configure_cmd ~pre_build_cmd ~lock_location ~build_cmd ~src
+      name jobs =
     let packages = Key.pure @@ packages in
     let jobs = Impl.abstract jobs in
     let keys = Key.Set.(union (of_list keys) (get_if_context jobs)) in
-    { config_file; packages; keys; name; init; build_cmd; jobs; src }
+    {
+      config_file;
+      packages;
+      keys;
+      name;
+      init;
+      configure_cmd;
+      pre_build_cmd;
+      lock_location;
+      build_cmd;
+      jobs;
+      src;
+    }
 
   let eval ~full context
-      { config_file; name = n; build_cmd; packages; keys; jobs; init; src } =
+      {
+        config_file;
+        name = n;
+        configure_cmd;
+        pre_build_cmd;
+        lock_location;
+        build_cmd;
+        packages;
+        keys;
+        jobs;
+        init;
+        src;
+      } =
     let jobs = Impl.simplify ~full ~context jobs in
     let device_graph = Impl.eval ~context jobs in
     let packages = Key.(pure List.append $ packages $ Engine.packages jobs) in
     let keys = Key.Set.elements (Key.Set.union keys @@ Engine.all_keys jobs) in
     let mk packages _ context =
       let info =
-        Info.v ~config_file ~packages ~keys ~context ~build_cmd ~src n
+        Info.v ~config_file ~packages ~keys ~context ~configure_cmd
+          ~pre_build_cmd ~lock_location ~build_cmd ~src n
       in
       { init; jobs; info; device_graph }
     in
@@ -115,13 +144,23 @@ module Make (P : S) = struct
       |> List.tl
       |> List.filter (fun arg ->
              arg <> "configure" && arg <> "query" && arg <> "opam")
-      |> List.map (fun x -> "\"" ^ x ^ "\"")
       |> String.concat ~sep:" "
     in
-    [
-      Fmt.str {|"%s" "configure" %s|} P.name command_line_arguments;
-      Fmt.str {|"%s" "build"|} P.name;
-    ]
+    let opts =
+      if command_line_arguments = "" then None else Some command_line_arguments
+    in
+    ( Fmt.str {|%s configure%a --no-extra-repo|} P.name
+        Fmt.(option ~none:(any "") (any " " ++ string))
+        opts,
+      (fun sub ->
+        Fmt.str {|make %a"lock" "pull"|}
+          Fmt.(option ~none:(any "") (any "\"-C" ++ Fpath.pp ++ any "\" "))
+          sub),
+      (fun sub unikernel ->
+        Fmt.str {|%amirage/%s.opam.locked|}
+          Fmt.(option ~none:(any "") Fpath.pp)
+          sub unikernel),
+      Fmt.str {|%s build|} P.name )
 
   (* STAGE 2 *)
 
@@ -202,7 +241,8 @@ module Make (P : S) = struct
         let pkgs = Info.packages info in
         List.iter (Fmt.pr "%a\n%!" (Package.pp ~surround:"\"")) pkgs
     | `Opam ->
-        let opam = Info.opam ~install info in
+        let opam_name = Misc.Name.(Opam.to_string (opamify name)) in
+        let opam = Info.opam ~extra_repo ~install ~opam_name info in
         Fmt.pr "%a\n%!" Opam.pp opam
     | `Files ->
         let files = files info jobs in
@@ -247,11 +287,11 @@ module Make (P : S) = struct
 
   (* Configuration step. *)
 
-  let generate_opam ~opam_name (args : _ Cli.args) () =
+  let generate_opam ~opam_name ~extra_repo (args : _ Cli.args) () =
     let { Config.info; jobs; _ } = args.Cli.context in
     let install = Key.eval (Info.context info) (Engine.install info jobs) in
     let name = Misc.Name.Opam.to_string opam_name in
-    let opam = Info.opam ~install info in
+    let opam = Info.opam ~install ~extra_repo ~opam_name:name info in
     let contents = Fmt.str "%a" Opam.pp opam in
     let file = Fpath.(v (name ^ ".opam")) in
     Log.info (fun m ->
@@ -326,7 +366,7 @@ module Make (P : S) = struct
     let* () =
       Action.with_dir (mirage_dir args) (fun () ->
           (* OPAM file *)
-          let* () = generate_opam ~opam_name args () in
+          let* () = generate_opam ~opam_name ~extra_repo args () in
           (* Generate application specific-files *)
           Log.info (fun m -> m "in dir %a" (Cli.pp_args (fun _ _ -> ())) args);
           configure_main info init device_graph)
@@ -468,11 +508,13 @@ module Make (P : S) = struct
     let args = Cli.peek_args ~with_setup:true ~mname:P.name argv in
     let config_file = config_file args in
     let run () =
-      let build_cmd = get_build_cmd args in
+      let configure_cmd, pre_build_cmd, lock_location, build_cmd =
+        get_build_cmd args
+      in
       let main_dev = P.create (init @ jobs) in
       let c =
-        Config.v ~config_file ?keys ?packages ~init ~build_cmd ~src name
-          main_dev
+        Config.v ~config_file ?keys ?packages ~init ~configure_cmd
+          ~pre_build_cmd ~lock_location ~build_cmd ~src name main_dev
       in
       run_configure_with_argv argv args c
     in

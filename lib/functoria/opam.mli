@@ -19,11 +19,17 @@
 type t
 
 val v :
-  ?build:string list ->
+  ?configure:string ->
+  ?pre_build:(Fpath.t option -> string) ->
+  ?lock_location:(Fpath.t option -> string -> string) ->
+  ?build:string ->
   ?install:Install.t ->
+  ?extra_repo:(string * string) list ->
   ?depends:Package.t list ->
   ?pins:(string * string) list ->
+  ?subdir:Fpath.t ->
   src:[ `Auto | `None | `Some of string ] ->
+  opam_name:string ->
   string ->
   t
 

@@ -25,7 +25,11 @@ type t = {
   keys : Key.Set.t;
   context : Key.context;
   packages : Package.t String.Map.t;
-  opam : install:Install.t -> Opam.t;
+  opam :
+    extra_repo:(string * string) list ->
+    install:Install.t ->
+    opam_name:string ->
+    Opam.t;
 }
 
 let name t = t.name
@@ -59,12 +63,13 @@ let pins packages =
 let keys t = Key.Set.elements t.keys
 let context t = t.context
 
-let v ?(config_file = Fpath.v "config.ml") ~packages ~keys ~context ~build_cmd
-    ~src name =
+let v ?(config_file = Fpath.v "config.ml") ~packages ~keys ~context
+    ?configure_cmd ?pre_build_cmd ?lock_location ~build_cmd ~src name =
   let keys = Key.Set.of_list keys in
-  let opam ~install =
-    Opam.v ~depends:packages ~install ~pins:(pins packages) ~build:build_cmd
-      ~src name
+  let opam ~extra_repo ~install ~opam_name =
+    Opam.v ~depends:packages ~install ~pins:(pins packages) ~extra_repo
+      ?configure:configure_cmd ?pre_build:pre_build_cmd ?lock_location
+      ~build:build_cmd ~src ~opam_name name
   in
   let packages =
     List.fold_left
@@ -105,6 +110,6 @@ let pp verbose ppf ({ name; keys; context; output; _ } as t) =
 let t =
   let i =
     v ~config_file:(Fpath.v "config.ml") ~packages:[] ~keys:[]
-      ~build_cmd:[ "dummy" ] ~context:Key.empty_context ~src:`None "dummy"
+      ~build_cmd:"dummy" ~context:Key.empty_context ~src:`None "dummy"
   in
   Type.v i

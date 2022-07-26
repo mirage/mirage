@@ -29,7 +29,8 @@ let find_git () =
       else find (Fpath.parent p) (Some (app_opt path (Fpath.base p)))
   in
   let* cwd = Action.pwd () in
-  let* cwd = find cwd None in
+  (* this is invoked from within the mirage subdirectory *)
+  let* cwd = find (Fpath.parent cwd) None in
   match cwd with
   | None -> Action.ok None
   | Some subdir ->
@@ -101,11 +102,11 @@ let guess_src () =
   let git_info =
     match Action.run @@ find_git () with
     | Error _ | Ok None -> None
-    | Ok (Some (_, branch, git_url)) -> Some (branch, git_url)
+    | Ok (Some (subdir, branch, git_url)) -> Some (subdir, branch, git_url)
   in
   match git_info with
-  | None -> None
-  | Some (branch, origin) ->
+  | None -> (None, None)
+  | Some (subdir, branch, origin) ->
       (* TODO is there a library for git urls anywhere? *)
       let public =
         match Endpoint.of_string origin with
@@ -128,23 +129,48 @@ let guess_src () =
             Fmt.str "git+https://%s:%d/%s" hostname port path
         | _ -> "git+https://invalid/endpoint"
       in
-      Some (Fmt.str "%s#%s" public branch)
+      (subdir, Some (Fmt.str "%s#%s" public branch))
 
 type t = {
   name : string;
   depends : Package.t list;
-  build : string list;
+  configure : string option;
+  pre_build : (Fpath.t option -> string) option;
+  lock_location : (Fpath.t option -> string -> string) option;
+  build : string option;
   install : Install.t;
+  extra_repo : (string * string) list;
   pins : (string * string) list;
   src : string option;
+  subdir : Fpath.t option;
+  opam_name : string;
 }
 
-let v ?(build = []) ?(install = Install.empty) ?(depends = []) ?(pins = []) ~src
-    name =
-  let src =
-    match src with `Auto -> guess_src () | `None -> None | `Some d -> Some d
+let v ?configure ?pre_build ?lock_location ?build ?(install = Install.empty)
+    ?(extra_repo = []) ?(depends = []) ?(pins = []) ?subdir ~src ~opam_name name
+    =
+  let subdir, src =
+    match src with
+    | `Auto ->
+        let subdir', src = guess_src () in
+        ((match subdir with None -> subdir' | Some _ as s -> s), src)
+    | `None -> (subdir, None)
+    | `Some d -> (subdir, Some d)
   in
-  { name; depends; build; install; pins; src }
+  {
+    name;
+    depends;
+    configure;
+    pre_build;
+    lock_location;
+    build;
+    install;
+    extra_repo;
+    pins;
+    src;
+    subdir;
+    opam_name;
+  }
 
 let pp_packages ppf packages =
   Fmt.pf ppf "\n  %a\n"
@@ -166,8 +192,20 @@ let pp_src ppf = function
 let pp_switch_package ppf s = Fmt.pf ppf "%S" s
 
 let pp ppf t =
-  let pp_build ppf =
-    Fmt.pf ppf "\n%a\n" (Fmt.list ~sep:(Fmt.any "\n") (Fmt.fmt "  [ %s ]"))
+  let pp_build = function
+    | None -> ""
+    | Some cmd ->
+        Fmt.str {|"sh" "-exc" "%a%s"|}
+          Fmt.(option ~none:(any "") (any "cd " ++ Fpath.pp ++ any " && "))
+          t.subdir cmd
+  in
+  let pp_pre_build ppf pre_build =
+    match pre_build with None -> () | Some f -> Fmt.string ppf (f t.subdir)
+  in
+  let pp_repo =
+    Fmt.(
+      list ~sep:(any "\n")
+        (brackets (pair ~sep:(any " ") (quote string) (quote string))))
   in
   let switch_packages =
     List.filter_map
@@ -190,14 +228,28 @@ It assumes that local dependencies are already
 fetched.
 """
 
-build: [%a]
+build: [%s]
 
 install: [%a]
 
 depends: [%a]
 
+x-mirage-opam-lock-location: %S
+
+x-mirage-configure: [%s]
+
+x-mirage-pre-build: [%a]
+
+x-mirage-extra-repo: [%a]
+
 x-opam-monorepo-opam-provided: [%a]
 %a%a|}
-    t.name pp_build t.build Install.pp_opam t.install pp_packages t.depends
+    t.name (pp_build t.build)
+    (Install.pp_opam ?subdir:t.subdir ())
+    t.install pp_packages t.depends
+    (Option.fold ~none:""
+       ~some:(fun l -> l t.subdir t.opam_name)
+       t.lock_location)
+    (pp_build t.configure) pp_pre_build t.pre_build pp_repo t.extra_repo
     (Fmt.list pp_switch_package)
     switch_packages pp_src t.src pp_pins t.pins

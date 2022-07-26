@@ -18,10 +18,7 @@ Query opam file
   fetched.
   """
   
-  build: [
-    [ "mirage" "configure"  ]
-    [ "mirage" "build" ]
-  ]
+  build: ["sh" "-exc" "mirage build"]
   
   install: [
     [ "cp" "dist/noop" "%{bin}%/noop" ]
@@ -38,6 +35,17 @@ Query opam file
     "ocaml" { build & >= "4.08.0" }
     "opam-monorepo" { build & >= "0.3.1" }
   ]
+  
+  x-mirage-opam-lock-location: "mirage/noop-unix.opam.locked"
+  
+  x-mirage-configure: ["sh" "-exc" "mirage configure --no-extra-repo"]
+  
+  x-mirage-pre-build: [make "lock" "pull"]
+  
+  x-mirage-extra-repo: [
+  ["opam-overlays" "https://github.com/dune-universe/opam-overlays.git"]
+  
+  ["mirage-overlays" "https://github.com/dune-universe/mirage-opam-overlays.git"]]
   
   x-opam-monorepo-opam-provided: ["mirage"
   "ocaml"

@@ -13,13 +13,16 @@ type t = [ solo5_target | xen_target ]
 let cast = function #t as t -> t | _ -> invalid_arg "not a solo5 target."
 
 let build_packages =
-  [ Functoria.package ~min:"0.8.0" ~scope:`Switch ~build:true "ocaml-solo5" ]
+  [
+    Functoria.package ~min:"0.8.1" ~max:"0.9.0" ~scope:`Switch ~build:true
+      "ocaml-solo5";
+  ]
 
 let runtime_packages target =
   match target with
   | #solo5_target ->
-      [ Functoria.package ~min:"0.8.0" ~max:"0.9.0" "mirage-solo5" ]
-  | #xen_target -> [ Functoria.package ~min:"7.1.0" ~max:"8.0.0" "mirage-xen" ]
+      [ Functoria.package ~min:"0.9.0" ~max:"0.10.0" "mirage-solo5" ]
+  | #xen_target -> [ Functoria.package ~min:"8.0.0" ~max:"9.0.0" "mirage-xen" ]
 
 let packages target = build_packages @ runtime_packages target
 let context_name _i = "solo5"

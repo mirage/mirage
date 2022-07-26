@@ -1,3 +1,27 @@
+### v4.2.0 (2022-07-26)
+
+#### Fixed
+
+- Remove non-existing mirage-repo-add and mirage-repo-rm from PHONY in generated
+  Makefile (#1332, @hannesm)
+- Update deprecated references (#1337, @reynir)
+
+#### Changed
+
+- Prepare for reproducing unikernels with generated opam file (#1335, @hannesm)
+  - split x-mirage-configure (mirage configure), x-mirage-pre-build
+    (make lock pull), and build instructions in opam file
+  - embed x-mirage-extra-repo (a list of opam repositories to use)
+  - take relative paths up to git repository into account
+  - include x-mirage-opam-lock-location (relative to git repository root)
+- Adapt constraints for mirage-solo5 0.9.0 and mirage-xen 8.0.0 (ocaml-solo5
+  0.8.1 with trim and improved memory metrics) (#1338, @hannesm, based on
+  @palainp work)
+- Require opam-monorepo 0.3.2 (#1332 #1334, @hannesm @dinosaure)
+- Use OPAMVAR_monorepo instead of OPAMVAR_switch in generated opam file (#1332,
+  @hannesm)
+- Remove name from opam file (#1332, @hannesm)
+
 ### v4.1.1 (2022-04-05)
 
 #### Fixed

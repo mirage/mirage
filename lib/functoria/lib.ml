@@ -153,7 +153,7 @@ module Make (P : S) = struct
         Fmt.(option ~none:(any "") (any " " ++ string))
         opts,
       (fun sub ->
-        Fmt.str {|make %a"lock" "pull"|}
+        Fmt.str {|make %a"lock" "depext-lockfile" "pull"|}
           Fmt.(option ~none:(any "") (any "\"-C" ++ Fpath.pp ++ any "\" "))
           sub),
       (fun sub unikernel ->

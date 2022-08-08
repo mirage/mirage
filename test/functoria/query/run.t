@@ -32,7 +32,7 @@ Query opam file
   
   x-mirage-configure: ["sh" "-exc" "test configure --no-extra-repo"]
   
-  x-mirage-pre-build: [make "lock" "pull"]
+  x-mirage-pre-build: [make "lock" "depext-lockfile" "pull"]
   
   x-mirage-extra-repo: [
   ["opam-overlays" "https://github.com/dune-universe/opam-overlays.git"]

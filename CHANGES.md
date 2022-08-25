@@ -1,3 +1,9 @@
+### v4.2.1 (2022-08-25)
+
+#### Fixed
+
+- In the generated opam file, also run "depext-lockfile" (#1342, @hannesm)
+
 ### v4.2.0 (2022-07-26)
 
 #### Fixed

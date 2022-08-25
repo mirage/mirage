@@ -23,7 +23,7 @@ module Arg : sig
   (** Terms for cross-stage arguments.
 
       This module extends
-      {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html}
+      {{:http://erratique.ch/software/cmdliner/doc/Cmdliner/Arg/index.html}
       Cmdliner.Arg} to allow MetaOCaml-style typed cross-stage persistency of
       command-line arguments. *)
 
@@ -37,8 +37,8 @@ module Arg : sig
   type 'a runtime_conv = string
   (** The type for command-line argument converters used at runtime. A value of
       type ['a runtime_conv] is a symbol name of type
-      {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#TYPEconverter}
-      Cmdliner.Arg.converter}. *)
+      {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#type-conv}
+      Cmdliner.Arg.conv}. *)
 
   type 'a converter
   (** The type for argument converters. *)
@@ -81,7 +81,7 @@ module Arg : sig
 
   type info
   (** The type for information about cross-stage command-line arguments. See
-      {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#arginfo}
+      {{:http://erratique.ch/software/cmdliner/doc/Cmdliner/Arg/index.html#arginfo}
       Cmdliner's arguments}. *)
 
   val info :
@@ -92,7 +92,7 @@ module Arg : sig
     string list ->
     info
   (** Define cross-stage information for an argument. See
-      {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#TYPEinfo}
+      {{:http://erratique.ch/software/cmdliner/doc/Cmdliner/Arg/index.html#type-info}
       Cmdliner.Arg.info}. If not set, [docs] is ["UNIKERNEL PARAMETERS"]. *)
 
   (** {1 Optional Arguments} *)
@@ -108,19 +108,19 @@ module Arg : sig
 
   val opt : ?stage:stage -> 'a converter -> 'a -> info -> 'a t
   (** [opt conv v i] is similar to
-      {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#VALopt}
+      {{:http://erratique.ch/software/cmdliner/doc/Cmdliner/Arg/index.html#val-opt}
       Cmdliner.Arg.opt} but for cross-stage optional command-line arguments. If
       not set, [stage] is [`Both]. *)
 
   val required : ?stage:stage -> 'a converter -> info -> 'a option t
   (** [required conv i] is similar to
-      {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#VALrequired}
+      {{:http://erratique.ch/software/cmdliner/doc/Cmdliner/Arg/index.html#val-required}
       Cmdliner.Arg.required} but for cross-stage required command-line
       arguments. If not set, [stage] is [`Both]. *)
 
   val flag : ?stage:stage -> info -> bool t
   (** [flag i] is similar to
-      {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#VALflag}
+      {{:http://erratique.ch/software/cmdliner/doc/Cmdliner/Arg/index.html#val-flag}
       Cmdliner.Arg.flag} but for cross-stage command-line flags. If not set,
       [stage] is [`Both]. *)
 
@@ -272,7 +272,7 @@ val add_to_context : 'a key -> 'a -> context -> context
 val context :
   ?stage:Arg.stage -> with_required:bool -> Set.t -> context Cmdliner.Term.t
 (** [context ~with_required ks] is a [Cmdliner]
-    {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Term.html#TYPt} term}
+    {{:http://erratique.ch/software/cmdliner/doc/Cmdliner/Term/index.html#type-t} term}
     that evaluates into a parsing context for command-line arguments. If
     [with_required] is false, it will only produce optional keys. *)
 

@@ -14,7 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-type log_threshold = [ `All | `Src of string ] * Logs.level
+type log_threshold = [ `All | `Src of string ] * Logs.level option
 
 let set_level ~default l =
   let srcs = Logs.Src.list () in
@@ -22,14 +22,14 @@ let set_level ~default l =
     try snd @@ List.find (function `All, _ -> true | _ -> false) l
     with Not_found -> default
   in
-  Logs.set_level (Some default);
+  Logs.set_level default;
   List.iter
     (function
       | `All, _ -> ()
       | `Src src, level -> (
           try
             let s = List.find (fun s -> Logs.Src.name s = src) srcs in
-            Logs.Src.set_level s (Some level)
+            Logs.Src.set_level s level
           with Not_found ->
             Fmt.(pf stdout)
               "%a %s is not a valid log source.\n%!"
@@ -65,27 +65,29 @@ module Arg = struct
   let ipv6 = of_module (module Ipaddr.V6.Prefix)
 
   let log_threshold =
-    let enum =
-      [
-        ("error", Logs.Error);
-        ("warning", Logs.Warning);
-        ("info", Logs.Info);
-        ("debug", Logs.Debug);
-      ]
+    let level_of_string = function
+      | "app" -> `Ok (Some Logs.App)
+      | "error" -> `Ok (Some Logs.Error)
+      | "warning" -> `Ok (Some Logs.Warning)
+      | "info" -> `Ok (Some Logs.Info)
+      | "debug" -> `Ok (Some Logs.Debug)
+      | "quiet" -> `Ok None
+      | l -> `Error (l ^ " is not a valid log level")
     in
-    let level_of_string x =
-      try List.assoc x enum
-      with Not_found -> Fmt.kstr failwith "%s is not a valid log level" x
+    let string_of_level = function
+      | Some Logs.App -> "app"
+      | Some Logs.Error -> "error"
+      | Some Logs.Warning -> "warning"
+      | Some Logs.Info -> "info"
+      | Some Logs.Debug -> "debug"
+      | None -> "quiet"
     in
-    let string_of_level x =
-      try fst @@ List.find (fun (_, y) -> x = y) enum
-      with Not_found -> "warning"
-    in
+    let map f = function `Ok x -> `Ok (f x) | `Error _ as e -> e in
     let parser str =
       match String.split_on_char ':' str with
-      | [ _ ] -> `Ok (`All, level_of_string str)
-      | [ "*"; lvl ] -> `Ok (`All, level_of_string lvl)
-      | [ src; lvl ] -> `Ok (`Src src, level_of_string lvl)
+      | [ _ ] -> map (fun l -> (`All, l)) (level_of_string str)
+      | [ "*"; lvl ] -> map (fun l -> (`All, l)) (level_of_string lvl)
+      | [ src; lvl ] -> map (fun l -> (`Src src, l)) (level_of_string lvl)
       | _ -> `Error ("Can't parse log threshold: " ^ str)
     in
     let serialize ppf = function

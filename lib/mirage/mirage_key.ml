@@ -444,11 +444,12 @@ let syslog_hostname default =
   create_simple ~doc ~default Arg.string "syslog-hostname"
 
 let pp_level ppf = function
-  | Logs.Error -> Fmt.string ppf "Logs.Error"
-  | Logs.Warning -> Fmt.string ppf "Logs.Warning"
-  | Logs.Info -> Fmt.string ppf "Logs.Info"
-  | Logs.Debug -> Fmt.string ppf "Logs.Debug"
-  | Logs.App -> Fmt.string ppf "Logs.App"
+  | Some Logs.Error -> Fmt.string ppf "Some Logs.Error"
+  | Some Logs.Warning -> Fmt.string ppf "Some Logs.Warning"
+  | Some Logs.Info -> Fmt.string ppf "Some Logs.Info"
+  | Some Logs.Debug -> Fmt.string ppf "Some Logs.Debug"
+  | Some Logs.App -> Fmt.string ppf "Some Logs.App"
+  | None -> Fmt.string ppf "None"
 
 let pp_pattern ppf = function
   | `All -> Fmt.string ppf "`All"

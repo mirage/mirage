@@ -5,7 +5,7 @@ val reporter : reporter Functoria.typ
 val default_reporter :
   ?clock:Mirage_impl_pclock.pclock Functoria.impl ->
   ?ring_size:int ->
-  ?level:Logs.level ->
+  ?level:Logs.level option ->
   unit ->
   reporter Functoria.impl
 

@@ -194,7 +194,7 @@ val reporter : reporter typ
 val default_reporter :
   ?clock:pclock impl ->
   ?ring_size:int ->
-  ?level:Logs.level ->
+  ?level:Logs.level option ->
   unit ->
   reporter impl
 (** [default_reporter ?clock ?level ()] is the log reporter that prints log

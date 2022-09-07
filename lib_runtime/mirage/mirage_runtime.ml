@@ -82,15 +82,12 @@ module Arg = struct
       | Some Logs.Debug -> "debug"
       | None -> "quiet"
     in
-    let map f = function
-      | `Ok x -> `Ok (f x)
-      | `Error _ as e -> e
-    in
+    let map f = function `Ok x -> `Ok (f x) | `Error _ as e -> e in
     let parser str =
       match String.split_on_char ':' str with
-      | [ _ ] -> map (fun l -> `All, l) (level_of_string str)
-      | [ "*"; lvl ] -> map (fun l ->`All, l) (level_of_string lvl)
-      | [ src; lvl ] -> map (fun l -> `Src src, l) (level_of_string lvl)
+      | [ _ ] -> map (fun l -> (`All, l)) (level_of_string str)
+      | [ "*"; lvl ] -> map (fun l -> (`All, l)) (level_of_string lvl)
+      | [ src; lvl ] -> map (fun l -> (`Src src, l)) (level_of_string lvl)
       | _ -> `Error ("Can't parse log threshold: " ^ str)
     in
     let serialize ppf = function

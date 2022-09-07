@@ -52,11 +52,8 @@ let default_monotonic_clock = Mirage_impl_mclock.default_monotonic_clock
 type random = Mirage_impl_random.random
 
 let random = Mirage_impl_random.random
-let stdlib_random = Mirage_impl_random.default_random
 let default_random = Mirage_impl_random.default_random
 let rng = Mirage_impl_random.rng
-let nocrypto = Mirage_impl_random.nocrypto
-let nocrypto_random = Mirage_impl_random.default_random
 
 type console = Mirage_impl_console.console
 
@@ -146,51 +143,21 @@ type 'a udp = 'a Mirage_impl_udp.udp
 
 let udp = Mirage_impl_udp.udp
 
-type udpv4 = Mirage_impl_udp.udpv4
-type udpv6 = Mirage_impl_udp.udpv6
 type udpv4v6 = Mirage_impl_udp.udpv4v6
 
-let udpv4 = Mirage_impl_udp.udpv4
-let udpv6 = Mirage_impl_udp.udpv6
 let udpv4v6 = Mirage_impl_udp.udpv4v6
 let direct_udp = Mirage_impl_udp.direct_udp
-let socket_udpv4 = Mirage_impl_udp.socket_udpv4
-let socket_udpv6 = Mirage_impl_udp.socket_udpv6
 let socket_udpv4v6 = Mirage_impl_udp.socket_udpv4v6
 
 type 'a tcp = 'a Mirage_impl_tcp.tcp
 
 let tcp = Mirage_impl_tcp.tcp
 
-type tcpv4 = Mirage_impl_tcp.tcpv4
-type tcpv6 = Mirage_impl_tcp.tcpv6
 type tcpv4v6 = Mirage_impl_tcp.tcpv4v6
 
-let tcpv4 = Mirage_impl_tcp.tcpv4
-let tcpv6 = Mirage_impl_tcp.tcpv6
 let tcpv4v6 = Mirage_impl_tcp.tcpv4v6
 let direct_tcp = Mirage_impl_tcp.direct_tcp
-let socket_tcpv4 = Mirage_impl_tcp.socket_tcpv4
-let socket_tcpv6 = Mirage_impl_tcp.socket_tcpv6
 let socket_tcpv4v6 = Mirage_impl_tcp.socket_tcpv4v6
-
-type stackv4 = Mirage_impl_stack.stackv4
-
-let stackv4 = Mirage_impl_stack.stackv4
-let generic_stackv4 = Mirage_impl_stack.generic_stackv4
-let static_ipv4_stack = Mirage_impl_stack.static_ipv4_stack
-let dhcp_ipv4_stack = Mirage_impl_stack.dhcp_ipv4_stack
-let qubes_ipv4_stack = Mirage_impl_stack.qubes_ipv4_stack
-let direct_stackv4 = Mirage_impl_stack.direct_stackv4
-let socket_stackv4 = Mirage_impl_stack.socket_stackv4
-
-type stackv6 = Mirage_impl_stack.stackv6
-
-let stackv6 = Mirage_impl_stack.stackv6
-let generic_stackv6 = Mirage_impl_stack.generic_stackv6
-let static_ipv6_stack = Mirage_impl_stack.static_ipv6_stack
-let direct_stackv6 = Mirage_impl_stack.direct_stackv6
-let socket_stackv6 = Mirage_impl_stack.socket_stackv6
 
 type stackv4v6 = Mirage_impl_stack.stackv4v6
 
@@ -272,7 +239,6 @@ let syslog_config = Mirage_impl_syslog.syslog_config
 type http = Mirage_impl_http.http
 
 let http = Mirage_impl_http.http
-let http_server = Mirage_impl_http.cohttp_server
 let cohttp_server = Mirage_impl_http.cohttp_server
 let httpaf_server = Mirage_impl_http.httpaf_server
 

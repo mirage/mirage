@@ -213,14 +213,6 @@ type random
 val random : random typ
 (** Implementations of the [Mirage_random.S] signature. *)
 
-val stdlib_random : random impl
-  [@@ocaml.deprecated "Mirage will always use a Fortuna PRNG."]
-(** Passthrough to the OCaml Random generator. *)
-
-val nocrypto_random : random impl
-  [@@ocaml.deprecated "Mirage will always use a Fortuna PRNG."]
-(** Passthrough to the Fortuna PRNG implemented in nocrypto. *)
-
 val default_random : random impl
 (** Default PRNG device to be used in unikernels. It uses getrandom/getentropy
     on Unix, and a Fortuna PRNG on other targets. *)
@@ -521,19 +513,13 @@ val create_ipv4v6 : ?group:string -> ipv4 impl -> ipv6 impl -> ipv4v6 impl
 (** {2 UDP configuration} *)
 
 type 'a udp
-type udpv4 = v4 udp
-type udpv6 = v6 udp
 type udpv4v6 = v4v6 udp
 
 val udp : 'a udp typ
 (** Implementation of the [Tcpip.Udp.S] signature. *)
 
-val udpv4 : udpv4 typ
-val udpv6 : udpv6 typ
 val udpv4v6 : udpv4v6 typ
 val direct_udp : ?random:random impl -> 'a ip impl -> 'a udp impl
-val socket_udpv4 : ?group:string -> Ipaddr.V4.t option -> udpv4 impl
-val socket_udpv6 : ?group:string -> Ipaddr.V6.t option -> udpv6 impl
 
 val socket_udpv4v6 :
   ?group:string -> Ipaddr.V4.t option -> Ipaddr.V6.t option -> udpv4v6 impl
@@ -541,15 +527,11 @@ val socket_udpv4v6 :
 (** {2 TCP configuration} *)
 
 type 'a tcp
-type tcpv4 = v4 tcp
-type tcpv6 = v6 tcp
 type tcpv4v6 = v4v6 tcp
 
 val tcp : 'a tcp typ
 (** Implementation of the [Tcpip.Tcp.S] signature. *)
 
-val tcpv4 : tcpv4 typ
-val tcpv6 : tcpv6 typ
 val tcpv4v6 : tcpv4v6 typ
 
 val direct_tcp :
@@ -559,120 +541,10 @@ val direct_tcp :
   'a ip impl ->
   'a tcp impl
 
-val socket_tcpv4 : ?group:string -> Ipaddr.V4.t option -> tcpv4 impl
-val socket_tcpv6 : ?group:string -> Ipaddr.V6.t option -> tcpv6 impl
-
 val socket_tcpv4v6 :
   ?group:string -> Ipaddr.V4.t option -> Ipaddr.V6.t option -> tcpv4v6 impl
 
 (** {2 Network stack configuration} *)
-
-type stackv4
-(** {3 IPv4} *)
-
-val stackv4 : stackv4 typ
-(** Implementation of the [Tcpip.Stack.V4] signature. *)
-
-val direct_stackv4 :
-  ?mclock:mclock impl ->
-  ?time:time impl ->
-  ?random:random impl ->
-  network impl ->
-  ethernet impl ->
-  arpv4 impl ->
-  ipv4 impl ->
-  stackv4 impl
-(** Direct network stack with given ip. *)
-
-val socket_stackv4 : ?group:string -> unit -> stackv4 impl
-(** Network stack with sockets. *)
-
-val qubes_ipv4_stack :
-  ?qubesdb:qubesdb impl ->
-  ?arp:(ethernet impl -> arpv4 impl) ->
-  network impl ->
-  stackv4 impl
-(** Build a stackv4 by looking up configuration information via QubesDB, *
-    building an ipv4, then building a stack on top of that. *)
-
-val dhcp_ipv4_stack :
-  ?random:random impl ->
-  ?clock:mclock impl ->
-  ?time:time impl ->
-  ?arp:(ethernet impl -> arpv4 impl) ->
-  network impl ->
-  stackv4 impl
-(** Build a stackv4 by obtaining a DHCP lease, using the lease to * build an
-    ipv4, then building a stack on top of that. *)
-
-val static_ipv4_stack :
-  ?group:string ->
-  ?config:ipv4_config ->
-  ?arp:(ethernet impl -> arpv4 impl) ->
-  network impl ->
-  stackv4 impl
-(** Build a stackv4 by checking the {!Key.V4.network}, and {!Key.V4.gateway}
-    keys * for ipv4 configuration information, filling in unspecified
-    information from [?config], * then building a stack on top of that. *)
-
-val generic_stackv4 :
-  ?group:string ->
-  ?config:ipv4_config ->
-  ?dhcp_key:bool value ->
-  ?net_key:[ `Direct | `Socket ] option value ->
-  network impl ->
-  stackv4 impl
-(** Generic stack using a [dhcp] and a [net] keys: {!Key.net} and {!Key.dhcp}.
-
-    - If [target] = [Qubes] then {!qubes_ipv4_stack} is used
-    - Else, if [net] = [socket] then {!socket_stackv4} is used
-    - Else, if [dhcp] then {!dhcp_ipv4_stack} is used
-    - Else, if [unix or macosx] then {!socket_stackv4} is used
-    - Else, {!static_ipv4_stack} is used.
-
-    If a key is not provided, it uses {!Key.net} or {!Key.dhcp} (with the
-    [group] argument) to create it. *)
-
-(** {3 IPv6} *)
-
-type stackv6
-
-val stackv6 : stackv6 typ
-(** Implementation of the [Tcpip.Stack.V6] signature. *)
-
-val direct_stackv6 :
-  ?mclock:mclock impl ->
-  ?random:random impl ->
-  ?time:time impl ->
-  network impl ->
-  ethernet impl ->
-  ipv6 impl ->
-  stackv6 impl
-(** Direct network stack with given ip. *)
-
-val socket_stackv6 : ?group:string -> unit -> stackv6 impl
-(** Network stack with sockets. *)
-
-val static_ipv6_stack :
-  ?group:string -> ?config:ipv6_config -> network impl -> stackv6 impl
-(** Build a stackv6 by checking the {!Key.V6.network}, and {!Key.V6.gateway}
-    keys for ipv6 configuration information, filling in unspecified information
-    from [?config], then building a stack on top of that. *)
-
-val generic_stackv6 :
-  ?group:string ->
-  ?config:ipv6_config ->
-  ?net_key:[ `Direct | `Socket ] option value ->
-  network impl ->
-  stackv6 impl
-(** Generic stack using a [net] keys: {!Key.net}.
-
-    - If [net] = [socket] then {!socket_stackv6} is used
-    - Else, if [unix or macosx] then {!socket_stackv6} is used
-    - Else, {!static_ipv6_stack} is used.
-
-    If a key is not provided, it uses {!Key.net} (with the [group] argument) to
-    create it. *)
 
 (** {3 Dual IPv4 and IPv6} *)
 
@@ -860,12 +732,6 @@ val syslog_tls :
     (private key, certificate, trust anchor) provided in the KV_RO using the
     [keyname]. *)
 
-(** {2 Entropy} *)
-
-val nocrypto : job impl
-  [@@ocaml.deprecated "nocrypto is deprecated and not needed anymore."]
-(** Device that initializes the entropy. *)
-
 (** {2 Conduit configuration} *)
 
 type conduit
@@ -880,11 +746,6 @@ val conduit_direct :
 type http
 
 val http : http typ
-
-val http_server : conduit impl -> http impl
-  [@@ocaml.deprecated
-    "`http_server` is deprecated. Please use `cohttp_server` or \
-     `httpaf_server` instead."]
 
 val cohttp_server : conduit impl -> http impl
 (** [cohttp_server] starts a Cohttp server. *)

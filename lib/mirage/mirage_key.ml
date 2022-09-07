@@ -357,27 +357,6 @@ let block ?group () =
   in
   create_simple ~doc ?group ~stage:`Configure ~default:`Ramdisk conv "block"
 
-(** {3 PRNG key} *)
-let prng =
-  let conv =
-    Cmdliner.Arg.enum
-      [ ("stdlib", `Stdlib); ("nocrypto", `Nocrypto); ("fortuna", `Nocrypto) ]
-  in
-  let serialize =
-    Fmt.of_to_string @@ function
-    | `Stdlib -> "`Stdlib"
-    | `Nocrypto -> "`Nocrypto"
-  in
-  let conv = Arg.conv ~conv ~serialize ~runtime_conv:"prng" in
-  let doc =
-    Fmt.str
-      "This boot parameter is deprecated. A Fortuna PRNG \
-       (https://en.wikipedia.org/wiki/Fortuna_(PRNG)) will always be used. The \
-       mirage-crypto-entropy (https://github.com/mirage/mirage-crypto) opam \
-       package feeds entropy to Fortuna."
-  in
-  create_simple ~doc ~stage:`Configure ~default:`Stdlib conv "prng"
-
 (** {3 Stack keys} *)
 
 let dhcp ?group () =

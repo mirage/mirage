@@ -4,6 +4,12 @@ val ro : ro Functoria.typ
 val direct_kv_ro : string -> ro Functoria.impl
 val crunch : string -> ro Functoria.impl
 
+val generic_kv_ro :
+  ?group:string ->
+  ?key:[ `Crunch | `Direct ] Functoria.value ->
+  string ->
+  ro Functoria.impl
+
 type rw
 
 val rw : rw Functoria.typ

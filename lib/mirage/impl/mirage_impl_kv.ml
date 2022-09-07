@@ -75,3 +75,10 @@ let mem_kv_rw_config =
 
 let mem_kv_rw ?(clock = Mirage_impl_pclock.default_posix_clock) () =
   mem_kv_rw_config $ clock
+
+(** generic kv_ro. *)
+
+let generic_kv_ro ?group ?(key = Key.value @@ Key.kv_ro ?group ()) dir =
+  match_impl key
+    [ (`Crunch, crunch dir); (`Direct, direct_kv_ro dir) ]
+    ~default:(direct_kv_ro dir)

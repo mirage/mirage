@@ -28,13 +28,3 @@ let kv_ro_of_fs_conf =
   impl ~packages ~connect "Mirage_fs.To_KV_RO" (typ @-> Mirage_impl_kv.ro)
 
 let kv_ro_of_fs x = kv_ro_of_fs_conf $ x
-
-(** generic kv_ro. *)
-
-let generic_kv_ro ?group ?(key = Key.value @@ Key.kv_ro ?group ()) dir =
-  match_impl key
-    [
-      (`Crunch, Mirage_impl_kv.crunch dir);
-      (`Direct, Mirage_impl_kv.direct_kv_ro dir);
-    ]
-    ~default:(Mirage_impl_kv.direct_kv_ro dir)

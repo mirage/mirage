@@ -66,6 +66,7 @@ type kv_ro = Mirage_impl_kv.ro
 let kv_ro = Mirage_impl_kv.ro
 let direct_kv_ro = Mirage_impl_kv.direct_kv_ro
 let crunch = Mirage_impl_kv.crunch
+let generic_kv_ro = Mirage_impl_kv.generic_kv_ro
 
 type kv_rw = Mirage_impl_kv.rw
 
@@ -92,7 +93,6 @@ type fs = Mirage_impl_fs.t
 
 let fs = Mirage_impl_fs.typ
 let fat = Mirage_impl_fs.fat
-let generic_kv_ro = Mirage_impl_fs.generic_kv_ro
 let kv_ro_of_fs = Mirage_impl_fs.kv_ro_of_fs
 
 type network = Mirage_impl_network.network

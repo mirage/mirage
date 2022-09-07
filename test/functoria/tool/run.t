@@ -397,6 +397,16 @@ Default
   * Run_cmd_cli '_build/default/./config.exe --dry-run' (ok)
 
 Parsing error in global arguments
-  $ ./test.exe -f
-  Fatal error: exception File "lib/functoria/cli.ml", line 467, characters 9-15: Assertion failed
-  [2]
+  $ ./test.exe -o
+  test: unknown option '-o'.
+        unknown option '--dry-run'.
+  Usage: test [COMMAND] …
+  Try 'test --help' for more information.
+  [1]
+
+Parsing error in global arguments, with subcommand
+  $ ./test.exe configure -o
+  test: option '-o' needs an argument
+  Usage: test configure [OPTION]…
+  Try 'test configure --help' or 'test --help' for more information.
+  [1]

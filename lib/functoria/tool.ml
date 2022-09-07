@@ -237,9 +237,15 @@ module Make (P : S) = struct
     | `Version ->
         Log.info (fun l -> l "version");
         Fmt.pr "%s\n%!" P.version
-    | `Error (t, _) ->
+    | `Error (Some t, _) ->
         Log.info (fun l -> l "error: %a" (Cli.pp_args pp_unit) t);
         run t @@ error t ?ppf:help_ppf ?err_ppf argv
+    | `Error (None, _) ->
+        let action =
+          handle_parse_args_no_config ?help_ppf ?err_ppf (`Msg "") argv
+        in
+        let args = Cli.default_args in
+        action_run args action |> exit_err args
     | `Ok t -> (
         Log.info (fun l -> l "run: %a" (Cli.pp_action pp_unit) t);
         let run = run (Cli.args t) in

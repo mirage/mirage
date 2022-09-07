@@ -29,10 +29,14 @@ type 'a args = {
 }
 (** The type for global arguments. *)
 
-val peek_args : ?with_setup:bool -> mname:string -> string array -> unit args
+val default_args : unit args
+
+val peek_args :
+  ?with_setup:bool -> mname:string -> string array -> unit args option
 (** [peek_args ?with_setup argv] parses the global command-line arguments. If
     [with_setup] is set (by default it is), interprets [-v] and [--color] to
-    set-up the terminal configuration as a side-effect. *)
+    set-up the terminal configuration as a side-effect. Returns None if global
+    command-line arguments are invalid. *)
 
 val peek_output : string array -> string option
 (** [peek_full_eval argv] reads the [--output] option from [argv]; the return
@@ -131,7 +135,9 @@ val eval :
     help when either the 'help' subcommand or no subcommand is specified. *)
 
 type 'a result =
-  [ `Ok of 'a action | `Error of 'a args * [ `Exn | `Parse | `Term ] | `Version ]
+  [ `Ok of 'a action
+  | `Error of 'a args option * [ `Exn | `Parse | `Term ]
+  | `Version ]
 (** Similar to [Cmdliner.Term.result] but help is folded into [`Ok] and errors
     also carry global command-line parameters. *)
 

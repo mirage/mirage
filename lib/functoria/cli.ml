@@ -203,6 +203,15 @@ type 'a args = {
   dry_run : bool;
 }
 
+let default_args =
+  {
+    context = ();
+    config_file = Fpath.v "dummy";
+    context_file = None;
+    output = None;
+    dry_run = false;
+  }
+
 type 'a configure_args = {
   args : 'a args;
   depext : bool;
@@ -463,8 +472,8 @@ let peek_args ?(with_setup = false) ~mname argv =
     Subcommands.T.args { with_setup; mname; context = Term.const () }
   in
   match Cmd.eval_peek_opts ~argv args with
-  | _, Ok (`Ok b) | Some b, _ -> b
-  | _ -> assert false
+  | _, Ok (`Ok b) | Some b, _ -> Some b
+  | _ -> None
 
 let eval ?(with_setup = true) ?help_ppf ?err_ppf ~name ~version ~configure
     ~query ~describe ~build ~clean ~help ~mname argv =
@@ -558,17 +567,21 @@ let peek_choice argv =
   with Invalid_argument _ -> `Error `Parse
 
 type 'a result =
-  [ `Ok of 'a action | `Error of 'a args * [ `Exn | `Parse | `Term ] | `Version ]
+  [ `Ok of 'a action
+  | `Error of 'a args option * [ `Exn | `Parse | `Term ]
+  | `Version ]
 
 let peek ?(with_setup = false) ~mname argv : unit result =
   let niet = Term.const () in
   let peek t =
     match Cmd.eval_peek_opts ~argv ~version_opt:true (fst t) with
     | _, Ok `Version -> `Version
-    | _, Error e -> `Error (peek_args ~with_setup:false ~mname argv, e)
-    | _, Ok `Help ->
+    | _, Error e -> `Error (peek_args ~mname argv, e)
+    | _, Ok `Help -> (
         let args = peek_args ~with_setup:false ~mname argv in
-        `Ok (Help args)
+        match args with
+        | Some args -> `Ok (Help args)
+        | _ -> `Error (None, `Parse))
     | Some v, _ | _, Ok (`Ok v) -> `Ok v
   in
   let peek_cmd f =

@@ -58,17 +58,32 @@ module Arg = struct
     conv ~conv:Cmdliner.Arg.int64 ~runtime_conv:"Cmdliner.Arg.int64"
       ~serialize:(fun fmt i -> Format.fprintf fmt "(%LiL)" i)
 
-  let list d =
+  let list ?sep d =
+    let runtime_conv =
+      match sep with
+      | None -> Fmt.str {ocaml|(Cmdliner.Arg.list %s)|ocaml} (runtime_conv d)
+      | Some sep ->
+          Fmt.str {ocaml|(Cmdliner.Arg.list ~sep:'\x%02x' %s)|ocaml}
+            (Char.code sep) (runtime_conv d)
+    in
     conv
-      ~conv:(Cmdliner.Arg.list (converter d))
-      ~runtime_conv:(Fmt.str "(Cmdliner.Arg.list %s)" (runtime_conv d))
+      ~conv:(Cmdliner.Arg.list ?sep (converter d))
+      ~runtime_conv
       ~serialize:(Serialize.list (serialize d))
 
   let pair ?sep a b =
+    let runtime_conv =
+      match sep with
+      | None ->
+          Fmt.str {ocaml|(Cmdliner.Arg.pair %s %s)|ocaml} (runtime_conv a)
+            (runtime_conv b)
+      | Some sep ->
+          Fmt.str {ocaml|(Cmdliner.Arg.pair ~sep:'\x%02x' %s %s)|ocaml}
+            (Char.code sep) (runtime_conv a) (runtime_conv b)
+    in
     conv
       ~conv:(Cmdliner.Arg.pair ?sep (converter a) (converter b))
-      ~runtime_conv:
-        (Fmt.str "(Cmdliner.Arg.pair %s %s)" (runtime_conv a) (runtime_conv b))
+      ~runtime_conv
       ~serialize:(Serialize.pair (serialize a) (serialize b))
 
   let some d =

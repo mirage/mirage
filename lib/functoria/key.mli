@@ -65,7 +65,7 @@ module Arg : sig
   val int64 : int64 converter
   (** [int64] converts 64-bits integers. *)
 
-  val list : 'a converter -> 'a list converter
+  val list : ?sep:char -> 'a converter -> 'a list converter
   (** [list t] converts lists of [t]s. *)
 
   val pair : ?sep:char -> 'a converter -> 'b converter -> ('a * 'b) converter

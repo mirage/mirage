@@ -52,5 +52,7 @@ Describe - y target  - x.context
 
 Bad context cache
   $ ./config.exe configure -t nonexistent --context-file=z.context
-  Fatal error: exception Failure("Invalid cached configuration. Please run configure again.")
-  [2]
+  test: option '-t': invalid value 'nonexistent', expected either 'y' or 'x'
+  Usage: test configure [OPTION]…
+  Try 'test configure --help' or 'test --help' for more information.
+  [1]

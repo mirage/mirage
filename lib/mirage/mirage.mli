@@ -389,7 +389,7 @@ val chamelon :
 
     {[
       $ dd if=/dev/zero if=db.img bs=1M count=1
-      $ chamelon format 512 db.img
+      $ chamelon format db.img 512
     ]} *)
 
 (** {2 Filesystem} *)

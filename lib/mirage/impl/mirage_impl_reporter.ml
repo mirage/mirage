@@ -8,11 +8,12 @@ type reporter = job
 let reporter = job
 
 let pp_level ppf = function
-  | Logs.Error -> Fmt.string ppf "Logs.Error"
-  | Logs.Warning -> Fmt.string ppf "Logs.Warning"
-  | Logs.Info -> Fmt.string ppf "Logs.Info"
-  | Logs.Debug -> Fmt.string ppf "Logs.Debug"
-  | Logs.App -> Fmt.string ppf "Logs.App"
+  | Some Logs.Error -> Fmt.string ppf "(Some Logs.Error)"
+  | Some Logs.Warning -> Fmt.string ppf "(Some Logs.Warning)"
+  | Some Logs.Info -> Fmt.string ppf "(Some Logs.Info)"
+  | Some Logs.Debug -> Fmt.string ppf "(Some Logs.Debug)"
+  | Some Logs.App -> Fmt.string ppf "(Some Logs.App)"
+  | None -> Fmt.string ppf "None"
 
 let mirage_log ?ring_size ~default () =
   let logs = Key.logs in
@@ -31,7 +32,7 @@ let mirage_log ?ring_size ~default () =
   impl ~packages ~keys ~connect "Mirage_logs.Make" (pclock @-> reporter)
 
 let default_reporter ?(clock = default_posix_clock) ?ring_size
-    ?(level = Logs.Info) () =
+    ?(level = Some Logs.Info) () =
   mirage_log ?ring_size ~default:level () $ clock
 
 let no_reporter =

@@ -111,6 +111,16 @@ let archive_conf =
 
 let archive block = archive_conf $ block
 
+let fat_conf =
+  let packages = [ package ~min:"0.15.0" ~max:"0.16.0" "fat-filesystem" ] in
+  let connect _ modname = function
+    | [ block ] -> Fmt.str "%s.connect %s" modname block
+    | _ -> failwith (connect_err "fat" 1)
+  in
+  impl ~packages ~connect "Fat.KV_RO" (block @-> Mirage_impl_kv.ro)
+
+let fat_ro block = fat_conf $ block
+
 type mode = [ `Fast | `Light ]
 
 let pp_mode ppf = function

@@ -84,16 +84,11 @@ type block = Mirage_impl_block.block
 
 let block = Mirage_impl_block.block
 let archive = Mirage_impl_block.archive
+let fat_ro = Mirage_impl_block.fat_ro
 let generic_block = Mirage_impl_block.generic_block
 let ramdisk = Mirage_impl_block.ramdisk
 let block_of_xenstore_id = Mirage_impl_block.block_of_xenstore_id
 let block_of_file = Mirage_impl_block.block_of_file
-
-type fs = Mirage_impl_fs.t
-
-let fs = Mirage_impl_fs.typ
-let fat = Mirage_impl_fs.fat
-let kv_ro_of_fs = Mirage_impl_fs.kv_ro_of_fs
 
 type network = Mirage_impl_network.network
 

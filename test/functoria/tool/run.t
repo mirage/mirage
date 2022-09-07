@@ -395,3 +395,8 @@ Default
              ./test/dune-workspace.config' (ok)
   * Is_file? test/context -> false
   * Run_cmd_cli '_build/default/./config.exe --dry-run' (ok)
+
+Parsing error in global arguments
+  $ ./test.exe -f
+  Fatal error: exception File "lib/functoria/cli.ml", line 467, characters 9-15: Assertion failed
+  [2]

@@ -49,3 +49,8 @@ Describe - y target  - x.context
   Keys       target=y,
              vote=cat (default),
              warn_error=false (default)
+
+Bad context cache
+  $ ./config.exe configure -t nonexistent --context-file=z.context
+  Fatal error: exception Failure("Invalid cached configuration. Please run configure again.")
+  [2]

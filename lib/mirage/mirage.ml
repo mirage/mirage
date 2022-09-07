@@ -92,7 +92,6 @@ type fs = Mirage_impl_fs.t
 
 let fs = Mirage_impl_fs.typ
 let fat = Mirage_impl_fs.fat
-let fat_of_files = Mirage_impl_fs.fat_of_files
 let generic_kv_ro = Mirage_impl_fs.generic_kv_ro
 let kv_ro_of_fs = Mirage_impl_fs.kv_ro_of_fs
 
@@ -473,5 +472,4 @@ let register ?(argv = default_argv) ?tracing ?(reporter = default_reporter ())
   let init = Some first ++ reporter ++ tracing in
   register ?keys:extra_keys ?packages ?init ?src name jobs
 
-module FS = Mirage_impl_fs
 module Action = Functoria.Action

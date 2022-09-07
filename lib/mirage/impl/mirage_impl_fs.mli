@@ -7,7 +7,7 @@ val kv_ro_of_fs : t Functoria.impl -> Mirage_impl_kv.ro Functoria.impl
 
 val generic_kv_ro :
   ?group:string ->
-  ?key:[ `Archive | `Crunch | `Direct | `Fat ] Functoria.value ->
+  ?key:[ `Crunch | `Direct | `Fat ] Functoria.value ->
   string ->
   Mirage_impl_kv.ro Functoria.impl
 

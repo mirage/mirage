@@ -95,7 +95,6 @@ let generic_kv_ro ?group ?(key = Key.value @@ Key.kv_ro ?group ()) dir =
   match_impl key
     [
       (`Fat, kv_ro_of_fs @@ fat_of_files ~dir ());
-      (`Archive, archive_of_files ~dir ());
       (`Crunch, Mirage_impl_kv.crunch dir);
       (`Direct, Mirage_impl_kv.direct_kv_ro dir);
     ]

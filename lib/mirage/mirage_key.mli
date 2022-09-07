@@ -107,9 +107,8 @@ val custom_minor_max_size : int option key
 
     {3 File system keys} *)
 
-val kv_ro : ?group:string -> unit -> [ `Archive | `Crunch | `Direct | `Fat ] key
-(** The type of key value store. Is one of ["archive"], ["crunch"], ["direct"],
-    or ["fat"]. *)
+val kv_ro : ?group:string -> unit -> [ `Crunch | `Direct | `Fat ] key
+(** The type of key value store. Is one of ["crunch"], ["direct"], or ["fat"]. *)
 
 val block : ?group:string -> unit -> [ `XenstoreId | `BlockFile | `Ramdisk ] key
 (** {3 Block device keys} *)

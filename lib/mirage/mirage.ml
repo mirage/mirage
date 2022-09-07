@@ -82,7 +82,6 @@ let chamelon ~program_block_size ?(pclock = default_posix_clock) block =
 type block = Mirage_impl_block.block
 
 let block = Mirage_impl_block.block
-let archive_of_files = Mirage_impl_block.archive_of_files
 let archive = Mirage_impl_block.archive
 let generic_block = Mirage_impl_block.generic_block
 let ramdisk = Mirage_impl_block.ramdisk

@@ -101,30 +101,6 @@ let generic_block ?group ?(key = Key.value @@ Key.block ?group ()) name =
     ]
     ~default:(ramdisk name)
 
-let count =
-  let i = ref 0 in
-  fun () ->
-    incr i;
-    !i
-
-let tar_block dir =
-  let name = "tar_block" ^ string_of_int (count ()) in
-  let block_file = name ^ ".img" in
-  let dune _ =
-    let dune =
-      Dune.stanzaf
-        {|
-(rule
- (targets %s)
- (deps (source_tree %s))
- (action (run tar -cvf %%{targets} %%{deps})))
-|}
-        block_file dir
-    in
-    [ dune ]
-  in
-  of_device @@ Device.extend ~dune (block_conf block_file)
-
 let archive_conf =
   let packages = [ package ~min:"1.0.0" ~max:"3.0.0" "tar-mirage" ] in
   let connect _ modname = function
@@ -134,7 +110,6 @@ let archive_conf =
   impl ~packages ~connect "Tar_mirage.Make_KV_RO" (block @-> Mirage_impl_kv.ro)
 
 let archive block = archive_conf $ block
-let archive_of_files ?(dir = ".") () = archive @@ tar_block dir
 
 type mode = [ `Fast | `Light ]
 

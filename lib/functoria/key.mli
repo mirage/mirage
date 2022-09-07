@@ -272,8 +272,8 @@ val add_to_context : 'a key -> 'a -> context -> context
 val context :
   ?stage:Arg.stage -> with_required:bool -> Set.t -> context Cmdliner.Term.t
 (** [context ~with_required ks] is a [Cmdliner]
-    {{:http://erratique.ch/software/cmdliner/doc/Cmdliner/Term/index.html#type-t} term}
-    that evaluates into a parsing context for command-line arguments. If
+    {{:http://erratique.ch/software/cmdliner/doc/Cmdliner/Term/index.html#type-t}
+    term} that evaluates into a parsing context for command-line arguments. If
     [with_required] is false, it will only produce optional keys. *)
 
 val mem : context -> 'a value -> bool

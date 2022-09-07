@@ -126,7 +126,7 @@ let tar_block dir =
   of_device @@ Device.extend ~dune (block_conf block_file)
 
 let archive_conf =
-  let packages = [ package ~min:"1.0.0" ~max:"2.0.0" "tar-mirage" ] in
+  let packages = [ package ~min:"1.0.0" ~max:"3.0.0" "tar-mirage" ] in
   let connect _ modname = function
     | [ block ] -> Fmt.str "%s.connect %s" modname block
     | _ -> failwith (connect_err "archive" 1)

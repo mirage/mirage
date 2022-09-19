@@ -49,3 +49,10 @@ Describe - y target  - x.context
   Keys       target=y,
              vote=cat (default),
              warn_error=false (default)
+
+Bad context cache
+  $ ./config.exe configure -t nonexistent --context-file=z.context
+  test: option '-t': invalid value 'nonexistent', expected either 'y' or 'x'
+  Usage: test configure [OPTION]…
+  Try 'test configure --help' or 'test --help' for more information.
+  [1]

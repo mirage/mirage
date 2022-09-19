@@ -395,3 +395,18 @@ Default
              ./test/dune-workspace.config' (ok)
   * Is_file? test/context -> false
   * Run_cmd_cli '_build/default/./config.exe --dry-run' (ok)
+
+Parsing error in global arguments
+  $ ./test.exe -o
+  test: unknown option '-o'.
+        unknown option '--dry-run'.
+  Usage: test [COMMAND] …
+  Try 'test --help' for more information.
+  [1]
+
+Parsing error in global arguments, with subcommand
+  $ ./test.exe configure -o
+  test: option '-o' needs an argument
+  Usage: test configure [OPTION]…
+  Try 'test configure --help' or 'test --help' for more information.
+  [1]

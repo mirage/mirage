@@ -505,7 +505,11 @@ module Make (P : S) = struct
        and root directory. *)
     let argv = Sys.argv in
     (* TODO: do not are parse the command-line twice *)
-    let args = Cli.peek_args ~with_setup:true ~mname:P.name argv in
+    let args =
+      (* tool.ml made sure that global arguments are correctly parsed before
+         running config.exe*)
+      Cli.peek_args ~with_setup:true ~mname:P.name argv |> Option.get
+    in
     let config_file = config_file args in
     let run () =
       let configure_cmd, pre_build_cmd, lock_location, build_cmd =

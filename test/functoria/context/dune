@@ -4,4 +4,4 @@
 
 (cram
  (package functoria)
- (deps ./config.exe x.context y.context))
+ (deps ./config.exe x.context y.context z.context))

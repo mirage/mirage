@@ -270,19 +270,19 @@ val crunch : string -> kv_ro impl
 (** Crunch a directory. *)
 
 val archive : block impl -> kv_ro impl
-val archive_of_files : ?dir:string -> unit -> kv_ro impl
+(** Use a TAR archive. *)
 
 val direct_kv_ro : string -> kv_ro impl
 (** Direct access to the underlying filesystem as a key/value store. For Xen
     backends, this is equivalent to [crunch]. *)
 
+val fat_ro : block impl -> kv_ro impl
+(** Use a FAT formatted block device. *)
+
 val generic_kv_ro :
-  ?group:string ->
-  ?key:[ `Archive | `Crunch | `Direct | `Fat ] value ->
-  string ->
-  kv_ro impl
-(** Generic key/value that will choose dynamically between {!fat}, {!archive}
-    and {!crunch}. To use a filesystem implementation, try {!kv_ro_of_fs}.
+  ?group:string -> ?key:[ `Crunch | `Direct ] value -> string -> kv_ro impl
+(** Generic key/value that will choose dynamically between {!direct_kv_ro} and
+    {!crunch}. To use a filesystem implementation, try {!kv_ro_of_fs}.
 
     If no key is provided, it uses {!Key.kv_ro} to create a new one. *)
 
@@ -383,25 +383,6 @@ val chamelon :
       $ dd if=/dev/zero if=db.img bs=1M count=1
       $ chamelon format db.img 512
     ]} *)
-
-(** {2 Filesystem} *)
-
-type fs
-(** Abstract type for filesystems. *)
-
-val fs : fs typ
-(** Implementations of the [Mirage_kv.RW] signature. *)
-
-val fat : block impl -> fs impl
-(** Consider a raw block device as a FAT filesystem. *)
-
-val fat_of_files : ?dir:string -> ?regexp:string -> unit -> fs impl
-(** [fat_files dir ?dir ?regexp ()] collects all the files matching the shell
-    pattern [regexp] in the directory [dir] into a FAT image. By default, [dir]
-    is the current working directory and [regexp] is {i *} *)
-
-val kv_ro_of_fs : fs impl -> kv_ro impl
-(** Consider a filesystem implementation as a read-only key/value store. *)
 
 (** {2 Network interfaces} *)
 
@@ -925,15 +906,6 @@ module Impl = Functoria.Impl
 module Info = Functoria.Info
 module Dune = Functoria.Dune
 module Action = Functoria.Action
-
-module FS : sig
-  val fat_shell_script :
-    Format.formatter ->
-    block_file:string ->
-    dir:Fpath.t ->
-    regexp:string ->
-    unit
-end
 
 module Project : sig
   val dune : Info.t -> Dune.stanza list

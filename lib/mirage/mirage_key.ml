@@ -311,27 +311,14 @@ let create_simple ?(group = "") ?(stage = `Both) ~doc ~default conv name =
 (** {3 File system keys} *)
 
 let kv_ro ?group () =
-  let conv =
-    Cmdliner.Arg.enum
-      [
-        ("fat", `Fat);
-        ("archive", `Archive);
-        ("crunch", `Crunch);
-        ("direct", `Direct);
-      ]
-  in
+  let conv = Cmdliner.Arg.enum [ ("crunch", `Crunch); ("direct", `Direct) ] in
   let serialize =
-    Fmt.of_to_string @@ function
-    | `Fat -> "`Fat"
-    | `Archive -> "`Archive"
-    | `Crunch -> "`Crunch"
-    | `Direct -> "`Direct"
+    Fmt.of_to_string @@ function `Crunch -> "`Crunch" | `Direct -> "`Direct"
   in
   let conv = Arg.conv ~conv ~serialize ~runtime_conv:"kv_ro" in
   let doc =
     Fmt.str
-      "Use a $(i,fat), $(i,archive), $(i,crunch) or $(i,direct) pass-through \
-       implementation for %a."
+      "Use a $(i,crunch) or $(i,direct) pass-through implementation for %a."
       pp_group group
   in
   create_simple ~doc ?group ~stage:`Configure ~default:`Crunch conv "kv_ro"

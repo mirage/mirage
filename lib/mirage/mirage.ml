@@ -66,6 +66,7 @@ type kv_ro = Mirage_impl_kv.ro
 let kv_ro = Mirage_impl_kv.ro
 let direct_kv_ro = Mirage_impl_kv.direct_kv_ro
 let crunch = Mirage_impl_kv.crunch
+let generic_kv_ro = Mirage_impl_kv.generic_kv_ro
 
 type kv_rw = Mirage_impl_kv.rw
 
@@ -82,20 +83,12 @@ let chamelon ~program_block_size ?(pclock = default_posix_clock) block =
 type block = Mirage_impl_block.block
 
 let block = Mirage_impl_block.block
-let archive_of_files = Mirage_impl_block.archive_of_files
 let archive = Mirage_impl_block.archive
+let fat_ro = Mirage_impl_block.fat_ro
 let generic_block = Mirage_impl_block.generic_block
 let ramdisk = Mirage_impl_block.ramdisk
 let block_of_xenstore_id = Mirage_impl_block.block_of_xenstore_id
 let block_of_file = Mirage_impl_block.block_of_file
-
-type fs = Mirage_impl_fs.t
-
-let fs = Mirage_impl_fs.typ
-let fat = Mirage_impl_fs.fat
-let fat_of_files = Mirage_impl_fs.fat_of_files
-let generic_kv_ro = Mirage_impl_fs.generic_kv_ro
-let kv_ro_of_fs = Mirage_impl_fs.kv_ro_of_fs
 
 type network = Mirage_impl_network.network
 
@@ -474,5 +467,4 @@ let register ?(argv = default_argv) ?tracing ?(reporter = default_reporter ())
   let init = Some first ++ reporter ++ tracing in
   register ?keys:extra_keys ?packages ?init ?src name jobs
 
-module FS = Mirage_impl_fs
 module Action = Functoria.Action

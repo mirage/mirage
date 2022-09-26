@@ -8,8 +8,8 @@ val generic_block :
   string ->
   block Functoria.impl
 
-val archive_of_files : ?dir:string -> unit -> Mirage_impl_kv.ro Functoria.impl
 val archive : block Functoria.impl -> Mirage_impl_kv.ro Functoria.impl
+val fat_ro : block Functoria.impl -> Mirage_impl_kv.ro Functoria.impl
 val ramdisk : string -> block Functoria.impl
 val block_of_xenstore_id : string -> block Functoria.impl
 val block_of_file : string -> block Functoria.impl

@@ -1,3 +1,24 @@
+### v4.3.0 (2022-09-26)
+
+#### Fixed
+
+- The chamelon format example invocation had the arguments in the wrong order
+  (#1351, @hannesm)
+- tar-mirage: allow the 2.x release series (#1352, @hannesm)
+- Fix the separator for list and pair combinator (command-line arguments, #1354,
+  @dinosaure, reported in #1349 #1348 by @rand00)
+- Update references (hyperlinks) to erratique.ch documentation (#1343, @reynir)
+
+#### Changed
+
+- Allow more log levels (None / quiet) (#1275, @reynir, closes #1273 & #1274)
+- Improve Functoria CLI: don't fail if context cache is invalid, handle
+  situation when global arguments have a parse error (#1359, @TheLortex)
+- Remove v4 & v6 stack, and other deprecated bindings (#1341, @hannesm)
+- Remove FS remnants, and kv_ro of archive, and brittle shell scripts
+  that used to generate FAT block storage devices (#1353, @hannesm)
+- Update to OCamlFormat 0.23.0 (#1351, @dinosaure)
+
 ### v4.2.1 (2022-08-25)
 
 #### Fixed

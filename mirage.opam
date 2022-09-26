@@ -14,7 +14,7 @@ available: opam-version >= "2.1.0"
 build: [
   ["dune" "subst"] {dev}
   ["dune" "build" "-p" name "-j" jobs]
-  ["dune" "runtest" "-p" name "-j" jobs] {with-test}
+  ["dune" "runtest" "-p" name "-j" jobs] {with-test & os != "macos"}
 ]
 
 depends: [

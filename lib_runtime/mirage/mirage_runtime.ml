@@ -41,7 +41,7 @@ module Arg = struct
   include Functoria_runtime.Arg
 
   let make of_string to_string : _ Cmdliner.Arg.conv =
-    Cmdliner.Arg.conv (of_string, fun ppf v -> Fmt.string ppf (to_string v))
+    Cmdliner.Arg.conv (of_string, Fmt.of_to_string to_string)
 
   module type S = sig
     type t

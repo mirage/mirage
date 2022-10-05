@@ -412,11 +412,7 @@ let ipv6_only ?group () =
 
 let resolver ?default () =
   let doc = Fmt.str "DNS resolver (default to anycast.censurfridns.dk)" in
-  create_simple ~doc ~default Arg.(some ip_address) "resolver"
-
-let resolver_port ?(default = 53) () =
-  let doc = Fmt.str "DNS resolver port" in
-  create_simple ~doc ~default Arg.int "resolver-port"
+  create_simple ~doc ~default Arg.(some (list string)) "resolver"
 
 let syslog default =
   let doc = Fmt.str "syslog server" in

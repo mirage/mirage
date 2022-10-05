@@ -157,11 +157,8 @@ val ipv4_only : ?group:string -> unit -> bool key
 val ipv6_only : ?group:string -> unit -> bool key
 (** An option for dual stack to only use IPv6. *)
 
-val resolver : ?default:Ipaddr.t -> unit -> Ipaddr.t option key
-(** The address of the DNS resolver to use. *)
-
-val resolver_port : ?default:int -> unit -> int key
-(** The port of the DNS resolver. *)
+val resolver : ?default:string list -> unit -> string list option key
+(** The address of the DNS resolver to use. See $REFERENCE for format. *)
 
 val syslog : Ipaddr.t option -> Ipaddr.t option key
 (** The address to send syslog frames to. *)

@@ -72,6 +72,8 @@ module Key = struct
 end
 
 let initialized = ref false
+let help_version = 63
+let argument_error = 64
 
 let with_argv keys s argv =
   let open Cmdliner in
@@ -83,7 +85,7 @@ let with_argv keys s argv =
     | Ok (`Ok _) ->
         initialized := true;
         ()
-    | Error _ -> exit 64
-    | Ok `Help | Ok `Version -> exit 63
+    | Error _ -> exit argument_error
+    | Ok `Help | Ok `Version -> exit help_version
 
 type info = { name : string; libraries : (string * string) list }

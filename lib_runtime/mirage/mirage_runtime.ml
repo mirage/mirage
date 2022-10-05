@@ -41,12 +41,7 @@ module Arg = struct
   include Functoria_runtime.Arg
 
   let make of_string to_string : _ Cmdliner.Arg.conv =
-    let parser s =
-      match of_string s with
-      | Error (`Msg m) -> `Error ("Can't parse ip address: " ^ s ^ ": " ^ m)
-      | Ok ip -> `Ok ip
-    and pp ppf ip = Fmt.string ppf (to_string ip) in
-    (parser, pp)
+    Cmdliner.Arg.conv (of_string, Fmt.of_to_string to_string)
 
   module type S = sig
     type t
@@ -65,36 +60,21 @@ module Arg = struct
   let ipv6 = of_module (module Ipaddr.V6.Prefix)
 
   let log_threshold =
-    let level_of_string = function
-      | "app" -> `Ok (Some Logs.App)
-      | "error" -> `Ok (Some Logs.Error)
-      | "warning" -> `Ok (Some Logs.Warning)
-      | "info" -> `Ok (Some Logs.Info)
-      | "debug" -> `Ok (Some Logs.Debug)
-      | "quiet" -> `Ok None
-      | l -> `Error (l ^ " is not a valid log level")
-    in
-    let string_of_level = function
-      | Some Logs.App -> "app"
-      | Some Logs.Error -> "error"
-      | Some Logs.Warning -> "warning"
-      | Some Logs.Info -> "info"
-      | Some Logs.Debug -> "debug"
-      | None -> "quiet"
-    in
-    let map f = function `Ok x -> `Ok (f x) | `Error _ as e -> e in
     let parser str =
+      let level src s =
+        Result.bind (Logs.level_of_string s) (fun l -> Ok (src, l))
+      in
       match String.split_on_char ':' str with
-      | [ _ ] -> map (fun l -> (`All, l)) (level_of_string str)
-      | [ "*"; lvl ] -> map (fun l -> (`All, l)) (level_of_string lvl)
-      | [ src; lvl ] -> map (fun l -> (`Src src, l)) (level_of_string lvl)
-      | _ -> `Error ("Can't parse log threshold: " ^ str)
+      | [ _ ] -> level `All str
+      | [ "*"; lvl ] -> level `All lvl
+      | [ src; lvl ] -> level (`Src src) lvl
+      | _ -> Error (`Msg ("Can't parse log threshold: " ^ str))
     in
     let serialize ppf = function
-      | `All, l -> Fmt.string ppf (string_of_level l)
-      | `Src s, l -> Fmt.pf ppf "%s:%s" s (string_of_level l)
+      | `All, l -> Fmt.string ppf (Logs.level_to_string l)
+      | `Src s, l -> Fmt.pf ppf "%s:%s" s (Logs.level_to_string l)
     in
-    (parser, serialize)
+    Cmdliner.Arg.conv (parser, serialize)
 
   let allocation_policy =
     Cmdliner.Arg.enum

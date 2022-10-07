@@ -116,7 +116,7 @@ all::
 
 $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam%a
 	@@echo " ↳ generate lockfile for monorepo dependencies"
-	@@env OPAMVAR_monorepo="opam-monorepo" $(OPAM) monorepo lock --require-cross-compile --build-only $(UNIKERNEL_NAME) -l $@@ --ocaml-version $(shell ocamlc --version)%a
+	@@env OPAMVAR_monorepo="opam-monorepo" $(OPAM) monorepo lock --require-cross-compile --build-only $(UNIKERNEL_NAME) -l $@@ --ocaml-version $(shell ocamlc --version | sed 's/~.*//' | sed 's/\+.*//')%a
 
 lock::
 	@@$(MAKE) -B $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked

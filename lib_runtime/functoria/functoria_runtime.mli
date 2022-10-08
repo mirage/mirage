@@ -73,6 +73,9 @@ module Key : sig
       parsed command-line argument. *)
 end
 
+val argument_error : int
+(** [argument_error] is the exit code used for argument parsing errors: 64. *)
+
 val with_argv : unit Cmdliner.Term.t list -> string -> string array -> unit
 (** [with_argv keys name argv] evaluates the [keys] {{!Key.term} terms} on the
     command-line [argv]. [name] is the executable name. On evaluation error the

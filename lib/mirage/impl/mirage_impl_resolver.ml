@@ -16,7 +16,7 @@ let resolver_unix_system =
     Key.(if_ is_unix)
       [
         Mirage_impl_conduit.pkg;
-        package ~min:"4.0.0" ~max:"6.0.0" "conduit-lwt-unix";
+        package ~min:"4.0.0" ~max:"7.0.0" "conduit-lwt-unix";
       ]
       []
   in

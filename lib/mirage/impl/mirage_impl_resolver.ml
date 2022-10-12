@@ -35,17 +35,16 @@ let resolver_dns_conf ~ns =
     | [ _r; _t; _m; _p; stack ] ->
         Fmt.str
           "let nameservers = %a in@;\
-           let res = %s.v ?nameservers %s in@;\
-           let () = match res with Ok _ -> () | Error (`Msg e) -> invalid_arg e in@;
-           Lwt.return res@;"
+           match %s.v ?nameservers %s with@;\
+           | Ok _ as r -> Lwt.return r@;\
+           | Error (`Msg e) -> invalid_arg e in@;"
           pp_key ns modname stack
     | _ -> failwith (connect_err "resolver" 3)
   in
   impl ~packages ~keys ~connect "Resolver_mirage.Make"
     (random @-> time @-> mclock @-> pclock @-> stackv4v6 @-> resolver)
 
-let resolver_dns ?ns ?(time = default_time)
-    ?(mclock = default_monotonic_clock) ?(pclock = default_posix_clock)
-    ?(random = default_random) stack =
+let resolver_dns ?ns ?(time = default_time) ?(mclock = default_monotonic_clock)
+    ?(pclock = default_posix_clock) ?(random = default_random) stack =
   let ns = Key.resolver ?default:ns () in
   resolver_dns_conf ~ns $ random $ time $ mclock $ pclock $ stack

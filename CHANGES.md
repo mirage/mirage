@@ -13,7 +13,7 @@
 
 - Allow more log levels (None / quiet) (#1275, @reynir, closes #1273 & #1274)
 - Improve Functoria CLI: don't fail if context cache is invalid, handle
-  situation when global arguments have a parse error (#1359, @TheLortex)
+  situation when global arguments have a parse error (#1350, @TheLortex)
 - Remove v4 & v6 stack, and other deprecated bindings (#1341, @hannesm)
 - Remove FS remnants, and kv_ro of archive, and brittle shell scripts
   that used to generate FAT block storage devices (#1353, @hannesm)

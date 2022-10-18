@@ -9,8 +9,7 @@ open Mirage_impl_time
 val resolver : resolver typ
 
 val resolver_dns :
-  ?ns:Ipaddr.t ->
-  ?ns_port:int ->
+  ?ns:string list ->
   ?time:time impl ->
   ?mclock:mclock impl ->
   ?pclock:pclock impl ->

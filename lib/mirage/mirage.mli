@@ -384,6 +384,48 @@ val chamelon :
       $ chamelon format db.img 512
     ]} *)
 
+val ccm :
+  ?maclen:int -> ?nonce_len:int -> string key -> block impl -> block impl
+(** [ccm key block] returns a new block which is a AES-CCM encrypted disk. For
+    instance, you can have a unencrypted image and you want to encrypt it and
+    use it into you unikernel. To encrypt your image, you can use the [ccmblock]
+    tool given by the [mirage-block-ccm] distribution.
+
+    {[
+      $ dd if=/dev/zero of=db.img bs=1M count=1
+      $ ccmblock enc -i db.img -k 0x10786d3a9c920d0b3ec80dfaaac557a7 -o edb.img
+    ]}
+
+    Then, into you [config.ml], you just need to compose your block device with
+    [ccm]:
+
+    {[
+      let aes_ccm_key =
+        let doc =
+          Key.Arg.info [ "aes-ccm-key" ]
+            ~doc:"The key of the block device (hex formatted)"
+        in
+        Key.(create "aes-ccm-key" Arg.(required string doc))
+
+      let block = block_of_file "edb"
+      let encrypted_block = ccm aes_ccm_key block
+    ]}
+
+    Finally, with Solo5, you can launch your unikernel with that:
+
+    {[
+      $ solo5-hvt --block:edb=edb.img \
+        --arg="--aes-ccm-key=0x10786d3a9c920d0b3ec80dfaaac557a7" \
+        unikernel.hvt
+    ]}
+
+    You can finally compose a file-system such as {!chamelon} with this block
+    device (and you have a encrypted file-system!):
+
+    {[
+      let fs = chamelon ~program_block_size encrypted_block
+    ]} *)
+
 (** {2 Network interfaces} *)
 
 type network

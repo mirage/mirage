@@ -287,3 +287,26 @@ let chamelon ~program_block_size =
   in
   impl ~packages ~keys ~connect "Kv.Make"
     (block @-> pclock @-> Mirage_impl_kv.rw)
+
+let ccm ?maclen ?nonce_len key =
+  let keys = [ Key.v key ] in
+  let packages =
+    [ package "mirage-block-ccm" ~min:"1.0.2" ~max:"1.1.0"; package "astring" ]
+  in
+  let connect _ modname = function
+    | [ block ] ->
+        Fmt.str
+          {ocaml|let key =
+                 let key = %a in
+                 match Astring.String.cut ~sep:"0x" key with
+                 | Some ("", key) -> key
+                 | _ -> key in
+               %s.connect ?maclen:%a ?nonce_len:%a ~key:(Cstruct.of_hex key) %s|ocaml}
+          Key.serialize_call (Key.v key) modname
+          Fmt.(parens (Dump.option int))
+          maclen
+          Fmt.(parens (Dump.option int))
+          nonce_len block
+    | _ -> assert false
+  in
+  impl ~packages ~keys ~connect "Block_ccm.Make" (block @-> block)

@@ -90,6 +90,9 @@ let ramdisk = Mirage_impl_block.ramdisk
 let block_of_xenstore_id = Mirage_impl_block.block_of_xenstore_id
 let block_of_file = Mirage_impl_block.block_of_file
 
+let ccm ?maclen ?nonce_len key block =
+  Mirage_impl_block.ccm ?maclen ?nonce_len key $ block
+
 type network = Mirage_impl_network.network
 
 let network = Mirage_impl_network.network

@@ -240,6 +240,11 @@ type http_client = Mirage_impl_http.http_client
 let http_client = Mirage_impl_http.http_client
 let cohttp_client = Mirage_impl_http.cohttp_client
 
+type http_server = Mirage_impl_http.http_server
+
+let http_server = Mirage_impl_http.http_server
+let paf_server ~port tcpv4v6 = Mirage_impl_http.paf_server port $ tcpv4v6
+
 type argv = Functoria.argv
 
 let argv = Functoria.argv

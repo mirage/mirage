@@ -751,6 +751,55 @@ val cohttp_client :
   ?pclock:pclock impl -> resolver impl -> conduit impl -> http_client impl
 (** [cohttp_server] starts a Cohttp server. *)
 
+type http_server
+
+val http_server : http_server typ
+
+val paf_server : port:int key -> tcpv4v6 impl -> http_server impl
+(** [paf_server ~port tcpv4v6] creates an instance which will start to
+    {i listen} on the given [port]. With this instance and the produced module
+    [HTTP_server], the user can initiate:
+
+    - a simple HTTP server
+    - a simple HTTPS server (with a TLS configuration)
+    - a simple ALPN ([http/1.1] & [h2]) server with TLS
+
+    This is a simple example of how to launch an HTTP server: {b unikernel.ml}
+
+    {[
+      module Make (HTTP_server : Paf_mirage.S) = struct
+        let error_handler (ipaddr, port) ?request error send =
+          ...
+
+        let request_handler
+          : HTTP_server.TCP.flow -> Ipaddr.t * int -> Httpaf.Reqd.t -> unit
+          = fun socket (ipaddr, port) reqd ->
+            ...
+
+        let start http_server =
+          let service = HTTP_service ~error_handler request_handler in
+          let `Initialized thread = HTTP_server.serve service http_server in
+          thread
+      end
+    ]}
+
+    {b config.ml}
+
+    {[
+      open Mirage
+
+      let port =
+        let doc =
+          Key.Arg.info ~doc:"Port of the HTTP service." [ "p"; "port" ]
+        in
+        Key.(create "port" Arg.(opt int 8080 doc))
+
+      let main = foreign "Unikernel.Make" (http_server @-> job)
+      let stackv4v6 = generic_stackv4v6 default_network
+      let http_server = http_server ~port (tcpv4v6_of_stackv4v6 stackv4v6)
+      let () = register "main" [ main $ http_server ]
+    ]} *)
+
 (** {2 Argv configuration} *)
 
 type argv = Functoria.argv

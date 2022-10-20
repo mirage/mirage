@@ -15,3 +15,10 @@ val cohttp_client :
   Mirage_impl_resolver.resolver impl ->
   Mirage_impl_conduit.conduit impl ->
   http_client impl
+
+type http_server
+
+val http_server : http_server typ
+
+val paf_server :
+  int Mirage_key.key -> (Mirage_impl_tcp.tcpv4v6 -> http_server) impl

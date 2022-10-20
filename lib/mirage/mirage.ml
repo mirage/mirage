@@ -273,13 +273,9 @@ let git_ssh ?authenticator ~key ?(mclock = default_monotonic_clock)
     ?(time = default_time) tcpv4v6 ctx =
   Mirage_impl_git.git_ssh ?authenticator key $ mclock $ tcpv4v6 $ time $ ctx
 
-let git_http ?authenticator ?headers ?(time = default_time)
-    ?(pclock = default_posix_clock) tcpv4v6 ctx =
-  Mirage_impl_git.git_http ?authenticator headers
-  $ time
-  $ pclock
-  $ tcpv4v6
-  $ ctx
+let git_http ?authenticator ?headers ?(pclock = default_posix_clock) tcpv4v6 ctx
+    =
+  Mirage_impl_git.git_http ?authenticator headers $ pclock $ tcpv4v6 $ ctx
 
 (** Functoria devices *)
 

@@ -624,7 +624,17 @@ val generic_dns_client :
   dns_client impl
 (** [generic_dns_client stackv4v6] creates a new DNS value which is able to
     resolve domain-name from [nameservers]. It requires a network stack to
-    communicate with these nameservers. *)
+    communicate with these nameservers.
+
+    The [nameservers] argument is a list of strings. The format of them is:
+
+    - [tcp:ipaddr(:port)?] if you want to communicate with a DNS resolver
+      {i via} TCP/IP
+    - [tls:ipaddr(:port)?(!<authenticator>)] if you to communicate with a DNS
+      resolver {i via} TLS. You are able to introduce an [<authenticator>]
+      (please, follow the documentation about [X509.Authenticator.of_string] to
+      get an explanation of its format). Otherwise, by default, we use trust
+      anchors from NSS' [certdata.txt]. *)
 
 (** {2 Happy-eyeballs} *)
 

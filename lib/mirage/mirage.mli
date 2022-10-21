@@ -837,7 +837,6 @@ val git_ssh :
 val git_http :
   ?authenticator:string option key ->
   ?headers:(string * string) list key ->
-  ?time:time impl ->
   ?pclock:pclock impl ->
   tcpv4v6 impl ->
   git_client impl ->

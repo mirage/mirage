@@ -33,7 +33,7 @@ let git_happy_eyeballs =
 
 let git_tcp =
   let packages =
-    [ package "git-mirage" ~sublibs:[ "tcp" ] ~min:"3.9.0" ~max:"3.10.0" ]
+    [ package "git-mirage" ~sublibs:[ "tcp" ] ~min:"3.10.0" ~max:"3.11.0" ]
   in
   let connect _ modname = function
     | [ _tcpv4v6; ctx ] -> Fmt.str {ocaml|%s.connect %s|ocaml} modname ctx
@@ -44,7 +44,7 @@ let git_tcp =
 
 let git_ssh ?authenticator key =
   let packages =
-    [ package "git-mirage" ~sublibs:[ "ssh" ] ~min:"3.9.0" ~max:"3.10.0" ]
+    [ package "git-mirage" ~sublibs:[ "ssh" ] ~min:"3.10.0" ~max:"3.11.0" ]
   in
   let connect _ modname = function
     | [ _mclock; _tcpv4v6; _time; ctx ] -> (
@@ -70,7 +70,7 @@ let git_ssh ?authenticator key =
 
 let git_http ?authenticator headers =
   let packages =
-    [ package "git-mirage" ~sublibs:[ "http" ] ~min:"3.9.0" ~max:"3.10.0" ]
+    [ package "git-mirage" ~sublibs:[ "http" ] ~min:"3.10.0" ~max:"3.11.0" ]
   in
   let keys =
     let keys = [] in
@@ -85,7 +85,7 @@ let git_http ?authenticator headers =
     keys
   in
   let connect _ modname = function
-    | [ _time; _pclock; _tcpv4v6; ctx ] ->
+    | [ _pclock; _tcpv4v6; ctx ] ->
         let serialize_headers ppf = function
           | None -> ()
           | Some headers ->
@@ -104,4 +104,4 @@ let git_http ?authenticator headers =
     | _ -> assert false
   in
   impl ~packages ~connect ~keys "Git_mirage_http.Make"
-    (time @-> pclock @-> tcpv4v6 @-> git_client @-> git_client)
+    (pclock @-> tcpv4v6 @-> git_client @-> git_client)

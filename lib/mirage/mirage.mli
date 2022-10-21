@@ -767,18 +767,30 @@ val paf_server : port:int key -> tcpv4v6 impl -> http_server impl
     This is a simple example of how to launch an HTTP server: {b unikernel.ml}
 
     {[
-      module Make (HTTP_server : Paf_mirage.S) = struct
-        let error_handler (ipaddr, port) ?request error send =
-          ...
+      module Make (HTTP_server : Paf_mirage.S with type ipaddr = Ipaddr.t) =
+      struct
+        let error_handler (_ipaddr, _port) ?request:_ _error _send = ()
 
-        let request_handler
-          : HTTP_server.TCP.flow -> Ipaddr.t * int -> Httpaf.Reqd.t -> unit
-          = fun socket (ipaddr, port) reqd ->
-            ...
+        let request_handler :
+            HTTP_server.TCP.flow -> Ipaddr.t * int -> Httpaf.Reqd.t -> unit =
+         fun _socket (_ipaddr, _port) reqd ->
+          let contents = "Hello World!\n" in
+          let headers =
+            Httpaf.Headers.of_list
+              [
+                ("content-length", string_of_int (String.length contents));
+                ("content-type", "text/plain");
+                ("connection", "close");
+              ]
+          in
+          let response = Httpaf.Response.create ~headers `OK in
+          Httpaf.Reqd.respond_with_string reqd response contents
 
         let start http_server =
-          let service = HTTP_service ~error_handler request_handler in
-          let `Initialized thread = HTTP_server.serve service http_server in
+          let service =
+            HTTP_service.http_service ~error_handler request_handler
+          in
+          let (`Initialized thread) = HTTP_server.serve service http_server in
           thread
       end
     ]}
@@ -796,7 +808,7 @@ val paf_server : port:int key -> tcpv4v6 impl -> http_server impl
 
       let main = foreign "Unikernel.Make" (http_server @-> job)
       let stackv4v6 = generic_stackv4v6 default_network
-      let http_server = http_server ~port (tcpv4v6_of_stackv4v6 stackv4v6)
+      let http_server = paf_server ~port (tcpv4v6_of_stackv4v6 stackv4v6)
       let () = register "main" [ main $ http_server ]
     ]} *)
 

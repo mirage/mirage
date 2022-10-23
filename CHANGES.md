@@ -1,3 +1,23 @@
+### v4.3.1 (2022-10-23)
+
+#### Fixed
+
+- adapt to conduit 6.0.0 API (delay the parsing of the nameserver list)
+  (#1362, @reynir, fixes #1360)
+- improve the generic_dns_client documentation (#1365, @dinosaure)
+- upgrade to git 3.10.0 (#1366, @dinosaure)
+
+#### Changed
+
+- mirage-runtime: use Logs.level_of_string / level_to_string, avoid manual
+  construction of Cmdliner.Arg.conv types (use the Cmdliner.Arg.conv function
+  instead) (#1358, @hannesm)
+
+#### Added
+
+- functoria-runtime: provide argument_error exit code (#1361, @hannesm)
+- add a http_server device using paf (#1367, @dinosaure)
+
 ### v4.3.0 (2022-09-26)
 
 #### Fixed

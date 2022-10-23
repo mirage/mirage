@@ -26,6 +26,7 @@ depends: [
   "lwt" {>= "4.0.0"}
   "alcotest" {with-test}
 ]
+conflicts: [ "result" {< "1.5"} ]
 synopsis: "The base MirageOS runtime library, part of every MirageOS unikernel"
 description: """
 A bundle of useful runtime functions for applications built with MirageOS

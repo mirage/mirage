@@ -1,9 +1,9 @@
-### v4.3.1 (2022-10-23)
+### v4.3.1 (2022-10-25)
 
 #### Fixed
 
-- adapt to conduit 6.0.0 API (delay the parsing of the nameserver list)
-  (#1362, @reynir, fixes #1360)
+- adapt to conduit 6.0.1 API (delay the parsing of the nameserver list)
+  (#1362 #1369, @reynir @hannesm, fixes #1360)
 - improve the generic_dns_client documentation (#1365, @dinosaure)
 - upgrade to git 3.10.0 (#1366, @dinosaure)
 

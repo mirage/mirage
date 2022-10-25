@@ -35,8 +35,8 @@ let resolver_dns_conf ~ns =
     | [ _r; _t; _m; _p; stack ] ->
         Fmt.str
           "let nameservers = %a in@;\
-           match %s.v ?nameservers %s with@;\
-           | Ok r -> Lwt.return r@;\
+           %s.v ?nameservers %s >|= function@;\
+           | Ok r -> r@;\
            | Error (`Msg e) -> invalid_arg e@;"
           pp_key ns modname stack
     | _ -> failwith (connect_err "resolver" 3)

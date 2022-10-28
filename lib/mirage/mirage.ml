@@ -284,8 +284,7 @@ let git_http ?authenticator ?headers ?(pclock = default_posix_clock) tcpv4v6 ctx
 
 (** Functoria devices *)
 
-(* fix compilation on ocaml<4.08 *)
-(* type info = Functoria.info *)
+type info = Functoria.info
 
 let job = Functoria.job
 let noop = Functoria.noop

@@ -929,10 +929,8 @@ val noop : job impl
 val keys : argv impl -> job impl
 (** [keys argv] is a job that loads argv. *)
 
-(* fix compilation on ocaml<4.08 *)
-(* type info
-   (** [info] is the type for module implementing
-       {!Mirage_runtime.Info}. *) *)
+type info
+(** [info] is the type for module implementing {!Mirage_runtime.Info}. *)
 
 val info : info typ
 (** [info] is the combinator to generate {!type:info} values to use at runtime. *)

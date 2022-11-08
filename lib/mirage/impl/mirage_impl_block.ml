@@ -291,7 +291,7 @@ let chamelon ~program_block_size =
 let ccm_block ?maclen ?nonce_len key =
   let keys = [ Key.v key ] in
   let packages =
-    [ package "mirage-block-ccm" ~min:"1.0.2" ~max:"1.1.0"; package "astring" ]
+    [ package "mirage-block-ccm" ~min:"1.1.0" ~max:"1.2.0"; package "astring" ]
   in
   let connect _ modname = function
     | [ block ] ->

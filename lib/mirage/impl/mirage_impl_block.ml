@@ -288,7 +288,7 @@ let chamelon ~program_block_size =
   impl ~packages ~keys ~connect "Kv.Make"
     (block @-> pclock @-> Mirage_impl_kv.rw)
 
-let ccm ?maclen ?nonce_len key =
+let ccm_block ?maclen ?nonce_len key =
   let keys = [ Key.v key ] in
   let packages =
     [ package "mirage-block-ccm" ~min:"1.0.2" ~max:"1.1.0"; package "astring" ]
@@ -296,8 +296,7 @@ let ccm ?maclen ?nonce_len key =
   let connect _ modname = function
     | [ block ] ->
         Fmt.str
-          {ocaml|let key =
-                 let key = %a in
+          {ocaml|let key = %a in
                  match Astring.String.cut ~sep:"0x" key with
                  | Some ("", key) -> key
                  | _ -> key in

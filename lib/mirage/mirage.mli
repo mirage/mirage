@@ -384,12 +384,23 @@ val chamelon :
       $ chamelon format db.img 512
     ]} *)
 
-val ccm :
+val ccm_block :
   ?maclen:int -> ?nonce_len:int -> string key -> block impl -> block impl
-(** [ccm key block] returns a new block which is a AES-CCM encrypted disk. For
-    instance, you can have a unencrypted image and you want to encrypt it and
-    use it into you unikernel. To encrypt your image, you can use the [ccmblock]
-    tool given by the [mirage-block-ccm] distribution.
+(** [ccm_block key block] returns a new block which is a AES-CCM encrypted disk.
+    For instance, you can have a unencrypted image and you want to encrypt it
+    and use it into you unikernel.
+
+    {b Note} that it is not systematically necessary to encrypt the block-device
+    upstream. This is only the case if you already have an image containing
+    data. You can use an empty block and write encrypted - reading it will only
+    give you random bytes.
+
+    {b Note} also that the available size of an encrypted block is always
+    divided by 2 of its real size: a 512M block will only be able to contain
+    256M data if it is encrypted.
+
+    To encrypt your image, you can use the [ccmblock] tool given by the
+    [mirage-block-ccm] distribution.
 
     {[
       $ dd if=/dev/zero of=db.img bs=1M count=1
@@ -397,7 +408,7 @@ val ccm :
     ]}
 
     Then, into you [config.ml], you just need to compose your block device with
-    [ccm]:
+    [ccm_block]:
 
     {[
       let aes_ccm_key =
@@ -408,7 +419,7 @@ val ccm :
         Key.(create "aes-ccm-key" Arg.(required string doc))
 
       let block = block_of_file "edb"
-      let encrypted_block = ccm aes_ccm_key block
+      let encrypted_block = ccm_block aes_ccm_key block
     ]}
 
     Finally, with Solo5, you can launch your unikernel with that:

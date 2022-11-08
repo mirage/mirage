@@ -31,3 +31,9 @@ val all_blocks : (string, block_t) Hashtbl.t
 val chamelon :
   program_block_size:int Functoria.key ->
   (block -> Mirage_impl_pclock.pclock -> Mirage_impl_kv.rw) Functoria.impl
+
+val ccm_block :
+  ?maclen:int ->
+  ?nonce_len:int ->
+  string option Functoria.key ->
+  (block -> block) Functoria.impl

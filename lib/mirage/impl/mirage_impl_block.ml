@@ -280,10 +280,32 @@ let chamelon ~program_block_size =
     | [ block; _ ] ->
         Fmt.str
           {ocaml|%s.connect ~program_block_size:%a %s
-                 >|= Rresult.R.reword_error (Rresult.R.msgf "%%a" %s.pp_error)
-                 >|= Rresult.R.failwith_error_msg|ocaml}
+                 >|= Result.map_error (Fmt.str "%%a" %s.pp_error)
+                 >|= Result.fold ~ok:Fun.id ~error:failwith|ocaml}
           modname Key.serialize_call (Key.v program_block_size) block modname
     | _ -> assert false
   in
   impl ~packages ~keys ~connect "Kv.Make"
     (block @-> pclock @-> Mirage_impl_kv.rw)
+
+let ccm_block ?maclen ?nonce_len key =
+  let keys = [ Key.v key ] in
+  let packages =
+    [ package "mirage-block-ccm" ~min:"1.1.0" ~max:"1.2.0"; package "astring" ]
+  in
+  let connect _ modname = function
+    | [ block ] ->
+        Fmt.str
+          {ocaml|let key = %a in
+                 let key = match Astring.String.cut ~sep:"0x" key with
+                 | Some ("", key) -> key
+                 | _ -> key in
+               %s.connect ?maclen:%a ?nonce_len:%a ~key:(Cstruct.of_hex key) %s|ocaml}
+          Key.serialize_call (Key.v key) modname
+          Fmt.(parens (Dump.option int))
+          maclen
+          Fmt.(parens (Dump.option int))
+          nonce_len block
+    | _ -> assert false
+  in
+  impl ~packages ~keys ~connect "Block_ccm.Make" (block @-> block)

@@ -380,8 +380,55 @@ val chamelon :
     tool:
 
     {[
-      $ dd if=/dev/zero if=db.img bs=1M count=1
+      $ dd if=/dev/zero of=db.img bs=1M count=1
       $ chamelon format db.img 512
+    ]} *)
+
+val ccm_block :
+  ?maclen:int -> ?nonce_len:int -> string option key -> block impl -> block impl
+(** [ccm_block key block] returns a new block which is a AES-CCM encrypted disk.
+
+    {b Note} also that the available size of an encrypted block is always
+    divided by 2 of its real size: a 512M block will only be able to contain
+    256M data if it is encrypted.
+
+    You can either use a fresh block device as encrypted storage. This does not
+    need any preparation, just using [ccm_block] with the desired [key]. If you
+    have an existing disk image that you want to encrypt, you can use the
+    [ccmblock] tool given by the [mirage-block-ccm] opam package.
+
+    {[
+      $ ccmblock enc -i db.img -k 0x10786d3a9c920d0b3ec80dfaaac557a7 -o edb.img
+    ]}
+
+    Then, into you [config.ml], you just need to compose your block device with
+    [ccm_block]:
+
+    {[
+      let aes_ccm_key =
+        let doc =
+          Key.Arg.info [ "aes-ccm-key" ]
+            ~doc:"The key of the block device (hex formatted)"
+        in
+        Key.(create "aes-ccm-key" Arg.(required string doc))
+
+      let block = block_of_file "edb"
+      let encrypted_block = ccm_block aes_ccm_key block
+    ]}
+
+    Finally, with Solo5, you can launch your unikernel with that:
+
+    {[
+      $ solo5-hvt --block:edb=edb.img \
+        --arg="--aes-ccm-key=0x10786d3a9c920d0b3ec80dfaaac557a7" \
+        unikernel.hvt
+    ]}
+
+    You can finally compose a file-system such as {!chamelon} with this block
+    device (and you have a encrypted file-system!):
+
+    {[
+      let fs = chamelon ~program_block_size encrypted_block
     ]} *)
 
 (** {2 Network interfaces} *)

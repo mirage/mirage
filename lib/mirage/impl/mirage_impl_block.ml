@@ -280,8 +280,8 @@ let chamelon ~program_block_size =
     | [ block; _ ] ->
         Fmt.str
           {ocaml|%s.connect ~program_block_size:%a %s
-                 >|= Rresult.R.reword_error (Rresult.R.msgf "%%a" %s.pp_error)
-                 >|= Rresult.R.failwith_error_msg|ocaml}
+                 >|= Result.map_error (Fmt.str "%%a" %s.pp_error)
+                 >|= Result.fold ~ok:(fun x -> x) ~error:failwith|ocaml}
           modname Key.serialize_call (Key.v program_block_size) block modname
     | _ -> assert false
   in

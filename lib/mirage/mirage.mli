@@ -387,23 +387,17 @@ val chamelon :
 val ccm_block :
   ?maclen:int -> ?nonce_len:int -> string key -> block impl -> block impl
 (** [ccm_block key block] returns a new block which is a AES-CCM encrypted disk.
-    For instance, you can have a unencrypted image and you want to encrypt it
-    and use it into you unikernel.
-
-    {b Note} that it is not systematically necessary to encrypt the block-device
-    upstream. This is only the case if you already have an image containing
-    data. You can use an empty block and write encrypted - reading it will only
-    give you random bytes.
 
     {b Note} also that the available size of an encrypted block is always
     divided by 2 of its real size: a 512M block will only be able to contain
     256M data if it is encrypted.
 
-    To encrypt your image, you can use the [ccmblock] tool given by the
-    [mirage-block-ccm] distribution.
+    You can either use a fresh block device as encrypted storage. This does not
+    need any preparation, just using [ccm_block] with the desired [key]. If you
+    have an existing disk image that you want to encrypt, you can use the
+    [ccmblock] tool given by the [mirage-block-ccm] opam package.
 
     {[
-      $ dd if=/dev/zero of=db.img bs=1M count=1
       $ ccmblock enc -i db.img -k 0x10786d3a9c920d0b3ec80dfaaac557a7 -o edb.img
     ]}
 

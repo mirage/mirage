@@ -380,12 +380,12 @@ val chamelon :
     tool:
 
     {[
-      $ dd if=/dev/zero if=db.img bs=1M count=1
+      $ dd if=/dev/zero of=db.img bs=1M count=1
       $ chamelon format db.img 512
     ]} *)
 
 val ccm_block :
-  ?maclen:int -> ?nonce_len:int -> string key -> block impl -> block impl
+  ?maclen:int -> ?nonce_len:int -> string option key -> block impl -> block impl
 (** [ccm_block key block] returns a new block which is a AES-CCM encrypted disk.
 
     {b Note} also that the available size of an encrypted block is always

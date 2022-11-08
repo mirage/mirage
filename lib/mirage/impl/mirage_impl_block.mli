@@ -35,5 +35,5 @@ val chamelon :
 val ccm_block :
   ?maclen:int ->
   ?nonce_len:int ->
-  string Functoria.key ->
+  string option Functoria.key ->
   (block -> block) Functoria.impl

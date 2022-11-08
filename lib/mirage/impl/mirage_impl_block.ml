@@ -297,7 +297,7 @@ let ccm_block ?maclen ?nonce_len key =
     | [ block ] ->
         Fmt.str
           {ocaml|let key = %a in
-                 match Astring.String.cut ~sep:"0x" key with
+                 let key = match Astring.String.cut ~sep:"0x" key with
                  | Some ("", key) -> key
                  | _ -> key in
                %s.connect ?maclen:%a ?nonce_len:%a ~key:(Cstruct.of_hex key) %s|ocaml}

@@ -896,12 +896,13 @@ val paf_server : port:int key -> tcpv4v6 impl -> http_server impl
     ]} *)
 
 type alpn_client
+(** Abstract type for ALPN HTTP clients *)
 
 val alpn_client : alpn_client typ
 
 val paf_client :
   ?pclock:pclock impl -> tcpv4v6 impl -> mimic impl -> alpn_client impl
-(** [alpn_client tcpv4v6 ctx] creates an ALPN device which can do HTTP
+(** [paf_client tcpv4v6 ctx] creates an ALPN device which can do HTTP
     ([http/1.1] & [h2]) requests as a HTTP client. The device allocated
     represents values required to initiate a connection to HTTP webservers. The
     user can, then, use the module [Http_mirage_client.request] to communicate
@@ -935,7 +936,7 @@ val paf_client :
         let dns =
           mimic_happy_eyeballs stackv4v6 dns (generic_happy_eyeballs stack dns)
         in
-        alpn_client (tcpv4v6_of_stackv4v6 stackv4v6) dns
+        paf_client (tcpv4v6_of_stackv4v6 stackv4v6) dns
 
       let () = register "main" [ main $ alpn_client ]
     ]} *)

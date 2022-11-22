@@ -2,7 +2,10 @@ open Functoria
 open Mirage_impl_time
 open Mirage_impl_mclock
 open Mirage_impl_pclock
+open Mirage_impl_stack
 open Mirage_impl_tcp
+open Mirage_impl_dns
+open Mirage_impl_happy_eyeballs
 open Mirage_impl_mimic
 
 type git_client = Git_client
@@ -18,6 +21,16 @@ let git_merge_clients =
   in
   impl ~packages ~connect "Mimic.Merge"
     (git_client @-> git_client @-> git_client)
+
+let git_happy_eyeballs =
+  let packages = [ package "mimic-happy-eyeballs" ~min:"0.0.5" ] in
+  let connect _ modname = function
+    | [ _stackv4v6; _dns_client; happy_eyeballs ] ->
+        Fmt.str {ocaml|%s.connect %s|ocaml} modname happy_eyeballs
+    | _ -> assert false
+  in
+  impl ~packages ~connect "Mimic_happy_eyeballs.Make"
+    (stackv4v6 @-> dns_client @-> happy_eyeballs @-> mimic)
 
 let git_tcp =
   let packages =

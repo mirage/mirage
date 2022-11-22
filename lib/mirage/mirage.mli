@@ -995,6 +995,10 @@ val merge_git_clients : git_client impl -> git_client impl -> git_client impl
 (** [merge_git_clients a b] is a device that can connect to remote Git
     repositories using either the device [a] or the device [b]. *)
 
+val git_happy_eyeballs :
+  stackv4v6 impl -> dns_client impl -> happy_eyeballs impl -> mimic impl
+(** @deprecated You should use {!val:mimic_happy_eyeballs}. *)
+
 val git_tcp : tcpv4v6 impl -> mimic impl -> git_client impl
 (** [git_tcp tcpv4v6 dns] is a device able to connect to a remote Git repository
     using TCP/IP. *)

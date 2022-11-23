@@ -4,6 +4,7 @@ open Mirage_impl_misc
 open Mirage_impl_conduit
 open Mirage_impl_resolver
 open Mirage_impl_tcp
+open Mirage_impl_mimic
 
 type http = HTTP
 
@@ -59,3 +60,17 @@ let paf_server port =
   in
   let keys = [ Key.v port ] in
   impl ~connect ~packages ~keys "Paf_mirage.Make" (tcpv4v6 @-> http_server)
+
+type alpn_client = ALPN_client
+
+let alpn_client = Type.v ALPN_client
+
+let paf_client =
+  let packages = [ package "http-mirage-client" ~min:"0.0.1" ~max:"0.1.0" ] in
+  let connect _ modname = function
+    | [ _pclock; _tcpv4v6; ctx ] ->
+        Fmt.str {ocaml|%s.connect %s|ocaml} modname ctx
+    | _ -> assert false
+  in
+  impl ~connect ~packages "Http_mirage_client.Make"
+    (pclock @-> tcpv4v6 @-> mimic @-> alpn_client)

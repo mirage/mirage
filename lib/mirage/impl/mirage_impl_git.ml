@@ -6,6 +6,7 @@ open Mirage_impl_stack
 open Mirage_impl_tcp
 open Mirage_impl_dns
 open Mirage_impl_happy_eyeballs
+open Mirage_impl_mimic
 
 type git_client = Git_client
 
@@ -29,7 +30,7 @@ let git_happy_eyeballs =
     | _ -> assert false
   in
   impl ~packages ~connect "Mimic_happy_eyeballs.Make"
-    (stackv4v6 @-> dns_client @-> happy_eyeballs @-> git_client)
+    (stackv4v6 @-> dns_client @-> happy_eyeballs @-> mimic)
 
 let git_tcp =
   let packages =
@@ -40,7 +41,7 @@ let git_tcp =
     | _ -> assert false
   in
   impl ~packages ~connect "Git_mirage_tcp.Make"
-    (tcpv4v6 @-> git_client @-> git_client)
+    (tcpv4v6 @-> mimic @-> git_client)
 
 let git_ssh ?authenticator key =
   let packages =
@@ -66,7 +67,7 @@ let git_ssh ?authenticator key =
     | None -> [ Key.v key ]
   in
   impl ~packages ~connect ~keys "Git_mirage_ssh.Make"
-    (mclock @-> tcpv4v6 @-> time @-> git_client @-> git_client)
+    (mclock @-> tcpv4v6 @-> time @-> mimic @-> git_client)
 
 let git_http ?authenticator headers =
   let packages =
@@ -104,4 +105,4 @@ let git_http ?authenticator headers =
     | _ -> assert false
   in
   impl ~packages ~connect ~keys "Git_mirage_http.Make"
-    (pclock @-> tcpv4v6 @-> git_client @-> git_client)
+    (pclock @-> tcpv4v6 @-> mimic @-> git_client)

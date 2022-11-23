@@ -248,6 +248,13 @@ type http_server = Mirage_impl_http.http_server
 let http_server = Mirage_impl_http.http_server
 let paf_server ~port tcpv4v6 = Mirage_impl_http.paf_server port $ tcpv4v6
 
+type alpn_client = Mirage_impl_http.alpn_client
+
+let alpn_client = Mirage_impl_http.alpn_client
+
+let paf_client ?(pclock = default_posix_clock) tcpv4v6 mimic =
+  Mirage_impl_http.paf_client $ pclock $ tcpv4v6 $ mimic
+
 type argv = Functoria.argv
 
 let argv = Functoria.argv
@@ -264,6 +271,16 @@ type tracing = Mirage_impl_tracing.tracing
 
 let tracing = Mirage_impl_tracing.tracing
 let mprof_trace = Mirage_impl_tracing.mprof_trace
+
+type mimic = Mirage_impl_mimic.mimic
+
+let mimic = Mirage_impl_mimic.mimic
+
+let mimic_happy_eyeballs stackv4v6 dns_client happy_eyeballs =
+  Mirage_impl_mimic.mimic_happy_eyeballs
+  $ stackv4v6
+  $ dns_client
+  $ happy_eyeballs
 
 type git_client = Mirage_impl_git.git_client
 

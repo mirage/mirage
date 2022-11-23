@@ -778,6 +778,42 @@ val conduit : conduit typ
 val conduit_direct :
   ?tls:bool -> ?random:random impl -> stackv4v6 impl -> conduit impl
 
+(** {2 Mimic devices}
+
+    For some implementations which requires to communicate with an external
+    resources (such as a webserver or a git server), we must hide the underlying
+    implementations that depend on the {i target} (such as the network stack)
+    and are necessary for these implementations.
+
+    The aim of [mimic] is to offer first of all the ability to initiate a TCP/IP
+    connection independently of the chosen {i target} (see
+    {!val:mimic_happy_eyeballs}).
+
+    The resulting {i device} can then be composed with other protocols like TLS,
+    Git or HTTP and it is through this resulting {i device} that other devices
+    can initiate an internet connection to a peer (like a webserver or a Git
+    server). *)
+
+type mimic
+
+val mimic : mimic typ
+
+val mimic_happy_eyeballs :
+  stackv4v6 impl -> dns_client impl -> happy_eyeballs impl -> mimic impl
+(** [mimic_happy_eyeballs stackv4v6 dns happy_eyeballs] creates a device which
+    initiate a global {i happy-eyeballs} loop. By this way, an underlying
+    instance works to initiate a TCP/IP connection from an IP address or a
+    domain-name.
+
+    For the domain-name resolution, we ask the {i happy-eyeballs} instance to
+    resolve the given domain-name {i via} the DNS instance created by [dns]
+    (which includes several arguments like nameservers used - see
+    {!val:generic_dns_client} for more informations).
+
+    The resulting {i device} can be used {b and} re-used to for any {i clients}
+    which need to initiate a connection (like {!val:alpn_client} or
+    {!val:git_tcp}). *)
+
 (** {2 HTTP configuration} *)
 
 type http
@@ -859,6 +895,52 @@ val paf_server : port:int key -> tcpv4v6 impl -> http_server impl
       let () = register "main" [ main $ http_server ]
     ]} *)
 
+type alpn_client
+(** Abstract type for ALPN HTTP clients *)
+
+val alpn_client : alpn_client typ
+
+val paf_client :
+  ?pclock:pclock impl -> tcpv4v6 impl -> mimic impl -> alpn_client impl
+(** [paf_client tcpv4v6 ctx] creates an ALPN device which can do HTTP
+    ([http/1.1] & [h2]) requests as a HTTP client. The device allocated
+    represents values required to initiate a connection to HTTP webservers. The
+    user can, then, use the module [Http_mirage_client.request] to communicate
+    with HTTP webservers. This is an example of how to use the ALPN devices:
+
+    {b unikernel.ml}
+
+    {[
+      module Make (HTTP_client : Http_mirage_client.S) = struct
+        let start http =
+          Http_mirage_client.request http "https://google.com"
+            (fun _response buf str -> Buffer.add_string buf str ; Lwt.return buf)
+            (Buffer.create 0x100) >>= function
+          | Ok (response, buf) ->
+            let body = Buffer.contents buf in
+            ...
+          | Error _ -> ...
+      end
+    ]}
+
+    {b config.ml}
+
+    {[
+      open Mirage
+
+      let main = foreign "Unikernel.Make" (alpn_client @-> job)
+      let stackv4v6 = generic_stackv4v6 default_network
+      let dns = generic_dns_client stack
+
+      let alpn_client =
+        let dns =
+          mimic_happy_eyeballs stackv4v6 dns (generic_happy_eyeballs stack dns)
+        in
+        paf_client (tcpv4v6_of_stackv4v6 stackv4v6) dns
+
+      let () = register "main" [ main $ alpn_client ]
+    ]} *)
+
 (** {2 Argv configuration} *)
 
 type argv = Functoria.argv
@@ -894,8 +976,12 @@ val no_argv : argv impl
     can be implemented like:
 
     {[
+      let dns = generic_dns_client stack
+
       let git_client =
-        let dns = happy_eyeballs stackv4v6 in
+        let dns =
+          mimic_happy_eyeballs stackv4v6 dns (generic_happy_eyeballs stack dns)
+        in
         let ssh = git_ssh ~key (tcpv4v6_of_stackv4v6 stackv4v6) dns in
         let tcp = git_tcp (tcpv4v6_of_stackv4v6 stackv4v6) dns in
         merge_git_clients ssh tcp
@@ -911,9 +997,10 @@ val merge_git_clients : git_client impl -> git_client impl -> git_client impl
     repositories using either the device [a] or the device [b]. *)
 
 val git_happy_eyeballs :
-  stackv4v6 impl -> dns_client impl -> happy_eyeballs impl -> git_client impl
+  stackv4v6 impl -> dns_client impl -> happy_eyeballs impl -> mimic impl
+(** @deprecated You should use {!val:mimic_happy_eyeballs}. *)
 
-val git_tcp : tcpv4v6 impl -> git_client impl -> git_client impl
+val git_tcp : tcpv4v6 impl -> mimic impl -> git_client impl
 (** [git_tcp tcpv4v6 dns] is a device able to connect to a remote Git repository
     using TCP/IP. *)
 
@@ -923,7 +1010,7 @@ val git_ssh :
   ?mclock:mclock impl ->
   ?time:time impl ->
   tcpv4v6 impl ->
-  git_client impl ->
+  mimic impl ->
   git_client impl
 (** [git_ssh ?authenticator ~key tcpv4v6 dns] is a device able to connect to a
     remote Git repository using an SSH connection with the given private [key].
@@ -947,7 +1034,7 @@ val git_http :
   ?headers:(string * string) list key ->
   ?pclock:pclock impl ->
   tcpv4v6 impl ->
-  git_client impl ->
+  mimic impl ->
   git_client impl
 (** [git_http ?authenticator ?headers tcpv4v6 dns] is a device able to connect
     to a remote Git repository via an HTTP(S) connection, using the provided

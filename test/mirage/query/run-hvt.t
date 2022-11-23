@@ -283,7 +283,6 @@ Query configuration dune
   
   (executable
    (name config)
-   (flags (:standard -warn-error -A))
    (modules config)
    (libraries mirage))
 

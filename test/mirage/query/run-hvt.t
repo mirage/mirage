@@ -31,6 +31,7 @@ Query opam file
     "ocaml" { build & >= "4.08.0" }
     "ocaml-solo5" { build & >= "0.8.1" & < "0.9.0" }
     "opam-monorepo" { build & >= "0.3.2" }
+    "solo5" { build & >= "0.7.5" & < "0.8.8" }
   ]
   
   x-mirage-opam-lock-location: "mirage/noop-hvt.opam.locked"
@@ -45,8 +46,8 @@ Query opam file
   ["mirage-overlays" "https://github.com/dune-universe/mirage-opam-overlays.git"]]
   
   x-opam-monorepo-opam-provided: ["mirage"
-  "ocaml""ocaml-solo5"
-  "opam-monorepo"]
+  "ocaml""ocaml-solo5""opam-monorepo"
+  "solo5"]
   
 
 
@@ -62,6 +63,7 @@ Query packages
   "ocaml" { build & >= "4.08.0" }
   "ocaml-solo5" { build & >= "0.8.1" & < "0.9.0" }
   "opam-monorepo" { build & >= "0.3.2" }
+  "solo5" { build & >= "0.7.5" & < "0.8.8" }
 
 Query files
   $ ./config.exe query --target hvt files

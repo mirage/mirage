@@ -96,7 +96,6 @@ let config_rule ~config_ml_file ~packages ~name ~version =
 %s
 (executable
  (name config)
- (flags (:standard -warn-error -A))
  (modules config)
  (libraries %s))
 |}

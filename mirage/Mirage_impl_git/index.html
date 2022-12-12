@@ -4,21 +4,24 @@
   <span><span>( <span><a href="../Mirage_impl_stack/index.html#type-stackv4v6">Mirage_impl_stack.stackv4v6</a> <span class="arrow">&#45;&gt;</span></span>
     <span><a href="../Mirage_impl_dns/index.html#type-dns_client">Mirage_impl_dns.dns_client</a> <span class="arrow">&#45;&gt;</span></span>
     <span><a href="../Mirage_impl_happy_eyeballs/index.html#type-happy_eyeballs">Mirage_impl_happy_eyeballs.happy_eyeballs</a> <span class="arrow">&#45;&gt;</span></span>
-    <a href="#type-git_client">git_client</a> )</span>
+    <a href="../Mirage_impl_mimic/index.html#type-mimic">Mirage_impl_mimic.mimic</a> )</span>
     <a href="../../functoria/Functoria/index.html#type-impl">Functoria.impl</a></span></span></code></div></div><div class="odoc-spec"><div class="spec value" id="val-git_tcp" class="anchored"><a href="#val-git_tcp" class="anchor"></a><code><span><span class="keyword">val</span> git_tcp : 
-  <span><span>( <span><a href="../Mirage_impl_tcp/index.html#type-tcpv4v6">Mirage_impl_tcp.tcpv4v6</a> <span class="arrow">&#45;&gt;</span></span> <span><a href="#type-git_client">git_client</a> <span class="arrow">&#45;&gt;</span></span> <a href="#type-git_client">git_client</a> )</span> <a href="../../functoria/Functoria/index.html#type-impl">Functoria.impl</a></span></span></code></div></div><div class="odoc-spec"><div class="spec value" id="val-git_ssh" class="anchored"><a href="#val-git_ssh" class="anchor"></a><code><span><span class="keyword">val</span> git_ssh : 
+  <span><span>( <span><a href="../Mirage_impl_tcp/index.html#type-tcpv4v6">Mirage_impl_tcp.tcpv4v6</a> <span class="arrow">&#45;&gt;</span></span>
+    <span><a href="../Mirage_impl_mimic/index.html#type-mimic">Mirage_impl_mimic.mimic</a> <span class="arrow">&#45;&gt;</span></span>
+    <a href="#type-git_client">git_client</a> )</span>
+    <a href="../../functoria/Functoria/index.html#type-impl">Functoria.impl</a></span></span></code></div></div><div class="odoc-spec"><div class="spec value" id="val-git_ssh" class="anchored"><a href="#val-git_ssh" class="anchor"></a><code><span><span class="keyword">val</span> git_ssh : 
   <span>?authenticator:<span><span class="type-var">'a</span> <a href="../../functoria/Functoria/Key/index.html#type-key">Functoria.Key.key</a></span> <span class="arrow">&#45;&gt;</span></span>
   <span><span><span class="type-var">'b</span> <a href="../../functoria/Functoria/Key/index.html#type-key">Functoria.Key.key</a></span> <span class="arrow">&#45;&gt;</span></span>
   <span><span>( <span><a href="../Mirage_impl_mclock/index.html#type-mclock">Mirage_impl_mclock.mclock</a> <span class="arrow">&#45;&gt;</span></span>
     <span><a href="../Mirage_impl_tcp/index.html#type-tcpv4v6">Mirage_impl_tcp.tcpv4v6</a> <span class="arrow">&#45;&gt;</span></span>
     <span><a href="../Mirage_impl_time/index.html#type-time">Mirage_impl_time.time</a> <span class="arrow">&#45;&gt;</span></span>
-    <span><a href="#type-git_client">git_client</a> <span class="arrow">&#45;&gt;</span></span>
+    <span><a href="../Mirage_impl_mimic/index.html#type-mimic">Mirage_impl_mimic.mimic</a> <span class="arrow">&#45;&gt;</span></span>
     <a href="#type-git_client">git_client</a> )</span>
     <a href="../../functoria/Functoria/index.html#type-impl">Functoria.impl</a></span></span></code></div></div><div class="odoc-spec"><div class="spec value" id="val-git_http" class="anchored"><a href="#val-git_http" class="anchor"></a><code><span><span class="keyword">val</span> git_http : 
   <span>?authenticator:<span><span class="type-var">'a</span> <a href="../../functoria/Functoria/Key/index.html#type-key">Functoria.Key.key</a></span> <span class="arrow">&#45;&gt;</span></span>
   <span><span><span><span class="type-var">'b</span> <a href="../../functoria/Functoria/Key/index.html#type-key">Functoria.Key.key</a></span> option</span> <span class="arrow">&#45;&gt;</span></span>
   <span><span>( <span><a href="../Mirage_impl_pclock/index.html#type-pclock">Mirage_impl_pclock.pclock</a> <span class="arrow">&#45;&gt;</span></span>
     <span><a href="../Mirage_impl_tcp/index.html#type-tcpv4v6">Mirage_impl_tcp.tcpv4v6</a> <span class="arrow">&#45;&gt;</span></span>
-    <span><a href="#type-git_client">git_client</a> <span class="arrow">&#45;&gt;</span></span>
+    <span><a href="../Mirage_impl_mimic/index.html#type-mimic">Mirage_impl_mimic.mimic</a> <span class="arrow">&#45;&gt;</span></span>
     <a href="#type-git_client">git_client</a> )</span>
     <a href="../../functoria/Functoria/index.html#type-impl">Functoria.impl</a></span></span></code></div></div></div></body></html>

@@ -1,3 +1,20 @@
+### v4.3.2 (2022-12-12)
+
+#### Fixed
+
+- use "printf" instead of "echo -e" in Makefiles for macOS support (#1370,
+  @gridbugs)
+
+#### Changed
+
+- raise lower bound of solo5 to 0.7.5 (#1380 @dinosaure)
+- remove "-warn-error -A" from generated dune file (for config) (#1379 @hannesm)
+
+#### Added
+
+- CCM device for block device encryption (#1364 @dinosaure)
+- ALPN client and mimic device (#1376 @dinosaure)
+
 ### v4.3.1 (2022-10-25)
 
 #### Fixed

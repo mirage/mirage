@@ -5,3 +5,6 @@ url {
   src: "https://github.com/ocaml/zarith.git"
 }
 tags: [ "cross-compile" ]
+build: [
+  ["dune" "build"]
+]

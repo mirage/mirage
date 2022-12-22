@@ -4,3 +4,6 @@ dev-repo: "solo5"
 url {
   src: "https://solo5.src"
 }
+build: [
+  ["dune" "build"]
+]

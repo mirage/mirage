@@ -39,6 +39,7 @@ let build_context ?build_dir:_ i =
   (name %s)
   (host default)
   (toolchain solo5)
+  (merlin)
   (disable_dynamically_linked_foreign_archives true)
   ))
   |}

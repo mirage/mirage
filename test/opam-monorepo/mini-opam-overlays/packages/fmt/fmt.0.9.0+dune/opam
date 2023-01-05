@@ -4,3 +4,6 @@ dev-repo: "fmt"
 url {
   src: "https://fmt.src"
 }
+build: [
+  ["dune" "build"]
+]

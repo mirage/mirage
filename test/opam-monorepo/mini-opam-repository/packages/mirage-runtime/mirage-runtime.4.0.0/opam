@@ -4,3 +4,6 @@ dev-repo: "mirage"
 url {
   src: "https://mirage.src"
 }
+build: [
+  ["dune" "build"]
+]

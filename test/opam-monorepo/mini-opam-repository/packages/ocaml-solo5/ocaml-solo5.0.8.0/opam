@@ -4,3 +4,6 @@ dev-repo: "ocaml-solo5"
 url {
   src: "https://ocaml-solo5.src"
 }
+build: [
+  ["dune" "build"]
+]

@@ -4,3 +4,6 @@ dev-repo: "gmp"
 url {
   src: "https://gmp.src"
 }
+build: [
+  ["dune" "build"]
+]

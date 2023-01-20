@@ -34,7 +34,7 @@ let git_happy_eyeballs =
 
 let git_tcp =
   let packages =
-    [ package "git-mirage" ~sublibs:[ "tcp" ] ~min:"3.10.0" ~max:"3.11.0" ]
+    [ package "git-mirage" ~sublibs:[ "tcp" ] ~min:"3.11.0" ~max:"3.12.0" ]
   in
   let connect _ modname = function
     | [ _tcpv4v6; ctx ] -> Fmt.str {ocaml|%s.connect %s|ocaml} modname ctx
@@ -45,7 +45,7 @@ let git_tcp =
 
 let git_ssh ?authenticator key =
   let packages =
-    [ package "git-mirage" ~sublibs:[ "ssh" ] ~min:"3.10.0" ~max:"3.11.0" ]
+    [ package "git-mirage" ~sublibs:[ "ssh" ] ~min:"3.11.0" ~max:"3.12.0" ]
   in
   let connect _ modname = function
     | [ _mclock; _tcpv4v6; _time; ctx ] -> (
@@ -71,7 +71,7 @@ let git_ssh ?authenticator key =
 
 let git_http ?authenticator headers =
   let packages =
-    [ package "git-mirage" ~sublibs:[ "http" ] ~min:"3.10.0" ~max:"3.11.0" ]
+    [ package "git-mirage" ~sublibs:[ "http" ] ~min:"3.11.0" ~max:"3.12.0" ]
   in
   let keys =
     let keys = [] in

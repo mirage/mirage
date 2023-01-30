@@ -1,3 +1,16 @@
+### v4.3.3 (2023-01-30)
+
+#### Fixed
+
+- add (merlin) to the dune-workspace file -- this allows merlin to properly work
+  with unikernels (#1385, fixes #1384 @TheLortex @hannesm)
+- add "build" stanzas to packages that are supposed to be vendored (#1383,
+  @Leonidas-from-XIV) for "opam-monorepo 0.3.5" compatibility
+
+#### Changed
+
+- raise upper bound for git to 3.12 (#1387 @dinosaure)
+
 ### v4.3.2 (2022-12-12)
 
 #### Fixed

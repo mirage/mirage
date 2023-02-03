@@ -267,14 +267,15 @@ val kv_ro : kv_ro typ
 (** Implementations of the [Mirage_kv.RO] signature. *)
 
 val crunch : string -> kv_ro impl
-(** Crunch a directory. The input directory is compiled into a memory-backed copy. *)
+(** Crunch a directory. The input directory is compiled into a memory-backed
+    copy. *)
 
 val archive : block impl -> kv_ro impl
 (** Use a TAR archive. *)
 
 val direct_kv_ro : string -> kv_ro impl
-(** Direct access to the underlying filesystem as a key/value store for Unix. For other
-    backends, this is equivalent to [crunch]. *)
+(** Direct access to the underlying filesystem as a key/value store for Unix.
+    For other backends, this is equivalent to [crunch]. *)
 
 val fat_ro : block impl -> kv_ro impl
 (** Use a FAT formatted block device. *)

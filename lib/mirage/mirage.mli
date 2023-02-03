@@ -181,7 +181,7 @@ val mclock : mclock typ
 (** Implementations of the [Mirage_clock.MCLOCK] signature. *)
 
 val default_monotonic_clock : mclock impl
-(** The default mirage-clock [Mirage_clock.MCLOCK implementation. *)
+(** The default mirage-clock [Mirage_clock.MCLOCK] implementation. *)
 
 (** {2 Log reporters} *)
 

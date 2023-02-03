@@ -146,7 +146,7 @@ val mprof_trace : size:int -> unit -> tracing impl
 type qubesdb
 
 val qubesdb : qubesdb typ
-(** For the Qubes target, the Qubes database from which to look up * dynamic
+(** For the Qubes target, the Qubes database from which to look up dynamic
     runtime configuration information. *)
 
 val default_qubesdb : qubesdb impl
@@ -172,7 +172,7 @@ val pclock : pclock typ
 (** Implementations of the [Mirage_clock.PCLOCK] signature. *)
 
 val default_posix_clock : pclock impl
-(** The default mirage-clock PCLOCK implementation. *)
+(** The default mirage-clock [Mirage_clock.PCLOCK] implementation. *)
 
 type mclock
 (** Abstract type for monotonic clocks *)
@@ -181,7 +181,7 @@ val mclock : mclock typ
 (** Implementations of the [Mirage_clock.MCLOCK] signature. *)
 
 val default_monotonic_clock : mclock impl
-(** The default mirage-clock MCLOCK implementation. *)
+(** The default mirage-clock [Mirage_clock.MCLOCK implementation. *)
 
 (** {2 Log reporters} *)
 
@@ -200,7 +200,7 @@ val default_reporter :
 (** [default_reporter ?clock ?level ()] is the log reporter that prints log
     messages to the console, timestampted with [clock]. If not provided, the
     default clock is {!default_posix_clock}. [level] is the default log
-    threshold. It is [Logs.Info] if not specified. *)
+    threshold. It is [Some Logs.Info] if not specified. *)
 
 val no_reporter : reporter impl
 (** [no_reporter] disable log reporting. *)
@@ -218,7 +218,7 @@ val default_random : random impl
     on Unix, and a Fortuna PRNG on other targets. *)
 
 val rng : ?time:time impl -> ?mclock:mclock impl -> unit -> random impl
-(** [rng] is the device [Mirage_crypto_rng.Make]. *)
+(** [rng ()] is the device [Mirage_crypto_rng.Make]. *)
 
 (** {2 Consoles} *)
 
@@ -267,14 +267,15 @@ val kv_ro : kv_ro typ
 (** Implementations of the [Mirage_kv.RO] signature. *)
 
 val crunch : string -> kv_ro impl
-(** Crunch a directory. *)
+(** Crunch a directory. The contents of the directory is transformed into OCaml
+    code, which is then compiled as part of the unikernel. *)
 
 val archive : block impl -> kv_ro impl
 (** Use a TAR archive. *)
 
 val direct_kv_ro : string -> kv_ro impl
-(** Direct access to the underlying filesystem as a key/value store. For Xen
-    backends, this is equivalent to [crunch]. *)
+(** Direct access to the underlying filesystem as a key/value store for Unix.
+    For other backends, this is equivalent to [crunch]. *)
 
 val fat_ro : block impl -> kv_ro impl
 (** Use a FAT formatted block device. *)
@@ -440,7 +441,7 @@ val network : network typ
 (** Implementations of the [Mirage_net.S] signature. *)
 
 val default_network : network impl
-(** [default_network] is a dynamic network implementation * which attempts to do
+(** [default_network] is a dynamic network implementation which attempts to do
     something reasonable based on the target. *)
 
 val netif : ?group:string -> string -> network impl
@@ -675,6 +676,8 @@ val generic_dns_client :
 
     The [nameservers] argument is a list of strings. The format of them is:
 
+    - [udp:ipaddr(:port)?] if you want to communicate with a DNS resolver
+      {i via} UDP
     - [tcp:ipaddr(:port)?] if you want to communicate with a DNS resolver
       {i via} TCP/IP
     - [tls:ipaddr(:port)?(!<authenticator>)] if you to communicate with a DNS
@@ -902,7 +905,7 @@ val alpn_client : alpn_client typ
 
 val paf_client :
   ?pclock:pclock impl -> tcpv4v6 impl -> mimic impl -> alpn_client impl
-(** [paf_client tcpv4v6 ctx] creates an ALPN device which can do HTTP
+(** [paf_client tcpv4v6 dns] creates an ALPN device which can do HTTP
     ([http/1.1] & [h2]) requests as a HTTP client. The device allocated
     represents values required to initiate a connection to HTTP webservers. The
     user can, then, use the module [Http_mirage_client.request] to communicate
@@ -948,7 +951,7 @@ type argv = Functoria.argv
 val argv : argv typ
 
 val default_argv : argv impl
-(** [default_argv] is a dynamic argv implementation * which attempts to do
+(** [default_argv] is a dynamic argv implementation which attempts to do
     something reasonable based on the target. *)
 
 val no_argv : argv impl
@@ -1070,8 +1073,9 @@ val app_info : info impl
     runtime {!type:Mirage.Info.t} value. *)
 
 val app_info_with_opam_deps : (string * string) list -> info impl
-(** [app_info] exports all the information available at configure time into a
-    runtime {!type:Mirage.Info.t} value. *)
+(** [app_info_with_opam_deps build_info] exports all the information available
+    at configure time into a runtime {!type:Mirage.Info.t} value. The libraries
+    are set to [build_info]. Most likely you want to use [app_info] instead. *)
 
 (** {2 Application registering} *)
 

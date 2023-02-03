@@ -115,7 +115,8 @@ let tar_kv_rw_conf =
     | [ _pclock; block ] -> Fmt.str "%s.connect %s" modname block
     | _ -> failwith (connect_err "tar_kv_rw" 2)
   in
-  impl ~packages ~connect "Tar_mirage.Make_KV_RW" (pclock @-> block @-> Mirage_impl_kv.rw)
+  impl ~packages ~connect "Tar_mirage.Make_KV_RW"
+    (pclock @-> block @-> Mirage_impl_kv.rw)
 
 let tar_kv_ro block = tar_kv_ro_conf $ block
 let tar_kv_rw pclock block = tar_kv_rw_conf $ pclock $ block

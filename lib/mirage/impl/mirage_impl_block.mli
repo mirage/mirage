@@ -33,7 +33,10 @@ val chamelon :
   program_block_size:int Functoria.key ->
   (block -> Mirage_impl_pclock.pclock -> Mirage_impl_kv.rw) Functoria.impl
 
-val tar_kv_rw : Mirage_impl_pclock.pclock Functoria.impl -> block Functoria.impl -> Mirage_impl_kv.rw Functoria.impl
+val tar_kv_rw :
+  Mirage_impl_pclock.pclock Functoria.impl ->
+  block Functoria.impl ->
+  Mirage_impl_kv.rw Functoria.impl
 
 val ccm_block :
   ?maclen:int ->

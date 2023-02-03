@@ -272,7 +272,8 @@ val crunch : string -> kv_ro impl
 val tar_kv_ro : block impl -> kv_ro impl
 (** [tar_kv_ro block] is a read-only tar archive. *)
 
-val archive : block impl -> kv_ro impl [@@ocaml.deprecated "use Mirage.tar_kv_ro"]
+val archive : block impl -> kv_ro impl
+  [@@ocaml.deprecated "use Mirage.tar_kv_ro"]
 (** @deprecated You should use {!val:tar_kv_ro} (or {!val:tar_kv_rw}). *)
 
 val direct_kv_ro : string -> kv_ro impl
@@ -390,7 +391,7 @@ val chamelon :
 val tar_kv_rw : ?pclock:pclock impl -> block impl -> kv_rw impl
 (** [tar_kv_rw block] is a read/write tar archive. Note that the filesystem is
     append-only. That is, files can generally not be removed, [set_partial] only
-    works on what is allocated, and there are restrictions on [rename].  *)
+    works on what is allocated, and there are restrictions on [rename]. *)
 
 val ccm_block :
   ?maclen:int -> ?nonce_len:int -> string option key -> block impl -> block impl

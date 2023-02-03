@@ -8,6 +8,7 @@ val generic_block :
   string ->
   block Functoria.impl
 
+val tar_kv_ro : block Functoria.impl -> Mirage_impl_kv.ro Functoria.impl
 val archive : block Functoria.impl -> Mirage_impl_kv.ro Functoria.impl
 val fat_ro : block Functoria.impl -> Mirage_impl_kv.ro Functoria.impl
 val ramdisk : string -> block Functoria.impl
@@ -31,6 +32,8 @@ val all_blocks : (string, block_t) Hashtbl.t
 val chamelon :
   program_block_size:int Functoria.key ->
   (block -> Mirage_impl_pclock.pclock -> Mirage_impl_kv.rw) Functoria.impl
+
+val tar_kv_rw : block Functoria.impl -> Mirage_impl_kv.rw Functoria.impl
 
 val ccm_block :
   ?maclen:int ->

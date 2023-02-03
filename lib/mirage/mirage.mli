@@ -269,8 +269,11 @@ val kv_ro : kv_ro typ
 val crunch : string -> kv_ro impl
 (** Crunch a directory. *)
 
+val tar_kv_ro : block impl -> kv_ro impl
+(** [tar_kv_ro block] is a read-only tar archive. *)
+
 val archive : block impl -> kv_ro impl
-(** Use a TAR archive. *)
+(** @deprecated You should use {!val:tar_kv_ro} (or {!val:tar_kv_rw}). *)
 
 val direct_kv_ro : string -> kv_ro impl
 (** Direct access to the underlying filesystem as a key/value store. For Xen
@@ -383,6 +386,11 @@ val chamelon :
       $ dd if=/dev/zero of=db.img bs=1M count=1
       $ chamelon format db.img 512
     ]} *)
+
+val tar_kv_rw : block impl -> kv_rw impl
+(** [tar_kv_rw block] is a read/write tar archive. Note that the filesystem is
+    append-only. That is, files can generally not be removed, [set_partial] only
+    works on what is allocated, and there are restrictions on [rename].  *)
 
 val ccm_block :
   ?maclen:int -> ?nonce_len:int -> string option key -> block impl -> block impl

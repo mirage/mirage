@@ -289,9 +289,6 @@ let git_client = Mirage_impl_git.git_client
 let merge_git_clients ctx0 ctx1 =
   Mirage_impl_git.git_merge_clients $ ctx0 $ ctx1
 
-let git_happy_eyeballs stackv4v6 dns_client happy_eyeballs =
-  Mirage_impl_git.git_happy_eyeballs $ stackv4v6 $ dns_client $ happy_eyeballs
-
 let git_tcp tcpv4v6 ctx = Mirage_impl_git.git_tcp $ tcpv4v6 $ ctx
 
 let git_ssh ?authenticator ~key ?(mclock = default_monotonic_clock)

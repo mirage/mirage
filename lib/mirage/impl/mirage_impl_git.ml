@@ -2,10 +2,7 @@ open Functoria
 open Mirage_impl_time
 open Mirage_impl_mclock
 open Mirage_impl_pclock
-open Mirage_impl_stack
 open Mirage_impl_tcp
-open Mirage_impl_dns
-open Mirage_impl_happy_eyeballs
 open Mirage_impl_mimic
 
 type git_client = Git_client

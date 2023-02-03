@@ -110,7 +110,7 @@ let tar_kv_ro_conf =
   impl ~packages ~connect "Tar_mirage.Make_KV_RO" (block @-> Mirage_impl_kv.ro)
 
 let tar_kv_rw_conf =
-  let packages = [ package ~min:"1.0.0" ~max:"3.0.0" "tar-mirage" ] in
+  let packages = [ package ~min:"2.2.0" ~max:"3.0.0" "tar-mirage" ] in
   let connect _ modname = function
     | [ _pclock; block ] -> Fmt.str "%s.connect %s" modname block
     | _ -> failwith (connect_err "tar_kv_rw" 2)

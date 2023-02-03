@@ -80,7 +80,8 @@ let docteur ?mode ?disk ?analyze ?branch ?extra_deps remote =
 let chamelon ~program_block_size ?(pclock = default_posix_clock) block =
   Mirage_impl_block.chamelon ~program_block_size $ block $ pclock
 
-let tar_kv_rw = Mirage_impl_block.tar_kv_rw
+let tar_kv_rw ?(pclock = default_posix_clock) block =
+  Mirage_impl_block.tar_kv_rw pclock block
 
 type block = Mirage_impl_block.block
 

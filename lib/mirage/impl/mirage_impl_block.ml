@@ -101,17 +101,24 @@ let generic_block ?group ?(key = Key.value @@ Key.block ?group ()) name =
     ]
     ~default:(ramdisk name)
 
-let tar_kv_ro_conf, tar_kv_rw_conf =
+let tar_kv_ro_conf =
   let packages = [ package ~min:"1.0.0" ~max:"3.0.0" "tar-mirage" ] in
   let connect _ modname = function
     | [ block ] -> Fmt.str "%s.connect %s" modname block
-    | _ -> failwith (connect_err "tar_kv" 1)
+    | _ -> failwith (connect_err "tar_kv_ro" 1)
   in
-  impl ~packages ~connect "Tar_mirage.Make_KV_RO" (block @-> Mirage_impl_kv.ro),
-  impl ~packages ~connect "Tar_mirage.Make_KV_RW" (block @-> Mirage_impl_kv.rw)
+  impl ~packages ~connect "Tar_mirage.Make_KV_RO" (block @-> Mirage_impl_kv.ro)
+
+let tar_kv_rw_conf =
+  let packages = [ package ~min:"1.0.0" ~max:"3.0.0" "tar-mirage" ] in
+  let connect _ modname = function
+    | [ _pclock; block ] -> Fmt.str "%s.connect %s" modname block
+    | _ -> failwith (connect_err "tar_kv_rw" 2)
+  in
+  impl ~packages ~connect "Tar_mirage.Make_KV_RW" (pclock @-> block @-> Mirage_impl_kv.rw)
 
 let tar_kv_ro block = tar_kv_ro_conf $ block
-let tar_kv_rw block = tar_kv_rw_conf $ block
+let tar_kv_rw pclock block = tar_kv_rw_conf $ pclock $ block
 let archive = tar_kv_ro
 
 let fat_conf =

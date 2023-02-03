@@ -267,8 +267,8 @@ val kv_ro : kv_ro typ
 (** Implementations of the [Mirage_kv.RO] signature. *)
 
 val crunch : string -> kv_ro impl
-(** Crunch a directory. The input directory is compiled into a memory-backed
-    copy. *)
+(** Crunch a directory. The contents of the directory is transformed into OCaml
+    code, which is then compiled as part of the unikernel. *)
 
 val archive : block impl -> kv_ro impl
 (** Use a TAR archive. *)

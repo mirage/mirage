@@ -347,7 +347,7 @@ module Make (P : S) = struct
     Action.rmdir (artifacts_dir args)
 
   let generate_makefile ~build_dir ~depext ~extra_repo opam_name =
-    let file = Fpath.(v "Makefile") in
+    let file = Fpath.(v "GNUmakefile") in
     let contents =
       Fmt.to_to_string Makefile.pp
         (Makefile.v ~build_dir ~depext ~builder_name:P.name ~extra_repo

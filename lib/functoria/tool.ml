@@ -182,7 +182,7 @@ module Make (P : S) = struct
               let base, ext = Fpath.split_ext file in
               let base = Fpath.basename base in
               match (base, ext) with
-              | ("Makefile" | "dune-project" | "dune-workspace"), "" ->
+              | ("GNUmakefile" | "Makefile" | "dune-project" | "dune-workspace"), "" ->
                   Some file
               | _ ->
                   Logs.info (fun f -> f "Skipped %a" Fpath.pp file);

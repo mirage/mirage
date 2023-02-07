@@ -23,6 +23,7 @@ val v :
   build_dir:Fpath.t ->
   builder_name:string ->
   depext:bool ->
+  config_file:Fpath.t ->
   Misc.Name.Opam.t ->
   t
 

@@ -83,7 +83,7 @@ Query makefile
   	@$(MAKE) --no-print-directory pull
   
   build::
-  	mirage build
+  	mirage build -f config.ml
   
   clean::
   	mirage clean

@@ -124,7 +124,7 @@ Query Makefile
   	@$(MAKE) --no-print-directory pull
   
   build::
-  	mirage build
+  	mirage build -f config.ml
   
   clean::
   	mirage clean
@@ -178,7 +178,7 @@ Query Makefile without depexts
   	@$(MAKE) --no-print-directory pull
   
   build::
-  	mirage build
+  	mirage build -f config.ml
   
   clean::
   	mirage clean
@@ -239,7 +239,7 @@ Query Makefile with depext
   	@$(MAKE) --no-print-directory pull
   
   build::
-  	mirage build
+  	mirage build -f config.ml
   
   clean::
   	mirage clean

@@ -25,8 +25,16 @@ type t = {
   config_file : Fpath.t;
 }
 
-let v ?(extra_repo = []) ~build_dir ~builder_name ~depext ~config_file unikernel_opam_name =
-  { depext; build_dir; builder_name; unikernel_opam_name; extra_repo; config_file }
+let v ?(extra_repo = []) ~build_dir ~builder_name ~depext ~config_file
+    unikernel_opam_name =
+  {
+    depext;
+    build_dir;
+    builder_name;
+    unikernel_opam_name;
+    extra_repo;
+    config_file;
+  }
 
 let depext_rules =
   {|
@@ -145,5 +153,4 @@ clean::
     Fpath.pp t.build_dir Fpath.pp mirage_dir
     (Misc.Name.Opam.to_string t.unikernel_opam_name)
     pp_extra_rules t pp_add_repo t.extra_repo pp_or_remove_repo t.extra_repo
-    pp_no_depext t.depext pp_depext_lockfile t.depext
-    Fpath.pp t.config_file
+    pp_no_depext t.depext pp_depext_lockfile t.depext Fpath.pp t.config_file

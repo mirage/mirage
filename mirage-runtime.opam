@@ -26,7 +26,10 @@ depends: [
   "lwt" {>= "4.0.0"}
   "alcotest" {with-test}
 ]
-conflicts: [ "result" {< "1.5"} ]
+conflicts: [
+  "result" {< "1.5"}
+  "ppxlib" {= "0.29.0"} #0.29.0 provides a vendored ppx_sexp_conv
+]
 synopsis: "The base MirageOS runtime library, part of every MirageOS unikernel"
 description: """
 A bundle of useful runtime functions for applications built with MirageOS

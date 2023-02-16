@@ -394,8 +394,7 @@ val tar_kv_rw : ?pclock:pclock impl -> block impl -> kv_rw impl
     append-only. That is, files can generally not be removed, [set_partial] only
     works on what is allocated, and there are restrictions on [rename]. *)
 
-val ccm_block :
-  ?maclen:int -> ?nonce_len:int -> string option key -> block impl -> block impl
+val ccm_block : ?nonce_len:int -> string option key -> block impl -> block impl
 (** [ccm_block key block] returns a new block which is a AES-CCM encrypted disk.
 
     {b Note} also that the available size of an encrypted block is always

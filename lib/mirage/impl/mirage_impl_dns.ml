@@ -11,7 +11,7 @@ let dns_client = Type.v Dns_client
 
 let generic_dns_client timeout nameservers =
   let packages =
-    [ package "dns-client" ~sublibs:[ "mirage" ] ~min:"6.2.0" ~max:"7.0.0" ]
+    [ package "dns-client-mirage" ~min:"7.0.0" ~max:"8.0.0" ]
   in
   let keys =
     match (nameservers, timeout) with

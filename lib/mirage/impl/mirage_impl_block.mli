@@ -39,7 +39,6 @@ val tar_kv_rw :
   Mirage_impl_kv.rw Functoria.impl
 
 val ccm_block :
-  ?maclen:int ->
   ?nonce_len:int ->
   string option Functoria.key ->
   (block -> block) Functoria.impl

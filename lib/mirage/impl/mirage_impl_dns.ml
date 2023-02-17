@@ -10,9 +10,7 @@ type dns_client = Dns_client
 let dns_client = Type.v Dns_client
 
 let generic_dns_client timeout nameservers =
-  let packages =
-    [ package "dns-client-mirage" ~min:"7.0.0" ~max:"8.0.0" ]
-  in
+  let packages = [ package "dns-client-mirage" ~min:"7.0.0" ~max:"8.0.0" ] in
   let keys =
     match (nameservers, timeout) with
     | None, None -> []

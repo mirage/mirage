@@ -1,3 +1,22 @@
+### v4.3.4 (2023-02-17)
+
+#### Fixed
+
+- Add -f <config> to Makefile output (#1394 @hannesm)
+
+#### Added
+
+- Add tar_kv_ro and tar_kv_rw (#1389 @reynir)
+
+#### Changed
+
+- Improved documentation of mirage.mli (#1390 #1391 @reynir)
+- Deprecate Mirage.archive (use tar_kv_ro, #1389 @reynir)
+- Removed deprecated device git_happy_eyeballs (#1388 @TaeminHa)
+- Adapt bounds: mirage-crypto (#1392) git-mirage (#1396) dns tls (#1399)
+  mirage-block-ccm (#1400)
+- mirage-runtime: conflict with ppxlib 0.29 (#1397 @hannesm)
+
 ### v4.3.3 (2023-01-30)
 
 #### Fixed

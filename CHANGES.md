@@ -13,9 +13,9 @@
 - Improved documentation of mirage.mli (#1390 #1391 @reynir)
 - Deprecate Mirage.archive (use tar_kv_ro, #1389 @reynir)
 - Removed deprecated device git_happy_eyeballs (#1388 @TaeminHa)
-- Adapt bounds: mirage-crypto 0.11.0 (#1392 @hannesm) git-mirage allow 2.13.0
+- Adapt bounds: mirage-crypto 0.11.0 (#1392 @hannesm) git-mirage 2.13.0
   (#1396 @hannesm) dns 7.0.0 tls 0.16.0 (#1399 @hannesm)
-  mirage-block-ccm (#1400)
+  mirage-block-ccm (#1400 @hannesm)
 - mirage-runtime: conflict with ppxlib 0.29 (#1397 @hannesm)
 
 ### v4.3.3 (2023-01-30)

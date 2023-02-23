@@ -1,4 +1,4 @@
-### v4.3.4 (2023-02-22)
+### v4.3.4 (2023-02-23)
 
 #### Fixed
 
@@ -17,6 +17,8 @@
   (#1396 @hannesm) dns 7.0.0 tls 0.16.0 (#1399 @hannesm)
   mirage-block-ccm (#1400 @hannesm)
 - mirage-runtime: conflict with ppxlib 0.29 (#1397 @hannesm)
+- add upper bound to dune 3.7 until a release of chamelon with fixes lands (see
+  https://github.com/mirage/mirage/pull/1401#issuecomment-1440762994)
 
 ### v4.3.3 (2023-01-30)
 

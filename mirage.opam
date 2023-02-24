@@ -19,7 +19,7 @@ build: [
 
 depends: [
   "ocaml" {>= "4.08.0"}
-  "dune" {>= "2.9.0" & < "3.7.0"}
+  "dune" {>= "2.9.0"}
   "dune" {with-test & >= "3.0.0"}
   "ipaddr" {>= "5.0.0"}
   "functoria" {= version}

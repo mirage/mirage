@@ -238,7 +238,7 @@ module Make (P : S) = struct
     | `Makefile ->
         let file =
           Makefile.v ~build_dir ~depext ~builder_name:P.name ~extra_repo
-            ~config_file:args.config_file (Misc.Name.opamify name)
+            (Misc.Name.opamify name)
         in
         Fmt.pr "%a\n%!" Makefile.pp file
     | `Dune `Config ->
@@ -334,12 +334,12 @@ module Make (P : S) = struct
     let* () = Action.rmdir (mirage_dir args) in
     Action.rmdir (artifacts_dir args)
 
-  let generate_makefile ~build_dir ~depext ~extra_repo ~config_file opam_name =
+  let generate_makefile ~build_dir ~depext ~extra_repo opam_name =
     let file = Fpath.(v "Makefile") in
     let contents =
       Fmt.to_to_string Makefile.pp
         (Makefile.v ~build_dir ~depext ~builder_name:P.name ~extra_repo
-           ~config_file opam_name)
+           opam_name)
     in
     Filegen.write file contents
 
@@ -349,10 +349,7 @@ module Make (P : S) = struct
     let build_dir = build_dir args in
     let name = P.name_of_target info in
     let opam_name = Misc.Name.opamify name in
-    let config_file = args.config_file in
-    let* () =
-      generate_makefile ~build_dir ~depext ~extra_repo ~config_file opam_name
-    in
+    let* () = generate_makefile ~build_dir ~depext ~extra_repo opam_name in
     let* _ = Action.mkdir (mirage_dir args) in
     let* () =
       Action.with_dir (mirage_dir args) (fun () ->
@@ -402,6 +399,7 @@ module Make (P : S) = struct
             configure t
         | Cli.Build t ->
             let t = with_output t in
+            Log.warn (fun m -> m "Deprecated, use 'make build' instead");
             Log.info (fun m -> pp_info m (Some Logs.Debug) t);
             build t
         | Cli.Query t ->

@@ -397,7 +397,7 @@ module Subcommands = struct
 
   (** The 'build' subcommand *)
   let build t =
-    let doc = "Build a $(mname) application." in
+    let doc = "Build a $(mname) application (deprecated, use make build)." in
     ( Term.(const (fun args -> Build args) $ T.args t),
       Cmd.info "build" ~doc ~man:[ `S "DESCRIPTION"; `P doc ] )
 

@@ -11,6 +11,7 @@ Build an application.
   test.exe: [INFO] Generating: dune-project (base)
   test.exe: [INFO] Generating: app/dune.config (base)
   config.exe: [INFO] reading cache app/test/context
+  config.exe: [WARNING] Deprecated, use 'make build' instead
   config.exe: [INFO] Name       noop
                      Keys       vote=cat (default),
                                 warn_error=false (default)
@@ -58,6 +59,7 @@ Test `--output`:
   test.exe: [INFO] Generating: dune-project (base)
   test.exe: [INFO] Generating: app/dune.config (base)
   config.exe: [INFO] reading cache app/test/context
+  config.exe: [WARNING] Deprecated, use 'make build' instead
   config.exe: [INFO] Name       noop
                      Keys       vote=cat (default),
                                 warn_error=false (default)

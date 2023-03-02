@@ -105,7 +105,7 @@ Query Makefile
   	@$(MAKE) --no-print-directory pull
   
   build::
-  	mirage build -f config.ml
+  	dune build --root . $BUILD_DIR/dist
   
   clean::
   	mirage clean
@@ -160,7 +160,7 @@ Query Makefile without depexts
   	@$(MAKE) --no-print-directory pull
   
   build::
-  	mirage build -f config.ml
+  	dune build --root . $BUILD_DIR/dist
   
   clean::
   	mirage clean
@@ -222,7 +222,7 @@ Query Makefile with depext
   	@$(MAKE) --no-print-directory pull
   
   build::
-  	mirage build -f config.ml
+  	dune build --root . $BUILD_DIR/dist
   
   clean::
   	mirage clean

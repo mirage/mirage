@@ -3,13 +3,14 @@
 Help build --man-format=plain
   $ ./config.exe help build --man-format=plain | tee d1
   NAME
-         mirage-build - Build a mirage application.
+         mirage-build - Build a mirage application (deprecated, use make
+         build).
   
   SYNOPSIS
          mirage build [OPTION]…
   
   DESCRIPTION
-         Build a mirage application.
+         Build a mirage application (deprecated, use make build).
   
   MIRAGE PARAMETERS
          -t TARGET, --target=TARGET (absent=unix or MODE env)
@@ -76,13 +77,14 @@ Help build --man-format=plain
 Help build --help=plain
   $ ./config.exe build --help=plain | tee d2
   NAME
-         mirage-build - Build a mirage application.
+         mirage-build - Build a mirage application (deprecated, use make
+         build).
   
   SYNOPSIS
          mirage build [OPTION]…
   
   DESCRIPTION
-         Build a mirage application.
+         Build a mirage application (deprecated, use make build).
   
   MIRAGE PARAMETERS
          -t TARGET, --target=TARGET (absent=unix or MODE env)

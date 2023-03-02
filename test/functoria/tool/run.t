@@ -216,7 +216,7 @@ Help no config
   
   COMMANDS
          build [OPTION]…
-             Build a test application.
+             Build a test application (deprecated, use make build).
   
          clean [OPTION]…
              Clean the files produced by test for a given application.
@@ -284,13 +284,13 @@ Help no config with bad arguments
 Build help no config with bad arguments
   $ ./test.exe build --help=plain --file=empty/config.ml a b c 2> build-help-no-config-args.err
   NAME
-         test-build - Build a test application.
+         test-build - Build a test application (deprecated, use make build).
   
   SYNOPSIS
          test build [OPTION]…
   
   DESCRIPTION
-         Build a test application.
+         Build a test application (deprecated, use make build).
   
   CONFIGURE OPTIONS
          --context-file=FILE (absent=test.context)

@@ -1,13 +1,13 @@
 Help build --man-format=plain
   $ ./config.exe help build --man-format=plain | tee d1
   NAME
-         test-build - Build a test application.
+         test-build - Build a test application (deprecated, use make build).
   
   SYNOPSIS
          test build [OPTION]…
   
   DESCRIPTION
-         Build a test application.
+         Build a test application (deprecated, use make build).
   
   CONFIGURE OPTIONS
          --context-file=FILE (absent=test.context)
@@ -70,13 +70,13 @@ Help build --man-format=plain
 Help build --help=plain
   $ ./config.exe build --help=plain | tee d2
   NAME
-         test-build - Build a test application.
+         test-build - Build a test application (deprecated, use make build).
   
   SYNOPSIS
          test build [OPTION]…
   
   DESCRIPTION
-         Build a test application.
+         Build a test application (deprecated, use make build).
   
   CONFIGURE OPTIONS
          --context-file=FILE (absent=test.context)

@@ -40,7 +40,7 @@ Help does not fail
   
   COMMANDS
          build [OPTION]…
-             Build a test application.
+             Build a test application (deprecated, use make build).
   
          clean [OPTION]…
              Clean the files produced by test for a given application.

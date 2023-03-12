@@ -376,7 +376,7 @@ let run t = %s.Main.run t ; exit 0|ocaml}
       let min = "4.3.1" and max = "4.4.0" in
       let common =
         [
-          package ~scope:`Switch ~build:true ~min:"4.08.0" "ocaml";
+          package ~scope:`Monorepo ~build:true ~min:"4.08.0" "ocaml";
           package ~scope:`Monorepo "lwt";
           package ~scope:`Monorepo ~min ~max "mirage-runtime";
           package ~scope:`Switch ~build:true ~min ~max "mirage";

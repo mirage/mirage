@@ -28,7 +28,6 @@ Query opam file
     "mirage-logs" { ?monorepo & >= "1.2.0" & < "2.0.0" }
     "mirage-runtime" { ?monorepo & >= "4.3.1" & < "4.4.0" }
     "mirage-solo5" { ?monorepo & >= "0.9.0" & < "0.10.0" }
-    "ocaml" { ?monorepo & build & >= "4.08.0" }
     "ocaml-solo5" { build & >= "0.8.1" & < "0.9.0" }
     "opam-monorepo" { build & >= "0.3.2" }
     "solo5" { build & >= "0.7.5" & < "0.8.0" }
@@ -60,7 +59,6 @@ Query packages
   "mirage-logs" { ?monorepo & >= "1.2.0" & < "2.0.0" }
   "mirage-runtime" { ?monorepo & >= "4.3.1" & < "4.4.0" }
   "mirage-solo5" { ?monorepo & >= "0.9.0" & < "0.10.0" }
-  "ocaml" { ?monorepo & build & >= "4.08.0" }
   "ocaml-solo5" { build & >= "0.8.1" & < "0.9.0" }
   "opam-monorepo" { build & >= "0.3.2" }
   "solo5" { build & >= "0.7.5" & < "0.8.0" }

@@ -69,7 +69,7 @@ Query makefile
   	@$(MAKE) -B $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked
   
   pull:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked
-  	@echo " ↳ fetch monorepo rependencies in the duniverse folder"
+  	@echo " ↳ fetch monorepo dependencies in the duniverse folder"
   	@env OPAMVAR_monorepo="opam-monorepo" $(OPAM) monorepo pull -l $< -r $(abspath $(BUILD_DIR))
   
   install-switch:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam

@@ -486,6 +486,8 @@ let alias name a =
   make ~setters ~arg ~name
 
 let create name arg =
+  if name = "" then
+    invalid_arg "Key.create: key name cannot be the empty string";
   let setters = [] in
   make ~setters ~arg ~name
 

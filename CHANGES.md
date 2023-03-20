@@ -1,3 +1,12 @@
+### v4.3.5 (2023-03-20)
+
+#### Changed
+- Remove OCaml dependency to allow OCaml 5 being chosen (#1409 @palainp)
+- Disallow empty key names (#1407 @reynir)
+- Allow tls-mirage 0.17 (#1405 @hannesm)
+- Allow tcpip 8.0 (#1410 @hannesm)
+- Fix typo in generated Makefile (#1406 @hannesm)
+
 ### v4.3.4 (2023-02-23)
 
 #### Fixed

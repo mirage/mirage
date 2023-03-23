@@ -271,11 +271,11 @@ end = struct
 
   let scan dir =
     (let open Rresult in
-    Bos.OS.Path.fold ~dotfiles:true ~elements:`Files ~traverse:`Any
-      (fun file files ->
-        files >>= fun files ->
-        Bos.OS.File.read file >>| fun c -> (file, c) :: files)
-      (Ok []) [ dir ])
+     Bos.OS.Path.fold ~dotfiles:true ~elements:`Files ~traverse:`Any
+       (fun file files ->
+         files >>= fun files ->
+         Bos.OS.File.read file >>| fun c -> (file, c) :: files)
+       (Ok []) [ dir ])
     |> Rresult.R.join
     |> Rresult.R.error_msg_to_invalid_arg
 

@@ -47,7 +47,7 @@ val v :
     leads to an invalid argument. Version constraints are given as [min]
     (inclusive) and [max] (exclusive). If [pin] is provided, a
     {{:https://opam.ocaml.org/doc/Manual.html#opamfield-pin-depends}
-    pin-depends} is generated, [pin_version] is ["dev"] by default. [~scope]
+      pin-depends} is generated, [pin_version] is ["dev"] by default. [~scope]
     specifies the installation location of the package. *)
 
 val with_scope : scope:scope -> t -> t

@@ -40,13 +40,14 @@ let git_ssh ?authenticator key password =
         | None ->
             Fmt.str
               {ocaml|%s.connect %s >>= %s.with_optionnal_key ~key:%a ~password:%a|ocaml}
-              modname ctx modname Key.serialize_call (Key.v key) Key.serialize_call (Key.v password)
+              modname ctx modname Key.serialize_call (Key.v key)
+              Key.serialize_call (Key.v password)
         | Some authenticator ->
             Fmt.str
               {ocaml|%s.connect %s >>= %s.with_optionnal_key ?authenticator:%a ~key:%a ~password:%a|ocaml}
               modname ctx modname Key.serialize_call (Key.v authenticator)
-              Key.serialize_call (Key.v key)
-              Key.serialize_call (Key.v password))
+              Key.serialize_call (Key.v key) Key.serialize_call (Key.v password)
+        )
     | _ -> assert false
   in
   let keys =

@@ -77,7 +77,7 @@ val randomize_hashtables : bool key
 
     The OCaml garbage collector can be configured, as described in detail in
     {{:http://caml.inria.fr/pub/docs/manual-ocaml/libref/Gc.html#TYPEcontrol} GC
-    control}.
+      control}.
 
     The following keys allow boot time configuration. *)
 

@@ -21,7 +21,7 @@ let git_merge_clients =
 
 let git_tcp =
   let packages =
-    [ package "git-mirage" ~sublibs:[ "tcp" ] ~min:"3.10.0" ~max:"3.13.0" ]
+    [ package "git-mirage" ~sublibs:[ "tcp" ] ~min:"3.10.0" ~max:"3.14.0" ]
   in
   let connect _ modname = function
     | [ _tcpv4v6; ctx ] -> Fmt.str {ocaml|%s.connect %s|ocaml} modname ctx
@@ -30,22 +30,23 @@ let git_tcp =
   impl ~packages ~connect "Git_mirage_tcp.Make"
     (tcpv4v6 @-> mimic @-> git_client)
 
-let git_ssh ?authenticator key =
+let git_ssh ?authenticator key password =
   let packages =
-    [ package "git-mirage" ~sublibs:[ "ssh" ] ~min:"3.10.0" ~max:"3.13.0" ]
+    [ package "git-mirage" ~sublibs:[ "ssh" ] ~min:"3.13.0" ~max:"3.14.0" ]
   in
   let connect _ modname = function
     | [ _mclock; _tcpv4v6; _time; ctx ] -> (
         match authenticator with
         | None ->
             Fmt.str
-              {ocaml|%s.connect %s >>= %s.with_optionnal_key ~key:%a|ocaml}
-              modname ctx modname Key.serialize_call (Key.v key)
+              {ocaml|%s.connect %s >>= %s.with_optionnal_key ~key:%a ~password:%a|ocaml}
+              modname ctx modname Key.serialize_call (Key.v key) Key.serialize_call (Key.v password)
         | Some authenticator ->
             Fmt.str
-              {ocaml|%s.connect %s >>= %s.with_optionnal_key ?authenticator:%a ~key:%a|ocaml}
+              {ocaml|%s.connect %s >>= %s.with_optionnal_key ?authenticator:%a ~key:%a ~password:%a|ocaml}
               modname ctx modname Key.serialize_call (Key.v authenticator)
-              Key.serialize_call (Key.v key))
+              Key.serialize_call (Key.v key)
+              Key.serialize_call (Key.v password))
     | _ -> assert false
   in
   let keys =
@@ -58,7 +59,7 @@ let git_ssh ?authenticator key =
 
 let git_http ?authenticator headers =
   let packages =
-    [ package "git-mirage" ~sublibs:[ "http" ] ~min:"3.10.0" ~max:"3.13.0" ]
+    [ package "git-mirage" ~sublibs:[ "http" ] ~min:"3.10.0" ~max:"3.14.0" ]
   in
   let keys =
     let keys = [] in

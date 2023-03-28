@@ -1,3 +1,9 @@
+### v4.3.6 (2023-03-28)
+
+- Allow paf 0.4 and 0.5 (#1414 @hannesm)
+- Remove bytes dependency from functoria-runtime (#1411 @hannesm)
+- Allow git-mirage 3.13 (#1412 @dinosaure @hannesm)
+
 ### v4.3.5 (2023-03-20)
 
 #### Changed

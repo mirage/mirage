@@ -51,9 +51,7 @@ let git_ssh ?authenticator key password =
     | _ -> assert false
   in
   let keys =
-    match authenticator with
-    | Some authenticator -> [ Key.v key; Key.v authenticator ]
-    | None -> [ Key.v key ]
+    Key.v key :: Key.v password :: List.map Key.v (Option.to_list authenticator)
   in
   impl ~packages ~connect ~keys "Git_mirage_ssh.Make"
     (mclock @-> tcpv4v6 @-> time @-> mimic @-> git_client)

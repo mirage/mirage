@@ -295,9 +295,13 @@ let merge_git_clients ctx0 ctx1 =
 
 let git_tcp tcpv4v6 ctx = Mirage_impl_git.git_tcp $ tcpv4v6 $ ctx
 
-let git_ssh ?authenticator ~key ?(mclock = default_monotonic_clock)
+let git_ssh ?authenticator ~key ~password ?(mclock = default_monotonic_clock)
     ?(time = default_time) tcpv4v6 ctx =
-  Mirage_impl_git.git_ssh ?authenticator key $ mclock $ tcpv4v6 $ time $ ctx
+  Mirage_impl_git.git_ssh ?authenticator key password
+  $ mclock
+  $ tcpv4v6
+  $ time
+  $ ctx
 
 let git_http ?authenticator ?headers ?(pclock = default_posix_clock) tcpv4v6 ctx
     =

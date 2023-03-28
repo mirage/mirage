@@ -98,7 +98,7 @@
     with [pkg-config]. Then every bindings uses [pkg-config] to configure their
     [CFLAGS] and [ocamlfind] to register
     {{:https://github.com/ocaml/opam-repository/blob/master/packages/zarith-xen/zarith-xen.1.7/files/mirage-install.sh#L20}
-    link-time predicates}, e.g. additional link time options like the name of
+      link-time predicates}, e.g. additional link time options like the name of
     the C archives. Finally, the final link step is done by querying ocamlfind
     (using the custom registered predicates) to link the list of dependencies'
     objects files with the result of OCam compiler's [--output-obj] option.
@@ -993,7 +993,7 @@ val no_argv : argv impl
         let dns =
           mimic_happy_eyeballs stackv4v6 dns (generic_happy_eyeballs stack dns)
         in
-        let ssh = git_ssh ~key (tcpv4v6_of_stackv4v6 stackv4v6) dns in
+        let ssh = git_ssh ~key ~password (tcpv4v6_of_stackv4v6 stackv4v6) dns in
         let tcp = git_tcp (tcpv4v6_of_stackv4v6 stackv4v6) dns in
         merge_git_clients ssh tcp
     ]} *)
@@ -1014,15 +1014,16 @@ val git_tcp : tcpv4v6 impl -> mimic impl -> git_client impl
 val git_ssh :
   ?authenticator:string option key ->
   key:string option key ->
+  password:string option key ->
   ?mclock:mclock impl ->
   ?time:time impl ->
   tcpv4v6 impl ->
   mimic impl ->
   git_client impl
-(** [git_ssh ?authenticator ~key tcpv4v6 dns] is a device able to connect to a
-    remote Git repository using an SSH connection with the given private [key].
-    The identity of the remote Git repository can be verified using
-    [authenticator].
+(** [git_ssh ?authenticator ~key ~password tcpv4v6 dns] is a device able to
+    connect to a remote Git repository using an SSH connection with the given
+    private [key] or [password]. The identity of the remote Git repository can
+    be verified using [authenticator].
 
     The format of the private key is: [<type>:<seed or b64 encoded>]. [<type>]
     can be [rsa] or [ed25519] and, if the type is RSA, we expect the {b seed} of

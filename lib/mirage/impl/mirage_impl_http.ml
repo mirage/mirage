@@ -56,7 +56,7 @@ let paf_server port =
     | _ -> assert false
   in
   let packages =
-    [ package "paf" ~sublibs:[ "mirage" ] ~min:"0.3.0" ~max:"0.4.0" ]
+    [ package "paf" ~sublibs:[ "mirage" ] ~min:"0.3.0" ~max:"0.6.0" ]
   in
   let keys = [ Key.v port ] in
   impl ~connect ~packages ~keys "Paf_mirage.Make" (tcpv4v6 @-> http_server)

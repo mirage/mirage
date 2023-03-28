@@ -380,12 +380,15 @@ module Subcommands = struct
                 "Represented as circles. Branches are dotted, and the default \
                  branch is in bold." );
             `Noblank;
+            `Noblank;
             `I
               ( "Configurables",
                 "Represented as rectangles. The order of the output arrows is \
                  the order of the functor arguments." );
             `Noblank;
+            `Noblank;
             `I ("Data dependencies", "Represented as dashed arrows.");
+            `Noblank;
             `Noblank;
             `I
               ( "App vertices",

@@ -13,15 +13,12 @@ Help describe --man-format=plain
          The dot output contains the following elements:
          If vertices
              Represented as circles. Branches are dotted, and the default
-             branch is in bold.       Configurables
-                                          Represented as rectangles. The order
-                                          of the output arrows is the order of
-                                          the functor arguments.       
-                                                                Data
-                                                                dependencies
-                                                                           
-                                                                Represented as
-                                                                dashed arrows.
+             branch is in bold.
+         Configurables
+             Represented as rectangles. The order of the output arrows is the
+             order of the functor arguments.
+         Data dependencies
+             Represented as dashed arrows.
          App vertices
              Represented as diamonds. The bold arrow is the functor part.
   DESCRIBE OPTIONS
@@ -117,15 +114,12 @@ Help describe --help=plain
          The dot output contains the following elements:
          If vertices
              Represented as circles. Branches are dotted, and the default
-             branch is in bold.       Configurables
-                                          Represented as rectangles. The order
-                                          of the output arrows is the order of
-                                          the functor arguments.       
-                                                                Data
-                                                                dependencies
-                                                                           
-                                                                Represented as
-                                                                dashed arrows.
+             branch is in bold.
+         Configurables
+             Represented as rectangles. The order of the output arrows is the
+             order of the functor arguments.
+         Data dependencies
+             Represented as dashed arrows.
          App vertices
              Represented as diamonds. The bold arrow is the functor part.
   DESCRIBE OPTIONS

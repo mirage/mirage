@@ -377,7 +377,7 @@ let run t = %s.Main.run t ; exit 0|ocaml}
     let keys = Key.[ v target ] in
     let packages_v =
       (* XXX: use %%VERSION_NUM%% here instead of hardcoding a version? *)
-      let min = "4.3.1" and max = "4.4.0" in
+      let min = "4.3.6" and max = "4.4.0" in
       let common =
         [
           package ~scope:`Monorepo "lwt";

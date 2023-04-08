@@ -31,8 +31,7 @@ let set_level ~default l =
             let s = List.find (fun s -> Logs.Src.name s = src) srcs in
             Logs.Src.set_level s level
           with Not_found ->
-            Format.printf
-              "WARNING: %s is not a valid log source.\n%!" src))
+            Format.printf "WARNING: %s is not a valid log source.\n%!" src))
     l
 
 module Arg = struct

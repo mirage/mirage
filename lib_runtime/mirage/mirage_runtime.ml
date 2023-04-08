@@ -31,17 +31,16 @@ let set_level ~default l =
             let s = List.find (fun s -> Logs.Src.name s = src) srcs in
             Logs.Src.set_level s level
           with Not_found ->
-            Fmt.(pf stdout)
-              "%a %s is not a valid log source.\n%!"
-              Fmt.(styled `Yellow string)
-              "Warning:" src))
+            Format.printf
+              "WARNING: %s is not a valid log source.\n%!" src))
     l
 
 module Arg = struct
   include Functoria_runtime.Arg
 
   let make of_string to_string : _ Cmdliner.Arg.conv =
-    Cmdliner.Arg.conv (of_string, Fmt.of_to_string to_string)
+    let pp ppf v = Format.pp_print_string ppf (to_string v) in
+    Cmdliner.Arg.conv (of_string, pp)
 
   module type S = sig
     type t
@@ -71,8 +70,8 @@ module Arg = struct
       | _ -> Error (`Msg ("Can't parse log threshold: " ^ str))
     in
     let serialize ppf = function
-      | `All, l -> Fmt.string ppf (Logs.level_to_string l)
-      | `Src s, l -> Fmt.pf ppf "%s:%s" s (Logs.level_to_string l)
+      | `All, l -> Format.pp_print_string ppf (Logs.level_to_string l)
+      | `Src s, l -> Format.fprintf ppf "%s:%s" s (Logs.level_to_string l)
     in
     Cmdliner.Arg.conv (parser, serialize)
 

@@ -132,7 +132,7 @@ Help configure --man-format=plain
              Show version information.
   
   EXIT STATUS
-         configure exits with the following status:
+         mirage configure exits with:
   
          0   on success.
   
@@ -290,7 +290,7 @@ Configure help --help=plain
              Show version information.
   
   EXIT STATUS
-         configure exits with the following status:
+         mirage configure exits with:
   
          0   on success.
   

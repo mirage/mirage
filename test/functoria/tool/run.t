@@ -257,7 +257,7 @@ Help no config
              Show version information.
   
   EXIT STATUS
-         test exits with the following status:
+         test exits with:
   
          0   on success.
   
@@ -336,7 +336,7 @@ Build help no config with bad arguments
              Show version information.
   
   EXIT STATUS
-         build exits with the following status:
+         test build exits with:
   
          0   on success.
   

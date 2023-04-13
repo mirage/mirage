@@ -15,17 +15,15 @@ Help describe --man-format=plain
          The dot output contains the following elements:
          If vertices
              Represented as circles. Branches are dotted, and the default
-             branch is in bold.       Configurables
-                                          Represented as rectangles. The order
-                                          of the output arrows is the order of
-                                          the functor arguments.       
-                                                                Data
-                                                                dependencies
-                                                                           
-                                                                Represented as
-                                                                dashed arrows.
+             branch is in bold.
+         Configurables
+             Represented as rectangles. The order of the output arrows is the
+             order of the functor arguments.
+         Data dependencies
+             Represented as dashed arrows.
          App vertices
              Represented as diamonds. The bold arrow is the functor part.
+  
   UNIKERNEL PARAMETERS
          -l LEVEL, --logs=LEVEL (absent MIRAGE_LOGS env)
              Be more or less verbose. LEVEL must be of the form
@@ -147,7 +145,7 @@ Help describe --man-format=plain
              Show version information.
   
   EXIT STATUS
-         describe exits with the following status:
+         mirage describe exits with:
   
          0   on success.
   
@@ -185,17 +183,15 @@ Help describe --help=plain
          The dot output contains the following elements:
          If vertices
              Represented as circles. Branches are dotted, and the default
-             branch is in bold.       Configurables
-                                          Represented as rectangles. The order
-                                          of the output arrows is the order of
-                                          the functor arguments.       
-                                                                Data
-                                                                dependencies
-                                                                           
-                                                                Represented as
-                                                                dashed arrows.
+             branch is in bold.
+         Configurables
+             Represented as rectangles. The order of the output arrows is the
+             order of the functor arguments.
+         Data dependencies
+             Represented as dashed arrows.
          App vertices
              Represented as diamonds. The bold arrow is the functor part.
+  
   UNIKERNEL PARAMETERS
          -l LEVEL, --logs=LEVEL (absent MIRAGE_LOGS env)
              Be more or less verbose. LEVEL must be of the form
@@ -317,7 +313,7 @@ Help describe --help=plain
              Show version information.
   
   EXIT STATUS
-         describe exits with the following status:
+         mirage describe exits with:
   
          0   on success.
   

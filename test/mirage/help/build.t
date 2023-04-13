@@ -115,7 +115,7 @@ Help build --man-format=plain
              Show version information.
   
   EXIT STATUS
-         build exits with the following status:
+         mirage build exits with:
   
          0   on success.
   
@@ -253,7 +253,7 @@ Help build --help=plain
              Show version information.
   
   EXIT STATUS
-         build exits with the following status:
+         mirage build exits with:
   
          0   on success.
   

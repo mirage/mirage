@@ -97,7 +97,7 @@ Test that the help command works without config file:
              Show version information.
   
   EXIT STATUS
-         help exits with the following status:
+         test help exits with:
   
          0   on success.
   
@@ -177,7 +177,7 @@ As well as the default command:
              Show version information.
   
   EXIT STATUS
-         test exits with the following status:
+         test exits with:
   
          0   on success.
   

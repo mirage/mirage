@@ -81,7 +81,7 @@ Help does not fail
              Show version information.
   
   EXIT STATUS
-         test exits with the following status:
+         test exits with:
   
          0   on success.
   

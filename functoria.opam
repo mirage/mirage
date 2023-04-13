@@ -27,6 +27,7 @@ depends: [
   "dune" {with-test & >= "3.0.0"}
   "base-unix"
   "cmdliner" {>= "1.1.1"}
+  "cmdliner" {with-test & >= "1.2.0"}
   "rresult" {>= "0.7.0"}
   "result" {>= "1.5"}
   "astring"

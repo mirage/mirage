@@ -116,7 +116,7 @@ Help clean --man-format=plain
              Show version information.
   
   EXIT STATUS
-         clean exits with the following status:
+         mirage clean exits with:
   
          0   on success.
   
@@ -255,7 +255,7 @@ Help clean --help=plain
              Show version information.
   
   EXIT STATUS
-         clean exits with the following status:
+         mirage clean exits with:
   
          0   on success.
   

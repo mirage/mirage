@@ -138,7 +138,7 @@ Help query --man-format=plain
              Show version information.
   
   EXIT STATUS
-         query exits with the following status:
+         mirage query exits with:
   
          0   on success.
   
@@ -302,7 +302,7 @@ Help query --help=plain
              Show version information.
   
   EXIT STATUS
-         query exits with the following status:
+         mirage query exits with:
   
          0   on success.
   

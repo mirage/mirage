@@ -754,7 +754,6 @@ val syslog : syslog typ
 
 val syslog_udp :
   ?config:syslog_config ->
-  ?console:console impl ->
   ?clock:pclock impl ->
   stackv4v6 impl ->
   syslog impl
@@ -762,7 +761,6 @@ val syslog_udp :
 
 val syslog_tcp :
   ?config:syslog_config ->
-  ?console:console impl ->
   ?clock:pclock impl ->
   stackv4v6 impl ->
   syslog impl
@@ -771,7 +769,6 @@ val syslog_tcp :
 val syslog_tls :
   ?config:syslog_config ->
   ?keyname:string ->
-  ?console:console impl ->
   ?clock:pclock impl ->
   stackv4v6 impl ->
   kv_ro impl ->

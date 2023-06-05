@@ -42,15 +42,15 @@ let syslog_udp_conf config =
            let port = %a in@ let reporter =@ %s.create %s %s ~hostname:%a \
            ?port server %a ()@ in@ Logs.set_reporter reporter;@ \
            Lwt.return_unit@]"
-          pp_key endpoint pp_key port modname pclock stack pp_key
-          hostname (opt_int "truncate") config.truncate
+          pp_key endpoint pp_key port modname pclock stack pp_key hostname
+          (opt_int "truncate") config.truncate
     | _ -> failwith (connect_err "syslog udp" 2)
   in
   impl ~packages ~keys ~connect "Logs_syslog_mirage.Udp"
     (pclock @-> stackv4v6 @-> syslog)
 
-let syslog_udp ?(config = default_syslog_config)
-    ?(clock = default_posix_clock) stack =
+let syslog_udp ?(config = default_syslog_config) ?(clock = default_posix_clock)
+    stack =
   syslog_udp_conf config $ clock $ stack
 
 let syslog_tcp_conf config =
@@ -63,18 +63,18 @@ let syslog_tcp_conf config =
     | [ pclock; stack ] ->
         Fmt.str
           "@[<v 2>match %a with@ | None -> Lwt.return_unit@ | Some server ->@ \
-           let port = %a in@ %s.create %s %s ~hostname:%a ?port server %a \
-           () >>= function@ | Ok reporter -> Logs.set_reporter reporter; \
+           let port = %a in@ %s.create %s %s ~hostname:%a ?port server %a () \
+           >>= function@ | Ok reporter -> Logs.set_reporter reporter; \
            Lwt.return_unit@ | Error e -> invalid_arg e@]"
-          pp_key endpoint pp_key port modname pclock stack pp_key
-          hostname (opt_int "truncate") config.truncate
+          pp_key endpoint pp_key port modname pclock stack pp_key hostname
+          (opt_int "truncate") config.truncate
     | _ -> failwith (connect_err "syslog tcp" 2)
   in
   impl ~packages ~keys ~connect "Logs_syslog_mirage.Tcp"
     (pclock @-> stackv4v6 @-> syslog)
 
-let syslog_tcp ?(config = default_syslog_config)
-    ?(clock = default_posix_clock) stack =
+let syslog_tcp ?(config = default_syslog_config) ?(clock = default_posix_clock)
+    stack =
   syslog_tcp_conf config $ clock $ stack
 
 let syslog_tls_conf ?keyname config =
@@ -87,12 +87,11 @@ let syslog_tls_conf ?keyname config =
     | [ pclock; stack; kv ] ->
         Fmt.str
           "@[<v 2>match %a with@ | None -> Lwt.return_unit@ | Some server ->@ \
-           let port = %a in@ %s.create %s %s %s ~hostname:%a ?port server \
-           %a %a () >>= function@ | Ok reporter -> Logs.set_reporter reporter; \
+           let port = %a in@ %s.create %s %s %s ~hostname:%a ?port server %a \
+           %a () >>= function@ | Ok reporter -> Logs.set_reporter reporter; \
            Lwt.return_unit@ | Error e -> invalid_arg e@]"
-          pp_key endpoint pp_key port modname pclock stack kv pp_key
-          hostname (opt_int "truncate") config.truncate (opt_string "keyname")
-          keyname
+          pp_key endpoint pp_key port modname pclock stack kv pp_key hostname
+          (opt_int "truncate") config.truncate (opt_string "keyname") keyname
     | _ -> failwith (connect_err "syslog tls" 3)
   in
   impl ~packages ~keys ~connect "Logs_syslog_mirage_tls.Tls"

@@ -753,17 +753,11 @@ val syslog : syslog typ
 (** Implementation of the {!type:syslog} type. *)
 
 val syslog_udp :
-  ?config:syslog_config ->
-  ?clock:pclock impl ->
-  stackv4v6 impl ->
-  syslog impl
+  ?config:syslog_config -> ?clock:pclock impl -> stackv4v6 impl -> syslog impl
 (** Emit log messages via UDP to the configured host. *)
 
 val syslog_tcp :
-  ?config:syslog_config ->
-  ?clock:pclock impl ->
-  stackv4v6 impl ->
-  syslog impl
+  ?config:syslog_config -> ?clock:pclock impl -> stackv4v6 impl -> syslog impl
 (** Emit log messages via TCP to the configured host. *)
 
 val syslog_tls :

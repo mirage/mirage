@@ -39,6 +39,7 @@ depends: [
   "uri" {>= "4.2.0"}
   "alcotest" {with-test}
   "functoria-runtime" {= version & with-test}
+  "bigstringaf" {with-test & >= "0.5.0"}
 ]
 synopsis: "A DSL to organize functor applications"
 description: """

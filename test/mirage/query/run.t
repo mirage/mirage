@@ -5,7 +5,7 @@ Query name
   noop
 
 Query opam file
-  $ ./config.exe query opam
+  $ ./config.exe query opam -t unix
   opam-version: "2.0"
   maintainer: "dummy"
   authors: "dummy"

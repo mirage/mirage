@@ -710,7 +710,7 @@ val happy_eyeballs : happy_eyeballs typ
 
 val generic_happy_eyeballs :
   ?aaaa_timeout:int64 option key ->
-  ?v6_connect_timeout:int64 option key ->
+  ?connect_delay:int64 option key ->
   ?connect_timeout:int64 option key ->
   ?resolve_timeout:int64 option key ->
   ?resolve_retries:int64 option key ->

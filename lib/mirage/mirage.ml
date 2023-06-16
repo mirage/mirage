@@ -212,9 +212,8 @@ let happy_eyeballs = Mirage_impl_happy_eyeballs.happy_eyeballs
 let generic_happy_eyeballs ?aaaa_timeout ?connect_delay ?connect_timeout
     ?resolve_timeout ?resolve_retries ?timer_interval ?(time = default_time)
     ?(mclock = default_monotonic_clock) stackv4v6 dns_client =
-  Mirage_impl_happy_eyeballs.generic_happy_eyeballs aaaa_timeout
-    connect_delay connect_timeout resolve_timeout resolve_retries
-    timer_interval
+  Mirage_impl_happy_eyeballs.generic_happy_eyeballs aaaa_timeout connect_delay
+    connect_timeout resolve_timeout resolve_retries timer_interval
   $ time
   $ mclock
   $ stackv4v6

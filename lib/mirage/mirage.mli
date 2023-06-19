@@ -226,12 +226,15 @@ type console
 (** Abstract type for consoles. *)
 
 val console : console typ
+[@@ocaml.deprecated "use Logs and Printf instead"]
 (** Implementations of the [Mirage_console.S] signature. *)
 
 val default_console : console impl
+[@@ocaml.deprecated "use Logs and Printf instead"]
 (** Default console implementation. *)
 
 val custom_console : string -> console impl
+[@@ocaml.deprecated "use Logs and Printf instead"]
 (** Custom console implementation. *)
 
 (** {2 Block devices} *)

@@ -5,7 +5,7 @@ Query name
   noop
 
 Query opam file
-  $ ./config.exe query opam
+  $ ./config.exe query opam -t unix
   opam-version: "2.0"
   maintainer: "dummy"
   authors: "dummy"
@@ -37,7 +37,7 @@ Query opam file
   
   x-mirage-opam-lock-location: "mirage/noop-unix.opam.locked"
   
-  x-mirage-configure: ["sh" "-exc" "mirage configure --no-extra-repo"]
+  x-mirage-configure: ["sh" "-exc" "mirage configure -t unix --no-extra-repo"]
   
   x-mirage-pre-build: [make "lock" "depext-lockfile" "pull"]
   

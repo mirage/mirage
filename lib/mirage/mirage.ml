@@ -270,11 +270,6 @@ let reporter = Mirage_impl_reporter.reporter
 let default_reporter = Mirage_impl_reporter.default_reporter
 let no_reporter = Mirage_impl_reporter.no_reporter
 
-type tracing = Mirage_impl_tracing.tracing
-
-let tracing = Mirage_impl_tracing.tracing
-let mprof_trace = Mirage_impl_tracing.mprof_trace
-
 type mimic = Mirage_impl_mimic.mimic
 
 let mimic = Mirage_impl_mimic.mimic
@@ -483,7 +478,7 @@ let ( ++ ) acc x =
   | None, Some x -> Some [ x ]
   | Some acc, Some x -> Some (acc @ [ x ])
 
-let register ?(argv = default_argv) ?tracing ?(reporter = default_reporter ())
+let register ?(argv = default_argv) ?(reporter = default_reporter ())
     ?keys:extra_keys ?packages ?src name jobs =
   if List.exists Functoria.Impl.app_has_no_arguments jobs then
     invalid_arg "Your configuration includes a job without arguments. \
@@ -493,7 +488,7 @@ let register ?(argv = default_argv) ?tracing ?(reporter = default_reporter ())
                  instead of `.. job .. [ main ]`.";
   let first = [ keys argv; backtrace; randomize_hashtables; gc_control ] in
   let reporter = if reporter == no_reporter then None else Some reporter in
-  let init = Some first ++ reporter ++ tracing in
+  let init = Some first ++ reporter in
   register ?keys:extra_keys ?packages ?init ?src name jobs
 
 module Action = Functoria.Action

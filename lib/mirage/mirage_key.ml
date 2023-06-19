@@ -138,16 +138,6 @@ let is_xen =
   | #mode_xen -> true
   | #mode_solo5 | #mode_unix -> false
 
-(** {3 Tracing} *)
-
-let tracing_size default =
-  let doc = "The size of the trace ring buffer." in
-  let doc =
-    Arg.info ~docs:mirage_section ~docv:"SIZE" ~doc [ "tracing-size" ]
-  in
-  let key = Arg.opt ~stage:`Configure Arg.int default doc in
-  Key.create "tracing_size" key
-
 (** {2 OCaml runtime} *)
 
 let ocaml_section = "OCAML RUNTIME PARAMETERS"

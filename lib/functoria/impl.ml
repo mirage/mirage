@@ -42,6 +42,17 @@ and 'a device = ('a, abstract) Device.t
 
 let abstract t = Abstract t
 
+let app_has_no_arguments = function
+  | App { args ; _ } ->
+    (match args with
+     | Cons _ -> false
+     | _ -> true)
+  | Dev { args ; _ } ->
+    (match args with
+     | Cons _ -> false
+     | _ -> true)
+  | If _ -> false
+
 (* Devices *)
 
 let mk_dev ~args ~deps dev = Dev { dev; args; deps }

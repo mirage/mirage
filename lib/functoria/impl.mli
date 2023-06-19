@@ -28,6 +28,10 @@ type 'a device = ('a, abstract) Device.t
 val abstract : 'a t -> abstract
 (** [abstract i] is [i] with its type erased. *)
 
+val app_has_no_arguments : 'a t -> bool
+(** [app_has_no_arguments i] is [true] if the argument list is empty and it is
+    an application, [false] otherwise. *)
+
 val pp : 'a t Fmt.t
 (** [pp] is the pretty-printer for module implementations. *)
 

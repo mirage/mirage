@@ -45,7 +45,8 @@ let abstract t = Abstract t
 let app_has_no_arguments = function
   | App { args = Cons _ ; _ }
   | Dev { args = Cons _ ; _ } -> false
-  | _ -> false
+  | App _ | Dev _ -> true
+  | If _ -> false
 
 (* Devices *)
 

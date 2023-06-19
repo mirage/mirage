@@ -22,11 +22,11 @@ Query opam file
   
   depends: [
     "lwt" { ?monorepo }
-    "mirage" { build & >= "4.3.6" & < "4.4.0" }
+    "mirage" { build & >= "4.4.0" & < "4.5.0" }
     "mirage-bootvar-solo5" { ?monorepo & >= "0.6.0" & < "0.7.0" }
     "mirage-clock-solo5" { ?monorepo & >= "4.2.0" & < "5.0.0" }
-    "mirage-logs" { ?monorepo & >= "1.2.0" & < "2.0.0" }
-    "mirage-runtime" { ?monorepo & >= "4.3.6" & < "4.4.0" }
+    "mirage-logs" { ?monorepo & >= "1.2.0" & < "3.0.0" }
+    "mirage-runtime" { ?monorepo & >= "4.4.0" & < "4.5.0" }
     "mirage-solo5" { ?monorepo & >= "0.9.0" & < "0.10.0" }
     "ocaml-solo5" { build & >= "0.8.1" & < "0.9.0" }
     "opam-monorepo" { build & >= "0.3.2" }
@@ -53,11 +53,11 @@ Query opam file
 Query packages
   $ ./config.exe query --target hvt packages
   "lwt" { ?monorepo }
-  "mirage" { build & >= "4.3.6" & < "4.4.0" }
+  "mirage" { build & >= "4.4.0" & < "4.5.0" }
   "mirage-bootvar-solo5" { ?monorepo & >= "0.6.0" & < "0.7.0" }
   "mirage-clock-solo5" { ?monorepo & >= "4.2.0" & < "5.0.0" }
-  "mirage-logs" { ?monorepo & >= "1.2.0" & < "2.0.0" }
-  "mirage-runtime" { ?monorepo & >= "4.3.6" & < "4.4.0" }
+  "mirage-logs" { ?monorepo & >= "1.2.0" & < "3.0.0" }
+  "mirage-runtime" { ?monorepo & >= "4.4.0" & < "4.5.0" }
   "mirage-solo5" { ?monorepo & >= "0.9.0" & < "0.10.0" }
   "ocaml-solo5" { build & >= "0.8.1" & < "0.9.0" }
   "opam-monorepo" { build & >= "0.3.2" }

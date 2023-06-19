@@ -180,10 +180,7 @@ val reporter : reporter typ
 (** Implementation of the log {!type:reporter} type. *)
 
 val default_reporter :
-  ?clock:pclock impl ->
-  ?level:Logs.level option ->
-  unit ->
-  reporter impl
+  ?clock:pclock impl -> ?level:Logs.level option -> unit -> reporter impl
 (** [default_reporter ?clock ?level ()] is the log reporter that prints log
     messages to the console, timestampted with [clock]. If not provided, the
     default clock is {!default_posix_clock}. [level] is the default log
@@ -213,15 +210,15 @@ type console
 (** Abstract type for consoles. *)
 
 val console : console typ
-[@@ocaml.deprecated "use Logs and Printf instead"]
+  [@@ocaml.deprecated "use Logs and Printf instead"]
 (** Implementations of the [Mirage_console.S] signature. *)
 
 val default_console : console impl
-[@@ocaml.deprecated "use Logs and Printf instead"]
+  [@@ocaml.deprecated "use Logs and Printf instead"]
 (** Default console implementation. *)
 
 val custom_console : string -> console impl
-[@@ocaml.deprecated "use Logs and Printf instead"]
+  [@@ocaml.deprecated "use Logs and Printf instead"]
 (** Custom console implementation. *)
 
 (** {2 Block devices} *)

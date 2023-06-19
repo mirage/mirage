@@ -1,3 +1,19 @@
+### v4.4.0 (2023-06-19)
+
+- Fail configure if jobs without arguments are present
+  (fixes #873 #1426, #1428 @hannesm)
+- mirage-runtime & functoria-runtime: remove fmt dependency (#1417 @hannesm)
+- Fix tests on macOS (#1425 @samoht)
+- Adapt to happy-eyeballs 0.6.0 release (#1427 @hannesm)
+- Adapt to logs-syslog 0.4.0 release (#1424 @hannesm)
+- Adapt to docteur 0.0.6 release (#1419 @dinosaure)
+- Upgrade tests to cmdliner 1.2.0 (#1418 @hannesm)
+- Fail if jobs without arguments are registered (reported #873 @kit-ty-kate
+  #1426 @reynir @PizieDust, fixed #1428 @hannesm)
+- Console is marked as deprecated (#1429 @hannesm)
+- Tracing has been removed, since it was not used anymore and not supported with
+  solo5-xen-pvh (#1430 @hannesm)
+
 ### v4.3.6 (2023-03-28)
 
 - Allow paf 0.4 and 0.5 (#1414 @hannesm)

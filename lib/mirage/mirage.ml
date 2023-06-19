@@ -371,7 +371,7 @@ let run t = %s.Main.run t ; exit 0|ocaml}
     let keys = Key.[ v target ] in
     let packages_v =
       (* XXX: use %%VERSION_NUM%% here instead of hardcoding a version? *)
-      let min = "4.3.6" and max = "4.4.0" in
+      let min = "4.4.0" and max = "4.5.0" in
       let common =
         [
           package ~scope:`Monorepo "lwt";
@@ -481,11 +481,11 @@ let ( ++ ) acc x =
 let register ?(argv = default_argv) ?(reporter = default_reporter ())
     ?keys:extra_keys ?packages ?src name jobs =
   if List.exists Functoria.Impl.app_has_no_arguments jobs then
-    invalid_arg "Your configuration includes a job without arguments. \
-                 Please add a dependency in your config.ml: use \
-                 `let main = Mirage.main \"Unikernel.hello\" (job @-> job) \
-                  register \"hello\" [ main $ noop ]` \
-                 instead of `.. job .. [ main ]`.";
+    invalid_arg
+      "Your configuration includes a job without arguments. Please add a \
+       dependency in your config.ml: use `let main = Mirage.main \
+       \"Unikernel.hello\" (job @-> job) register \"hello\" [ main $ noop ]` \
+       instead of `.. job .. [ main ]`.";
   let first = [ keys argv; backtrace; randomize_hashtables; gc_control ] in
   let reporter = if reporter == no_reporter then None else Some reporter in
   let init = Some first ++ reporter in

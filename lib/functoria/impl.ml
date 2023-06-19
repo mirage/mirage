@@ -43,8 +43,7 @@ and 'a device = ('a, abstract) Device.t
 let abstract t = Abstract t
 
 let app_has_no_arguments = function
-  | App { args = Cons _ ; _ }
-  | Dev { args = Cons _ ; _ } -> false
+  | App { args = Cons _; _ } | Dev { args = Cons _; _ } -> false
   | App _ | Dev _ -> true
   | If _ -> false
 

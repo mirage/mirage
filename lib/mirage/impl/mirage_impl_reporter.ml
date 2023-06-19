@@ -22,17 +22,15 @@ let mirage_log ~default () =
   let connect _ modname = function
     | [ _pclock ] ->
         Fmt.str
-          "@[<v 2>let reporter = %s.create () in@ \
-           Mirage_runtime.set_level ~default:%a %a;@ \
-           %s.set_reporter reporter;@ \
-           Lwt.return reporter"
+          "@[<v 2>let reporter = %s.create () in@ Mirage_runtime.set_level \
+           ~default:%a %a;@ %s.set_reporter reporter;@ Lwt.return reporter"
           modname pp_level default pp_key logs modname
     | _ -> failwith (connect_err "log" 1)
   in
   impl ~packages ~keys ~connect "Mirage_logs.Make" (pclock @-> reporter)
 
-let default_reporter ?(clock = default_posix_clock)
-    ?(level = Some Logs.Info) () =
+let default_reporter ?(clock = default_posix_clock) ?(level = Some Logs.Info) ()
+    =
   mirage_log ~default:level () $ clock
 
 let no_reporter =

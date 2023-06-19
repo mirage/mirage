@@ -8,15 +8,15 @@ type happy_eyeballs = Happy_eyeballs
 
 let happy_eyeballs = Type.v Happy_eyeballs
 
-let generic_happy_eyeballs aaaa_timeout v6_connect_timeout connect_timeout
+let generic_happy_eyeballs aaaa_timeout connect_delay connect_timeout
     resolve_timeout resolve_retries timer_interval =
   let packages =
-    [ package "happy-eyeballs-mirage" ~min:"0.3.0" ~max:"1.0.0" ]
+    [ package "happy-eyeballs-mirage" ~min:"0.6.0" ~max:"1.0.0" ]
   in
   let keys =
     let cons_if_some v l = match v with Some x -> x :: l | None -> l in
     cons_if_some aaaa_timeout []
-    |> cons_if_some v6_connect_timeout
+    |> cons_if_some connect_delay
     |> cons_if_some resolve_timeout
     |> cons_if_some resolve_retries
     |> cons_if_some timer_interval
@@ -31,8 +31,8 @@ let generic_happy_eyeballs aaaa_timeout v6_connect_timeout connect_timeout
         Fmt.str {ocaml|%s.connect_device %a%a%a%a%a%a %s %s|ocaml} modname
           (pp_optional_argument ~name:"aaaa_timeout")
           aaaa_timeout
-          (pp_optional_argument ~name:"v6_connect_timeout")
-          v6_connect_timeout
+          (pp_optional_argument ~name:"connect_delay")
+          connect_delay
           (pp_optional_argument ~name:"connect_timeout")
           connect_timeout
           (pp_optional_argument ~name:"resolve_timeout")

@@ -25,7 +25,7 @@ Query opam file
     "mirage" { build & >= "4.4.0" & < "4.5.0" }
     "mirage-bootvar-solo5" { ?monorepo & >= "0.6.0" & < "0.7.0" }
     "mirage-clock-solo5" { ?monorepo & >= "4.2.0" & < "5.0.0" }
-    "mirage-logs" { ?monorepo & >= "1.2.0" & < "3.0.0" }
+    "mirage-logs" { ?monorepo & >= "1.2.0" & < "2.0.0" }
     "mirage-runtime" { ?monorepo & >= "4.4.0" & < "4.5.0" }
     "mirage-solo5" { ?monorepo & >= "0.9.0" & < "0.10.0" }
     "ocaml-solo5" { build & >= "0.8.1" & < "0.9.0" }
@@ -56,7 +56,7 @@ Query packages
   "mirage" { build & >= "4.4.0" & < "4.5.0" }
   "mirage-bootvar-solo5" { ?monorepo & >= "0.6.0" & < "0.7.0" }
   "mirage-clock-solo5" { ?monorepo & >= "4.2.0" & < "5.0.0" }
-  "mirage-logs" { ?monorepo & >= "1.2.0" & < "3.0.0" }
+  "mirage-logs" { ?monorepo & >= "1.2.0" & < "2.0.0" }
   "mirage-runtime" { ?monorepo & >= "4.4.0" & < "4.5.0" }
   "mirage-solo5" { ?monorepo & >= "0.9.0" & < "0.10.0" }
   "ocaml-solo5" { build & >= "0.8.1" & < "0.9.0" }

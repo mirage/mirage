@@ -181,7 +181,6 @@ val reporter : reporter typ
 
 val default_reporter :
   ?clock:pclock impl ->
-  ?ring_size:int ->
   ?level:Logs.level option ->
   unit ->
   reporter impl

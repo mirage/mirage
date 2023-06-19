@@ -15,25 +15,25 @@ let pp_level ppf = function
   | Some Logs.App -> Fmt.string ppf "(Some Logs.App)"
   | None -> Fmt.string ppf "None"
 
-let mirage_log ?ring_size ~default () =
+let mirage_log ~default () =
   let logs = Key.logs in
-  let packages = [ package ~min:"1.2.0" ~max:"2.0.0" "mirage-logs" ] in
+  let packages = [ package ~min:"1.2.0" ~max:"3.0.0" "mirage-logs" ] in
   let keys = [ Key.v logs ] in
   let connect _ modname = function
     | [ _pclock ] ->
         Fmt.str
-          "@[<v 2>let ring_size = %a in@ let reporter = %s.create ?ring_size \
-           () in@ Mirage_runtime.set_level ~default:%a %a;@ %s.set_reporter \
-           reporter;@ Lwt.return reporter"
-          Fmt.(Dump.option int)
-          ring_size modname pp_level default pp_key logs modname
+          "@[<v 2>let reporter = %s.create () in@ \
+           Mirage_runtime.set_level ~default:%a %a;@ \
+           %s.set_reporter reporter;@ \
+           Lwt.return reporter"
+          modname pp_level default pp_key logs modname
     | _ -> failwith (connect_err "log" 1)
   in
   impl ~packages ~keys ~connect "Mirage_logs.Make" (pclock @-> reporter)
 
-let default_reporter ?(clock = default_posix_clock) ?ring_size
+let default_reporter ?(clock = default_posix_clock)
     ?(level = Some Logs.Info) () =
-  mirage_log ?ring_size ~default:level () $ clock
+  mirage_log ~default:level () $ clock
 
 let no_reporter =
   let connect _ _ _ = "assert false" in

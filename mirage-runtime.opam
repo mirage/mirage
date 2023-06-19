@@ -21,7 +21,6 @@ depends: [
   "dune" {>= "2.9.0"}
   "ipaddr"             {>= "5.0.0"}
   "functoria-runtime"  {= version}
-  "fmt" {>= "0.8.4"}
   "logs"
   "lwt" {>= "4.0.0"}
   "alcotest" {with-test}

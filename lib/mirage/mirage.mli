@@ -131,18 +131,6 @@ val abstract : 'a impl -> abstract_impl [@@ocaml.deprecated "Use Mirage.dep."]
 
 (** {2 General mirage devices} *)
 
-type tracing
-(** The type for tracing. *)
-
-val tracing : tracing typ
-(** Implementation of the {!type:tracing} type. *)
-
-val mprof_trace : size:int -> unit -> tracing impl
-(** Use mirage-profile to trace the unikernel. On Unix, this creates and mmaps a
-    file called "trace.ctf". On Xen, it shares the trace buffer with dom0.
-
-    @param size: size of the ring buffer to use. *)
-
 type qubesdb
 
 val qubesdb : qubesdb typ
@@ -1081,7 +1069,6 @@ val app_info_with_opam_deps : (string * string) list -> info impl
 
 val register :
   ?argv:argv impl ->
-  ?tracing:tracing impl ->
   ?reporter:reporter impl ->
   ?keys:Key.t list ->
   ?packages:Functoria.package list ->
@@ -1094,7 +1081,6 @@ val register :
 
     @param packages The opam packages needed by this module.
     @param keys The keys related to this module.
-    @param tracing Enable tracing.
     @param reporter
       Configure logging. The default log reporter is {!default_reporter}. To
       disable logging, use {!no_reporter}.

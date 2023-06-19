@@ -58,9 +58,6 @@ val is_solo5 : bool value
 val is_xen : bool value
 (** Is true iff the {!target} key is a Xen-based system (["xen" or "qubes"]). *)
 
-val tracing_size : int -> int key
-(** [--tracing-size]: Key setting the tracing ring buffer size. *)
-
 (** {2 OCaml runtime keys}
 
     The OCaml runtime is usually configurable via the [OCAMLRUNPARAM]

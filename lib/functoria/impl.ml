@@ -46,8 +46,8 @@ let rec app_has_no_arguments = function
   | App { args = Cons _; _ } | Dev { args = Cons _; _ } -> false
   | App _ | Dev _ -> true
   | If { cond = _; branches; default } ->
-    app_has_no_arguments default ||
-    List.exists (fun (_, branch) -> app_has_no_arguments branch) branches
+      app_has_no_arguments default
+      || List.exists (fun (_, branch) -> app_has_no_arguments branch) branches
 
 (* Devices *)
 

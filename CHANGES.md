@@ -9,7 +9,7 @@
 - Adapt to docteur 0.0.6 release (#1419 @dinosaure)
 - Upgrade tests to cmdliner 1.2.0 (#1418 @hannesm)
 - Fail if jobs without arguments are registered (reported #873 @kit-ty-kate
-  #1426 @reynir @PizieDust, fixed #1428 @hannesm)
+  #1426 @reynir @PizieDust, fixed #1428 @hannesm and #1431 @reynir)
 - Console is marked as deprecated (#1429 @hannesm)
 - Tracing has been removed, since it was not used anymore and not supported with
   solo5-xen-pvh (#1430 @hannesm)

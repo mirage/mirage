@@ -6,4 +6,8 @@ let key =
   let doc = Key.Arg.info ~doc:"How to say hello." [ "hello" ] in
   Key.(create "hello" Arg.(opt string "Hello World!" doc))
 
-let () = register ~keys:[ Key.v key ] ~src:`None "noop" [ if_impl Key.is_solo5 main main ]
+let () =
+  register
+    ~keys:[ Key.v key ]
+    ~src:`None "noop"
+    [ if_impl Key.is_solo5 main main ]

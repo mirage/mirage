@@ -42,10 +42,12 @@ and 'a device = ('a, abstract) Device.t
 
 let abstract t = Abstract t
 
-let app_has_no_arguments = function
+let rec app_has_no_arguments = function
   | App { args = Cons _; _ } | Dev { args = Cons _; _ } -> false
   | App _ | Dev _ -> true
-  | If _ -> false
+  | If { cond = _; branches; default } ->
+    app_has_no_arguments default ||
+    List.exists (fun (_, branch) -> app_has_no_arguments branch) branches
 
 (* Devices *)
 

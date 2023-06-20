@@ -58,15 +58,12 @@ module Config = struct
     in
     Key.Set.fold f all_keys skeys
 
-  let v ?(config_file = Fpath.v "config.ml") ?(keys = []) ?(packages = [])
-      ?(init = []) ~configure_cmd ~pre_build_cmd ~lock_location ~build_cmd ~src
-      name jobs =
-    let packages = Key.pure @@ packages in
+  let v ?(config_file = Fpath.v "config.ml") ?(init = []) ~configure_cmd
+      ~pre_build_cmd ~lock_location ~build_cmd ~src name jobs =
     let jobs = Impl.abstract jobs in
-    let keys = Key.Set.(union (of_list keys) (get_if_context jobs)) in
+    let keys = get_if_context jobs in
     {
       config_file;
-      packages;
       keys;
       name;
       init;
@@ -74,6 +71,7 @@ module Config = struct
       pre_build_cmd;
       lock_location;
       build_cmd;
+      packages = Key.pure [];
       jobs;
       src;
     }
@@ -503,7 +501,7 @@ module Make (P : S) = struct
       (Cli.eval ~name:P.name ~version:P.version ~configure ~query ~describe
          ~build ~clean ~help ~mname:P.name argv)
 
-  let register ?packages ?keys ?(init = default_init) ?(src = `Auto) name jobs =
+  let register ?(init = default_init) ?(src = `Auto) name jobs =
     (* 1. Pre-parse the arguments set the log level, config file
        and root directory. *)
     let argv = Sys.argv in
@@ -520,8 +518,8 @@ module Make (P : S) = struct
       in
       let main_dev = P.create (init @ jobs) in
       let c =
-        Config.v ~config_file ?keys ?packages ~init ~configure_cmd
-          ~pre_build_cmd ~lock_location ~build_cmd ~src name main_dev
+        Config.v ~config_file ~init ~configure_cmd ~pre_build_cmd ~lock_location
+          ~build_cmd ~src name main_dev
       in
       run_configure_with_argv argv args c
     in

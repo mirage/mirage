@@ -265,51 +265,16 @@ module Arg = struct
           v serialize_info t.info
 end
 
-type 'a key = {
-  name : string;
-  arg : 'a Arg.t;
-  key : 'a Context.key;
-  setters : 'a setter list;
-}
-
-and -'a setter = Setter : 'b key * ('a -> 'b option) -> 'a setter
-
+type 'a key = { name : string; arg : 'a Arg.t; key : 'a Context.key }
 type t = Any : 'a key -> t
 
-let rec equal (Any x) (Any y) =
-  String.equal x.name y.name
-  && Arg.equal x.arg y.arg
-  && equal_setters x.setters y.setters
+let equal (Any x) (Any y) = String.equal x.name y.name && Arg.equal x.arg y.arg
+let hash (Any x) = Hashtbl.hash (Hashtbl.hash x.name, Arg.hash x.arg)
 
-and equal_setters : type a b. a setter list -> b setter list -> bool =
- fun x y ->
-  List.length x = List.length y
-  && List.for_all2
-       (fun (Setter (x, _)) (Setter (y, _)) -> equal (Any x) (Any y))
-       x y
-
-let rec hash (Any x) =
-  Hashtbl.hash
-    (Hashtbl.hash x.name, Arg.hash x.arg, List.map hash_setter x.setters)
-
-and hash_setter : type a. a setter -> int = fun (Setter (x, _)) -> hash (Any x)
-
-let rec compare (Any x) (Any y) =
+let compare (Any x) (Any y) =
   match String.compare x.name y.name with
-  | 0 -> (
-      match Arg.compare x.arg y.arg with
-      | 0 -> compare_setters x.setters y.setters
-      | i -> i)
+  | 0 -> Arg.compare x.arg y.arg
   | i -> i
-
-and compare_setters : type a b. a setter list -> b setter list -> int =
- fun x y ->
-  match (x, y) with
-  | [], [] -> 0
-  | [], _ -> -1
-  | _, [] -> 1
-  | Setter (x, _) :: tx, Setter (y, _) :: ty -> (
-      match compare (Any x) (Any y) with 0 -> compare_setters tx ty | i -> i)
 
 (* Set of keys, without runtime name conflicts. This is useful to create a
    valid cmdliner term. *)
@@ -344,30 +309,9 @@ module Set = struct
   let pp = pp_gen pp_elt
 end
 
-module Alias = struct
-  type 'a t = { a_setters : 'a setter list; a_arg : 'a Arg.t }
-
-  let setters t = t.a_setters
-  let arg t = t.a_arg
-  let create a_arg = { a_setters = []; a_arg }
-  let flag doc = create (Arg.flag ~stage:`Configure doc)
-
-  (* let opt conv d i = create (Arg.opt ~stage:`Configure conv d i) *)
-  let add k f t = { t with a_setters = Setter (k, f) :: t.a_setters }
-
-  let apply_one v map (Setter (k, f)) =
-    match f v with
-    | None -> map
-    | Some v -> if Context.mem k.key map then map else Context.add k.key v map
-
-  let apply v l map = List.fold_left (apply_one v) map l
-  let keys l = Set.of_list @@ List.map (fun (Setter (k, _)) -> Any k) l
-end
-
 let v x = Any x
 let abstract = v
 let arg k = k.arg
-let aliases (Any k) = Alias.keys k.setters
 let name (Any k) = k.name
 let stage (Any k) = Arg.stage k.arg
 
@@ -446,29 +390,19 @@ let pps p =
 
 (* {2 Automatic documentation} *)
 
-let info_alias setters =
-  let f fmt k = Fmt.pf fmt "$(b,%s)" (name k) in
-  match setters with
-  | [] -> ""
-  | [ _ ] ->
-      Fmt.str "Will automatically set %a." (Set.pp_gen f) (Alias.keys setters)
-  | _ ->
-      Fmt.str "Will automatically set the following keys: %a." (Set.pp_gen f)
-        (Alias.keys setters)
-
 let info_arg (type a) (arg : a Arg.kind) =
   match arg with
-  | Arg.Required _ -> "This key is required."
+  | Arg.Required _ -> " This key is required."
   | Arg.Flag -> ""
   | Arg.Opt _ -> ""
   | Arg.Opt_all _ -> ""
 
-let add_extra_info setters arg =
+let add_extra_info arg =
   match arg.Arg.info.doc with
   | None -> arg
   | Some doc ->
       let doc =
-        [ doc; info_alias setters; info_arg arg.kind ]
+        [ doc; info_arg arg.kind ]
         |> List.filter (( <> ) "")
         |> String.concat " "
       in
@@ -477,21 +411,15 @@ let add_extra_info setters arg =
 (* {2 Key creation} *)
 
 (* Unexposed smart constructor. *)
-let make ~setters ~arg ~name =
+let make ~arg ~name =
   let key = Context.new_key name in
-  let arg = add_extra_info setters arg in
-  { setters; arg; name; key }
-
-let alias name a =
-  let setters = Alias.setters a in
-  let arg = Alias.arg a in
-  make ~setters ~arg ~name
+  let arg = add_extra_info arg in
+  { arg; name; key }
 
 let create name arg =
   if name = "" then
     invalid_arg "Key.create: key name cannot be the empty string";
-  let setters = [] in
-  make ~setters ~arg ~name
+  make ~arg ~name
 
 (* {2 Cmdliner interface} *)
 
@@ -499,13 +427,7 @@ let context ?(stage = `Both) ~with_required l =
   let stage = filter_stage stage l in
   let names = Names.of_list (Set.elements stage) in
   let gather (Any k) rest =
-    let f v p =
-      match v with
-      | None -> p
-      | Some v ->
-          let p = Context.add k.key v p in
-          Alias.apply v k.setters p
-    in
+    let f v p = match v with None -> p | Some v -> Context.add k.key v p in
     let key = Arg.to_cmdliner k.arg ~with_required in
     match k.arg.Arg.kind with
     | Arg.Opt _ -> Cmdliner.Term.(const f $ key $ rest)

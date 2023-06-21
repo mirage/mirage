@@ -16,7 +16,6 @@
 
 open Functoria
 module Key = Key
-module Alias = Key.Alias
 open Astring
 
 (** {2 Custom Descriptions} *)
@@ -451,4 +450,4 @@ let logs =
   let arg = Key.Arg.(opt logs []) info in
   Key.create "logs" arg
 
-include (Key : Functoria.KEY with module Arg := Arg and module Alias := Alias)
+include (Key : Functoria.KEY with module Arg := Arg)

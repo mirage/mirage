@@ -133,7 +133,6 @@ module type KEY =
      and type 'a key = 'a Key.key
      and type t = Key.t
      and type Set.t = Key.Set.t
-     and type 'a Alias.t = 'a Key.Alias.t
      and type context = Key.context
 
 module Package = Package

@@ -166,10 +166,10 @@ Help configure
   
   APPLICATION OPTIONS
          --vote=VOTE (absent=cat)
-             Vote. 
+             Vote.
   
          --warn-error=BOOL (absent=false)
-             Enable -warn-error when compiling OCaml sources. 
+             Enable -warn-error when compiling OCaml sources.
   
   COMMON OPTIONS
          --color=WHEN (absent=auto)
@@ -331,10 +331,10 @@ Build help no config with bad arguments
   
   APPLICATION OPTIONS
          --vote=VOTE (absent=cat)
-             Vote. 
+             Vote.
   
          --warn-error=BOOL (absent=false)
-             Enable -warn-error when compiling OCaml sources. 
+             Enable -warn-error when compiling OCaml sources.
   
   COMMON OPTIONS
          --color=WHEN (absent=auto)

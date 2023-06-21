@@ -58,10 +58,10 @@ Test that the help command works without config file:
   
   APPLICATION OPTIONS
          --vote=VOTE (absent=cat)
-             Vote. 
+             Vote.
   
          --warn-error=BOOL (absent=false)
-             Enable -warn-error when compiling OCaml sources. 
+             Enable -warn-error when compiling OCaml sources.
   
   ARGUMENTS
          TOPIC

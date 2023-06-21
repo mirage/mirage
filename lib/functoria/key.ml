@@ -468,7 +468,9 @@ let add_extra_info setters arg =
   | None -> arg
   | Some doc ->
       let doc =
-        String.concat " " [ doc; info_alias setters; info_arg arg.kind ]
+        [ doc; info_alias setters; info_arg arg.kind ]
+        |> List.filter (( <> ) "")
+        |> String.concat " "
       in
       { arg with info = { arg.info with doc = Some doc } }
 

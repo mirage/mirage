@@ -23,7 +23,6 @@ depends: [
   "functoria-runtime"  {= version}
   "logs"
   "lwt" {>= "4.0.0"}
-  "alcotest" {with-test}
 ]
 conflicts: [
   "result" {< "1.5"}

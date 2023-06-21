@@ -23,7 +23,6 @@ Query opam file
   ]
   
   depends: [
-    "dune-build-info" { ?monorepo }
     "fmt" { ?monorepo }
     "functoria-runtime" { ?monorepo }
   ]
@@ -44,13 +43,12 @@ Query opam file
 
 Query packages
   $ ./config.exe query packages
-  "dune-build-info" { ?monorepo }
   "fmt" { ?monorepo }
   "functoria-runtime" { ?monorepo }
 
 Query files
   $ ./config.exe query files
-  info_gen.ml key_gen.ml main.ml vote warn_error
+  key_gen.ml main.ml vote warn_error
 
 Query Makefile
   $ ./config.exe query Makefile

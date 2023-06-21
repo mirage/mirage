@@ -16,7 +16,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Astring
 module Key = Key
 module Package = Package
 module Info = Info
@@ -52,7 +51,6 @@ include DSL
 
 let job = Job.t
 let noop = Job.noop
-let info = Info.t
 
 let keys ?runtime_package ?runtime_modname x =
   Job.keys ?runtime_package ?runtime_modname x
@@ -61,57 +59,3 @@ type argv = Argv.t
 
 let sys_argv = Argv.sys_argv
 let argv = Argv.argv
-
-(* Info device *)
-
-let src = Logs.Src.create "functoria" ~doc:"functoria library"
-
-module Log = (val Logs.src_log src : Logs.LOG)
-
-let pp_packages fmt l =
-  Fmt.pf fmt "[@ %a]"
-    Fmt.(
-      iter ~sep:(any ";@ ") List.iter @@ fun fmt (n, v) -> pf fmt "%S, %S" n v)
-    l
-
-let pp_info modname fmt name =
-  Fmt.pf fmt "%s.{@ name = %S;@ libraries@]@ }" modname name
-
-let dune_info_deps =
-  {|
-open Build_info.V1
-
-let libraries = Statically_linked_libraries.to_list ()
-let libraries =
-  List.map (fun l ->
-    let name = Statically_linked_library.name l in
-    let version = match Statically_linked_library.version l with
-      | None -> "n/a"
-      | Some v -> Version.to_string v
-    in
-    name, version
-  ) libraries
-|}
-
-let fixed_deps pkg =
-  Fmt.str "@[<v 2>let libraries = %a@]@;" pp_packages (String.Map.bindings pkg)
-
-let app_info ?(runtime_package = "functoria-runtime") ?build_info
-    ?(gen_modname = "Info_gen") ?(modname = "Functoria_runtime") () =
-  let info_gen = Fpath.(v (String.Ascii.lowercase gen_modname) + "ml") in
-  let module_name = gen_modname in
-  let connect _ impl_name _ = Fmt.str "return %s.info" impl_name in
-  let configure i =
-    Log.info (fun m -> m "Generating: %a (info)" Fpath.pp info_gen);
-    let libraries =
-      match build_info with
-      | None -> dune_info_deps
-      | Some pkgs -> fixed_deps (String.Map.of_list pkgs)
-    in
-    Fmt.kstr
-      (Action.write_file info_gen)
-      "%s@.@[<v 2>let info = %a@]" libraries (pp_info modname) (Info.name i)
-  in
-  let files _ = [ info_gen ] in
-  let packages = Package.[ v runtime_package; v "dune-build-info" ] in
-  Impl.v ~files ~packages ~connect ~configure module_name Info.t

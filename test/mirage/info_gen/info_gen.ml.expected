@@ -1,7 +1,0 @@
-let libraries = [
-  ]
-
-let info = Mirage_runtime.{
-  name = "foo";
-  libraries
-}

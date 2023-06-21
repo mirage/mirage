@@ -81,9 +81,3 @@ val with_argv : unit Cmdliner.Term.t list -> string -> string array -> unit
     command-line [argv]. [name] is the executable name. On evaluation error the
     application calls [exit(3)] with status [64]. If [`Help] or [`Version] were
     evaluated, [exit(3)] is called with status [63]. *)
-
-type info = {
-  name : string;
-  libraries : (string * string) list;  (** the result of [dune-build-info] *)
-}
-(** The type for build information available at runtime. *)

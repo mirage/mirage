@@ -1,6 +1,6 @@
 let hello = Functoria_runtime.Key.create
   (Functoria_runtime.Arg.opt Cmdliner.Arg.string "Hello World!" (Cmdliner.Arg.info
-   ~docs:"APPLICATION OPTIONS" ?docv:(None) ?doc:(Some "How to say hello.  ")
+   ~docs:"APPLICATION OPTIONS" ?docv:(None) ?doc:(Some "How to say hello.")
    ?env:(None) ["hello"]))
 
 let hello_t = Functoria_runtime.Key.term hello

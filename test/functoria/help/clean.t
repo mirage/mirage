@@ -24,13 +24,13 @@ Help clean --man-format=plain
   
   APPLICATION OPTIONS
          --hello=VAL (absent=Hello World!)
-             How to say hello. 
+             How to say hello.
   
          --vote=VOTE (absent=cat)
-             Vote. 
+             Vote.
   
          --warn-error=BOOL (absent=false)
-             Enable -warn-error when compiling OCaml sources. 
+             Enable -warn-error when compiling OCaml sources.
   
   COMMON OPTIONS
          --color=WHEN (absent=auto)
@@ -96,13 +96,13 @@ Help clean --help=plain
   
   APPLICATION OPTIONS
          --hello=VAL (absent=Hello World!)
-             How to say hello. 
+             How to say hello.
   
          --vote=VOTE (absent=cat)
-             Vote. 
+             Vote.
   
          --warn-error=BOOL (absent=false)
-             Enable -warn-error when compiling OCaml sources. 
+             Enable -warn-error when compiling OCaml sources.
   
   COMMON OPTIONS
          --color=WHEN (absent=auto)

@@ -225,36 +225,6 @@ val is_configure : t -> bool
 val filter_stage : Arg.stage -> Set.t -> Set.t
 (** [filter_stage s ks] is [ks] but with only keys available at stage [s]. *)
 
-(** Alias allows to define virtual keys in terms of other keys at configuration
-    time only. *)
-module Alias : sig
-  (** {1 Alias} *)
-
-  type 'a t
-  (** The type for key alias. *)
-
-  val add : 'b key -> ('a -> 'b option) -> 'a t -> 'a t
-  (** [add k f a] set [a] as an alias for the key [k]: setting [a] on the
-      command-line will set [k] to [f] applied to [a]'s value. If [f] returns
-      [None], no value is set. *)
-
-  val flag : Arg.info -> bool t
-  (** [flag] is similar to {!Arg.flag} but defines configure-only command-line
-      flag alias. Set [stage] to [`Configure]. *)
-
-  (*
-  val opt: 'a Arg.converter -> 'a -> Arg.info -> 'a t
-  (** [opt] is similar to {!Arg.opt} but defines configure-only
-      optional command-line arguments. Set [stage] to [`Configure]. *)
-*)
-end
-
-val alias : string -> 'a Alias.t -> 'a key
-(** Similar to {!create} but for command-line alias. *)
-
-val aliases : t -> Set.t
-(** [aliases t] is the list of [t]'s aliases. *)
-
 (** {1 Parsing context} *)
 
 type context

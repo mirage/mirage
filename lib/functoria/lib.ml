@@ -52,10 +52,7 @@ module Config = struct
   let get_if_context jobs =
     let all_keys = Engine.all_keys jobs in
     let skeys = Engine.if_keys jobs in
-    let f k s =
-      if Key.Set.is_empty @@ Key.Set.inter (Key.aliases k) skeys then s
-      else Key.Set.add k s
-    in
+    let f k s = if true then s else Key.Set.add k s in
     Key.Set.fold f all_keys skeys
 
   let v ?(config_file = Fpath.v "config.ml") ?(keys = []) ?(packages = [])

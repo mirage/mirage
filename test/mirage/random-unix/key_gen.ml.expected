@@ -23,7 +23,9 @@ let interface () = Functoria_runtime.Key.get interface
 
 let ipv4 =
   Functoria_runtime.Key.create
-  (Functoria_runtime.Arg.opt Mirage_runtime.Arg.ipv4
+  (Functoria_runtime.Arg.opt
+   (Functoria_runtime.Arg.conv Ipaddr.V4.Prefix.of_string
+  Ipaddr.V4.Prefix.to_string)
    (Ipaddr.V4.Prefix.of_string_exn "10.0.0.2/24") (Cmdliner.Arg.info
    ~docs:"UNIKERNEL PARAMETERS" ~docv:"IPV4"
    ~doc:"The network of the unikernel specified as an IP address and netmask, e.g. 192.168.0.1/16 ."
@@ -36,9 +38,10 @@ let ipv4 () = Functoria_runtime.Key.get ipv4
 let ipv4_gateway =
   Functoria_runtime.Key.create
   (Functoria_runtime.Arg.opt
-   (Cmdliner.Arg.some Mirage_runtime.Arg.ipv4_address) (None)
-   (Cmdliner.Arg.info ~docs:"UNIKERNEL PARAMETERS" ~docv:"IPV4-GATEWAY"
-   ~doc:"The gateway of the unikernel." ["ipv4-gateway"]))
+   (Cmdliner.Arg.some (Functoria_runtime.Arg.conv Ipaddr.V4.of_string Ipaddr.V4.to_string))
+   (None) (Cmdliner.Arg.info ~docs:"UNIKERNEL PARAMETERS"
+   ~docv:"IPV4-GATEWAY" ~doc:"The gateway of the unikernel."
+   ["ipv4-gateway"]))
 
 let ipv4_gateway_t = Functoria_runtime.Key.term ipv4_gateway
 
@@ -56,7 +59,9 @@ let ipv4_only () = Functoria_runtime.Key.get ipv4_only
 
 let ipv6 =
   Functoria_runtime.Key.create
-  (Functoria_runtime.Arg.opt (Cmdliner.Arg.some Mirage_runtime.Arg.ipv6)
+  (Functoria_runtime.Arg.opt
+   (Cmdliner.Arg.some (Functoria_runtime.Arg.conv Ipaddr.V6.Prefix.of_string
+  Ipaddr.V6.Prefix.to_string))
    (None) (Cmdliner.Arg.info ~docs:"UNIKERNEL PARAMETERS" ~docv:"IPV6"
    ~doc:"The network of the unikernel specified as IPv6 address and prefix length."
    ["ipv6"]))
@@ -68,9 +73,10 @@ let ipv6 () = Functoria_runtime.Key.get ipv6
 let ipv6_gateway =
   Functoria_runtime.Key.create
   (Functoria_runtime.Arg.opt
-   (Cmdliner.Arg.some Mirage_runtime.Arg.ipv6_address) (None)
-   (Cmdliner.Arg.info ~docs:"UNIKERNEL PARAMETERS" ~docv:"IPV6-GATEWAY"
-   ~doc:"The gateway of the unikernel." ["ipv6-gateway"]))
+   (Cmdliner.Arg.some (Functoria_runtime.Arg.conv Ipaddr.V6.of_string Ipaddr.V6.to_string))
+   (None) (Cmdliner.Arg.info ~docs:"UNIKERNEL PARAMETERS"
+   ~docv:"IPV6-GATEWAY" ~doc:"The gateway of the unikernel."
+   ["ipv6-gateway"]))
 
 let ipv6_gateway_t = Functoria_runtime.Key.term ipv6_gateway
 

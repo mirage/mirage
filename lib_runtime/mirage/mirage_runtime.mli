@@ -32,42 +32,7 @@ module Arg : sig
 
   include module type of Functoria_runtime.Arg
 
-  val make :
-    (string -> ('a, [ `Msg of string ]) result) ->
-    ('a -> string) ->
-    'a Cmdliner.Arg.conv
-  (** [make of_string pp] is the command-line argument converter using on
-      [of_string] and [pp]. *)
-
-  (** [S] is the signature used by {!of_module} to create a command-line
-      argument converter. *)
-  module type S = sig
-    type t
-
-    val of_string : string -> (t, [ `Msg of string ]) result
-    val to_string : t -> string
-  end
-
-  val of_module : (module S with type t = 'a) -> 'a Cmdliner.Arg.conv
-  (** [of module (module M)] creates a command-line argyument converter from a
-      module satisfying the signature {!S}. *)
-
   (** {2 Mirage command-line argument converters} *)
-
-  val ip_address : Ipaddr.t Cmdliner.Arg.conv
-  (** [ip] converts IP address. *)
-
-  val ipv4_address : Ipaddr.V4.t Cmdliner.Arg.conv
-  (** [ipv4_address] converts an IPv4 address. *)
-
-  val ipv4 : Ipaddr.V4.Prefix.t Cmdliner.Arg.conv
-  (** [ipv4] converts ipv4/netmask to Ipaddr.V4.t * Ipaddr.V4.Prefix.t . *)
-
-  val ipv6_address : Ipaddr.V6.t Cmdliner.Arg.conv
-  (** [ipv6_address]converts IPv6 address. *)
-
-  val ipv6 : Ipaddr.V6.Prefix.t Cmdliner.Arg.conv
-  (**[ipv6] converts IPv6 prefixes. *)
 
   val log_threshold : log_threshold Cmdliner.Arg.conv
   (** [log_threshold] converts log reporter threshold. *)

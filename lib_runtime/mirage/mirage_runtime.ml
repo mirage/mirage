@@ -37,26 +37,6 @@ let set_level ~default l =
 module Arg = struct
   include Functoria_runtime.Arg
 
-  let make of_string to_string : _ Cmdliner.Arg.conv =
-    let pp ppf v = Format.pp_print_string ppf (to_string v) in
-    Cmdliner.Arg.conv (of_string, pp)
-
-  module type S = sig
-    type t
-
-    val of_string : string -> (t, [ `Msg of string ]) result
-    val to_string : t -> string
-  end
-
-  let of_module (type t) (module M : S with type t = t) =
-    make M.of_string M.to_string
-
-  let ip_address = of_module (module Ipaddr)
-  let ipv4_address = of_module (module Ipaddr.V4)
-  let ipv4 = of_module (module Ipaddr.V4.Prefix)
-  let ipv6_address = of_module (module Ipaddr.V6)
-  let ipv6 = of_module (module Ipaddr.V6.Prefix)
-
   let log_threshold =
     let parser str =
       let level src s =

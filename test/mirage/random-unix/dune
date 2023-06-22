@@ -4,7 +4,7 @@
  (libraries functoria.test fmt mirage))
 
 (rule
- (targets main.ml)
+ (targets main.ml key_gen.ml)
  (action
   (run ./test.exe)))
 
@@ -14,3 +14,21 @@
  (action
   (progn
    (diff main.ml.expected main.ml))))
+
+(rule
+ (alias runtest)
+ (package mirage)
+ (action
+  (progn
+   (diff key_gen.ml.expected key_gen.ml))))
+
+(executable
+ (name key_gen)
+ (modules key_gen)
+ (libraries mirage-runtime))
+
+(rule
+ (alias runtest)
+ (deps key_gen.exe)
+ (action
+  (echo OK)))

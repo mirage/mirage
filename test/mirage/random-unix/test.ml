@@ -12,8 +12,16 @@ let test () =
     direct_stackv4v6 ~ipv4_only:(Key.ipv4_only ()) ~ipv6_only:(Key.ipv6_only ())
       network etif arp ipv4 ipv6
   in
+  let init = Functoria.(keys sys_argv) in
   let job =
     main "App.Make" sigs $ conduit_direct ~tls:true stackv4v6 $ default_random
+  in
+
+  let job =
+    let connect _ _ _ = "return ()" in
+    Functoria.impl
+      ~extra_deps:[ dep job; dep init ]
+      "Functoria_runtime" ~connect Functoria.job
   in
   Functoria_test.run context job
 

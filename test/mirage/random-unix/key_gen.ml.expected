@@ -1,0 +1,87 @@
+let accept_router_advertisements = Functoria_runtime.Key.create
+  (Functoria_runtime.Arg.opt Cmdliner.Arg.bool true (Cmdliner.Arg.info
+   ~docs:"UNIKERNEL PARAMETERS" ?docv:(Some "ACCEPT-ROUTER-ADVERTISEMENTS")
+   ?doc:(Some "Accept router advertisements for the unikernel.") ?env:
+   (None) ["accept-router-advertisements"]))
+
+let accept_router_advertisements_t =
+  Functoria_runtime.Key.term accept_router_advertisements
+
+let accept_router_advertisements () =
+  Functoria_runtime.Key.get accept_router_advertisements
+
+let interface = Functoria_runtime.Key.create
+  (Functoria_runtime.Arg.opt Cmdliner.Arg.string "tap0" (Cmdliner.Arg.info
+   ~docs:"UNIKERNEL PARAMETERS" ?docv:(Some "INTERFACE")
+   ?doc:(Some "The network interface listened by the unikernel.") ?env:
+   (None) ["interface"]))
+
+let interface_t = Functoria_runtime.Key.term interface
+
+let interface () = Functoria_runtime.Key.get interface
+
+let ipv4 = Functoria_runtime.Key.create
+  (Functoria_runtime.Arg.opt Mirage_runtime.Arg.ipv4 (Ipaddr.V4.Prefix.of_string_exn "10.0.0.2/24") (Cmdliner.Arg.info
+   ~docs:"UNIKERNEL PARAMETERS" ?docv:(Some "IPV4")
+   ?doc:(Some
+           "The network of the unikernel specified as an IP address and netmask, e.g. 192.168.0.1/16 .")
+   ?env:(None) ["ipv4"]))
+
+let ipv4_t = Functoria_runtime.Key.term ipv4
+
+let ipv4 () = Functoria_runtime.Key.get ipv4
+
+let ipv4_gateway = Functoria_runtime.Key.create
+  (Functoria_runtime.Arg.opt (Cmdliner.Arg.some Mirage_runtime.Arg.ipv4_address) 
+   (None) (Cmdliner.Arg.info ~docs:"UNIKERNEL PARAMETERS"
+   ?docv:(Some "IPV4-GATEWAY") ?doc:(Some "The gateway of the unikernel.")
+   ?env:(None) ["ipv4-gateway"]))
+
+let ipv4_gateway_t = Functoria_runtime.Key.term ipv4_gateway
+
+let ipv4_gateway () = Functoria_runtime.Key.get ipv4_gateway
+
+let ipv4_only = Functoria_runtime.Key.create
+  (Functoria_runtime.Arg.opt Cmdliner.Arg.bool false (Cmdliner.Arg.info
+   ~docs:"UNIKERNEL PARAMETERS" ?docv:(Some "IPV4-ONLY")
+   ?doc:(Some "Only use IPv4 for the unikernel.") ?env:(None) ["ipv4-only"]))
+
+let ipv4_only_t = Functoria_runtime.Key.term ipv4_only
+
+let ipv4_only () = Functoria_runtime.Key.get ipv4_only
+
+let ipv6 = Functoria_runtime.Key.create
+  (Functoria_runtime.Arg.opt (Cmdliner.Arg.some Mirage_runtime.Arg.ipv6) 
+   (None) (Cmdliner.Arg.info ~docs:"UNIKERNEL PARAMETERS" ?docv:(Some "IPV6")
+   ?doc:(Some
+           "The network of the unikernel specified as IPv6 address and prefix length.")
+   ?env:(None) ["ipv6"]))
+
+let ipv6_t = Functoria_runtime.Key.term ipv6
+
+let ipv6 () = Functoria_runtime.Key.get ipv6
+
+let ipv6_gateway = Functoria_runtime.Key.create
+  (Functoria_runtime.Arg.opt (Cmdliner.Arg.some Mirage_runtime.Arg.ipv6_address) 
+   (None) (Cmdliner.Arg.info ~docs:"UNIKERNEL PARAMETERS"
+   ?docv:(Some "IPV6-GATEWAY") ?doc:(Some "The gateway of the unikernel.")
+   ?env:(None) ["ipv6-gateway"]))
+
+let ipv6_gateway_t = Functoria_runtime.Key.term ipv6_gateway
+
+let ipv6_gateway () = Functoria_runtime.Key.get ipv6_gateway
+
+let ipv6_only = Functoria_runtime.Key.create
+  (Functoria_runtime.Arg.opt Cmdliner.Arg.bool false (Cmdliner.Arg.info
+   ~docs:"UNIKERNEL PARAMETERS" ?docv:(Some "IPV6-ONLY")
+   ?doc:(Some "Only use IPv6 for the unikernel.") ?env:(None) ["ipv6-only"]))
+
+let ipv6_only_t = Functoria_runtime.Key.term ipv6_only
+
+let ipv6_only () = Functoria_runtime.Key.get ipv6_only
+
+let runtime_keys = List.combine [accept_router_advertisements_t; interface_t;
+                                 ipv4_t; ipv4_gateway_t; ipv4_only_t; 
+                                 ipv6_t; ipv6_gateway_t; ipv6_only_t] 
+["accept-router-advertisements"; "interface"; "ipv4"; "ipv4-gateway";
+ "ipv4-only"; "ipv6"; "ipv6-gateway"; "ipv6-only"]

@@ -18,40 +18,6 @@
 
 (** Functoria runtime. *)
 
-(** [Arg] defines command-line arguments which can be set at runtime. This
-    module is the runtime companion of [Functoria.Key]. It exposes a subset of
-    {{:http://erratique.ch/software/cmdliner/doc/Cmdliner/Arg/index.html}
-      Cmdliner.Arg}. *)
-module Arg : sig
-  (** {1 Runtime command-line arguments} *)
-
-  type 'a t
-  (** The type for runtime command-line arguments. Similar to
-      [Functoria.Key.Arg.t] but only available at runtime. *)
-
-  val opt : 'a Cmdliner.Arg.conv -> 'a -> Cmdliner.Arg.info -> 'a t
-  (** [opt] is the runtime companion of [Functoria.Ky.Arg.opt]. *)
-
-  val opt_all :
-    'a Cmdliner.Arg.conv -> 'a list -> Cmdliner.Arg.info -> 'a list t
-  (** [opt_all] is the runtime companion of [Functoria.Key.Arg.opt_all]. *)
-
-  val required : 'a Cmdliner.Arg.conv -> Cmdliner.Arg.info -> 'a t
-  (** [required] is the runtime companion of [Functoria.Key.Arg.required]. *)
-
-  val key : ?default:'a -> 'a Cmdliner.Arg.conv -> Cmdliner.Arg.info -> 'a t
-  (** [key] is either {!opt} or {!required}, depending if [~default] is
-      provided. *)
-
-  val flag : Cmdliner.Arg.info -> bool t
-  (** [flag] is the runtime companion of [Functoria.Key.Arg.flag]. *)
-
-  val conv :
-    (string -> ('a, [ `Msg of string ]) result) ->
-    ('a -> string) ->
-    'a Cmdliner.Arg.conv
-end
-
 (** [Key] defines values that can be set by runtime command-line arguments. This
     module is the runtime companion of {!Key}. *)
 module Key : sig
@@ -60,20 +26,19 @@ module Key : sig
   type 'a t
   (** The type for runtime keys containing a value of type ['a]. *)
 
-  val create : 'a Arg.t -> 'a t
+  val create : 'a Cmdliner.Term.t -> 'a t
   (** [create conv] create a new runtime key. *)
 
-  val get : 'a t -> 'a
-  (** [get k] is the value of the key [k]. Use the default value if no
-      command-line argument is provided.
+  val conv :
+    (string -> ('a, [ `Msg of string ]) result) ->
+    ('a -> string) ->
+    'a Cmdliner.Arg.conv
 
-      @raise Invalid_argument if called before cmdliner's evaluation. *)
+  val register : 'a Cmdliner.Term.t -> unit -> 'a
+  (** [register t] returns a callback [f] that evaluates to the value of the
+      term [t]. Use the default value if no command-line argument is provided.
 
-  val term : 'a t -> unit Cmdliner.Term.t
-  (** [term k] is the [Cmdliner] term whose evaluation sets [k]s' value to the
-      parsed command-line argument. *)
-
-  val register : unit Cmdliner.Term.t -> unit
+      [f] will raise [Invalid_argument] if called before cmdliner's evaluation. *)
 end
 
 val argument_error : int

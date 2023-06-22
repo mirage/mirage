@@ -14,36 +14,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-module Arg = struct
-  type 'a kind =
-    | Opt : 'a * 'a Cmdliner.Arg.conv -> 'a kind
-    | Opt_all : 'a list * 'a Cmdliner.Arg.conv -> 'a list kind
-    | Flag : bool kind
-    | Required : 'a Cmdliner.Arg.conv -> 'a kind
-
-  type 'a t = { info : Cmdliner.Arg.info; kind : 'a kind }
-
-  let flag info = { info; kind = Flag }
-  let opt conv default info = { info; kind = Opt (default, conv) }
-  let opt_all conv default info = { info; kind = Opt_all (default, conv) }
-  let required conv info = { info; kind = Required conv }
-
-  let key ?default c i =
-    match default with None -> required c i | Some d -> opt c d i
-
-  let kind t = t.kind
-  let info t = t.info
-
-  let conv of_string to_string : _ Cmdliner.Arg.conv =
-    let pp ppf v = Format.pp_print_string ppf (to_string v) in
-    Cmdliner.Arg.conv (of_string, pp)
-end
-
 let runtime_keys_r = ref []
 let runtime_keys () = !runtime_keys_r
 
 module Key = struct
-  type 'a t = { arg : 'a Arg.t; mutable value : 'a option }
+  type 'a t = { arg : 'a Cmdliner.Term.t; mutable value : 'a option }
 
   let create arg = { arg; value = None }
 
@@ -57,18 +32,16 @@ module Key = struct
 
   let term (type a) (t : a t) =
     let set w = t.value <- Some w in
-    let doc = Arg.info t.arg in
-    let term arg = Cmdliner.Term.(const set $ arg) in
-    match Arg.kind t.arg with
-    | Arg.Flag -> term @@ Cmdliner.Arg.(value & flag doc)
-    | Arg.Opt (default, desc) ->
-        term @@ Cmdliner.Arg.(value & opt desc default doc)
-    | Arg.Opt_all (default, desc) ->
-        term @@ Cmdliner.Arg.(value & opt_all desc default doc)
-    | Arg.Required desc ->
-        term @@ Cmdliner.Arg.(required & opt (some desc) None doc)
+    Cmdliner.Term.(const set $ t.arg)
 
-  let register t = runtime_keys_r := t :: !runtime_keys_r
+  let conv of_string to_string : _ Cmdliner.Arg.conv =
+    let pp ppf v = Format.pp_print_string ppf (to_string v) in
+    Cmdliner.Arg.conv (of_string, pp)
+
+  let register t =
+    let u = create t in
+    runtime_keys_r := term u :: !runtime_keys_r;
+    fun () -> get u
 end
 
 let initialized = ref false

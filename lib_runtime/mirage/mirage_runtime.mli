@@ -30,8 +30,6 @@ val set_level : default:Logs.level option -> log_threshold list -> unit
 module Arg : sig
   (** {2 Mirage command-line arguments} *)
 
-  include module type of Functoria_runtime.Arg
-
   (** {2 Mirage command-line argument converters} *)
 
   val log_threshold : log_threshold Cmdliner.Arg.conv
@@ -42,7 +40,7 @@ module Arg : sig
   (** [allocation_policy] converts allocation policy. *)
 end
 
-include module type of Functoria_runtime with module Arg := Arg
+include module type of Functoria_runtime
 
 (** {2 Registering scheduler hooks} *)
 

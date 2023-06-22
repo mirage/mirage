@@ -1,10 +1,7 @@
-let hello =
-  Functoria_runtime.Key.create
-  (Functoria_runtime.Arg.opt Cmdliner.Arg.string "Hello World!"
-   (Cmdliner.Arg.info ~docs:"APPLICATION OPTIONS" ~doc:"How to say hello."
-   ["hello"]))
+let hello_t =
+  Cmdliner.Arg.(value (opt Cmdliner.Arg.string "Hello World!"
+    (Cmdliner.Arg.info ~docs:"APPLICATION OPTIONS" ~doc:"How to say hello."
+    ["hello"])))
 
-let () = Functoria_runtime.Key.(register (term hello))
-
-let hello () = Functoria_runtime.Key.get hello
+let hello = Functoria_runtime.Key.register hello_t
 

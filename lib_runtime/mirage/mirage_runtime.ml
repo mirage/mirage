@@ -35,8 +35,6 @@ let set_level ~default l =
     l
 
 module Arg = struct
-  include Functoria_runtime.Arg
-
   let log_threshold =
     let parser str =
       let level src s =
@@ -63,8 +61,7 @@ module Arg = struct
       ]
 end
 
-include (
-  Functoria_runtime : module type of Functoria_runtime with module Arg := Arg)
+include Functoria_runtime
 
 let exit_hooks = ref []
 let enter_iter_hooks = ref []

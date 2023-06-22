@@ -440,22 +440,23 @@ let ocaml_name k = Name.ocamlify (name k)
 let serialize_call fmt k = Fmt.pf fmt "(%s.%s ())" module_name (ocaml_name k)
 let serialize ctx ppf (Any k) = Arg.serialize (get ctx k) ppf (arg k)
 
-let serialize_rw ctx fmt t =
+let serialize_runtime ctx fmt t =
   Format.fprintf fmt
     "@[<2>let %s =@ @[Functoria_runtime.Key.create@ %a@]@]@,\
      @,\
-     @[<2>let %s_t =@ @[Functoria_runtime.Key.term@ %s@]@]@,\
+     @[<2>let () =@ @[Functoria_runtime.(key@ (Key.term@ %s))@]@]@,\
      @,\
      @[<2>let %s () =@ @[Functoria_runtime.Key.get@ %s@]@]@,"
     (ocaml_name t)
     Fmt.(parens (serialize ctx))
-    t (ocaml_name t) (ocaml_name t) (ocaml_name t) (ocaml_name t)
+    t (ocaml_name t) (ocaml_name t) (ocaml_name t)
 
-let serialize_ro ctx fmt t =
+let serialize_configure ctx fmt t =
   let (Any k) = t in
   Format.fprintf fmt "@[<2>let %s () =@ %a@]@," (ocaml_name t)
     (Arg.serialize_value (get ctx k))
     (arg k)
 
 let serialize ctx fmt k =
-  if is_runtime k then serialize_rw ctx fmt k else serialize_ro ctx fmt k
+  if is_runtime k then serialize_runtime ctx fmt k
+  else serialize_configure ctx fmt k

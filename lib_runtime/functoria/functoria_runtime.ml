@@ -46,6 +46,9 @@ module Arg = struct
     Cmdliner.Arg.conv (of_string, pp)
 end
 
+let runtime_keys_r = ref []
+let runtime_keys () = !runtime_keys_r
+
 module Key = struct
   type 'a t = { arg : 'a Arg.t; mutable value : 'a option }
 
@@ -75,6 +78,7 @@ module Key = struct
         term @@ Cmdliner.Arg.(required & opt (some desc) None doc)
 end
 
+let key t = runtime_keys_r := t :: !runtime_keys_r
 let initialized = ref false
 let help_version = 63
 let argument_error = 64

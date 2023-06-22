@@ -78,6 +78,9 @@ module Key : sig
       parsed command-line argument. *)
 end
 
+val key : unit Cmdliner.Term.t -> unit
+(** [key t] registers the Cmdliner term [k] as a runtime key. *)
+
 val argument_error : int
 (** [argument_error] is the exit code used for argument parsing errors: 64. *)
 
@@ -92,3 +95,5 @@ type info = {
   libraries : (string * string) list;  (** the result of [dune-build-info] *)
 }
 (** The type for build information available at runtime. *)
+
+val runtime_keys : unit -> unit Cmdliner.Term.t list

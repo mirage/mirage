@@ -38,7 +38,8 @@ module Keys = struct
         let runvars = Key.Set.elements (Key.filter_stage `Run keys) in
         let pp_runvar ppf v = Fmt.pf ppf "%s_t" (Key.ocaml_name v) in
         let pp_names ppf v = Fmt.pf ppf "%S" (Key.name v) in
-        Fmt.pf ppf "let runtime_keys = List.combine %a %a@."
+        Fmt.pf ppf
+          "@[<v2>let runtime_keys = List.combine@ @[<2>%a@]@ @[<2>%a@]@.@]"
           Fmt.Dump.(list pp_runvar)
           runvars
           Fmt.Dump.(list pp_names)

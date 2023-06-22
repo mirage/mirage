@@ -115,15 +115,15 @@ module Arg = struct
     Fmt.pf fmt "(Cmdliner.Cmd.Env.info %a)" Serialize.string
 
   let serialize_info fmt { docs; docv; doc; env; names } =
-    Format.fprintf fmt
-      "(Cmdliner.Arg.info@ ~docs:%a@ ?docv:%a@ ?doc:%a@ ?env:%a@ %a)"
-      Serialize.string docs
-      Serialize.(option string)
-      docv
-      Serialize.(option string)
-      doc
-      Serialize.(option serialize_env)
-      env
+    let pp_opt field pp ppf = function
+      | None -> ()
+      | Some v -> Fmt.pf ppf "@ ~%s:%a" field pp v
+    in
+    let pp_env = pp_opt "env" serialize_env in
+    let pp_doc = pp_opt "doc" Serialize.string in
+    let pp_docv = pp_opt "docv" Serialize.string in
+    Format.fprintf fmt "(Cmdliner.Arg.info@ ~docs:%a%a%a%a@ %a)"
+      Serialize.string docs pp_docv docv pp_doc doc pp_env env
       Serialize.(list string)
       names
 
@@ -251,16 +251,16 @@ module Arg = struct
   let serialize (type a) : a -> a t serialize =
    fun v ppf t ->
     match t.kind with
-    | Flag -> Fmt.pf ppf "Functoria_runtime.Arg.flag %a" serialize_info t.info
+    | Flag -> Fmt.pf ppf "Functoria_runtime.Arg.flag@ %a" serialize_info t.info
     | Opt (_, c) ->
-        Fmt.pf ppf "Functoria_runtime.Arg.opt %s %a %a" (runtime_conv c)
+        Fmt.pf ppf "Functoria_runtime.Arg.opt@ %s@ %a@ %a" (runtime_conv c)
           (serialize c) v serialize_info t.info
     | Required c ->
-        Fmt.pf ppf "Functoria_runtime.Arg.key ?default:(%a) %s %a"
+        Fmt.pf ppf "Functoria_runtime.Arg.key@ ?default:(%a)@ %s@ %a"
           (serialize @@ some c)
           v (runtime_conv c) serialize_info t.info
     | Opt_all c ->
-        Fmt.pf ppf "Functoria_runtime.Arg.opt_all %s %a %a" (runtime_conv c)
+        Fmt.pf ppf "Functoria_runtime.Arg.opt_all@ %s@ %a@ %a" (runtime_conv c)
           (serialize (list c))
           v serialize_info t.info
 end
@@ -446,11 +446,11 @@ let serialize ctx ppf (Any k) = Arg.serialize (get ctx k) ppf (arg k)
 
 let serialize_rw ctx fmt t =
   Format.fprintf fmt
-    "@[<2>let %s =@ Functoria_runtime.Key.create@ %a@]@,\
+    "@[<2>let %s =@ @[Functoria_runtime.Key.create@ %a@]@]@,\
      @,\
-     @[<2>let %s_t =@ Functoria_runtime.Key.term %s@]@,\
+     @[<2>let %s_t =@ @[Functoria_runtime.Key.term@ %s@]@]@,\
      @,\
-     @[<2>let %s () =@ Functoria_runtime.Key.get %s@]@,"
+     @[<2>let %s () =@ @[Functoria_runtime.Key.get@ %s@]@]@,"
     (ocaml_name t)
     Fmt.(parens (serialize ctx))
     t (ocaml_name t) (ocaml_name t) (ocaml_name t) (ocaml_name t)

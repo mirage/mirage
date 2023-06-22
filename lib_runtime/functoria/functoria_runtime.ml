@@ -40,6 +40,10 @@ module Arg = struct
 
   let kind t = t.kind
   let info t = t.info
+
+  let conv of_string to_string : _ Cmdliner.Arg.conv =
+    let pp ppf v = Format.pp_print_string ppf (to_string v) in
+    Cmdliner.Arg.conv (of_string, pp)
 end
 
 module Key = struct

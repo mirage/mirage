@@ -23,16 +23,18 @@ open Astring
 module Arg = struct
   include Key.Arg
 
-  let from_run s = "Mirage_runtime.Arg." ^ s
+  let from_run s =
+    Fmt.str "@[<2>(Functoria_runtime.Arg.conv@ %s.of_string@ %s.to_string)@]" s
+      s
 
-  let make d m of_string to_string =
+  let make m of_string to_string =
     let parser s =
       match of_string s with
       | Error (`Msg m) -> `Error ("Can't parse ip address: " ^ s ^ ": " ^ m)
       | Ok ip -> `Ok ip
     and serialize ppf t = Fmt.pf ppf "(%s.of_string_exn %S)" m (to_string t)
     and pp ppf t = Fmt.string ppf (to_string t) in
-    Key.Arg.conv ~conv:(parser, pp) ~serialize ~runtime_conv:(from_run d)
+    Key.Arg.conv ~conv:(parser, pp) ~serialize ~runtime_conv:(from_run m)
 
   module type S = sig
     type t
@@ -41,14 +43,14 @@ module Arg = struct
     val to_string : t -> string
   end
 
-  let of_module (type t) d m (module M : S with type t = t) =
-    make d m M.of_string M.to_string
+  let of_module (type t) m (module M : S with type t = t) =
+    make m M.of_string M.to_string
 
-  let ipv4_address = of_module "ipv4_address" "Ipaddr.V4" (module Ipaddr.V4)
-  let ipv4 = of_module "ipv4" "Ipaddr.V4.Prefix" (module Ipaddr.V4.Prefix)
-  let ipv6_address = of_module "ipv6_address" "Ipaddr.V6" (module Ipaddr.V6)
-  let ipv6 = of_module "ipv6" "Ipaddr.V6.Prefix" (module Ipaddr.V6.Prefix)
-  let ip_address = of_module "ip_address" "Ipaddr" (module Ipaddr)
+  let ipv4_address = of_module "Ipaddr.V4" (module Ipaddr.V4)
+  let ipv4 = of_module "Ipaddr.V4.Prefix" (module Ipaddr.V4.Prefix)
+  let ipv6_address = of_module "Ipaddr.V6" (module Ipaddr.V6)
+  let ipv6 = of_module "Ipaddr.V6.Prefix" (module Ipaddr.V6.Prefix)
+  let ip_address = of_module "Ipaddr" (module Ipaddr)
 end
 
 (** {2 Documentation helper} *)

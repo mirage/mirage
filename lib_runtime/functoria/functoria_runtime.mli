@@ -45,6 +45,11 @@ module Arg : sig
 
   val flag : Cmdliner.Arg.info -> bool t
   (** [flag] is the runtime companion of [Functoria.Key.Arg.flag]. *)
+
+  val conv :
+    (string -> ('a, [ `Msg of string ]) result) ->
+    ('a -> string) ->
+    'a Cmdliner.Arg.conv
 end
 
 (** [Key] defines values that can be set by runtime command-line arguments. This

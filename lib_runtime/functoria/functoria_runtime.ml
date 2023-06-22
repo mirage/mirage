@@ -31,13 +31,6 @@ module Arg = struct
   let key ?default c i =
     match default with None -> required c i | Some d -> opt c d i
 
-  let default (type a) (t : a t) =
-    match t.kind with
-    | Opt (d, _) -> Some d
-    | Opt_all (d, _) -> Some d
-    | Flag -> Some false
-    | Required _ -> None
-
   let kind t = t.kind
   let info t = t.info
 
@@ -61,8 +54,6 @@ module Key = struct
           "Key.get: Called too early. Please delay this call after cmdliner's \
            evaluation."
     | Some v -> v
-
-  let default t = Arg.default t.arg
 
   let term (type a) (t : a t) =
     let set w = t.value <- Some w in

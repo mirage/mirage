@@ -69,10 +69,6 @@ module Key : sig
 
       @raise Invalid_argument if called before cmdliner's evaluation. *)
 
-  val default : 'a t -> 'a option
-  (** [default k] is the default value of [k], if one is available. This
-      function can be called before cmdliner's evaluation. *)
-
   val term : 'a t -> unit Cmdliner.Term.t
   (** [term k] is the [Cmdliner] term whose evaluation sets [k]s' value to the
       parsed command-line argument. *)

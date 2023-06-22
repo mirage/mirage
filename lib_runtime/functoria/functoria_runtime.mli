@@ -76,6 +76,8 @@ module Key : sig
   val term : 'a t -> unit Cmdliner.Term.t
   (** [term k] is the [Cmdliner] term whose evaluation sets [k]s' value to the
       parsed command-line argument. *)
+
+  val register : unit Cmdliner.Term.t -> unit
 end
 
 val argument_error : int
@@ -92,3 +94,5 @@ type info = {
   libraries : (string * string) list;  (** the result of [dune-build-info] *)
 }
 (** The type for build information available at runtime. *)
+
+val runtime_keys : unit -> unit Cmdliner.Term.t list

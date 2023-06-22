@@ -14,6 +14,7 @@ let run x = x
 
 let run ?(keys = []) ?init context device =
   let t = Impl.abstract device in
+  let t = Impl.simplify ~full:false ~context t in
   let keys = keys @ Key.Set.elements (Engine.all_keys t) in
   let packages = Key.eval context (Engine.packages t) in
   let info =

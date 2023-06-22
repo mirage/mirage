@@ -200,7 +200,25 @@ let app_make__16 = lazy (
   App_make__16.start _conduit_mirage_tls__15 _mirage_crypto_rng_mirage_make__3
   )
 
+let sys__17 = lazy (
+  return Sys.argv
+  )
+
+let key_gen__18 = lazy (
+  let __sys__17 = Lazy.force sys__17 in
+  __sys__17 >>= fun _sys__17 ->
+  return (Functoria_runtime.with_argv (List.map fst Key_gen.runtime_keys) "foo" _sys__17)
+  )
+
+let functoria_runtime__19 = lazy (
+  let __app_make__16 = Lazy.force app_make__16 in
+  let __key_gen__18 = Lazy.force key_gen__18 in
+  __app_make__16 >>= fun _app_make__16 ->
+  __key_gen__18 >>= fun _key_gen__18 ->
+  return ()
+  )
+
 let () =
   let t =
-  Lazy.force app_make__16
+  Lazy.force functoria_runtime__19
   in run t

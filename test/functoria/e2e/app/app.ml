@@ -8,8 +8,5 @@ let arg = Functoria_runtime.Key.register arg_t
 
 module Make (_ : sig end) = struct
   let start () =
-    Fmt.pr "Success: vote=%s hello=%s arg=%s\n%!"
-      Key_gen.(vote ())
-      Key_gen.(hello ())
-      (arg ())
+    Fmt.pr "Success: hello=%s arg=%s\n%!" Key_gen.(hello ()) (arg ())
 end

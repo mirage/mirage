@@ -1,7 +1,6 @@
 let hello_t =
-  Cmdliner.Arg.(value (opt Cmdliner.Arg.string "Hello World!"
-    (Cmdliner.Arg.info ~docs:"APPLICATION OPTIONS" ~doc:"How to say hello."
-    ["hello"])))
+  Cmdliner.Arg.(value (opt string "Hello World!"
+    (info ~docs:"APPLICATION OPTIONS" ~doc:"How to say hello." ["hello"])))
 
 let hello = Functoria_runtime.key hello_t
 

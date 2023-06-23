@@ -7,6 +7,12 @@ let accept_router_advertisements_t =
 let accept_router_advertisements =
   Functoria_runtime.key accept_router_advertisements_t
 
+let flag_t =
+  Cmdliner.Arg.(value (flag
+    (info ~docs:"APPLICATION OPTIONS" ~doc:"A flag." ["flag"])))
+
+let flag = Functoria_runtime.key flag_t
+
 let interface_t =
   Cmdliner.Arg.(value (opt string "tap0"
     (info ~docs:"UNIKERNEL PARAMETERS" ~docv:"INTERFACE"
@@ -67,4 +73,24 @@ let ipv6_only_t =
     ~doc:"Only use IPv6 for the unikernel." ["ipv6-only"])))
 
 let ipv6_only = Functoria_runtime.key ipv6_only_t
+
+let opt_t =
+  Cmdliner.Arg.(value (opt string "default"
+    (info ~docs:"APPLICATION OPTIONS" ~doc:"An optional key." ["opt"])))
+
+let opt = Functoria_runtime.key opt_t
+
+let opt_all_t =
+  Cmdliner.Arg.(value (opt_all string []
+    (info ~docs:"APPLICATION OPTIONS" ~doc:"All the optional keys."
+    ["opt-all"])))
+
+let opt_all = Functoria_runtime.key opt_all_t
+
+let required_t =
+  Cmdliner.Arg.(required (opt (some string)
+    None (info ~docs:"APPLICATION OPTIONS"
+         ~doc:"A required key.  This key is required." ["required"])))
+
+let required = Functoria_runtime.key required_t
 

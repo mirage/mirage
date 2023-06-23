@@ -20,7 +20,12 @@ open Misc
 
 module Serialize = struct
   let string fmt s = Format.fprintf fmt "%S" s
-  let option x = Fmt.(parens @@ Dump.option x)
+
+  let option x ppf v =
+    match v with
+    | None -> Fmt.(Dump.option x) ppf v
+    | Some _ -> Fmt.(parens (Dump.option x)) ppf v
+
   let list x = Fmt.Dump.list x
   let pair a b = Fmt.Dump.pair a b
 end
@@ -43,20 +48,20 @@ module Arg = struct
   let runtime_conv x = x.runtime_conv
 
   let string =
-    conv ~conv:Cmdliner.Arg.string ~runtime_conv:"Cmdliner.Arg.string"
-      ~serialize:(fun fmt -> Format.fprintf fmt "%S")
+    conv ~conv:Cmdliner.Arg.string ~runtime_conv:"string" ~serialize:(fun fmt ->
+        Format.fprintf fmt "%S")
 
   let bool =
-    conv ~conv:Cmdliner.Arg.bool ~runtime_conv:"Cmdliner.Arg.bool"
-      ~serialize:(fun fmt -> Format.fprintf fmt "%b")
+    conv ~conv:Cmdliner.Arg.bool ~runtime_conv:"bool" ~serialize:(fun fmt ->
+        Format.fprintf fmt "%b")
 
   let int =
-    conv ~conv:Cmdliner.Arg.int ~runtime_conv:"Cmdliner.Arg.int"
-      ~serialize:(fun fmt i -> Format.fprintf fmt "(%i)" i)
+    conv ~conv:Cmdliner.Arg.int ~runtime_conv:"int" ~serialize:(fun fmt i ->
+        Format.fprintf fmt "(%i)" i)
 
   let int64 =
-    conv ~conv:Cmdliner.Arg.int64 ~runtime_conv:"Cmdliner.Arg.int64"
-      ~serialize:(fun fmt i -> Format.fprintf fmt "(%LiL)" i)
+    conv ~conv:Cmdliner.Arg.int64 ~runtime_conv:"int64" ~serialize:(fun fmt i ->
+        Format.fprintf fmt "(%LiL)" i)
 
   let list ?sep d =
     let runtime_conv =
@@ -122,8 +127,8 @@ module Arg = struct
     let pp_env = pp_opt "env" serialize_env in
     let pp_doc = pp_opt "doc" Serialize.string in
     let pp_docv = pp_opt "docv" Serialize.string in
-    Format.fprintf fmt "(Cmdliner.Arg.info@ ~docs:%a%a%a%a@ %a)"
-      Serialize.string docs pp_docv docv pp_doc doc pp_env env
+    Format.fprintf fmt "@[(info@ ~docs:%a%a%a%a@ %a)@]" Serialize.string docs
+      pp_docv docv pp_doc doc pp_env env
       Serialize.(list string)
       names
 

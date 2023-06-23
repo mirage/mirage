@@ -39,7 +39,7 @@ Build an application.
   vote
   warn_error
   $ ./app/main.exe
-  Success: vote=cat hello=Hello World!
+  Success: vote=cat hello=Hello World! arg=-
   $ ./test.exe clean --file app/config.ml
   $ ls -a app/
   .
@@ -89,7 +89,7 @@ Test `--output`:
   vote
   warn_error
   $ ./app/toto.exe
-  Success: vote=cat hello=Hello World!
+  Success: vote=cat hello=Hello World! arg=-
   $ ./test.exe clean --file app/config.ml
   $ ls -a app/
   .

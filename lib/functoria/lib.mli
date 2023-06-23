@@ -63,8 +63,6 @@ module Make (P : S) : sig
   (** Configuration builder: stage 1 *)
 
   val register :
-    ?packages:package list ->
-    ?keys:abstract_key list ->
     ?init:job impl list ->
     ?src:[ `Auto | `None | `Some of string ] ->
     string ->

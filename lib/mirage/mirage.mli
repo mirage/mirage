@@ -1069,8 +1069,6 @@ val app_info_with_opam_deps : (string * string) list -> info impl
 val register :
   ?argv:argv impl ->
   ?reporter:reporter impl ->
-  ?keys:Key.t list ->
-  ?packages:Functoria.package list ->
   ?src:[ `Auto | `None | `Some of string ] ->
   string ->
   job impl list ->
@@ -1078,8 +1076,6 @@ val register :
 (** [register name jobs] registers the application named by [name] which will
     executes the given [jobs].
 
-    @param packages The opam packages needed by this module.
-    @param keys The keys related to this module.
     @param reporter
       Configure logging. The default log reporter is {!default_reporter}. To
       disable logging, use {!no_reporter}.

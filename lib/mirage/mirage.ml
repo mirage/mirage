@@ -478,8 +478,8 @@ let ( ++ ) acc x =
   | None, Some x -> Some [ x ]
   | Some acc, Some x -> Some (acc @ [ x ])
 
-let register ?(argv = default_argv) ?(reporter = default_reporter ())
-    ?keys:extra_keys ?packages ?src name jobs =
+let register ?(argv = default_argv) ?(reporter = default_reporter ()) ?src name
+    jobs =
   if List.exists Functoria.Impl.app_has_no_arguments jobs then
     invalid_arg
       "Your configuration includes a job without arguments. Please add a \
@@ -489,6 +489,6 @@ let register ?(argv = default_argv) ?(reporter = default_reporter ())
   let first = [ keys argv; backtrace; randomize_hashtables; gc_control ] in
   let reporter = if reporter == no_reporter then None else Some reporter in
   let init = Some first ++ reporter in
-  register ?keys:extra_keys ?packages ?init ?src name jobs
+  register ?init ?src name jobs
 
 module Action = Functoria.Action

@@ -97,7 +97,7 @@ module Arg : sig
 
   (** {1 Optional Arguments} *)
 
-  type stage = [ `Configure | `Run | `Both ]
+  type stage = [ `Configure | `Run ]
   (** The type for specifying at which stage an argument is available.
 
       - [`Configure] means that the argument is read on the command-line at
@@ -217,10 +217,10 @@ val pp_deps : 'a value Fmt.t
 (** {1 Stages} *)
 
 val is_runtime : t -> bool
-(** [is_runtime k] is true if [k]'s stage is [`Run] or [`Both]. *)
+(** [is_runtime k] is true if [k]'s stage is [`Run]. *)
 
 val is_configure : t -> bool
-(** [is_configure k] is true if [k]'s stage is [`Configure] or [`Both]. *)
+(** [is_configure k] is true if [k]'s stage is [`Configure]. *)
 
 val filter_stage : Arg.stage -> Set.t -> Set.t
 (** [filter_stage s ks] is [ks] but with only keys available at stage [s]. *)

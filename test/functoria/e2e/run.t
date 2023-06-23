@@ -2,7 +2,7 @@ Run an application
 
   $ ./test.exe configure --file app/config.ml
   $ dune exec -- ./app/main.exe --arg=yo
-  Success: vote=cat hello=Hello World! arg=yo
+  Success: hello=Hello World! arg=yo
   $ dune exec -- ./app/main.exe --help=plain
   NAME
          noop

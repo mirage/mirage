@@ -241,14 +241,6 @@ module Arg = struct
         in
         make_opt_all_cmdliner wrap i desc
 
-  let serialize_value (type a) (v : a) ppf (t : a t) =
-    match t.kind with
-    | Flag -> (serialize bool) ppf v
-    | Opt (_, c) -> (serialize c) ppf v
-    | Required c -> (
-        match v with Some v -> (serialize c) ppf v | None -> assert false)
-    | Opt_all c -> (serialize (list c)) ppf v
-
   (* This is only called by serialize_ro, hence a configure time
            key, so the value is known. *)
 
@@ -457,12 +449,4 @@ let serialize_runtime ctx fmt t =
      @[<2>let %s =@ @[Functoria_runtime.key@ %s_t@]@]@,"
     (ocaml_name t) (serialize ctx) t (ocaml_name t) (ocaml_name t)
 
-let serialize_configure ctx fmt t =
-  let (Any k) = t in
-  Format.fprintf fmt "@[<2>let %s () =@ %a@]@," (ocaml_name t)
-    (Arg.serialize_value (get ctx k))
-    (arg k)
-
-let serialize ctx fmt k =
-  if is_runtime k then serialize_runtime ctx fmt k
-  else serialize_configure ctx fmt k
+let serialize ctx fmt k = if is_runtime k then serialize_runtime ctx fmt k

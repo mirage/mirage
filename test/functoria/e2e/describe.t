@@ -2,10 +2,8 @@ Test that `describe` works as expected:
 
   $ ./test.exe describe --file app/config.ml
   Name       noop
-  Keys      
-    hello=Hello World! (default),
-    vote=cat (default),
-    warn_error=false (default)
+  Keys       vote=cat (default),
+             warn_error=false (default)
   $ ./test.exe describe -v --file app/config.ml
   test.exe: [INFO] run: describe:
                         { "args" =
@@ -20,8 +18,6 @@ Test that `describe` works as expected:
   test.exe: [INFO] Generating: dune-project (base)
   test.exe: [INFO] Generating: app/dune.config (base)
   Name       noop
-  Keys      
-    hello=Hello World! (default),
-    vote=cat (default),
-    warn_error=false (default)Libraries  fmt, functoria-runtime
+  Keys       vote=cat (default),
+             warn_error=false (default)Libraries  fmt, functoria-runtime
   Packages   fmt { ?monorepo }, functoria-runtime { ?monorepo }

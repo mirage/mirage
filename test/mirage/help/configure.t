@@ -104,10 +104,6 @@ Help configure --man-format=plain
          -o FILE, --output=FILE
              Name of the output file.
   
-  APPLICATION OPTIONS
-         --hello=VAL (absent=Hello World!)
-             How to say hello.
-  
   COMMON OPTIONS
          --color=WHEN (absent=auto)
              Colorize the output. WHEN must be one of auto, always or never.
@@ -261,10 +257,6 @@ Configure help --help=plain
   
          -o FILE, --output=FILE
              Name of the output file.
-  
-  APPLICATION OPTIONS
-         --hello=VAL (absent=Hello World!)
-             How to say hello.
   
   COMMON OPTIONS
          --color=WHEN (absent=auto)

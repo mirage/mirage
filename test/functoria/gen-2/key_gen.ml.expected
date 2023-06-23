@@ -1,6 +1,1 @@
-let hello_t =
-  Cmdliner.Arg.(value (opt string "Hello World!"
-    (info ~docs:"APPLICATION OPTIONS" ~doc:"How to say hello." ["hello"])))
-
-let hello = Functoria_runtime.Key.register hello_t
 

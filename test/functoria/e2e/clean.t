@@ -32,10 +32,8 @@ Make sure that clean remove everything:
   test.exe: [INFO] Generating: app/dune.config (base)
   config.exe: [INFO] reading cache app/test/context
   config.exe: [INFO] Name       noop
-                     Keys      
-                       hello=Hello World! (default),
-                       vote=cat (default),
-                       warn_error=false (default)
+                     Keys       vote=cat (default),
+                                warn_error=false (default)
   test.exe: [INFO] Skipped ./app
   test.exe: [INFO] Skipped ./help.exe
   test.exe: [INFO] Skipped ./lib
@@ -80,10 +78,8 @@ Check that clean works with `--output`:
   test.exe: [INFO] Generating: app/dune.config (base)
   config.exe: [INFO] reading cache app/test/context
   config.exe: [INFO] Name       noop
-                     Keys      
-                       hello=Hello World! (default),
-                       vote=cat (default),
-                       warn_error=false (default)Output     toto
+                     Keys       vote=cat (default),
+                                warn_error=false (default)Output     toto
   test.exe: [INFO] Skipped ./app
   test.exe: [INFO] Skipped ./help.exe
   test.exe: [INFO] Skipped ./lib

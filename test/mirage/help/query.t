@@ -110,10 +110,6 @@ Help query --man-format=plain
              'opam', 'files', 'Makefile', 'dune.config', 'dune.build',
              'dune-project', 'dune-workspace' or 'dune.dist'
   
-  APPLICATION OPTIONS
-         --hello=VAL (absent=Hello World!)
-             How to say hello.
-  
   COMMON OPTIONS
          --color=WHEN (absent=auto)
              Colorize the output. WHEN must be one of auto, always or never.
@@ -273,10 +269,6 @@ Help query --help=plain
              The information to query. INFO must be one of 'name', 'packages',
              'opam', 'files', 'Makefile', 'dune.config', 'dune.build',
              'dune-project', 'dune-workspace' or 'dune.dist'
-  
-  APPLICATION OPTIONS
-         --hello=VAL (absent=Hello World!)
-             How to say hello.
   
   COMMON OPTIONS
          --color=WHEN (absent=auto)

@@ -8,12 +8,13 @@ Run an application
          noop
   
   SYNOPSIS
-         noop [OPTION]…
+         noop [--hello=VAL] [OPTION]…
   
   APPLICATION OPTIONS
          --arg=VAL (absent=-)
              A runtime argument.
   
+  OPTIONS
          --hello=VAL (absent=Hello World!)
              How to say hello.
   

@@ -40,9 +40,6 @@ Help configure --man-format=plain
              Name of the output file.
   
   APPLICATION OPTIONS
-         --hello=VAL (absent=Hello World!)
-             How to say hello.
-  
          --vote=VOTE (absent=cat)
              Vote.
   
@@ -135,9 +132,6 @@ Configure help --help=plain
              Name of the output file.
   
   APPLICATION OPTIONS
-         --hello=VAL (absent=Hello World!)
-             How to say hello.
-  
          --vote=VOTE (absent=cat)
              Vote.
   

@@ -139,6 +139,8 @@ let is_xen =
 
 (** {2 OCaml runtime} *)
 
+(* FIXME: these could move to Mirage_runtime *)
+
 let ocaml_section = "OCAML RUNTIME PARAMETERS"
 
 let backtrace =
@@ -147,7 +149,7 @@ let backtrace =
      aborts the unikernel."
   in
   let doc = Arg.info ~docs:ocaml_section ~docv:"BOOL" ~doc [ "backtrace" ] in
-  let key = Arg.opt Arg.bool true doc in
+  let key = Arg.opt ~stage:`Run Arg.bool true doc in
   Key.create "backtrace" key
 
 let randomize_hashtables =
@@ -155,7 +157,7 @@ let randomize_hashtables =
   let doc =
     Arg.info ~docs:ocaml_section ~docv:"BOOL" ~doc [ "randomize-hashtables" ]
   in
-  let key = Arg.opt Arg.bool true doc in
+  let key = Arg.opt ~stage:`Run Arg.bool true doc in
   Key.create "randomize-hashtables" key
 
 let allocation_policy =
@@ -176,7 +178,7 @@ let allocation_policy =
   let doc =
     Arg.info ~docs:ocaml_section ~docv:"ALLOCATION" ~doc [ "allocation-policy" ]
   in
-  let key = Arg.opt conv `Next_fit doc in
+  let key = Arg.opt ~stage:`Run conv `Next_fit doc in
   Key.create "allocation-policy" key
 
 let minor_heap_size =
@@ -184,7 +186,7 @@ let minor_heap_size =
   let doc =
     Arg.info ~docs:ocaml_section ~docv:"MINOR SIZE" ~doc [ "minor-heap-size" ]
   in
-  let key = Arg.(opt (some int) None doc) in
+  let key = Arg.(opt ~stage:`Run (some int) None doc) in
   Key.create "minor-heap-size" key
 
 let major_heap_increment =
@@ -197,7 +199,7 @@ let major_heap_increment =
     Arg.info ~docs:ocaml_section ~docv:"MAJOR INCREMENT" ~doc
       [ "major-heap-increment" ]
   in
-  let key = Arg.(opt (some int) None doc) in
+  let key = Arg.(opt ~stage:`Run (some int) None doc) in
   Key.create "major-heap-increment" key
 
 let space_overhead =
@@ -210,7 +212,7 @@ let space_overhead =
     Arg.info ~docs:ocaml_section ~docv:"SPACE OVERHEAD" ~doc
       [ "space-overhead" ]
   in
-  let key = Arg.(opt (some int) None doc) in
+  let key = Arg.(opt ~stage:`Run (some int) None doc) in
   Key.create "space-overhead" key
 
 let max_space_overhead =
@@ -223,7 +225,7 @@ let max_space_overhead =
     Arg.info ~docs:ocaml_section ~docv:"MAX SPACE OVERHEAD" ~doc
       [ "max-space-overhead" ]
   in
-  let key = Arg.(opt (some int) None doc) in
+  let key = Arg.(opt ~stage:`Run (some int) None doc) in
   Key.create "max-space-overhead" key
 
 let gc_verbosity =
@@ -234,7 +236,7 @@ let gc_verbosity =
   let doc =
     Arg.info ~docs:ocaml_section ~docv:"VERBOSITY" ~doc [ "gc-verbosity" ]
   in
-  let key = Arg.(opt (some int) None doc) in
+  let key = Arg.(opt ~stage:`Run (some int) None doc) in
   Key.create "gc-verbosity" key
 
 let gc_window_size =
@@ -245,7 +247,7 @@ let gc_window_size =
   let doc =
     Arg.info ~docs:ocaml_section ~docv:"WINDOW SIZE" ~doc [ "gc-window-size" ]
   in
-  let key = Arg.(opt (some int) None doc) in
+  let key = Arg.(opt ~stage:`Run (some int) None doc) in
   Key.create "gc-window-size" key
 
 let custom_major_ratio =
@@ -257,7 +259,7 @@ let custom_major_ratio =
     Arg.info ~docs:ocaml_section ~docv:"CUSTOM MAJOR RATIO" ~doc
       [ "custom-major-ratio" ]
   in
-  let key = Arg.(opt (some int) None doc) in
+  let key = Arg.(opt ~stage:`Run (some int) None doc) in
   Key.create "custom-major-ratio" key
 
 let custom_minor_ratio =
@@ -269,7 +271,7 @@ let custom_minor_ratio =
     Arg.info ~docs:ocaml_section ~docv:"CUSTOM MINOR RATIO" ~doc
       [ "custom-minor-ratio" ]
   in
-  let key = Arg.(opt (some int) None doc) in
+  let key = Arg.(opt ~stage:`Run (some int) None doc) in
   Key.create "custom-minor-ratio" key
 
 let custom_minor_max_size =
@@ -281,7 +283,7 @@ let custom_minor_max_size =
     Arg.info ~docs:ocaml_section ~docv:"CUSTOM MINOR MAX SIZE" ~doc
       [ "custom-minor-max-size" ]
   in
-  let key = Arg.(opt (some int) None doc) in
+  let key = Arg.(opt ~stage:`Run (some int) None doc) in
   Key.create "custom-minor-max-size" key
 
 (** {2 General mirage keys} *)
@@ -447,7 +449,7 @@ let logs =
   in
   let logs = Key.Arg.conv ~conv ~serialize ~runtime_conv in
   let info = Key.Arg.info ~env ~docv:"LEVEL" ~doc ~docs [ "l"; "logs" ] in
-  let arg = Key.Arg.(opt logs []) info in
+  let arg = Key.Arg.(opt ~stage:`Run logs []) info in
   Key.create "logs" arg
 
 include (Key : Functoria.KEY with module Arg := Arg)

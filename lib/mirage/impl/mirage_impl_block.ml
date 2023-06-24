@@ -260,14 +260,14 @@ let disk =
          only alpanumeric characters)."
       [ "disk" ]
   in
-  Key.(create "disk" Arg.(opt ~stage:`Configure string "disk" doc))
+  Key.(create "disk" Arg.(opt ~stage:`Run string "disk" doc))
 
 let analyze =
   let doc =
     Key.Arg.info ~doc:"Analyze at the boot time the given docteur disk."
       [ "analyze" ]
   in
-  Key.(create "analyze" Arg.(opt bool true doc))
+  Key.(create "analyze" Arg.(opt ~stage:`Run bool true doc))
 
 let docteur ?(mode = `Fast) ?(disk = disk) ?(analyze = analyze) ?branch
     ?(extra_deps = []) remote =

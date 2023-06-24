@@ -11,12 +11,6 @@ Help configure -o --man-format=plain
   DESCRIPTION
          The configure command initializes a fresh mirage application.
   
-  UNIKERNEL PARAMETERS
-         -l LEVEL, --logs=LEVEL (absent MIRAGE_LOGS env)
-             Be more or less verbose. LEVEL must be of the form
-             *:info,foo:debug means that that the log threshold is set to info
-             for every log sources but the foo which is set to debug.
-  
   MIRAGE PARAMETERS
          -t TARGET, --target=TARGET (absent=unix or MODE env)
              Target platform to compile the unikernel for. Valid values are:
@@ -91,9 +85,6 @@ Help configure -o --man-format=plain
   
          MIRAGE_EXTRA_REPOS
              See option --extra-repos.
-  
-         MIRAGE_LOGS
-             See option --logs.
   
          MODE
              See option --target.
@@ -113,12 +104,6 @@ Help configure -o --help=plain
   DESCRIPTION
          The configure command initializes a fresh mirage application.
   
-  UNIKERNEL PARAMETERS
-         -l LEVEL, --logs=LEVEL (absent MIRAGE_LOGS env)
-             Be more or less verbose. LEVEL must be of the form
-             *:info,foo:debug means that that the log threshold is set to info
-             for every log sources but the foo which is set to debug.
-  
   MIRAGE PARAMETERS
          -t TARGET, --target=TARGET (absent=unix or MODE env)
              Target platform to compile the unikernel for. Valid values are:
@@ -193,9 +178,6 @@ Help configure -o --help=plain
   
          MIRAGE_EXTRA_REPOS
              See option --extra-repos.
-  
-         MIRAGE_LOGS
-             See option --logs.
   
          MODE
              See option --target.

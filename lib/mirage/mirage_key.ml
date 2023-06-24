@@ -456,7 +456,7 @@ let logs =
   in
   let logs = Key.Arg.conv ~conv ~serialize ~runtime_conv in
   let info = Key.Arg.info ~env ~docv:"LEVEL" ~doc ~docs [ "l"; "logs" ] in
-  let arg = Key.Arg.(opt logs []) info in
+  let arg = Key.Arg.(opt ~stage:`Run logs []) info in
   Key.create "logs" arg
 
 include (Key : Functoria.KEY with module Arg := Arg)

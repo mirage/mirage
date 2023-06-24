@@ -24,12 +24,6 @@ Help describe --man-format=plain
          App vertices
              Represented as diamonds. The bold arrow is the functor part.
   
-  UNIKERNEL PARAMETERS
-         -l LEVEL, --logs=LEVEL (absent MIRAGE_LOGS env)
-             Be more or less verbose. LEVEL must be of the form
-             *:info,foo:debug means that that the log threshold is set to info
-             for every log sources but the foo which is set to debug.
-  
   MIRAGE PARAMETERS
          -t TARGET, --target=TARGET (absent=unix or MODE env)
              Target platform to compile the unikernel for. Valid values are:
@@ -101,9 +95,6 @@ Help describe --man-format=plain
   
   ENVIRONMENT
          These environment variables affect the execution of describe:
-  
-         MIRAGE_LOGS
-             See option --logs.
   
          MODE
              See option --target.
@@ -136,12 +127,6 @@ Help describe --help=plain
          App vertices
              Represented as diamonds. The bold arrow is the functor part.
   
-  UNIKERNEL PARAMETERS
-         -l LEVEL, --logs=LEVEL (absent MIRAGE_LOGS env)
-             Be more or less verbose. LEVEL must be of the form
-             *:info,foo:debug means that that the log threshold is set to info
-             for every log sources but the foo which is set to debug.
-  
   MIRAGE PARAMETERS
          -t TARGET, --target=TARGET (absent=unix or MODE env)
              Target platform to compile the unikernel for. Valid values are:
@@ -213,9 +198,6 @@ Help describe --help=plain
   
   ENVIRONMENT
          These environment variables affect the execution of describe:
-  
-         MIRAGE_LOGS
-             See option --logs.
   
          MODE
              See option --target.

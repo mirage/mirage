@@ -11,12 +11,6 @@ Help query --man-format=plain
   DESCRIPTION
          The query command queries information about the mirage application.
   
-  UNIKERNEL PARAMETERS
-         -l LEVEL, --logs=LEVEL (absent MIRAGE_LOGS env)
-             Be more or less verbose. LEVEL must be of the form
-             *:info,foo:debug means that that the log threshold is set to info
-             for every log sources but the foo which is set to debug.
-  
   QUERY OPTIONS
          --depext
              Enable call to `opam depext' in the project Makefile.
@@ -97,9 +91,6 @@ Help query --man-format=plain
   
          MIRAGE_EXTRA_REPOS
              See option --extra-repos.
-  
-         MIRAGE_LOGS
-             See option --logs.
   
          MODE
              See option --target.
@@ -119,12 +110,6 @@ Help query --help=plain
   DESCRIPTION
          The query command queries information about the mirage application.
   
-  UNIKERNEL PARAMETERS
-         -l LEVEL, --logs=LEVEL (absent MIRAGE_LOGS env)
-             Be more or less verbose. LEVEL must be of the form
-             *:info,foo:debug means that that the log threshold is set to info
-             for every log sources but the foo which is set to debug.
-  
   QUERY OPTIONS
          --depext
              Enable call to `opam depext' in the project Makefile.
@@ -205,9 +190,6 @@ Help query --help=plain
   
          MIRAGE_EXTRA_REPOS
              See option --extra-repos.
-  
-         MIRAGE_LOGS
-             See option --logs.
   
          MODE
              See option --target.

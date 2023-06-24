@@ -12,12 +12,6 @@ Help clean --man-format=plain
   DESCRIPTION
          Clean the files produced by mirage for a given application.
   
-  UNIKERNEL PARAMETERS
-         -l LEVEL, --logs=LEVEL (absent MIRAGE_LOGS env)
-             Be more or less verbose. LEVEL must be of the form
-             *:info,foo:debug means that that the log threshold is set to info
-             for every log sources but the foo which is set to debug.
-  
   MIRAGE PARAMETERS
          -t TARGET, --target=TARGET (absent=unix or MODE env)
              Target platform to compile the unikernel for. Valid values are:
@@ -72,9 +66,6 @@ Help clean --man-format=plain
   
   ENVIRONMENT
          These environment variables affect the execution of clean:
-  
-         MIRAGE_LOGS
-             See option --logs.
   
          MODE
              See option --target.
@@ -95,12 +86,6 @@ Help clean --help=plain
   DESCRIPTION
          Clean the files produced by mirage for a given application.
   
-  UNIKERNEL PARAMETERS
-         -l LEVEL, --logs=LEVEL (absent MIRAGE_LOGS env)
-             Be more or less verbose. LEVEL must be of the form
-             *:info,foo:debug means that that the log threshold is set to info
-             for every log sources but the foo which is set to debug.
-  
   MIRAGE PARAMETERS
          -t TARGET, --target=TARGET (absent=unix or MODE env)
              Target platform to compile the unikernel for. Valid values are:
@@ -155,9 +140,6 @@ Help clean --help=plain
   
   ENVIRONMENT
          These environment variables affect the execution of clean:
-  
-         MIRAGE_LOGS
-             See option --logs.
   
          MODE
              See option --target.

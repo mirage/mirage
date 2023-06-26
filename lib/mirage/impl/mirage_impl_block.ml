@@ -260,7 +260,7 @@ let disk =
          only alpanumeric characters)."
       [ "disk" ]
   in
-  Key.(create "disk" Arg.(opt ~stage:`Configure string "disk" doc))
+  Key.(create "disk" Arg.(opt ~stage:`Run string "disk" doc))
 
 let analyze =
   let doc =

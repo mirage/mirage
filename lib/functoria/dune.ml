@@ -108,5 +108,5 @@ let base ~packages ~name ~version ~config_ml_file =
   let disable_duniverse = "(data_only_dirs duniverse)" in
   disable_duniverse :: dune_base
 
-let base_project = [ stanza "(lang dune 2.7)" ]
+let base_project = [ stanza "(lang dune 2.9)" ]
 let base_workspace = v [ stanza "(lang dune 2.0)\n(context default)" ]

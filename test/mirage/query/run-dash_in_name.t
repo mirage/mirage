@@ -92,7 +92,7 @@ Query makefile
 
 Query dune-project
   $ ./config_dash_in_name.exe query dune-project --target unix
-  (lang dune 2.7)
+  (lang dune 2.9)
   
   (name noop-functor.v0-unix)
   

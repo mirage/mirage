@@ -260,7 +260,7 @@ Query configuration dune
 
 Query dune-project
   $ ./config.exe query dune-project
-  (lang dune 2.7)
+  (lang dune 2.9)
   
   (name noop)
 

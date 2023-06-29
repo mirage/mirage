@@ -250,16 +250,21 @@ module Arg = struct
   let serialize (type a) : a -> a t serialize =
    fun v ppf t ->
     match t.kind with
-    | Flag -> Fmt.pf ppf "Functoria_runtime.Arg.flag@ %a" serialize_info t.info
+    | Flag ->
+        Fmt.pf ppf "Cmdliner.Arg.(value@ (flag@ %a))" serialize_info t.info
     | Opt (_, c) ->
-        Fmt.pf ppf "Functoria_runtime.Arg.opt@ %s@ %a@ %a" (runtime_conv c)
+        Fmt.pf ppf "Cmdliner.Arg.(value@ (opt@ %s@ %a@ %a))" (runtime_conv c)
           (serialize c) v serialize_info t.info
     | Required c ->
-        Fmt.pf ppf "Functoria_runtime.Arg.key@ ?default:(%a)@ %s@ %a"
-          (serialize @@ some c)
-          v (runtime_conv c) serialize_info t.info
+        let pp_default ppf = function
+          | None -> ()
+          | Some d -> Fmt.pf ppf "@ ~default:%a" (serialize c) d
+        in
+        Fmt.pf ppf "Cmdliner.Arg.(required@ (opt%a@ (some %s)@ None %a))"
+          pp_default v (runtime_conv c) serialize_info t.info
     | Opt_all c ->
-        Fmt.pf ppf "Functoria_runtime.Arg.opt_all@ %s@ %a@ %a" (runtime_conv c)
+        Fmt.pf ppf "Cmdliner.Arg.(value@ (opt_all@ %s@ %a@ %a))"
+          (runtime_conv c)
           (serialize (list c))
           v serialize_info t.info
 end
@@ -442,14 +447,10 @@ let serialize ctx ppf (Any k) = Arg.serialize (get ctx k) ppf (arg k)
 
 let serialize_runtime ctx fmt t =
   Format.fprintf fmt
-    "@[<2>let %s =@ @[Functoria_runtime.Key.create@ %a@]@]@,\
+    "@[<2>let %s_t =@ @[<2>%a@]@]@,\
      @,\
-     @[<2>let () =@ @[Functoria_runtime.(key@ (Key.term@ %s))@]@]@,\
-     @,\
-     @[<2>let %s () =@ @[Functoria_runtime.Key.get@ %s@]@]@,"
-    (ocaml_name t)
-    Fmt.(parens (serialize ctx))
-    t (ocaml_name t) (ocaml_name t) (ocaml_name t)
+     @[<2>let %s =@ @[Functoria_runtime.key@ %s_t@]@]@,"
+    (ocaml_name t) (serialize ctx) t (ocaml_name t) (ocaml_name t)
 
 let serialize_configure ctx fmt t =
   let (Any k) = t in

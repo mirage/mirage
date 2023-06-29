@@ -24,7 +24,7 @@ module Arg = struct
   include Key.Arg
 
   let from_run s =
-    Fmt.str "@[<2>(Functoria_runtime.Arg.conv@ %s.of_string@ %s.to_string)@]" s
+    Fmt.str "@[<2>(Functoria_runtime.Key.conv@ %s.of_string@ %s.to_string)@]" s
       s
 
   let make m of_string to_string =

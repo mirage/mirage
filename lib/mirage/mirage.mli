@@ -1088,6 +1088,7 @@ module Impl = Functoria.Impl
 module Info = Functoria.Info
 module Dune = Functoria.Dune
 module Action = Functoria.Action
+module Context = Functoria.Context
 
 module Project : sig
   val dune : Info.t -> Dune.stanza list

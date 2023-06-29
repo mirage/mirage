@@ -23,7 +23,7 @@ type t = {
   name : string;
   output : string option;
   keys : Key.Set.t;
-  context : Key.context;
+  context : Context.t;
   packages : Package.t String.Map.t;
   opam :
     extra_repo:(string * string) list ->
@@ -110,6 +110,6 @@ let pp verbose ppf ({ name; keys; context; output; _ } as t) =
 let t =
   let i =
     v ~config_file:(Fpath.v "config.ml") ~packages:[] ~keys:[]
-      ~build_cmd:"dummy" ~context:Key.empty_context ~src:`None "dummy"
+      ~build_cmd:"dummy" ~context:Context.empty ~src:`None "dummy"
   in
   Type.v i

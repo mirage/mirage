@@ -69,10 +69,8 @@ let peek t term =
   | _ -> None
 
 let merge t term =
-  let cache =
-    match peek t term with None -> Key.empty_context | Some c -> c
-  in
-  let f term = Key.merge_context ~default:cache term in
+  let cache = match peek t term with None -> Context.empty | Some c -> c in
+  let f term = Context.merge ~default:cache term in
   Cmdliner.Term.(const f $ term)
 
 let peek_output t = Cli.peek_output t

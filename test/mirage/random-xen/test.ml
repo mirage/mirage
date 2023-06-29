@@ -1,7 +1,7 @@
 open Mirage
 
 let test () =
-  let context = Key.add_to_context Key.target `Xen Key.empty_context in
+  let context = Key.add_to_context Key.target `Xen Context.empty in
   let keys = [ Key.v Mirage.Key.target ] in
   let sigs = conduit @-> random @-> job in
   let network = default_network in

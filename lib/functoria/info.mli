@@ -53,7 +53,7 @@ val opam :
 val keys : t -> Key.t list
 (** [keys t] are the keys declared by the project. *)
 
-val context : t -> Key.context
+val context : t -> Context.t
 (** [parsed t] is a value representing the command-line argument being parsed. *)
 
 val get : t -> 'a Key.key -> 'a
@@ -63,7 +63,7 @@ val v :
   ?config_file:Fpath.t ->
   packages:Package.t list ->
   keys:Key.t list ->
-  context:Key.context ->
+  context:Context.t ->
   ?configure_cmd:string ->
   ?pre_build_cmd:(Fpath.t option -> string) ->
   ?lock_location:(Fpath.t option -> string -> string) ->

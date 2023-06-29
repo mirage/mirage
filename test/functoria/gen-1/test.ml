@@ -20,7 +20,7 @@ let build_info =
   ]
 
 let test () =
-  let context = Key.empty_context in
+  let context = Context.empty in
   let sigs = job @-> info @-> job in
   let job = main "App.Make" sigs $ keys sys_argv $ app_info ~build_info () in
   Functoria_test.run context job

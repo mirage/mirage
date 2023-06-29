@@ -22,6 +22,7 @@ module Impl = Impl
 module Info = Info
 module Dune = Dune
 module Key = Mirage_key
+module Context = Context
 module Log = Mirage_impl_misc.Log
 include Functoria.DSL
 

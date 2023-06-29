@@ -26,7 +26,7 @@ let key =
 let test () =
   let i1 = keys sys_argv in
   let i2 = noop in
-  let context = Key.empty_context in
+  let context = Context.empty in
   let sigs = job @-> job @-> info @-> job in
   let job =
     main ~keys:[ Key.v key ] "App.Make" sigs $ i1 $ i2 $ app_info ~build_info ()

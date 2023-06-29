@@ -17,6 +17,7 @@
  *)
 
 open Astring
+module Context = Context
 module Key = Key
 module Package = Package
 module Info = Info
@@ -44,7 +45,6 @@ module type KEY =
      and type 'a key = 'a Key.key
      and type t = Key.t
      and type Set.t = Key.Set.t
-     and type context = Key.context
 
 (** Devices *)
 

@@ -7,7 +7,7 @@ let key_c =
   Key.create "c" Key.Arg.(required ~stage:`Configure string @@ info [ "c" ])
 
 let key_d = Key.create "d" Key.Arg.(opt_all int @@ info [ "d" ])
-let empty = Key.empty_context
+let empty = Context.empty
 let ( & ) (k, v) c = Key.add_to_context k v c
 let ( && ) x y = x & y & empty
 
@@ -73,7 +73,7 @@ let test_find () =
 let test_merge () =
   let cache = (key_a, true) && (key_c, Some "foo") in
   let cli = (key_a, false) && (key_b, 2) in
-  let context = Key.merge_context ~default:cache cli in
+  let context = Context.merge ~default:cache cli in
   Alcotest.(check bool) "merge a" false (Key.get context key_a);
   Alcotest.(check int) "merge b" 2 (Key.get context key_b);
   Alcotest.(check (option string))

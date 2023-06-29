@@ -217,15 +217,14 @@ module Arg = struct
   let make_opt_all_cmdliner wrap i desc =
     Cmdliner.Arg.(wrap @@ opt_all (converter desc) [] i)
 
-  let to_cmdliner ~with_required (type a) (t : a t) : a option Cmdliner.Term.t =
+  let to_cmdliner (type a) (t : a t) : a option Cmdliner.Term.t =
     let i = cmdliner_of_info t.info in
     match t.kind with
     | Flag -> Cmdliner.Arg.(value & vflag None [ (Some true, i) ])
     | Opt (default, desc) ->
         make_opt_cmdliner Cmdliner.Arg.value i (Some default) desc
-    | Required desc when with_required && t.stage = `Configure ->
+    | Required desc ->
         make_opt_cmdliner Cmdliner.Arg.required i None (some (some desc))
-    | Required desc -> make_opt_cmdliner Cmdliner.Arg.value i None (some desc)
     | Opt_all desc ->
         let list_to_option = function
           | [] -> None
@@ -423,12 +422,12 @@ let create name arg =
 
 (* {2 Cmdliner interface} *)
 
-let context ?(stage = `Both) ~with_required l =
+let context ?(stage = `Both) l =
   let stage = filter_stage stage l in
   let names = Names.of_list (Set.elements stage) in
   let gather (Any k) rest =
     let f v p = match v with None -> p | Some v -> Context.add k.key v p in
-    let key = Arg.to_cmdliner k.arg ~with_required in
+    let key = Arg.to_cmdliner k.arg in
     match k.arg.Arg.kind with
     | Arg.Opt _ -> Cmdliner.Term.(const f $ key $ rest)
     | Arg.Required _ -> Cmdliner.Term.(const f $ key $ rest)

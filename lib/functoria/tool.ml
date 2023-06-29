@@ -131,8 +131,7 @@ module Make (P : S) = struct
          provided by the specialized DSL. *)
       let base_keys = Engine.all_keys @@ Impl.abstract @@ P.create [] in
       Cmdliner.Term.(
-        const (fun _ -> Action.ok ())
-        $ Key.context base_keys ~with_required:false ~stage:`Configure)
+        const (fun _ -> Action.ok ()) $ Key.context base_keys ~stage:`Configure)
     in
     let result =
       Cli.eval ?help_ppf ?err_ppf ~name:P.name ~version:P.version

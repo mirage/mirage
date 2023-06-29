@@ -171,7 +171,7 @@ module Make (P : S) = struct
       | Some _, _ -> output
       | _, cache -> cache
     in
-    let context = Key.context ~stage:`Configure keys in
+    let context = Key.context keys in
     let context = Context_cache.merge cache context in
     let f context =
       let config = Key.eval context info context in
@@ -458,7 +458,7 @@ module Make (P : S) = struct
       (* Consider only the non-required keys. *)
       let non_required_term =
         let if_keys = Config.keys config in
-        Key.context ~stage:`Configure if_keys
+        Key.context if_keys
       in
       let context =
         match Cmdliner.Cmd.eval_peek_opts ~argv non_required_term with

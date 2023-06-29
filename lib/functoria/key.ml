@@ -140,7 +140,7 @@ module Arg = struct
     | Required : 'a converter -> 'a option kind
     | Flag : bool kind
 
-  type stage = [ `Configure | `Run | `Both ]
+  type stage = [ `Configure | `Run ]
 
   let pp_conv c = snd (converter c)
 
@@ -191,15 +191,16 @@ module Arg = struct
 
   let stage t = t.stage
 
-  let opt ?(stage = `Both) conv default info =
+  let opt ?(stage = `Configure) conv default info =
     { stage; info; kind = Opt (default, conv) }
 
-  let flag ?(stage = `Both) info = { stage; info; kind = Flag }
+  let flag ?(stage = `Configure) info = { stage; info; kind = Flag }
 
-  let required ?(stage = `Both) conv info =
+  let required ?(stage = `Configure) conv info =
     { stage; info; kind = Required conv }
 
-  let opt_all ?(stage = `Both) conv info = { stage; info; kind = Opt_all conv }
+  let opt_all ?(stage = `Configure) conv info =
+    { stage; info; kind = Opt_all conv }
 
   let default (type a) (t : a t) =
     match t.kind with
@@ -315,18 +316,13 @@ let abstract = v
 let arg k = k.arg
 let name (Any k) = k.name
 let stage (Any k) = Arg.stage k.arg
-
-let is_runtime k =
-  match stage k with `Run | `Both -> true | `Configure -> false
-
-let is_configure k =
-  match stage k with `Configure | `Both -> true | `Run -> false
+let is_runtime k = match stage k with `Run -> true | `Configure -> false
+let is_configure k = match stage k with `Configure -> true | `Run -> false
 
 let filter_stage stage s =
   match stage with
   | `Run -> Set.filter is_runtime s
   | `Configure | `NoEmit -> Set.filter is_configure s
-  | `Both -> s
 
 (* Key Map *)
 

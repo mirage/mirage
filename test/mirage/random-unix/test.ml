@@ -2,19 +2,19 @@ open Mirage
 
 let opt =
   let doc = Key.Arg.info ~doc:"An optional key." [ "opt" ] in
-  Key.(create "opt" Arg.(opt string "default" doc))
+  Key.(create "opt" Arg.(opt ~stage:`Run string "default" doc))
 
 let opt_all =
   let doc = Key.Arg.info ~doc:"All the optional keys." [ "opt-all" ] in
-  Key.(create "opt-all" Arg.(opt_all string doc))
+  Key.(create "opt-all" Arg.(opt_all ~stage:`Run string doc))
 
 let flag =
   let doc = Key.Arg.info ~doc:"A flag." [ "flag" ] in
-  Key.(create "flag" Arg.(flag doc))
+  Key.(create "flag" Arg.(flag ~stage:`Run doc))
 
 let required =
   let doc = Key.Arg.info ~doc:"A required key." [ "required" ] in
-  Key.(create "required" Arg.(required string doc))
+  Key.(create "required" Arg.(required ~stage:`Run string doc))
 
 let test () =
   let context = Key.add_to_context Key.target `Unix Context.empty in

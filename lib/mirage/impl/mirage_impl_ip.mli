@@ -14,10 +14,10 @@ type ipv4 = v4 ip
 type ipv6 = v6 ip
 type ipv4v6 = v4v6 ip
 
-val ip : 'a ip Functoria.typ
-val ipv4 : ipv4 Functoria.typ
-val ipv6 : ipv6 Functoria.typ
-val ipv4v6 : ipv4v6 Functoria.typ
+val ip : 'a ip typ
+val ipv4 : ipv4 typ
+val ipv6 : ipv6 typ
+val ipv4v6 : ipv4v6 typ
 
 type ipv4_config = {
   network : Ipaddr.V4.Prefix.t;

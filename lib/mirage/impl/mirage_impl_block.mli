@@ -1,44 +1,41 @@
+open Functoria
+
 type block
 
-val block : block Functoria.typ
+val block : block typ
 
 val generic_block :
   ?group:string ->
-  ?key:[ `BlockFile | `Ramdisk | `XenstoreId ] Functoria.value ->
+  ?key:[ `BlockFile | `Ramdisk | `XenstoreId ] value ->
   string ->
-  block Functoria.impl
+  block impl
 
-val tar_kv_ro : block Functoria.impl -> Mirage_impl_kv.ro Functoria.impl
-val archive : block Functoria.impl -> Mirage_impl_kv.ro Functoria.impl
-val fat_ro : block Functoria.impl -> Mirage_impl_kv.ro Functoria.impl
-val ramdisk : string -> block Functoria.impl
-val block_of_xenstore_id : string -> block Functoria.impl
-val block_of_file : string -> block Functoria.impl
-val block_conf : string -> block Functoria.device
+val tar_kv_ro : block impl -> Mirage_impl_kv.ro impl
+val archive : block impl -> Mirage_impl_kv.ro impl
+val fat_ro : block impl -> Mirage_impl_kv.ro impl
+val ramdisk : string -> block impl
+val block_of_xenstore_id : string -> block impl
+val block_of_file : string -> block impl
+val block_conf : string -> block device
 
 val docteur :
   ?mode:[ `Fast | `Light ] ->
-  ?disk:string Functoria.Key.key ->
-  ?analyze:bool Functoria.Key.key ->
+  ?disk:string Key.key ->
+  ?analyze:bool Key.key ->
   ?branch:string ->
   ?extra_deps:string list ->
   string ->
-  Mirage_impl_kv.ro Functoria.impl
+  Mirage_impl_kv.ro impl
 
 type block_t = { filename : string; number : int }
 
 val all_blocks : (string, block_t) Hashtbl.t
 
 val chamelon :
-  program_block_size:int Functoria.key ->
-  (block -> Mirage_impl_pclock.pclock -> Mirage_impl_kv.rw) Functoria.impl
+  program_block_size:int key ->
+  (block -> Mirage_impl_pclock.pclock -> Mirage_impl_kv.rw) impl
 
 val tar_kv_rw :
-  Mirage_impl_pclock.pclock Functoria.impl ->
-  block Functoria.impl ->
-  Mirage_impl_kv.rw Functoria.impl
+  Mirage_impl_pclock.pclock impl -> block impl -> Mirage_impl_kv.rw impl
 
-val ccm_block :
-  ?nonce_len:int ->
-  string option Functoria.key ->
-  (block -> block) Functoria.impl
+val ccm_block : ?nonce_len:int -> string option key -> (block -> block) impl

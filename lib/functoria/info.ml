@@ -95,7 +95,7 @@ let pp verbose ppf ({ name; keys; context; output; _ } as t) =
   in
   let list = Fmt.iter ~sep:(Fmt.any ",@ ") List.iter Fmt.string in
   show "Name" Fmt.string name;
-  show "Keys" ~newline:(verbose && output <> None) (Key.pps context) keys;
+  show "Keys" ~newline:(verbose || output <> None) (Key.pps context) keys;
   let () =
     match output with
     | None -> ()

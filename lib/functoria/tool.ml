@@ -130,8 +130,7 @@ module Make (P : S) = struct
       (* Extract all the keys directly. Useful to pre-resolve the keys
          provided by the specialized DSL. *)
       let base_keys = Engine.all_keys @@ Impl.abstract @@ P.create [] in
-      Cmdliner.Term.(
-        const (fun _ -> Action.ok ()) $ Key.context base_keys ~stage:`Configure)
+      Cmdliner.Term.(const (fun _ -> Action.ok ()) $ Key.context base_keys)
     in
     let result =
       Cli.eval ?help_ppf ?err_ppf ~name:P.name ~version:P.version

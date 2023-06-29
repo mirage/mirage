@@ -233,7 +233,7 @@ type context := Context.t
 val add_to_context : 'a key -> 'a -> context -> context
 (** Add a binding to a context. *)
 
-val context : ?stage:Arg.stage -> Set.t -> context Cmdliner.Term.t
+val context : Set.t -> context Cmdliner.Term.t
 (** [context ks] is a [Cmdliner]
     {{:http://erratique.ch/software/cmdliner/doc/Cmdliner/Term/index.html#type-t}
       term} that evaluates into a parsing context for command-line arguments. *)

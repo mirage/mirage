@@ -419,8 +419,8 @@ let create name arg =
 
 (* {2 Cmdliner interface} *)
 
-let context ?(stage = `Both) l =
-  let stage = filter_stage stage l in
+let context l =
+  let stage = filter_stage `Configure l in
   let names = Names.of_list (Set.elements stage) in
   let gather (Any k) rest =
     let f v p = match v with None -> p | Some v -> Context.add k.key v p in

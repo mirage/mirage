@@ -1,11 +1,13 @@
-type reporter = Functoria.job
+open Functoria
 
-val reporter : reporter Functoria.typ
+type reporter = job
+
+val reporter : reporter typ
 
 val default_reporter :
-  ?clock:Mirage_impl_pclock.pclock Functoria.impl ->
+  ?clock:Mirage_impl_pclock.pclock impl ->
   ?level:Logs.level option ->
   unit ->
-  reporter Functoria.impl
+  reporter impl
 
-val no_reporter : reporter Functoria.impl
+val no_reporter : reporter impl

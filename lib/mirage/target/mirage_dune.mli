@@ -1,1 +1,3 @@
-val flags : Functoria.Info.t -> string list
+open Functoria
+
+val flags : Info.t -> string list

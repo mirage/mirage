@@ -1,4 +1,6 @@
+open Functoria
+
 type time
 
-val time : time Functoria.typ
-val default_time : time Functoria.impl
+val time : time typ
+val default_time : time impl

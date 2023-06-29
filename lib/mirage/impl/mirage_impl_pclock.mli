@@ -1,4 +1,6 @@
+open Functoria
+
 type pclock
 
-val pclock : pclock Functoria.typ
-val default_posix_clock : pclock Functoria.impl
+val pclock : pclock typ
+val default_posix_clock : pclock impl

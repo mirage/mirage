@@ -1,2 +1,4 @@
-val default_argv : Functoria.argv Functoria.impl
-val no_argv : Functoria.argv Functoria.impl
+open Functoria
+
+val default_argv : argv impl
+val no_argv : argv impl

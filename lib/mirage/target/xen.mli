@@ -11,11 +11,8 @@ module Substitutions : sig
   type t = (v * string) list
 
   val lookup : t -> v -> string
-  val defaults : Functoria.Info.t -> t
+  val defaults : Info.t -> t
 end
 
 val configure_main_xl :
-  ?substitutions:Substitutions.t ->
-  ext:string ->
-  Functoria.Info.t ->
-  unit Action.t
+  ?substitutions:Substitutions.t -> ext:string -> Info.t -> unit Action.t

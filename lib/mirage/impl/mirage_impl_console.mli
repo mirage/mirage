@@ -1,5 +1,7 @@
+open Functoria
+
 type console
 
-val console : console Functoria.typ
-val default_console : console Functoria.impl
-val custom_console : string -> console Functoria.impl
+val console : console typ
+val default_console : console impl
+val custom_console : string -> console impl

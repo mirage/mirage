@@ -33,6 +33,7 @@ let test_eval () =
   Alcotest.(check string) "match 1" "hello" r
 
 let keys = Key.Set.of_list Key.[ v key_a; v key_b; v key_c; v key_d ]
+let keys_no_required = Key.Set.of_list Key.[ v key_a; v key_b; v key_d ]
 
 let eval f keys argv =
   let argv = Array.of_list ("" :: argv) in
@@ -48,23 +49,20 @@ let eval f keys argv =
 exception Error
 
 let test_get () =
-  let context =
-    eval (Key.context ~with_required:false) keys [ "-a"; "-c"; "foo" ]
-  in
+  let context = eval Key.context keys [ "-a"; "-c"; "foo" ] in
   Alcotest.(check bool) "get a" true (Key.get context key_a);
   Alcotest.(check int) "get b" 0 (Key.get context key_b);
   Alcotest.(check (option string)) "get c" (Some "foo") (Key.get context key_c);
 
-  let context = eval (Key.context ~with_required:false) keys [ "-a" ] in
+  let context = eval Key.context keys_no_required [ "-a" ] in
   Alcotest.(check (option string))
     "get c with_required:false" None (Key.get context key_c);
 
   Alcotest.check_raises "get c with_required:true" Error (fun () ->
-      try ignore (eval (Key.context ~with_required:true) keys [ "-a" ])
-      with _ -> raise Error)
+      try ignore (eval Key.context keys [ "-a" ]) with _ -> raise Error)
 
 let test_find () =
-  let context = eval (Key.context ~with_required:false) keys [] in
+  let context = eval Key.context keys_no_required [] in
   Alcotest.(check (option bool)) "find a" None (Key.find context key_a);
   Alcotest.(check (option int)) "find b" None (Key.find context key_b);
   Alcotest.(check (option (option string)))
@@ -92,23 +90,20 @@ let test_cmdliner () =
   let k1 = Key.(v @@ create "foo" Arg.(opt int 1 (info [ "foo" ]))) in
   let k2 = Key.(v @@ create "foo" Arg.(opt int 2 (info [ "foo" ]))) in
   let keys = Key.Set.of_list [ k1; k2 ] in
-  let context = Key.context ~with_required:true keys in
+  let context = Key.context keys in
   let _ = eval (fun x -> x) context [] in
   ()
 
 let test_opt_all () =
   let context =
-    eval
-      (Key.context ~with_required:false)
-      keys
-      [ "-d"; "1"; "-d"; "2"; "-d"; "3" ]
+    eval Key.context keys_no_required [ "-d"; "1"; "-d"; "2"; "-d"; "3" ]
   in
   Alcotest.(check (list int)) "get d" [ 1; 2; 3 ] (Key.get context key_d);
-  let context = eval (Key.context ~with_required:false) keys [] in
+  let context = eval Key.context keys_no_required [] in
   Alcotest.(check (list int)) "get d" [] (Key.get context key_d);
   match
     Cmdliner.Cmd.eval_value ~argv:[| ""; "-d" |]
-      Cmdliner.(Cmd.v (Cmd.info "keys") (Key.context ~with_required:false keys))
+      Cmdliner.(Cmd.v (Cmd.info "keys") (Key.context keys_no_required))
   with
   | Ok (`Ok _ | `Help | `Version) ->
       Alcotest.failf "Invalid given command-line, eval must fail."

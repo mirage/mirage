@@ -233,12 +233,10 @@ type context := Context.t
 val add_to_context : 'a key -> 'a -> context -> context
 (** Add a binding to a context. *)
 
-val context :
-  ?stage:Arg.stage -> with_required:bool -> Set.t -> context Cmdliner.Term.t
-(** [context ~with_required ks] is a [Cmdliner]
+val context : ?stage:Arg.stage -> Set.t -> context Cmdliner.Term.t
+(** [context ks] is a [Cmdliner]
     {{:http://erratique.ch/software/cmdliner/doc/Cmdliner/Term/index.html#type-t}
-      term} that evaluates into a parsing context for command-line arguments. If
-    [with_required] is false, it will only produce optional keys. *)
+      term} that evaluates into a parsing context for command-line arguments. *)
 
 val mem : context -> 'a value -> bool
 (** [mem c v] is [true] iff all the dependencies of [v] have been evaluated. *)

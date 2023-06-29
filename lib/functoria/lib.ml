@@ -163,7 +163,7 @@ module Make (P : S) = struct
 
   module Log = (val Logs.src_log src : Logs.LOG)
 
-  let eval_cached ~full ~with_required ~output ~cache context t =
+  let eval_cached ~full ~output ~cache context t =
     let info = Config.eval ~full context t in
     let keys = Key.deps info in
     let output =
@@ -171,7 +171,7 @@ module Make (P : S) = struct
       | Some _, _ -> output
       | _, cache -> cache
     in
-    let context = Key.context ~stage:`Configure ~with_required keys in
+    let context = Key.context ~stage:`Configure keys in
     let context = Context_cache.merge cache context in
     let f context =
       let config = Key.eval context info context in
@@ -458,7 +458,7 @@ module Make (P : S) = struct
       (* Consider only the non-required keys. *)
       let non_required_term =
         let if_keys = Config.keys config in
-        Key.context ~stage:`Configure ~with_required:false if_keys
+        Key.context ~stage:`Configure if_keys
       in
       let context =
         match Cmdliner.Cmd.eval_peek_opts ~argv non_required_term with
@@ -472,10 +472,7 @@ module Make (P : S) = struct
     let output = Cli.peek_output argv in
 
     (* 3. Parse the command-line and handle the result. *)
-    let configure =
-      eval_cached ~with_required:true ~full:true ~output ~cache base_context
-        config
-    in
+    let configure = eval_cached ~full:true ~output ~cache base_context config in
 
     let describe =
       let full =
@@ -483,13 +480,10 @@ module Make (P : S) = struct
         | None -> not (Context_cache.is_empty cache)
         | Some b -> b
       in
-      eval_cached ~with_required:false ~full ~output ~cache base_context config
+      eval_cached ~full ~output ~cache base_context config
     in
 
-    let build =
-      eval_cached ~with_required:false ~full:true ~output ~cache base_context
-        config
-    in
+    let build = eval_cached ~full:true ~output ~cache base_context config in
     let clean = build in
     let query = build in
     let help = build in

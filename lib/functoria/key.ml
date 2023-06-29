@@ -331,8 +331,6 @@ let filter_stage stage s =
 
 type context = Context.t
 
-let empty_context = Context.empty
-let merge_context = Context.merge
 let add_to_context t = Context.add t.key
 let find (type a) ctx (t : a key) : a option = Context.find t.key ctx
 let get ctx t = match find ctx t with Some x -> x | None -> Arg.default t.arg
@@ -366,7 +364,6 @@ let default v = eval Context.empty v
 
 (* {2 Pretty printing} *)
 
-let dump_context = Context.dump
 let pp = Set.pp_elt
 let pp_deps fmt v = Set.pp fmt v.deps
 
@@ -435,7 +432,7 @@ let context ?(stage = `Both) ~with_required l =
     | Arg.Flag -> Cmdliner.Term.(const f $ key $ rest)
     | Arg.Opt_all _ -> Cmdliner.Term.(const f $ key $ rest)
   in
-  Names.fold gather names (Cmdliner.Term.const empty_context)
+  Names.fold gather names (Cmdliner.Term.const Context.empty)
 
 (* {2 Code emission} *)
 

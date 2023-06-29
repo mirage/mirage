@@ -463,11 +463,11 @@ module Make (P : S) = struct
       let context =
         match Cmdliner.Cmd.eval_peek_opts ~argv non_required_term with
         | _, Ok (`Ok context) -> context
-        | _ -> Key.empty_context
+        | _ -> Context.empty
       in
       match Context_cache.peek cache non_required_term with
       | None -> context
-      | Some default -> Key.merge_context ~default context
+      | Some default -> Context.merge ~default context
     in
     let output = Cli.peek_output argv in
 

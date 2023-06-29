@@ -133,7 +133,6 @@ module type KEY =
      and type 'a key = 'a Key.key
      and type t = Key.t
      and type Set.t = Key.Set.t
-     and type context = Key.context
 
 module Package = Package
 module Info = Info
@@ -184,6 +183,7 @@ val app_info :
 
 module Type = Type
 module Impl = Impl
+module Context = Context
 module Key = Key
 module Opam = Opam
 module Lib = Lib

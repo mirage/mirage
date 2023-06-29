@@ -227,14 +227,8 @@ val filter_stage : Arg.stage -> Set.t -> Set.t
 
 (** {1 Parsing context} *)
 
-type context
+type context := Context.t
 (** The type for values holding parsing context. *)
-
-val dump_context : context Fmt.t
-(** [dump_context] dumps the contents of a context. *)
-
-val empty_context : context
-val merge_context : default:context -> context -> context
 
 val add_to_context : 'a key -> 'a -> context -> context
 (** Add a binding to a context. *)

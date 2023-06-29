@@ -72,7 +72,7 @@ type 'a key = 'a Key.key
 type abstract_key = Key.t
 (** The type for abstract keys. *)
 
-type context = Key.context
+type context = Context.t
 (** The type for keys' parsing context. See {!module-Key.type-context}. *)
 
 type 'a value = 'a Key.value

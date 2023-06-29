@@ -1,7 +1,7 @@
 open Mirage
 
 let test () =
-  let context = Key.add_to_context Key.target `Unix Key.empty_context in
+  let context = Key.add_to_context Key.target `Unix Context.empty in
   let sigs = conduit @-> random @-> job in
   let network = default_network in
   let etif = etif network in

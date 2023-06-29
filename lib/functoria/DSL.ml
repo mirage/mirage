@@ -25,7 +25,7 @@ type 'a typ = 'a Type.t
 type 'a impl = 'a Impl.t
 type abstract_impl = Impl.abstract
 type 'a device = ('a, Impl.abstract) Device.t
-type context = Key.context
+type context = Context.t
 type job = Job.t
 type info = Info.t
 

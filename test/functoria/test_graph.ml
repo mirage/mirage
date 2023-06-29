@@ -6,7 +6,7 @@ let z = Impl.v "Bar" job ~extra_deps:[ Impl.abstract y ]
 
 let z, y, x =
   let g = Impl.abstract z in
-  let g = Impl.eval ~context:Key.empty_context g in
+  let g = Impl.eval ~context:Context.empty g in
   match Device.Graph.fold List.cons g [] with
   | [ x; y; z ] -> (x, y, z)
   | _ -> assert false
@@ -71,7 +71,7 @@ let test_graph () =
     let union = List.append
   end in
   let packages t =
-    let ctx = Key.empty_context in
+    let ctx = Context.empty in
     Impl.collect
       (module M)
       (function

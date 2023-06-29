@@ -83,7 +83,8 @@ Check that clean works with `--output`:
                      Keys      
                        hello=Hello World! (default),
                        vote=cat (default),
-                       warn_error=false (default)Output     toto
+                       warn_error=false (default)
+                     Output     toto
   test.exe: [INFO] Skipped ./app
   test.exe: [INFO] Skipped ./help.exe
   test.exe: [INFO] Skipped ./lib

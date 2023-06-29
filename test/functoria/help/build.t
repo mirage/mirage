@@ -23,9 +23,6 @@ Help build --man-format=plain
              Name of the output file.
   
   APPLICATION OPTIONS
-         --hello=VAL (absent=Hello World!)
-             How to say hello.
-  
          --vote=VOTE (absent=cat)
              Vote.
   
@@ -95,9 +92,6 @@ Help build --help=plain
              Name of the output file.
   
   APPLICATION OPTIONS
-         --hello=VAL (absent=Hello World!)
-             How to say hello.
-  
          --vote=VOTE (absent=cat)
              Vote.
   

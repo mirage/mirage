@@ -130,7 +130,6 @@ type info = Info.t
 val foreign :
   ?packages:package list ->
   ?packages_v:package list value ->
-  ?keys:abstract_key list ->
   ?deps:abstract_impl list ->
   string ->
   'a typ ->
@@ -140,7 +139,6 @@ val foreign :
 val main :
   ?packages:package list ->
   ?packages_v:package list value ->
-  ?keys:abstract_key list ->
   ?extra_deps:abstract_impl list ->
   string ->
   'a typ ->
@@ -150,8 +148,6 @@ val main :
 
     - If [packages] or [packages_v] is set, then the given packages are
       installed before compiling the current application.
-    - If [keys] is set, use the given {{!Key.key} keys} to parse at configure
-      and runtime the command-line arguments before calling [<name>.connect].
     - If [extra_deps] is set, the given list of {{!abstract_impl} abstract}
       implementations is added as data-dependencies: they will be initialized
       before calling [<name>.connect]. *)

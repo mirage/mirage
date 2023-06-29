@@ -18,10 +18,8 @@ is passed:
   test.exe: [INFO] Set-up config skeleton.
   config.exe: [INFO] reading cache app/test/context
   config.exe: [INFO] Name       noop
-                     Keys      
-                       hello=Hello World! (default),
-                       vote=cat (default),
-                       warn_error=false (default)
+                     Keys       vote=cat (default),
+                                warn_error=false (default)
   config.exe: [INFO] Generating: noop.opam (opam)
   config.exe: [INFO] in dir { "context" = ;
                               "config_file" = app/config.ml;

@@ -12,10 +12,8 @@ Build an application.
   test.exe: [INFO] Generating: app/dune.config (base)
   config.exe: [INFO] reading cache app/test/context
   config.exe: [INFO] Name       noop
-                     Keys      
-                       hello=Hello World! (default),
-                       vote=cat (default),
-                       warn_error=false (default)
+                     Keys       vote=cat (default),
+                                warn_error=false (default)
   config.exe: [INFO] dune build --root .
   $ ls -a app/
   .
@@ -61,10 +59,8 @@ Test `--output`:
   test.exe: [INFO] Generating: app/dune.config (base)
   config.exe: [INFO] reading cache app/test/context
   config.exe: [INFO] Name       noop
-                     Keys      
-                       hello=Hello World! (default),
-                       vote=cat (default),
-                       warn_error=false (default)
+                     Keys       vote=cat (default),
+                                warn_error=false (default)
                      Output     toto
   config.exe: [INFO] dune build --root .
   $ ls -a app/

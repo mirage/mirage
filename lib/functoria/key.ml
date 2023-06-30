@@ -20,7 +20,12 @@ open Misc
 
 module Serialize = struct
   let string fmt s = Format.fprintf fmt "%S" s
-  let option x = Fmt.(parens @@ Dump.option x)
+
+  let option x ppf v =
+    match v with
+    | None -> Fmt.(Dump.option x) ppf v
+    | Some _ -> Fmt.(parens (Dump.option x)) ppf v
+
   let list x = Fmt.Dump.list x
   let pair a b = Fmt.Dump.pair a b
 end
@@ -43,20 +48,20 @@ module Arg = struct
   let runtime_conv x = x.runtime_conv
 
   let string =
-    conv ~conv:Cmdliner.Arg.string ~runtime_conv:"Cmdliner.Arg.string"
-      ~serialize:(fun fmt -> Format.fprintf fmt "%S")
+    conv ~conv:Cmdliner.Arg.string ~runtime_conv:"string" ~serialize:(fun fmt ->
+        Format.fprintf fmt "%S")
 
   let bool =
-    conv ~conv:Cmdliner.Arg.bool ~runtime_conv:"Cmdliner.Arg.bool"
-      ~serialize:(fun fmt -> Format.fprintf fmt "%b")
+    conv ~conv:Cmdliner.Arg.bool ~runtime_conv:"bool" ~serialize:(fun fmt ->
+        Format.fprintf fmt "%b")
 
   let int =
-    conv ~conv:Cmdliner.Arg.int ~runtime_conv:"Cmdliner.Arg.int"
-      ~serialize:(fun fmt i -> Format.fprintf fmt "(%i)" i)
+    conv ~conv:Cmdliner.Arg.int ~runtime_conv:"int" ~serialize:(fun fmt i ->
+        Format.fprintf fmt "(%i)" i)
 
   let int64 =
-    conv ~conv:Cmdliner.Arg.int64 ~runtime_conv:"Cmdliner.Arg.int64"
-      ~serialize:(fun fmt i -> Format.fprintf fmt "(%LiL)" i)
+    conv ~conv:Cmdliner.Arg.int64 ~runtime_conv:"int64" ~serialize:(fun fmt i ->
+        Format.fprintf fmt "(%LiL)" i)
 
   let list ?sep d =
     let runtime_conv =
@@ -122,8 +127,8 @@ module Arg = struct
     let pp_env = pp_opt "env" serialize_env in
     let pp_doc = pp_opt "doc" Serialize.string in
     let pp_docv = pp_opt "docv" Serialize.string in
-    Format.fprintf fmt "(Cmdliner.Arg.info@ ~docs:%a%a%a%a@ %a)"
-      Serialize.string docs pp_docv docv pp_doc doc pp_env env
+    Format.fprintf fmt "@[(info@ ~docs:%a%a%a%a@ %a)@]" Serialize.string docs
+      pp_docv docv pp_doc doc pp_env env
       Serialize.(list string)
       names
 
@@ -135,7 +140,7 @@ module Arg = struct
     | Required : 'a converter -> 'a option kind
     | Flag : bool kind
 
-  type stage = [ `Configure | `Run | `Both ]
+  type stage = [ `Configure | `Run ]
 
   let pp_conv c = snd (converter c)
 
@@ -186,15 +191,16 @@ module Arg = struct
 
   let stage t = t.stage
 
-  let opt ?(stage = `Both) conv default info =
+  let opt ?(stage = `Configure) conv default info =
     { stage; info; kind = Opt (default, conv) }
 
-  let flag ?(stage = `Both) info = { stage; info; kind = Flag }
+  let flag ?(stage = `Configure) info = { stage; info; kind = Flag }
 
-  let required ?(stage = `Both) conv info =
+  let required ?(stage = `Configure) conv info =
     { stage; info; kind = Required conv }
 
-  let opt_all ?(stage = `Both) conv info = { stage; info; kind = Opt_all conv }
+  let opt_all ?(stage = `Configure) conv info =
+    { stage; info; kind = Opt_all conv }
 
   let default (type a) (t : a t) =
     match t.kind with
@@ -236,30 +242,27 @@ module Arg = struct
         in
         make_opt_all_cmdliner wrap i desc
 
-  let serialize_value (type a) (v : a) ppf (t : a t) =
-    match t.kind with
-    | Flag -> (serialize bool) ppf v
-    | Opt (_, c) -> (serialize c) ppf v
-    | Required c -> (
-        match v with Some v -> (serialize c) ppf v | None -> assert false)
-    | Opt_all c -> (serialize (list c)) ppf v
-
   (* This is only called by serialize_ro, hence a configure time
            key, so the value is known. *)
 
   let serialize (type a) : a -> a t serialize =
    fun v ppf t ->
     match t.kind with
-    | Flag -> Fmt.pf ppf "Functoria_runtime.Arg.flag@ %a" serialize_info t.info
+    | Flag ->
+        Fmt.pf ppf "Cmdliner.Arg.(value@ (flag@ %a))" serialize_info t.info
     | Opt (_, c) ->
-        Fmt.pf ppf "Functoria_runtime.Arg.opt@ %s@ %a@ %a" (runtime_conv c)
+        Fmt.pf ppf "Cmdliner.Arg.(value@ (opt@ %s@ %a@ %a))" (runtime_conv c)
           (serialize c) v serialize_info t.info
     | Required c ->
-        Fmt.pf ppf "Functoria_runtime.Arg.key@ ?default:(%a)@ %s@ %a"
-          (serialize @@ some c)
-          v (runtime_conv c) serialize_info t.info
+        let pp_default ppf = function
+          | None -> ()
+          | Some d -> Fmt.pf ppf "@ ~default:%a" (serialize c) d
+        in
+        Fmt.pf ppf "Cmdliner.Arg.(required@ (opt%a@ (some %s)@ None %a))"
+          pp_default v (runtime_conv c) serialize_info t.info
     | Opt_all c ->
-        Fmt.pf ppf "Functoria_runtime.Arg.opt_all@ %s@ %a@ %a" (runtime_conv c)
+        Fmt.pf ppf "Cmdliner.Arg.(value@ (opt_all@ %s@ %a@ %a))"
+          (runtime_conv c)
           (serialize (list c))
           v serialize_info t.info
 end
@@ -313,18 +316,13 @@ let abstract = v
 let arg k = k.arg
 let name (Any k) = k.name
 let stage (Any k) = Arg.stage k.arg
-
-let is_runtime k =
-  match stage k with `Run | `Both -> true | `Configure -> false
-
-let is_configure k =
-  match stage k with `Configure | `Both -> true | `Run -> false
+let is_runtime k = match stage k with `Run -> true | `Configure -> false
+let is_configure k = match stage k with `Configure -> true | `Run -> false
 
 let filter_stage stage s =
   match stage with
   | `Run -> Set.filter is_runtime s
   | `Configure | `NoEmit -> Set.filter is_configure s
-  | `Both -> s
 
 (* Key Map *)
 
@@ -440,22 +438,11 @@ let ocaml_name k = Name.ocamlify (name k)
 let serialize_call fmt k = Fmt.pf fmt "(%s.%s ())" module_name (ocaml_name k)
 let serialize ctx ppf (Any k) = Arg.serialize (get ctx k) ppf (arg k)
 
-let serialize_rw ctx fmt t =
+let serialize_runtime ctx fmt t =
   Format.fprintf fmt
-    "@[<2>let %s =@ @[Functoria_runtime.Key.create@ %a@]@]@,\
+    "@[<2>let %s_t =@ @[<2>%a@]@]@,\
      @,\
-     @[<2>let %s_t =@ @[Functoria_runtime.Key.term@ %s@]@]@,\
-     @,\
-     @[<2>let %s () =@ @[Functoria_runtime.Key.get@ %s@]@]@,"
-    (ocaml_name t)
-    Fmt.(parens (serialize ctx))
-    t (ocaml_name t) (ocaml_name t) (ocaml_name t) (ocaml_name t)
+     @[<2>let %s =@ @[Functoria_runtime.key@ %s_t@]@]@,"
+    (ocaml_name t) (serialize ctx) t (ocaml_name t) (ocaml_name t)
 
-let serialize_ro ctx fmt t =
-  let (Any k) = t in
-  Format.fprintf fmt "@[<2>let %s () =@ %a@]@," (ocaml_name t)
-    (Arg.serialize_value (get ctx k))
-    (arg k)
-
-let serialize ctx fmt k =
-  if is_runtime k then serialize_rw ctx fmt k else serialize_ro ctx fmt k
+let serialize ctx fmt k = if is_runtime k then serialize_runtime ctx fmt k

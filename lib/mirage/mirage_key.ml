@@ -23,16 +23,18 @@ open Astring
 module Arg = struct
   include Key.Arg
 
-  let from_run s = "Mirage_runtime.Arg." ^ s
+  let from_run s =
+    Fmt.str "@[<2>(Functoria_runtime.Key.conv@ %s.of_string@ %s.to_string)@]" s
+      s
 
-  let make d m of_string to_string =
+  let make m of_string to_string =
     let parser s =
       match of_string s with
       | Error (`Msg m) -> `Error ("Can't parse ip address: " ^ s ^ ": " ^ m)
       | Ok ip -> `Ok ip
     and serialize ppf t = Fmt.pf ppf "(%s.of_string_exn %S)" m (to_string t)
     and pp ppf t = Fmt.string ppf (to_string t) in
-    Key.Arg.conv ~conv:(parser, pp) ~serialize ~runtime_conv:(from_run d)
+    Key.Arg.conv ~conv:(parser, pp) ~serialize ~runtime_conv:(from_run m)
 
   module type S = sig
     type t
@@ -41,14 +43,14 @@ module Arg = struct
     val to_string : t -> string
   end
 
-  let of_module (type t) d m (module M : S with type t = t) =
-    make d m M.of_string M.to_string
+  let of_module (type t) m (module M : S with type t = t) =
+    make m M.of_string M.to_string
 
-  let ipv4_address = of_module "ipv4_address" "Ipaddr.V4" (module Ipaddr.V4)
-  let ipv4 = of_module "ipv4" "Ipaddr.V4.Prefix" (module Ipaddr.V4.Prefix)
-  let ipv6_address = of_module "ipv6_address" "Ipaddr.V6" (module Ipaddr.V6)
-  let ipv6 = of_module "ipv6" "Ipaddr.V6.Prefix" (module Ipaddr.V6.Prefix)
-  let ip_address = of_module "ip_address" "Ipaddr" (module Ipaddr)
+  let ipv4_address = of_module "Ipaddr.V4" (module Ipaddr.V4)
+  let ipv4 = of_module "Ipaddr.V4.Prefix" (module Ipaddr.V4.Prefix)
+  let ipv6_address = of_module "Ipaddr.V6" (module Ipaddr.V6)
+  let ipv6 = of_module "Ipaddr.V6.Prefix" (module Ipaddr.V6.Prefix)
+  let ip_address = of_module "Ipaddr" (module Ipaddr)
 end
 
 (** {2 Documentation helper} *)
@@ -288,7 +290,7 @@ let custom_minor_max_size =
 
 (** {2 General mirage keys} *)
 
-let create_simple ?(group = "") ?(stage = `Both) ~doc ~default conv name =
+let create_key stage ?(group = "") ~doc ~default conv name =
   let prefix = if group = "" then group else group ^ "-" in
   let doc =
     Arg.info ~docs:unikernel_section
@@ -298,6 +300,12 @@ let create_simple ?(group = "") ?(stage = `Both) ~doc ~default conv name =
   in
   let key = Arg.opt ~stage conv default doc in
   Key.create (prefix ^ name) key
+
+let runtime_key ?group ~doc ~default conv name =
+  create_key `Run ?group ~doc ~default conv name
+
+let configure_key ?group ~doc ~default conv name =
+  create_key `Configure ?group ~doc ~default conv name
 
 (** {3 File system keys} *)
 
@@ -312,7 +320,7 @@ let kv_ro ?group () =
       "Use a $(i,crunch) or $(i,direct) pass-through implementation for %a."
       pp_group group
   in
-  create_simple ~doc ?group ~stage:`Configure ~default:`Crunch conv "kv_ro"
+  configure_key ~doc ?group ~default:`Crunch conv "kv_ro"
 
 (** {3 Block device keys} *)
 let block ?group () =
@@ -333,13 +341,13 @@ let block ?group () =
        implementation for %a."
       pp_group group
   in
-  create_simple ~doc ?group ~stage:`Configure ~default:`Ramdisk conv "block"
+  configure_key ~doc ?group ~default:`Ramdisk conv "block"
 
 (** {3 Stack keys} *)
 
 let dhcp ?group () =
   let doc = Fmt.str "Enable dhcp for %a." pp_group group in
-  create_simple ~doc ?group ~stage:`Configure ~default:false Arg.bool "dhcp"
+  configure_key ~doc ?group ~default:false Arg.bool "dhcp"
 
 let net ?group () : [ `Socket | `Direct ] option Key.key =
   let conv = Cmdliner.Arg.enum [ ("socket", `Socket); ("direct", `Direct) ] in
@@ -351,14 +359,13 @@ let net ?group () : [ `Socket | `Direct ] option Key.key =
   let doc =
     Fmt.str "Use $(i,socket) or $(i,direct) group for %a." pp_group group
   in
-  create_simple ~doc ?group ~stage:`Configure ~default:None (Arg.some conv)
-    "net"
+  configure_key ~doc ?group ~default:None (Arg.some conv) "net"
 
 (** {3 Network keys} *)
 
 let interface ?group default =
   let doc = Fmt.str "The network interface listened by %a." pp_group group in
-  create_simple ~doc ~default ?group Arg.string "interface"
+  runtime_key ~doc ~default ?group Arg.string "interface"
 
 module V4 = struct
   let network ?group default =
@@ -368,11 +375,11 @@ module V4 = struct
          192.168.0.1/16 ."
         pp_group group
     in
-    create_simple ~doc ~default ?group Arg.ipv4 "ipv4"
+    runtime_key ~doc ~default ?group Arg.ipv4 "ipv4"
 
   let gateway ?group default =
     let doc = Fmt.str "The gateway of %a." pp_group group in
-    create_simple ~doc ~default ?group Arg.(some ipv4_address) "ipv4-gateway"
+    runtime_key ~doc ~default ?group Arg.(some ipv4_address) "ipv4-gateway"
 end
 
 module V6 = struct
@@ -381,41 +388,41 @@ module V6 = struct
       Fmt.str "The network of %a specified as IPv6 address and prefix length."
         pp_group group
     in
-    create_simple ~doc ~default ?group Arg.(some ipv6) "ipv6"
+    runtime_key ~doc ~default ?group Arg.(some ipv6) "ipv6"
 
   let gateway ?group default =
     let doc = Fmt.str "The gateway of %a." pp_group group in
-    create_simple ~doc ~default ?group Arg.(some ipv6_address) "ipv6-gateway"
+    runtime_key ~doc ~default ?group Arg.(some ipv6_address) "ipv6-gateway"
 
   let accept_router_advertisements ?group () =
     let doc = Fmt.str "Accept router advertisements for %a." pp_group group in
-    create_simple ~doc ?group ~default:true Arg.bool
+    runtime_key ~doc ?group ~default:true Arg.bool
       "accept-router-advertisements"
 end
 
 let ipv4_only ?group () =
   let doc = Fmt.str "Only use IPv4 for %a." pp_group group in
-  create_simple ~doc ?group ~default:false Arg.bool "ipv4-only"
+  runtime_key ~doc ?group ~default:false Arg.bool "ipv4-only"
 
 let ipv6_only ?group () =
   let doc = Fmt.str "Only use IPv6 for %a." pp_group group in
-  create_simple ~doc ?group ~default:false Arg.bool "ipv6-only"
+  runtime_key ~doc ?group ~default:false Arg.bool "ipv6-only"
 
 let resolver ?default () =
   let doc = Fmt.str "DNS resolver (default to anycast.censurfridns.dk)" in
-  create_simple ~doc ~default Arg.(some (list string)) "resolver"
+  runtime_key ~doc ~default Arg.(some (list string)) "resolver"
 
 let syslog default =
   let doc = Fmt.str "syslog server" in
-  create_simple ~doc ~default Arg.(some ip_address) "syslog"
+  runtime_key ~doc ~default Arg.(some ip_address) "syslog"
 
 let syslog_port default =
   let doc = Fmt.str "syslog server port" in
-  create_simple ~doc ~default Arg.(some int) "syslog-port"
+  runtime_key ~doc ~default Arg.(some int) "syslog-port"
 
 let syslog_hostname default =
   let doc = Fmt.str "hostname to report to syslog" in
-  create_simple ~doc ~default Arg.string "syslog-hostname"
+  runtime_key ~doc ~default Arg.string "syslog-hostname"
 
 let pp_level ppf = function
   | Some Logs.Error -> Fmt.string ppf "Some Logs.Error"

@@ -46,9 +46,9 @@ let impl ?packages ?packages_v ?install ?install_v ?keys ?extra_deps ?connect
   @@ Device.v ?packages ?packages_v ?install ?install_v ?keys ?extra_deps
        ?connect ?dune ?configure ?files module_name module_type
 
-let main ?packages ?packages_v ?keys ?extra_deps module_name ty =
+let main ?packages ?packages_v ?extra_deps module_name ty =
   let connect _ = Device.start in
-  impl ?packages ?packages_v ?keys ?extra_deps ~connect module_name ty
+  impl ?packages ?packages_v ?extra_deps ~connect module_name ty
 
-let foreign ?packages ?packages_v ?keys ?deps module_name ty =
-  main ?packages ?packages_v ?keys ?extra_deps:deps module_name ty
+let foreign ?packages ?packages_v ?deps module_name ty =
+  main ?packages ?packages_v ?extra_deps:deps module_name ty

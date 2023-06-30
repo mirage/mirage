@@ -14,36 +14,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-module Arg = struct
-  type 'a kind =
-    | Opt : 'a * 'a Cmdliner.Arg.conv -> 'a kind
-    | Opt_all : 'a list * 'a Cmdliner.Arg.conv -> 'a list kind
-    | Flag : bool kind
-    | Required : 'a Cmdliner.Arg.conv -> 'a kind
-
-  type 'a t = { info : Cmdliner.Arg.info; kind : 'a kind }
-
-  let flag info = { info; kind = Flag }
-  let opt conv default info = { info; kind = Opt (default, conv) }
-  let opt_all conv default info = { info; kind = Opt_all (default, conv) }
-  let required conv info = { info; kind = Required conv }
-
-  let key ?default c i =
-    match default with None -> required c i | Some d -> opt c d i
-
-  let default (type a) (t : a t) =
-    match t.kind with
-    | Opt (d, _) -> Some d
-    | Opt_all (d, _) -> Some d
-    | Flag -> Some false
-    | Required _ -> None
-
-  let kind t = t.kind
-  let info t = t.info
-end
+let runtime_keys_r = ref []
+let runtime_keys () = !runtime_keys_r
 
 module Key = struct
-  type 'a t = { arg : 'a Arg.t; mutable value : 'a option }
+  type 'a t = { arg : 'a Cmdliner.Term.t; mutable value : 'a option }
 
   let create arg = { arg; value = None }
 
@@ -55,21 +30,19 @@ module Key = struct
            evaluation."
     | Some v -> v
 
-  let default t = Arg.default t.arg
-
   let term (type a) (t : a t) =
     let set w = t.value <- Some w in
-    let doc = Arg.info t.arg in
-    let term arg = Cmdliner.Term.(const set $ arg) in
-    match Arg.kind t.arg with
-    | Arg.Flag -> term @@ Cmdliner.Arg.(value & flag doc)
-    | Arg.Opt (default, desc) ->
-        term @@ Cmdliner.Arg.(value & opt desc default doc)
-    | Arg.Opt_all (default, desc) ->
-        term @@ Cmdliner.Arg.(value & opt_all desc default doc)
-    | Arg.Required desc ->
-        term @@ Cmdliner.Arg.(required & opt (some desc) None doc)
+    Cmdliner.Term.(const set $ t.arg)
+
+  let conv of_string to_string : _ Cmdliner.Arg.conv =
+    let pp ppf v = Format.pp_print_string ppf (to_string v) in
+    Cmdliner.Arg.conv (of_string, pp)
 end
+
+let key t =
+  let u = Key.create t in
+  runtime_keys_r := Key.term u :: !runtime_keys_r;
+  fun () -> Key.get u
 
 let initialized = ref false
 let help_version = 63

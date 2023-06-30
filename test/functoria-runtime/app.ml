@@ -1,6 +1,4 @@
-module type K = sig
-  val runtime_keys : (unit Cmdliner.Term.t * string) list
-end
+module type K = sig end
 
 module type I = sig
   val info : Functoria_runtime.info

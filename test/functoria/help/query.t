@@ -46,9 +46,6 @@ Help query --man-format=plain
              'dune-project', 'dune-workspace' or 'dune.dist'
   
   APPLICATION OPTIONS
-         --hello=VAL (absent=Hello World!)
-             How to say hello.
-  
          --vote=VOTE (absent=cat)
              Vote.
   
@@ -147,9 +144,6 @@ Help query --help=plain
              'dune-project', 'dune-workspace' or 'dune.dist'
   
   APPLICATION OPTIONS
-         --hello=VAL (absent=Hello World!)
-             How to say hello.
-  
          --vote=VOTE (absent=cat)
              Vote.
   

@@ -19,18 +19,12 @@ let build_info =
     ("topkg", "1.0.1");
   ]
 
-let key =
-  let doc = Key.Arg.info ~doc:"How to say hello." [ "hello" ] in
-  Key.(create "hello" Arg.(opt string "Hello World!" doc))
-
 let test () =
   let i1 = keys sys_argv in
   let i2 = noop in
   let context = Context.empty in
   let sigs = job @-> job @-> info @-> job in
-  let job =
-    main ~keys:[ Key.v key ] "App.Make" sigs $ i1 $ i2 $ app_info ~build_info ()
-  in
+  let job = main "App.Make" sigs $ i1 $ i2 $ app_info ~build_info () in
   Functoria_test.run ~init:[ i1; i2 ] context job
 
 let () =

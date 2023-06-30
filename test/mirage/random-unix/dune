@@ -25,7 +25,7 @@
 (executable
  (name key_gen)
  (modules key_gen)
- (libraries mirage-runtime))
+ (libraries mirage-runtime ipaddr))
 
 (rule
  (alias runtest)

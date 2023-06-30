@@ -97,32 +97,30 @@ module Arg : sig
 
   (** {1 Optional Arguments} *)
 
-  type stage = [ `Configure | `Run | `Both ]
+  type stage = [ `Configure | `Run ]
   (** The type for specifying at which stage an argument is available.
 
       - [`Configure] means that the argument is read on the command-line at
         configuration-time.
-      - [`Run] means that the argument is read on the command-line at runtime.
-      - [`Both] means that the argument is read on the command-line both at
-        configuration-time and run-time. *)
+      - [`Run] means that the argument is read on the command-line at runtime. *)
 
   val opt : ?stage:stage -> 'a converter -> 'a -> info -> 'a t
   (** [opt conv v i] is similar to
       {{:http://erratique.ch/software/cmdliner/doc/Cmdliner/Arg/index.html#val-opt}
         Cmdliner.Arg.opt} but for cross-stage optional command-line arguments.
-      If not set, [stage] is [`Both]. *)
+      If not set, [stage] is [`Configure]. *)
 
   val required : ?stage:stage -> 'a converter -> info -> 'a option t
   (** [required conv i] is similar to
       {{:http://erratique.ch/software/cmdliner/doc/Cmdliner/Arg/index.html#val-required}
         Cmdliner.Arg.required} but for cross-stage required command-line
-      arguments. If not set, [stage] is [`Both]. *)
+      arguments. If not set, [stage] is [`Configure]. *)
 
   val flag : ?stage:stage -> info -> bool t
   (** [flag i] is similar to
       {{:http://erratique.ch/software/cmdliner/doc/Cmdliner/Arg/index.html#val-flag}
         Cmdliner.Arg.flag} but for cross-stage command-line flags. If not set,
-      [stage] is [`Both]. *)
+      [stage] is [`Configure]. *)
 
   val opt_all : ?stage:stage -> 'a converter -> info -> 'a list t
 end
@@ -217,10 +215,10 @@ val pp_deps : 'a value Fmt.t
 (** {1 Stages} *)
 
 val is_runtime : t -> bool
-(** [is_runtime k] is true if [k]'s stage is [`Run] or [`Both]. *)
+(** [is_runtime k] is true if [k]'s stage is [`Run]. *)
 
 val is_configure : t -> bool
-(** [is_configure k] is true if [k]'s stage is [`Configure] or [`Both]. *)
+(** [is_configure k] is true if [k]'s stage is [`Configure]. *)
 
 val filter_stage : Arg.stage -> Set.t -> Set.t
 (** [filter_stage s ks] is [ks] but with only keys available at stage [s]. *)

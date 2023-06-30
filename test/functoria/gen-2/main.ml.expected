@@ -13,7 +13,7 @@ let sys__1 = lazy (
 let key_gen__2 = lazy (
   let __sys__1 = Lazy.force sys__1 in
   __sys__1 >>= fun _sys__1 ->
-  return (Functoria_runtime.with_argv (List.map fst Key_gen.runtime_keys) "foo" _sys__1)
+  return Functoria_runtime.(with_argv (runtime_keys ()) "foo" _sys__1)
   )
 
 let unit__3 = lazy (

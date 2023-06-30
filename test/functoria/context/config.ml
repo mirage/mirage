@@ -18,7 +18,7 @@ let target =
       ~serialize:target_serialize
   in
   let doc = Key.Arg.info ~doc:"Target." [ "t" ] in
-  Key.(create "target" Arg.(opt conv' `X doc))
+  Key.(create "target" Arg.(opt ~stage:`Configure conv' `X doc))
 
 let main = match_impl (Key.value target) ~default:y [ (`X, x) ]
 let () = register ~src:`None "noop" [ main ]

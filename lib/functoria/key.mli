@@ -104,25 +104,25 @@ module Arg : sig
         configuration-time.
       - [`Run] means that the argument is read on the command-line at runtime. *)
 
-  val opt : ?stage:stage -> 'a converter -> 'a -> info -> 'a t
+  val opt : stage:stage -> 'a converter -> 'a -> info -> 'a t
   (** [opt conv v i] is similar to
       {{:http://erratique.ch/software/cmdliner/doc/Cmdliner/Arg/index.html#val-opt}
         Cmdliner.Arg.opt} but for cross-stage optional command-line arguments.
       If not set, [stage] is [`Configure]. *)
 
-  val required : ?stage:stage -> 'a converter -> info -> 'a option t
+  val required : stage:stage -> 'a converter -> info -> 'a option t
   (** [required conv i] is similar to
       {{:http://erratique.ch/software/cmdliner/doc/Cmdliner/Arg/index.html#val-required}
         Cmdliner.Arg.required} but for cross-stage required command-line
       arguments. If not set, [stage] is [`Configure]. *)
 
-  val flag : ?stage:stage -> info -> bool t
+  val flag : stage:stage -> info -> bool t
   (** [flag i] is similar to
       {{:http://erratique.ch/software/cmdliner/doc/Cmdliner/Arg/index.html#val-flag}
         Cmdliner.Arg.flag} but for cross-stage command-line flags. If not set,
       [stage] is [`Configure]. *)
 
-  val opt_all : ?stage:stage -> 'a converter -> info -> 'a list t
+  val opt_all : stage:stage -> 'a converter -> info -> 'a list t
 end
 
 (** {1 Configuration Keys} *)

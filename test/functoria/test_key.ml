@@ -1,12 +1,12 @@
 open Functoria
 
-let key_a = Key.create "a" Key.Arg.(flag @@ info [ "a" ])
-let key_b = Key.create "b" Key.Arg.(opt int 0 @@ info [ "b" ])
+let key_a = Key.create "a" Key.Arg.(flag ~stage:`Configure @@ info [ "a" ])
+let key_b = Key.create "b" Key.Arg.(opt ~stage:`Configure int 0 @@ info [ "b" ])
 
 let key_c =
   Key.create "c" Key.Arg.(required ~stage:`Configure string @@ info [ "c" ])
 
-let key_d = Key.create "d" Key.Arg.(opt_all int @@ info [ "d" ])
+let key_d = Key.create "d" Key.Arg.(opt_all ~stage:`Configure int @@ info [ "d" ])
 let empty = Context.empty
 let ( & ) (k, v) c = Key.add_to_context k v c
 let ( && ) x y = x & y & empty
@@ -80,15 +80,15 @@ let test_merge () =
 let key = Alcotest.testable Key.pp Key.equal
 
 let test_equal () =
-  let k1 = Key.(v @@ create "foo" Arg.(opt int 1 (info [ "foo" ]))) in
-  let k2 = Key.(v @@ create "foo" Arg.(opt int 2 (info [ "foo" ]))) in
-  let k3 = Key.(v @@ create "foo" Arg.(opt int 1 (info [ "foo" ]))) in
+  let k1 = Key.(v @@ create "foo" Arg.(opt ~stage:`Configure int 1 (info [ "foo" ]))) in
+  let k2 = Key.(v @@ create "foo" Arg.(opt ~stage:`Configure int 2 (info [ "foo" ]))) in
+  let k3 = Key.(v @@ create "foo" Arg.(opt ~stage:`Configure int 1 (info [ "foo" ]))) in
   Alcotest.(check @@ neg key) "different defaults" k1 k2;
   Alcotest.(check @@ key) "same defaults" k1 k3
 
 let test_cmdliner () =
-  let k1 = Key.(v @@ create "foo" Arg.(opt int 1 (info [ "foo" ]))) in
-  let k2 = Key.(v @@ create "foo" Arg.(opt int 2 (info [ "foo" ]))) in
+  let k1 = Key.(v @@ create "foo" Arg.(opt ~stage:`Configure int 1 (info [ "foo" ]))) in
+  let k2 = Key.(v @@ create "foo" Arg.(opt ~stage:`Configure int 2 (info [ "foo" ]))) in
   let keys = Key.Set.of_list [ k1; k2 ] in
   let context = Key.context keys in
   let _ = eval (fun x -> x) context [] in

@@ -191,15 +191,15 @@ module Arg = struct
 
   let stage t = t.stage
 
-  let opt ?(stage = `Configure) conv default info =
+  let opt ~stage conv default info =
     { stage; info; kind = Opt (default, conv) }
 
-  let flag ?(stage = `Configure) info = { stage; info; kind = Flag }
+  let flag ~stage info = { stage; info; kind = Flag }
 
-  let required ?(stage = `Configure) conv info =
+  let required ~stage conv info =
     { stage; info; kind = Required conv }
 
-  let opt_all ?(stage = `Configure) conv info =
+  let opt_all ~stage conv info =
     { stage; info; kind = Opt_all conv }
 
   let default (type a) (t : a t) =

@@ -47,18 +47,10 @@ module Config = struct
     device_graph : Device.Graph.t;
   }
 
-  (* In practice, we get all the keys associated to [if] cases, and
-     all the keys that have a setter to them. *)
-  let get_if_context jobs =
-    let all_keys = Engine.all_keys jobs in
-    let skeys = Engine.if_keys jobs in
-    let f k s = if true then s else Key.Set.add k s in
-    Key.Set.fold f all_keys skeys
-
   let v ?(config_file = Fpath.v "config.ml") ?(init = []) ~configure_cmd
       ~pre_build_cmd ~lock_location ~build_cmd ~src name jobs =
     let jobs = Impl.abstract jobs in
-    let keys = get_if_context jobs in
+    let keys = Engine.if_keys jobs in
     {
       config_file;
       keys;

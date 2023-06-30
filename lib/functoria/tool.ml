@@ -125,28 +125,39 @@ module Make (P : S) = struct
         if m <> "" then Fmt.epr "%a\n%!" Fmt.(styled (`Fg `Red) string) m;
         if not t.Cli.dry_run then exit 1 else Fmt.epr "(exit 1)\n%!"
 
-  let handle_parse_args_no_config ?help_ppf ?err_ppf (`Msg error) argv =
-    let context =
-      (* Extract all the keys directly. Useful to pre-resolve the keys
-         provided by the specialized DSL. *)
-      let base_keys = Engine.all_keys @@ Impl.abstract @@ P.create [] in
-      Cmdliner.Term.(const (fun _ -> Action.ok ()) $ Key.context base_keys)
-    in
-    let result =
-      Cli.eval ?help_ppf ?err_ppf ~name:P.name ~version:P.version
-        ~configure:context ~query:context ~describe:context ~build:context
-        ~clean:context ~help:context ~mname:P.name argv
-    in
-    let ok = Action.ok () in
-    let error = Action.error error in
-    match result with `Version | `Help | `Ok (Cli.Help _) -> ok | _ -> error
+  let handle_parse_args_no_config ~with_context ?help_ppf ?err_ppf (`Msg error)
+      argv =
+    match with_context with
+    | false -> (
+        let result = Cli.peek ~mname:P.name argv in
+        let ok = Action.ok () in
+        let error = Action.error error in
+        match result with `Version | `Ok (Cli.Help _) -> ok | _ -> error)
+    | true -> (
+        let context =
+          (* Extract all the keys directly. Useful to pre-resolve the keys
+             provided by the specialized DSL. *)
+          let base_keys = Engine.all_keys @@ Impl.abstract @@ P.create [] in
+          Cmdliner.Term.(const (fun _ -> Action.ok ()) $ Key.context base_keys)
+        in
+        let result =
+          Cli.eval ?help_ppf ?err_ppf ~name:P.name ~version:P.version
+            ~configure:context ~query:context ~describe:context ~build:context
+            ~clean:context ~help:context ~mname:P.name argv
+        in
+        let ok = Action.ok () in
+        let error = Action.error error in
+        match result with
+        | `Version | `Help | `Ok (Cli.Help _) -> ok
+        | _ -> error)
 
-  let with_project_skeleton ~save_args t ?ppf ?err_ppf argv f =
+  let with_project_skeleton ~save_args ~with_context t ?ppf ?err_ppf argv f =
     let file = t.Cli.config_file in
     let* is_file = Action.is_file file in
     if not is_file then
       let msg = Fmt.str "configuration file %a missing" Fpath.pp file in
-      handle_parse_args_no_config ?help_ppf:ppf ?err_ppf (`Msg msg) argv
+      handle_parse_args_no_config ~with_context ?help_ppf:ppf ?err_ppf
+        (`Msg msg) argv
     else
       let* () = generate_project_skeleton ~save_args t ?ppf ?err_ppf argv in
       f ()
@@ -197,32 +208,39 @@ module Make (P : S) = struct
     rm_gen_files ()
 
   (* App builder configuration *)
-  let with_alias ~save_args args ~depext:_ ~extra_repo:_ ?ppf ?err_ppf argv =
+  let with_alias ~with_context ~save_args args ~depext:_ ~extra_repo:_ ?ppf
+      ?err_ppf argv =
     (* Files to build config.ml *)
-    with_project_skeleton ~save_args args ?ppf ?err_ppf argv @@ fun () ->
+    with_project_skeleton ~with_context ~save_args args ?ppf ?err_ppf argv
+    @@ fun () ->
     Log.info (fun f -> f "Set-up config skeleton.");
     (* Launch config.exe: additional generated files for the application. *)
     re_exec_cli args argv
 
   let configure ({ args; depext; extra_repo } : _ Cli.configure_args) ?ppf
       ?err_ppf argv =
-    with_alias ~save_args:true args ~depext ~extra_repo ?ppf ?err_ppf argv
+    with_alias ~with_context:true ~save_args:true args ~depext ~extra_repo ?ppf
+      ?err_ppf argv
 
-  let try_to_re_exec args ?ppf ?err_ppf argv =
-    with_project_skeleton ~save_args:false args ?ppf ?err_ppf argv @@ fun () ->
-    re_exec_cli args argv
+  let try_to_re_exec ~with_context args ?ppf ?err_ppf argv =
+    with_project_skeleton ~with_context ~save_args:false args ?ppf ?err_ppf argv
+    @@ fun () -> re_exec_cli args argv
 
-  let build (t : 'a Cli.build_args) = try_to_re_exec t
-  let error t = try_to_re_exec t
-  let query (t : 'a Cli.query_args) = try_to_re_exec t.args
-  let describe (t : 'a Cli.describe_args) = try_to_re_exec t.args
-  let help (t : 'a Cli.help_args) = try_to_re_exec t
+  let build (t : 'a Cli.build_args) = try_to_re_exec ~with_context:false t
+  let error t = try_to_re_exec ~with_context:true t
+  let query (t : 'a Cli.query_args) = try_to_re_exec ~with_context:false t.args
+
+  let describe (t : 'a Cli.describe_args) =
+    try_to_re_exec ~with_context:true t.args
+
+  let help (t : 'a Cli.help_args) = try_to_re_exec ~with_context:true t
 
   let clean args ?ppf ?err_ppf argv =
     let config = args.Cli.config_file in
     let* () =
       let* is_file = Action.is_file config in
-      if is_file then try_to_re_exec args ?ppf ?err_ppf argv else Action.ok ()
+      if is_file then try_to_re_exec ~with_context:false args ?ppf ?err_ppf argv
+      else Action.ok ()
     in
     clean_files args
 
@@ -240,7 +258,8 @@ module Make (P : S) = struct
         run t @@ error t ?ppf:help_ppf ?err_ppf argv
     | `Error (None, _) ->
         let action =
-          handle_parse_args_no_config ?help_ppf ?err_ppf (`Msg "") argv
+          handle_parse_args_no_config ?help_ppf ?err_ppf (`Msg "")
+            ~with_context:true argv
         in
         let args = Cli.default_args in
         action_run args action |> exit_err args

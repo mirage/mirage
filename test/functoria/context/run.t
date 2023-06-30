@@ -12,12 +12,16 @@ Query package - no target - y.context
 
 Query package - x target  - y.context
   $ ./config.exe query package -t x --context-file=y.context
-  test: `--target' has different values in the context file (passed with `--context-file') and on the CLI.
+  test: unknown option '-t'.
+  Usage: test query [OPTION]… [INFO]
+  Try 'test query --help' or 'test --help' for more information.
   [1]
 
 Query package - y target  - x.context
   $ ./config.exe query package -t y --context-file=x.context
-  test: `--target' has different values in the context file (passed with `--context-file') and on the CLI.
+  test: unknown option '-t'.
+  Usage: test query [OPTION]… [INFO]
+  Try 'test query --help' or 'test --help' for more information.
   [1]
 
 Describe - no target - x.context
@@ -36,12 +40,16 @@ Describe - no target - y.context
 
 Describe - x target  - y.context
   $ ./config.exe describe -t x --context-file=y.context
-  test: `--target' has different values in the context file (passed with `--context-file') and on the CLI.
+  test: unknown option '-t'.
+  Usage: test describe [OPTION]…
+  Try 'test describe --help' or 'test --help' for more information.
   [1]
 
 Describe - y target  - x.context
   $ ./config.exe describe -t y --context-file=x.context
-  test: `--target' has different values in the context file (passed with `--context-file') and on the CLI.
+  test: unknown option '-t'.
+  Usage: test describe [OPTION]…
+  Try 'test describe --help' or 'test --help' for more information.
   [1]
 
 Bad context cache

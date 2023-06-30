@@ -183,7 +183,7 @@ module Make (P : S) = struct
            `--context-file') and on the CLI."
           pp_keys keys s
 
-  let eval_cached ~full ~output ~cache base_context t =
+  let eval_cached ~with_context ~full ~output ~cache base_context t =
     let info = Config.eval ~full base_context t in
     let keys = Key.deps info in
     let cli_context = Key.context keys in
@@ -191,10 +191,11 @@ module Make (P : S) = struct
       match cache with
       | None -> cli_context
       | Some cache ->
+          let cache = Context_cache.peek cache cli_context in
           (* if --config-file is used, it takes priority over
              everything else. *)
           let f context =
-            match Context_cache.peek cache cli_context with
+            match cache with
             | None -> Ok Context.empty
             | Some c -> (
                 match
@@ -203,10 +204,14 @@ module Make (P : S) = struct
                 | Ok () -> Ok c
                 | Error e -> Error e)
           in
-          (* we need to wrap [cli_context] into a 'a term to be able
-             to parse argv properly - even if we don't use the result
-             as we look into the cached file. *)
-          Cmdliner.Term.(term_result (const f $ cli_context))
+          if with_context then
+            (* we need to wrap [cli_context] into a 'a term to be able
+               to parse argv properly - even if we don't use the result
+               as we look into the cached file. *)
+            Cmdliner.Term.(term_result (const f $ cli_context))
+          else
+            let c = match cache with None -> Context.empty | Some c -> c in
+            Cmdliner.Term.(const c)
     in
     let f context =
       let config = Key.eval context info context in
@@ -522,18 +527,29 @@ module Make (P : S) = struct
     in
 
     (* 3. Parse the command-line and handle the result. *)
-    let configure = eval_cached ~full:true ~output ~cache base_context config in
+    let configure =
+      eval_cached ~with_context:true ~full:true ~output ~cache base_context
+        config
+    in
 
     let describe =
       let full = match full_eval with None -> cache <> None | Some b -> b in
-      eval_cached ~full ~output ~cache base_context config
+      eval_cached ~with_context:false ~full ~output ~cache base_context config
     in
 
-    let build = eval_cached ~full:true ~output ~cache base_context config in
-    let clean = build in
-    let query = build in
-    let help = build in
-
+    let with_all_args =
+      eval_cached ~with_context:true ~full:true ~output ~cache base_context
+        config
+    in
+    let with_just_context_file =
+      (* only accept --context-file=<file> *)
+      eval_cached ~with_context:false ~full:true ~output ~cache base_context
+        config
+    in
+    let build = with_just_context_file in
+    let clean = with_just_context_file in
+    let query = with_just_context_file in
+    let help = with_all_args in
     handle_parse_args_result
       (Cli.eval ~name:P.name ~version:P.version ~configure ~query ~describe
          ~build ~clean ~help ~mname:P.name argv)

@@ -60,5 +60,3 @@ let with_argv keys s argv =
         ()
     | Error _ -> exit argument_error
     | Ok `Help | Ok `Version -> exit help_version
-
-type info = { name : string; libraries : (string * string) list }

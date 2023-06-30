@@ -37,6 +37,14 @@ let empty = Map.empty
 let add k v (t : t) : t = Map.add k.name (k.put v) t
 let mem k (t : t) = Map.mem k.name t
 
+let diff ~base x =
+  Map.fold
+    (fun k v acc ->
+      match Map.find_opt k x with
+      | None -> acc
+      | Some v' -> if v = v' then acc else k :: acc)
+    base []
+
 let find k (t : t) =
   if Map.mem k.name t then Some (k.get @@ Map.find k.name t) else None
 
@@ -44,7 +52,3 @@ let dump : t Fmt.t =
   let pp_elt ppf (k, v) = Fmt.pf ppf "[%s: %a]" k Fmt.exn v in
   let map_iter f = Map.iter (fun k v -> f (k, v)) in
   Fmt.box ~indent:2 @@ Fmt.(iter ~sep:(any "@ ")) map_iter pp_elt
-
-let merge ~default m =
-  let aux _ _ v = Some v in
-  Map.union aux default m

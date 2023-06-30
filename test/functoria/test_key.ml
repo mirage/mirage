@@ -68,14 +68,11 @@ let test_find () =
   Alcotest.(check (option (option string)))
     "find c" None (Key.find context key_c)
 
-let test_merge () =
+let test_diff () =
   let cache = (key_a, true) && (key_c, Some "foo") in
   let cli = (key_a, false) && (key_b, 2) in
-  let context = Context.merge ~default:cache cli in
-  Alcotest.(check bool) "merge a" false (Key.get context key_a);
-  Alcotest.(check int) "merge b" 2 (Key.get context key_b);
-  Alcotest.(check (option string))
-    "merge c" (Some "foo") (Key.get context key_c)
+  let diff = Context.diff ~base:cache cli in
+  Alcotest.(check (list string)) "diff" [ "a" ] diff
 
 let key = Alcotest.testable Key.pp Key.equal
 
@@ -117,7 +114,7 @@ let suite =
       ("eval", test_eval);
       ("get", test_get);
       ("find", test_find);
-      ("merge", test_merge);
+      ("diff", test_diff);
       ("cmdliner", test_cmdliner);
       ("opt-all", test_opt_all);
     ]

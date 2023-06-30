@@ -12,15 +12,13 @@ Query package - no target - y.context
 
 Query package - x target  - y.context
   $ ./config.exe query package -t x --context-file=y.context
-  "fmt" { ?monorepo }
-  "functoria-runtime" { ?monorepo }
-  "x" { ?monorepo }
+  test: `--target' has different values in the context file (passed with `--context-file') and on the CLI.
+  [1]
 
 Query package - y target  - x.context
   $ ./config.exe query package -t y --context-file=x.context
-  "fmt" { ?monorepo }
-  "functoria-runtime" { ?monorepo }
-  "y" { ?monorepo }
+  test: `--target' has different values in the context file (passed with `--context-file') and on the CLI.
+  [1]
 
 Describe - no target - x.context
   $ ./config.exe describe --context-file=x.context
@@ -38,17 +36,13 @@ Describe - no target - y.context
 
 Describe - x target  - y.context
   $ ./config.exe describe -t x --context-file=y.context
-  Name       noop
-  Keys       target=x,
-             vote=cat (default),
-             warn_error=false (default)
+  test: `--target' has different values in the context file (passed with `--context-file') and on the CLI.
+  [1]
 
 Describe - y target  - x.context
   $ ./config.exe describe -t y --context-file=x.context
-  Name       noop
-  Keys       target=y,
-             vote=cat (default),
-             warn_error=false (default)
+  test: `--target' has different values in the context file (passed with `--context-file') and on the CLI.
+  [1]
 
 Bad context cache
   $ ./config.exe configure -t nonexistent --context-file=z.context

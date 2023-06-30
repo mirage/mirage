@@ -43,10 +43,8 @@ val peek : t -> Context.t Cmdliner.Term.t -> Context.t option
 (** [peek t term] is the context obtained by evaluating [term] over the cached
     context [t]. *)
 
-val merge : t -> Context.t Cmdliner.Term.t -> Context.t Cmdliner.Term.t
-(** [eval_context t term] is the context obtained by evaluating [term] over the
-    cached context [t]. *)
-
 val peek_output : t -> string option
 (** [peek_output t] is the evaluation of {!Cli.output} over the cached context
     [t]. *)
+
+val dump : t Fmt.t

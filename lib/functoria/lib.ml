@@ -163,16 +163,51 @@ module Make (P : S) = struct
 
   module Log = (val Logs.src_log src : Logs.LOG)
 
-  let eval_cached ~full ~output ~cache context t =
-    let info = Config.eval ~full context t in
-    let keys = Key.deps info in
-    let output =
-      match (output, Context_cache.peek_output cache) with
-      | Some _, _ -> output
-      | _, cache -> cache
+  let check_conflicts ~cli_context ~cached_context =
+    let pp_key ppf s = Fmt.pf ppf "`--%s'" s in
+    let rec pp_keys ppf = function
+      | [] -> ()
+      | [ k ] -> pp_key ppf k
+      | [ x; y ] -> Fmt.pf ppf "%a and %a" pp_key x pp_key y
+      | h :: t ->
+          Fmt.pf ppf "%a, " pp_key h;
+          pp_keys ppf t
     in
-    let context = Key.context keys in
-    let context = Context_cache.merge cache context in
+    match Context.diff ~base:cached_context cli_context with
+    | [] -> Ok ()
+    | keys ->
+        let s = if List.length keys > 1 then "ve" else "s" in
+        Fmt.kstr
+          (fun x -> Error (`Msg x))
+          "%a ha%s different values in the context file (passed with \
+           `--context-file') and on the CLI."
+          pp_keys keys s
+
+  let eval_cached ~full ~output ~cache base_context t =
+    let info = Config.eval ~full base_context t in
+    let keys = Key.deps info in
+    let cli_context = Key.context keys in
+    let context =
+      match cache with
+      | None -> cli_context
+      | Some cache ->
+          (* if --config-file is used, it takes priority over
+             everything else. *)
+          let f context =
+            match Context_cache.peek cache cli_context with
+            | None -> Ok Context.empty
+            | Some c -> (
+                match
+                  check_conflicts ~cached_context:c ~cli_context:context
+                with
+                | Ok () -> Ok c
+                | Error e -> Error e)
+          in
+          (* we need to wrap [cli_context] into a 'a term to be able
+             to parse argv properly - even if we don't use the result
+             as we look into the cached file. *)
+          Cmdliner.Term.(term_result (const f $ cli_context))
+    in
     let f context =
       let config = Key.eval context info context in
       match output with
@@ -444,10 +479,12 @@ module Make (P : S) = struct
 
   let read_context args =
     match args.Cli.context_file with
-    | None -> Action.ok Context_cache.empty
+    | None -> Action.ok None
     | Some file ->
         let* is_file = Action.is_file file in
-        if is_file then Context_cache.read file
+        if is_file then
+          let+ file = Context_cache.read file in
+          Some file
         else Action.errorf "cannot find file `%a'" Fpath.pp file
 
   let run_configure_with_argv argv args config =
@@ -461,26 +498,34 @@ module Make (P : S) = struct
         let if_keys = Config.keys config in
         Key.context if_keys
       in
-      let context =
+      let cli_context =
         match Cmdliner.Cmd.eval_peek_opts ~argv non_required_term with
         | _, Ok (`Ok context) -> context
         | _ -> Context.empty
       in
-      match Context_cache.peek cache non_required_term with
-      | None -> context
-      | Some default -> Context.merge ~default context
+      match cache with
+      | None -> cli_context
+      | Some cache -> (
+          (* if --config-file is used, it takes priority over
+             everything else. *)
+          match Context_cache.peek cache non_required_term with
+          | None -> Context.empty
+          | Some context -> context)
     in
-    let output = Cli.peek_output argv in
+    let output =
+      match cache with
+      | None -> Cli.peek_output argv
+      | Some cache ->
+          (* if --config-file is used, it takes priority over
+             everything else. *)
+          Context_cache.peek_output cache
+    in
 
     (* 3. Parse the command-line and handle the result. *)
     let configure = eval_cached ~full:true ~output ~cache base_context config in
 
     let describe =
-      let full =
-        match full_eval with
-        | None -> not (Context_cache.is_empty cache)
-        | Some b -> b
-      in
+      let full = match full_eval with None -> cache <> None | Some b -> b in
       eval_cached ~full ~output ~cache base_context config
     in
 

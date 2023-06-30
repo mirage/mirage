@@ -42,7 +42,7 @@ let write file argv =
 let read file =
   Log.info (fun l -> l "reading cache %a" Fpath.pp file);
   let* is_file = Action.is_file file in
-  if not is_file then Action.ok empty
+  if not is_file then Action.errorf "%a is not a file" Fpath.pp file
   else
     let* args = Action.read_file file in
     let args = String.cuts ~sep:"\n" args in
@@ -68,11 +68,6 @@ let peek t term =
   | Some c, _ | _, Ok (`Ok c) -> Some c
   | _ -> None
 
-let merge t term =
-  let cache = match peek t term with None -> Context.empty | Some c -> c in
-  let f term = Context.merge ~default:cache term in
-  Cmdliner.Term.(const f $ term)
-
 let peek_output t = Cli.peek_output t
 
 let file ~name args =
@@ -80,3 +75,5 @@ let file ~name args =
   match args.Cli.context_file with
   | Some f -> f
   | None -> Fpath.(build_dir / name / "context")
+
+let dump = Fmt.Dump.(array string)

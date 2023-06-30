@@ -41,9 +41,9 @@ val find : 'a key -> t -> 'a option
 (** [find k t] is [v] is the binding [(k, v)] has been added to [t], otherwise
     it is [None]. *)
 
-val merge : default:t -> t -> t
-(** [merge ~default t] merges [t] on top of [default]. If a key appears in both
-    [default] and [t], the value present in [t] is kept. *)
-
 val dump : t Fmt.t
 (** [dump] dumps the state of [t]. *)
+
+val diff : base:t -> t -> string list
+(** [diff ~base x] is the set of keys from [base] that are present in [x] with a
+    different value. *)

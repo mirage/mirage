@@ -1049,21 +1049,6 @@ val noop : job impl
 val keys : argv impl -> job impl
 (** [keys argv] is a job that loads argv. *)
 
-type info
-(** [info] is the type for module implementing {!Mirage_runtime.Info}. *)
-
-val info : info typ
-(** [info] is the combinator to generate {!type:info} values to use at runtime. *)
-
-val app_info : info impl
-(** [app_info] exports all the information available at configure time into a
-    runtime {!type:Mirage.Info.t} value. *)
-
-val app_info_with_opam_deps : (string * string) list -> info impl
-(** [app_info_with_opam_deps build_info] exports all the information available
-    at configure time into a runtime {!type:Mirage.Info.t} value. The libraries
-    are set to [build_info]. Most likely you want to use [app_info] instead. *)
-
 (** {2 Application registering} *)
 
 val register :

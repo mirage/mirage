@@ -163,24 +163,6 @@ val keys :
     command-line arguments. By default [runtime_package] is
     ["functoria-runtime"] and [runtime_modname] is ["Functoria_runtime"]. *)
 
-val info : info typ
-(** [info] is a value representing {!type-info} module types. *)
-
-val app_info :
-  ?runtime_package:string ->
-  ?build_info:(string * string) list ->
-  ?gen_modname:string ->
-  ?modname:string ->
-  unit ->
-  info impl
-(** [app_info] is the module implementation whose state contains all the
-    information available at configure-time.
-
-    - The value is stored into a generated module name [gen_modname]: if not
-      set, it is [Info_gen].
-    - [modname] is the name of the runtime module defining values of type
-      [info]. By default it's [Functoria_runtime]. *)
-
 module Type = Type
 module Impl = Impl
 module Context = Context

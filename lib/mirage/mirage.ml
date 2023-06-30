@@ -308,13 +308,6 @@ type info = Functoria.info
 
 let job = Functoria.job
 let noop = Functoria.noop
-let info = Functoria.info
-
-let app_info_partial =
-  Functoria.app_info ~runtime_package:"mirage-runtime" ~modname:"Mirage_runtime"
-
-let app_info = app_info_partial ()
-let app_info_with_opam_deps build_info = app_info_partial ~build_info ()
 
 let os_of_target i =
   match Info.get i Key.target with

@@ -1,30 +1,11 @@
 open Functoria
 
-let build_info =
-  [
-    ("base-bigarray", "base");
-    ("base-threads", "base");
-    ("base-unix", "base");
-    ("cmdliner", "1.0.4");
-    ("conf-m4", "1");
-    ("dune", "2.0.0");
-    ("fmt", "0.8.8");
-    ("ocaml", "4.08.1");
-    ("ocaml-base-compiler", "4.08.1");
-    ("ocaml-config", "1");
-    ("ocamlbuild", "0.14.0");
-    ("ocamlfind", "1.8.1");
-    ("seq", "base");
-    ("stdlib-shims", "0.1.0");
-    ("topkg", "1.0.1");
-  ]
-
 let test () =
   let i1 = keys sys_argv in
   let i2 = noop in
   let context = Context.empty in
-  let sigs = job @-> job @-> info @-> job in
-  let job = main "App.Make" sigs $ i1 $ i2 $ app_info ~build_info () in
+  let sigs = job @-> job @-> job in
+  let job = main "App.Make" sigs $ i1 $ i2 in
   Functoria_test.run ~init:[ i1; i2 ] context job
 
 let () =

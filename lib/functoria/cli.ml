@@ -165,7 +165,9 @@ let dot =
     Arg.info ~docs:description_section [ "dot" ]
       ~doc:
         "Output a dot description. If no output file is given, it will display \
-         the dot file using the  command  given to $(b,--dot-command)."
+         the dot file using the  command  given to $(b,--dot-command). Use in \
+         combination with $(b,--output=-) (short version: $(b,-o-)) to display \
+         the dot file on stdout."
   in
   Arg.(value & flag doc)
 

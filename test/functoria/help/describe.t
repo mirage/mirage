@@ -25,7 +25,9 @@ Help describe --man-format=plain
   DESCRIBE OPTIONS
          --dot
              Output a dot description. If no output file is given, it will
-             display the dot file using the command given to --dot-command.
+             display the dot file using the command given to --dot-command. Use
+             in combination with --output=- (short version: -o-) to display the
+             dot file on stdout.
   
          --dot-command=COMMAND (absent=xdot)
              Command used to show a dot file. This command should accept a dot
@@ -124,7 +126,9 @@ Help describe --help=plain
   DESCRIBE OPTIONS
          --dot
              Output a dot description. If no output file is given, it will
-             display the dot file using the command given to --dot-command.
+             display the dot file using the command given to --dot-command. Use
+             in combination with --output=- (short version: -o-) to display the
+             dot file on stdout.
   
          --dot-command=COMMAND (absent=xdot)
              Command used to show a dot file. This command should accept a dot

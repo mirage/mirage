@@ -196,6 +196,7 @@ module Make (P : S) = struct
           let* () = Action.write_file tmp data in
           Action.run_cmd Bos.Cmd.(v t.dotcmd % p tmp)
       | None -> Action.ok (f Fmt.stdout)
+      | Some "-" -> Action.ok (f Fmt.stdout)
       | Some s -> Action.with_output ~path:(Fpath.v s) ~purpose:"dot file" f
     in
     with_fmt f

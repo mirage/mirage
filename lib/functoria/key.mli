@@ -18,7 +18,8 @@
 
 (** Configuration command-line arguments. *)
 
-(** Cross-stage command-line arguments. *)
+open Cmdliner
+
 module Arg : sig
   (** Terms for cross-stage arguments.
 
@@ -27,93 +28,28 @@ module Arg : sig
         Cmdliner.Arg} to allow MetaOCaml-style typed cross-stage persistency of
       command-line arguments. *)
 
-  (** {1 Argument converters} *)
-
-  type 'a serialize = Format.formatter -> 'a -> unit
-  (** The type for command-line argument serializers. A value of type
-      ['a serialize] generates a syntactically valid OCaml representation which
-      evaluates to a value of type ['a]. *)
-
-  type 'a runtime_conv = string
-  (** The type for command-line argument converters used at runtime. A value of
-      type ['a runtime_conv] is a symbol name of type
-      {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#type-conv}
-        Cmdliner.Arg.conv}. *)
-
-  type 'a converter
-  (** The type for argument converters. *)
-
-  val conv :
-    conv:'a Cmdliner.Arg.conv ->
-    serialize:'a serialize ->
-    runtime_conv:'a runtime_conv ->
-    'a converter
-  (** [conv c s r] is the argument converter using [c] to convert user strings
-      into OCaml value, [s] to convert OCaml values into strings interpretable
-      as OCaml expressions, and the function named [r] to convert user strings
-      into OCaml values at runtime. *)
-
-  val string : string converter
-  (** [string] converts strings. *)
-
-  val bool : bool converter
-  (** [bool] converts booleans. *)
-
-  val int : int converter
-  (** [int] converts integers. *)
-
-  val int64 : int64 converter
-  (** [int64] converts 64-bits integers. *)
-
-  val list : ?sep:char -> 'a converter -> 'a list converter
-  (** [list t] converts lists of [t]s. *)
-
-  val pair : ?sep:char -> 'a converter -> 'b converter -> ('a * 'b) converter
-  (** [pair a b] converts [a] and [b] to a pair of [a, b]. *)
-
-  val some : 'a converter -> 'a option converter
-  (** [some t] converts [t] options. *)
-
-  (** {1 Arguments and their information} *)
-
   type 'a t
   (** The type for arguments holding data of type ['a]. *)
 
-  type info
-  (** The type for information about cross-stage command-line arguments. See
-      {{:http://erratique.ch/software/cmdliner/doc/Cmdliner/Arg/index.html#arginfo}
-        Cmdliner's arguments}. *)
-
-  val info :
-    ?docs:string ->
-    ?docv:string ->
-    ?doc:string ->
-    ?env:string ->
-    string list ->
-    info
-  (** Define cross-stage information for an argument. See
-      {{:http://erratique.ch/software/cmdliner/doc/Cmdliner/Arg/index.html#type-info}
-        Cmdliner.Arg.info}. If not set, [docs] is ["UNIKERNEL PARAMETERS"]. *)
-
   (** {1 Optional Arguments} *)
 
-  val opt : 'a converter -> 'a -> info -> 'a t
+  val opt : 'a Arg.conv -> 'a -> Arg.info -> 'a t
   (** [opt conv v i] is similar to
       {{:http://erratique.ch/software/cmdliner/doc/Cmdliner/Arg/index.html#val-opt}
         Cmdliner.Arg.opt} but for cross-stage optional command-line arguments. *)
 
-  val required : 'a converter -> info -> 'a option t
+  val required : 'a Arg.conv -> Arg.info -> 'a option t
   (** [required conv i] is similar to
       {{:http://erratique.ch/software/cmdliner/doc/Cmdliner/Arg/index.html#val-required}
         Cmdliner.Arg.required} but for cross-stage required command-line
       arguments. *)
 
-  val flag : info -> bool t
+  val flag : Arg.info -> bool t
   (** [flag i] is similar to
       {{:http://erratique.ch/software/cmdliner/doc/Cmdliner/Arg/index.html#val-flag}
         Cmdliner.Arg.flag} but for cross-stage command-line flags. *)
 
-  val opt_all : 'a converter -> info -> 'a list t
+  val opt_all : 'a Arg.conv -> Arg.info -> 'a list t
 end
 
 (** {1 Configuration Keys} *)

@@ -2,6 +2,7 @@ open Functoria
 open Mirage_impl_misc
 open Mirage_impl_kv
 open Mirage_impl_pclock
+open Cmdliner
 module Key = Mirage_key
 
 type block = BLOCK
@@ -255,13 +256,14 @@ let docteur_solo5 (mode : mode) extra_deps (disk_c, disk_r) branch analyze
 
 let disk =
   let doc =
-    Key.Arg.info
+    Arg.info
       ~doc:
         "Name of the docteur disk (for Solo5 targets, the name must contains \
          only alpanumeric characters)."
       [ "disk" ]
   in
-  Key.(create "disk" Arg.(opt string "disk" doc))
+  let key = Key.Arg.opt Arg.string "disk" doc in
+  Key.create "disk" key
 
 let analyze = Runtime_key.create "Mirage_runtime.analyze"
 

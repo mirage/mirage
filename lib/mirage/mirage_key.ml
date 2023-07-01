@@ -17,24 +17,18 @@
 open Functoria
 module Key = Key
 open Astring
+open Cmdliner
 
 (** {2 Custom Descriptions} *)
 
-module Arg = struct
-  include Key.Arg
-
-  let from_run s =
-    Fmt.str "@[<2>(Functoria_runtime.Key.conv@ %s.of_string@ %s.to_string)@]" s
-      s
-
-  let make m of_string to_string =
+module Conv = struct
+  let make of_string to_string =
     let parser s =
       match of_string s with
       | Error (`Msg m) -> `Error ("Can't parse ip address: " ^ s ^ ": " ^ m)
       | Ok ip -> `Ok ip
-    and serialize ppf t = Fmt.pf ppf "(%s.of_string_exn %S)" m (to_string t)
     and pp ppf t = Fmt.string ppf (to_string t) in
-    Key.Arg.conv ~conv:(parser, pp) ~serialize ~runtime_conv:(from_run m)
+    (parser, pp)
 
   module type S = sig
     type t
@@ -43,14 +37,14 @@ module Arg = struct
     val to_string : t -> string
   end
 
-  let of_module (type t) m (module M : S with type t = t) =
-    make m M.of_string M.to_string
+  let of_module (type t) (module M : S with type t = t) =
+    make M.of_string M.to_string
 
-  let ipv4_address = of_module "Ipaddr.V4" (module Ipaddr.V4)
-  let ipv4 = of_module "Ipaddr.V4.Prefix" (module Ipaddr.V4.Prefix)
-  let ipv6_address = of_module "Ipaddr.V6" (module Ipaddr.V6)
-  let ipv6 = of_module "Ipaddr.V6.Prefix" (module Ipaddr.V6.Prefix)
-  let ip_address = of_module "Ipaddr" (module Ipaddr)
+  let ipv4_address = of_module (module Ipaddr.V4)
+  let ipv4 = of_module (module Ipaddr.V4.Prefix)
+  let ipv6_address = of_module (module Ipaddr.V6)
+  let ipv6 = of_module (module Ipaddr.V6.Prefix)
+  let ip_address = of_module (module Ipaddr)
 end
 
 (** {2 Documentation helper} *)
@@ -85,17 +79,6 @@ let target_conv : mode Cmdliner.Arg.conv =
   in
   (parser, printer)
 
-let target_serialize ppf = function
-  | `Unix -> Fmt.pf ppf "`Unix"
-  | `Xen -> Fmt.pf ppf "`Xen"
-  | `Virtio -> Fmt.pf ppf "`Virtio"
-  | `Hvt -> Fmt.pf ppf "`Hvt"
-  | `Muen -> Fmt.pf ppf "`Muen"
-  | `MacOSX -> Fmt.pf ppf "`MacOSX"
-  | `Qubes -> Fmt.pf ppf "`Qubes"
-  | `Genode -> Fmt.pf ppf "`Genode"
-  | `Spt -> Fmt.pf ppf "`Spt"
-
 let pp_target fmt m = snd target_conv fmt m
 
 let default_target =
@@ -113,15 +96,11 @@ let target =
      $(i,qubes), $(i,unix), $(i,macosx), $(i,virtio), $(i,hvt), $(i,spt), \
      $(i,muen), $(i,genode)."
   in
-  let conv =
-    Arg.conv ~conv:target_conv ~runtime_conv:"target"
-      ~serialize:target_serialize
-  in
   let doc =
     Arg.info ~docs:mirage_section ~docv:"TARGET" ~doc [ "t"; "target" ]
-      ~env:"MODE"
+      ~env:(Cmd.Env.info "MODE")
   in
-  let key = Arg.opt conv default_target doc in
+  let key = Key.Arg.opt target_conv default_target doc in
   Key.create "target" key
 
 let is_unix =
@@ -149,17 +128,13 @@ let configure_key ?(group = "") ~doc ~default conv name =
       ~doc
       [ prefix ^ name ]
   in
-  let key = Arg.opt conv default doc in
+  let key = Key.Arg.opt conv default doc in
   Key.create (prefix ^ name) key
 
 (** {3 File system keys} *)
 
 let kv_ro ?group () =
   let conv = Cmdliner.Arg.enum [ ("crunch", `Crunch); ("direct", `Direct) ] in
-  let serialize =
-    Fmt.of_to_string @@ function `Crunch -> "`Crunch" | `Direct -> "`Direct"
-  in
-  let conv = Arg.conv ~conv ~serialize ~runtime_conv:"kv_ro" in
   let doc =
     Fmt.str
       "Use a $(i,crunch) or $(i,direct) pass-through implementation for %a."
@@ -170,16 +145,9 @@ let kv_ro ?group () =
 (** {3 Block device keys} *)
 let block ?group () =
   let conv =
-    Cmdliner.Arg.enum
+    Arg.enum
       [ ("xenstore", `XenstoreId); ("file", `BlockFile); ("ramdisk", `Ramdisk) ]
   in
-  let serialize =
-    Fmt.of_to_string @@ function
-    | `XenstoreId -> "`XenstoreId"
-    | `BlockFile -> "`BlockFile"
-    | `Ramdisk -> "`Ramdisk"
-  in
-  let conv = Arg.conv ~conv ~serialize ~runtime_conv:"block" in
   let doc =
     Fmt.str
       "Use a $(i,ramdisk), $(i,xenstore), or $(i,file) pass-through \
@@ -196,14 +164,9 @@ let dhcp ?group () =
 
 let net ?group () : [ `Socket | `Direct ] option Key.key =
   let conv = Cmdliner.Arg.enum [ ("socket", `Socket); ("direct", `Direct) ] in
-  let serialize fmt = function
-    | `Socket -> Fmt.string fmt "`Socket"
-    | `Direct -> Fmt.string fmt "`Direct"
-  in
-  let conv = Arg.conv ~conv ~runtime_conv:"net" ~serialize in
   let doc =
     Fmt.str "Use $(i,socket) or $(i,direct) group for %a." pp_group group
   in
   configure_key ~doc ?group ~default:None (Arg.some conv) "net"
 
-include (Key : Functoria.KEY with module Arg := Arg)
+include (Key : Functoria.KEY)

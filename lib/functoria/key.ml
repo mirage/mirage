@@ -16,121 +16,28 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-module Serialize = struct
-  let option x ppf v =
-    match v with
-    | None -> Fmt.(Dump.option x) ppf v
-    | Some _ -> Fmt.(parens (Dump.option x)) ppf v
-
-  let list x = Fmt.Dump.list x
-  let pair a b = Fmt.Dump.pair a b
-end
+open Cmdliner
 
 module Arg = struct
-  (** {1 Converters} *)
-
-  type 'a serialize = Format.formatter -> 'a -> unit
-  type 'a runtime_conv = string
-
-  type 'a converter = {
-    conv : 'a Cmdliner.Arg.conv;
-    serialize : 'a serialize;
-    runtime_conv : 'a runtime_conv;
-  }
-
-  let conv ~conv ~serialize ~runtime_conv = { conv; serialize; runtime_conv }
-  let converter x = x.conv
-  let serialize x = x.serialize
-  let runtime_conv x = x.runtime_conv
-
-  let string =
-    conv ~conv:Cmdliner.Arg.string ~runtime_conv:"string" ~serialize:(fun fmt ->
-        Format.fprintf fmt "%S")
-
-  let bool =
-    conv ~conv:Cmdliner.Arg.bool ~runtime_conv:"bool" ~serialize:(fun fmt ->
-        Format.fprintf fmt "%b")
-
-  let int =
-    conv ~conv:Cmdliner.Arg.int ~runtime_conv:"int" ~serialize:(fun fmt i ->
-        Format.fprintf fmt "(%i)" i)
-
-  let int64 =
-    conv ~conv:Cmdliner.Arg.int64 ~runtime_conv:"int64" ~serialize:(fun fmt i ->
-        Format.fprintf fmt "(%LiL)" i)
-
-  let list ?sep d =
-    let runtime_conv =
-      match sep with
-      | None -> Fmt.str {ocaml|(Cmdliner.Arg.list %s)|ocaml} (runtime_conv d)
-      | Some sep ->
-          Fmt.str {ocaml|(Cmdliner.Arg.list ~sep:'\x%02x' %s)|ocaml}
-            (Char.code sep) (runtime_conv d)
-    in
-    conv
-      ~conv:(Cmdliner.Arg.list ?sep (converter d))
-      ~runtime_conv
-      ~serialize:(Serialize.list (serialize d))
-
-  let pair ?sep a b =
-    let runtime_conv =
-      match sep with
-      | None ->
-          Fmt.str {ocaml|(Cmdliner.Arg.pair %s %s)|ocaml} (runtime_conv a)
-            (runtime_conv b)
-      | Some sep ->
-          Fmt.str {ocaml|(Cmdliner.Arg.pair ~sep:'\x%02x' %s %s)|ocaml}
-            (Char.code sep) (runtime_conv a) (runtime_conv b)
-    in
-    conv
-      ~conv:(Cmdliner.Arg.pair ?sep (converter a) (converter b))
-      ~runtime_conv
-      ~serialize:(Serialize.pair (serialize a) (serialize b))
-
-  let some d =
-    conv
-      ~conv:(Cmdliner.Arg.some (converter d))
-      ~runtime_conv:(Fmt.str "(Cmdliner.Arg.some %s)" (runtime_conv d))
-      ~serialize:(Serialize.option (serialize d))
-
-  (** {1 Information about arguments} *)
-
-  type info = {
-    doc : string option;
-    docs : string;
-    docv : string option;
-    names : string list;
-    env : string option;
-  }
-
-  let info ?(docs = "APPLICATION OPTIONS") ?docv ?doc ?env names =
-    { doc; docs; docv; names; env }
-
-  let cmdliner_of_info { docs; docv; doc; env; names } =
-    let env =
-      match env with Some s -> Some (Cmdliner.Cmd.Env.info s) | None -> None
-    in
-    Cmdliner.Arg.info ~docs ?docv ?doc ?env names
-
   (** {1 Arguments} *)
 
   type 'a kind =
-    | Opt : 'a * 'a converter -> 'a kind
-    | Opt_all : 'a converter -> 'a list kind
-    | Required : 'a converter -> 'a option kind
+    | Opt : 'a * 'a Arg.conv -> 'a kind
+    | Opt_all : 'a Arg.conv -> 'a list kind
+    | Required : 'a Arg.conv -> 'a option kind
     | Flag : bool kind
 
-  let pp_conv c = snd (converter c)
+  let pp_conv c = snd c
 
   let pp_kind : type a. a kind -> a Fmt.t = function
     | Opt (_, c) -> pp_conv c
-    | Opt_all c -> pp_conv (list c)
-    | Required c -> pp_conv (some c)
+    | Opt_all c -> pp_conv (Arg.list c)
+    | Required c -> pp_conv (Arg.some c)
     | Flag -> Fmt.bool
 
   let compare_kind : type a b. a kind -> b kind -> int =
    fun a b ->
-    let default cx x = Fmt.to_to_string (snd cx.conv) x in
+    let default cx x = Fmt.to_to_string (snd cx) x in
     match (a, b) with
     | Opt (x, cx), Opt (y, cy) -> String.compare (default cx x) (default cy y)
     | Required _, Required _ -> 0
@@ -143,10 +50,10 @@ module Arg = struct
     | Opt_all _, _ -> 1
     | _, Opt_all _ -> -1
 
-  type 'a t = { info : info; kind : 'a kind }
+  type 'a t = { info : Arg.info; kind : 'a kind }
 
   let pp t = pp_kind t.kind
-  let equal x y = x.info = y.info && compare_kind x.kind y.kind = 0
+  let equal x y = compare_kind x.kind y.kind = 0
   let opt conv default info = { info; kind = Opt (default, conv) }
   let flag info = { info; kind = Flag }
   let required conv info = { info; kind = Required conv }
@@ -159,37 +66,26 @@ module Arg = struct
     | Required _ -> (None : _ option)
     | Opt_all _ -> ([] : _ list)
 
-  (* XXX(dinosaure): I don't understand why we wrapped
-   * value with ['a option]. *)
-
   let make_opt_cmdliner wrap i default desc =
-    let none =
-      match default with
-      | Some d -> Some (Fmt.str "%a" (pp_conv desc) d)
-      | None -> None
-    in
-    Cmdliner.Arg.(wrap @@ opt (some ?none @@ converter desc) None i)
+    Arg.(wrap @@ opt (some' ?none:default desc) None i)
 
-  let make_opt_all_cmdliner wrap i desc =
-    Cmdliner.Arg.(wrap @@ opt_all (converter desc) [] i)
+  let make_opt_all_cmdliner wrap i desc = Arg.(wrap @@ opt_all desc [] i)
 
+  (* Wrap terms into an ['a option] to distinguish between default
+     and absent values. *)
   let to_cmdliner (type a) (t : a t) : a option Cmdliner.Term.t =
-    let i = cmdliner_of_info t.info in
+    let i = t.info in
     match t.kind with
-    | Flag -> Cmdliner.Arg.(value & vflag None [ (Some true, i) ])
-    | Opt (default, desc) ->
-        make_opt_cmdliner Cmdliner.Arg.value i (Some default) desc
+    | Flag -> Arg.(value & vflag None [ (Some true, i) ])
+    | Opt (default, desc) -> make_opt_cmdliner Arg.value i (Some default) desc
     | Required desc ->
-        make_opt_cmdliner Cmdliner.Arg.required i None (some (some desc))
+        make_opt_cmdliner Arg.required i None (Arg.some (Arg.some desc))
     | Opt_all desc ->
         let list_to_option = function
           | [] -> None
           | _ :: _ as lst -> Some lst
         in
-        let wrap arg =
-          let open Cmdliner in
-          Term.(const list_to_option $ Arg.value arg)
-        in
+        let wrap arg = Term.(const list_to_option $ Arg.value arg) in
         make_opt_all_cmdliner wrap i desc
 end
 
@@ -292,32 +188,11 @@ let pps p ppf l =
   let pp = Fmt.vbox @@ fun ppf s -> Set.(pp_gen f ppf @@ s) in
   pp ppf l
 
-(* {2 Automatic documentation} *)
-
-let info_arg (type a) (arg : a Arg.kind) =
-  match arg with
-  | Arg.Required _ -> " This key is required."
-  | Arg.Flag -> ""
-  | Arg.Opt _ -> ""
-  | Arg.Opt_all _ -> ""
-
-let add_extra_info arg =
-  match arg.Arg.info.doc with
-  | None -> arg
-  | Some doc ->
-      let doc =
-        [ doc; info_arg arg.kind ]
-        |> List.filter (( <> ) "")
-        |> String.concat " "
-      in
-      { arg with info = { arg.info with doc = Some doc } }
-
 (* {2 Key creation} *)
 
 (* Unexposed smart constructor. *)
 let make ~arg ~name =
   let key = Context.new_key name in
-  let arg = add_extra_info arg in
   { arg; name; key }
 
 let create name arg =

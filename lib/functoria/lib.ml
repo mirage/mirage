@@ -34,7 +34,7 @@ module Config = struct
     lock_location : Fpath.t option -> string -> string;
     build_cmd : string;
     packages : package list Key.value;
-    keys : Key.Set.t;
+    if_keys : Key.Set.t;
     init : job impl list;
     jobs : Impl.abstract;
     src : [ `Auto | `None | `Some of string ];
@@ -47,21 +47,13 @@ module Config = struct
     device_graph : Device.Graph.t;
   }
 
-  (* In practice, we get all the keys associated to [if] cases, and
-     all the keys that have a setter to them. *)
-  let get_if_context jobs =
-    let all_keys = Engine.all_keys jobs in
-    let skeys = Engine.if_keys jobs in
-    let f k s = if true then s else Key.Set.add k s in
-    Key.Set.fold f all_keys skeys
-
   let v ?(config_file = Fpath.v "config.ml") ?(init = []) ~configure_cmd
       ~pre_build_cmd ~lock_location ~build_cmd ~src name jobs =
     let jobs = Impl.abstract jobs in
-    let keys = get_if_context jobs in
+    let if_keys = Engine.if_keys jobs in
     {
       config_file;
-      keys;
+      if_keys;
       name;
       init;
       configure_cmd;
@@ -82,7 +74,7 @@ module Config = struct
         lock_location;
         build_cmd;
         packages;
-        keys;
+        if_keys;
         jobs;
         init;
         src;
@@ -90,7 +82,7 @@ module Config = struct
     let jobs = Impl.simplify ~full ~context jobs in
     let device_graph = Impl.eval ~context jobs in
     let packages = Key.(pure List.append $ packages $ Engine.packages jobs) in
-    let keys = Key.Set.elements (Key.Set.union keys @@ Engine.all_keys jobs) in
+    let keys = Key.Set.(elements (union if_keys @@ Engine.all_keys jobs)) in
     let mk packages _ context =
       let info =
         Info.v ~config_file ~packages ~keys ~context ~configure_cmd
@@ -100,7 +92,7 @@ module Config = struct
     in
     Key.(pure mk $ packages $ of_deps (Set.of_list keys))
 
-  let keys t = t.keys
+  let if_keys t = t.if_keys
   let pp_dot = Impl.pp_dot
 end
 
@@ -450,7 +442,7 @@ module Make (P : S) = struct
         if is_file then Context_cache.read file
         else Action.errorf "cannot find file `%a'" Fpath.pp file
 
-  let run_configure_with_argv argv args config =
+  let run_with_argv argv args config =
     (*   whether to fully evaluate the graph *)
     let full_eval = Cli.peek_full_eval argv in
 
@@ -458,7 +450,7 @@ module Make (P : S) = struct
     let base_context =
       (* Consider only the non-required keys. *)
       let non_required_term =
-        let if_keys = Config.keys config in
+        let if_keys = Config.if_keys config in
         Key.context if_keys
       in
       let context =
@@ -513,7 +505,7 @@ module Make (P : S) = struct
         Config.v ~config_file ~init ~configure_cmd ~pre_build_cmd ~lock_location
           ~build_cmd ~src name main_dev
       in
-      run_configure_with_argv argv args c
+      run_with_argv argv args c
     in
     run () |> action_run args |> exit_err args
 end

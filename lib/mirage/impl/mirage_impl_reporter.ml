@@ -17,14 +17,14 @@ let pp_level ppf = function
 
 let mirage_log ~default () =
   let logs = Key.logs in
-  let packages = [ package ~min:"1.2.0" ~max:"2.0.0" "mirage-logs" ] in
+  let packages = [ package ~min:"2.0.0" ~max:"3.0.0" "mirage-logs" ] in
   let keys = [ Key.v logs ] in
   let connect _ modname = function
     | [ _pclock ] ->
         Fmt.str
           "@[<v 2>let reporter = %s.create () in@ Mirage_runtime.set_level \
-           ~default:%a %a;@ %s.set_reporter reporter;@ Lwt.return reporter"
-          modname pp_level default pp_key logs modname
+           ~default:%a %a;@ Logs.set_reporter reporter;@ Lwt.return reporter"
+          modname pp_level default pp_key logs
     | _ -> failwith (connect_err "log" 1)
   in
   impl ~packages ~keys ~connect "Mirage_logs.Make" (pclock @-> reporter)

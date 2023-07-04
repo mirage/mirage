@@ -127,8 +127,6 @@ module Key : module type of struct
   (** @inline *)
 end
 
-val abstract : 'a impl -> abstract_impl [@@ocaml.deprecated "Use Mirage.dep."]
-
 (** {2 General mirage devices} *)
 
 type qubesdb
@@ -204,23 +202,6 @@ val default_random : random impl
 val rng : ?time:time impl -> ?mclock:mclock impl -> unit -> random impl
 (** [rng ()] is the device [Mirage_crypto_rng.Make]. *)
 
-(** {2 Consoles} *)
-
-type console
-(** Abstract type for consoles. *)
-
-val console : console typ
-  [@@ocaml.deprecated "use Logs and Printf instead"]
-(** Implementations of the [Mirage_console.S] signature. *)
-
-val default_console : console impl
-  [@@ocaml.deprecated "use Logs and Printf instead"]
-(** Default console implementation. *)
-
-val custom_console : string -> console impl
-  [@@ocaml.deprecated "use Logs and Printf instead"]
-(** Custom console implementation. *)
-
 (** {2 Block devices} *)
 
 type block
@@ -259,10 +240,6 @@ val crunch : string -> kv_ro impl
 
 val tar_kv_ro : block impl -> kv_ro impl
 (** [tar_kv_ro block] is a read-only tar archive. *)
-
-val archive : block impl -> kv_ro impl
-  [@@ocaml.deprecated "use Mirage.tar_kv_ro"]
-(** @deprecated You should use {!val:tar_kv_ro} (or {!val:tar_kv_rw}). *)
 
 val direct_kv_ro : string -> kv_ro impl
 (** Direct access to the underlying filesystem as a key/value store for Unix.

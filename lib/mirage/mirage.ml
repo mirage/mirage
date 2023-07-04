@@ -56,12 +56,6 @@ let random = Mirage_impl_random.random
 let default_random = Mirage_impl_random.default_random
 let rng = Mirage_impl_random.rng
 
-type console = Mirage_impl_console.console
-
-let console = Mirage_impl_console.console
-let default_console = Mirage_impl_console.default_console
-let custom_console = Mirage_impl_console.custom_console
-
 type kv_ro = Mirage_impl_kv.ro
 
 let kv_ro = Mirage_impl_kv.ro
@@ -88,7 +82,6 @@ type block = Mirage_impl_block.block
 
 let block = Mirage_impl_block.block
 let tar_kv_ro = Mirage_impl_block.tar_kv_ro
-let archive = Mirage_impl_block.archive
 let fat_ro = Mirage_impl_block.fat_ro
 let generic_block = Mirage_impl_block.generic_block
 let ramdisk = Mirage_impl_block.ramdisk

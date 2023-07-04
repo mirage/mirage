@@ -36,7 +36,6 @@ let ( $ ) = Impl.( $ )
 let of_device = Impl.of_device
 let key = Key.v
 let dep = Impl.abstract
-let abstract = dep
 let if_impl = Impl.if_
 let match_impl = Impl.match_
 

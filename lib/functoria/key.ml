@@ -312,7 +312,6 @@ module Set = struct
 end
 
 let v x = Any x
-let abstract = v
 let arg k = k.arg
 let name (Any k) = k.name
 let stage (Any k) = Arg.stage k.arg

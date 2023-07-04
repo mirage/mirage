@@ -120,7 +120,6 @@ let tar_kv_rw_conf =
 
 let tar_kv_ro block = tar_kv_ro_conf $ block
 let tar_kv_rw pclock block = tar_kv_rw_conf $ pclock $ block
-let archive = tar_kv_ro
 
 let fat_conf =
   let packages = [ package ~min:"0.15.0" ~max:"0.16.0" "fat-filesystem" ] in

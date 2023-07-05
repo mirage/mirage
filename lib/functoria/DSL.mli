@@ -61,9 +61,6 @@ type abstract_impl = Impl.abstract
 val dep : 'a impl -> abstract_impl
 (** [dep t] is the (build-time) dependency towards [t]. *)
 
-val abstract : 'a impl -> abstract_impl
-  [@@ocaml.deprecated "Use Functoria.dep."]
-
 (** {1:keys Keys} *)
 
 type 'a key = 'a Key.key

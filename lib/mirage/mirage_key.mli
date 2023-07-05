@@ -32,8 +32,6 @@ end
 
 include Functoria.KEY with module Arg := Arg
 
-val abstract : 'a key -> t [@@ocaml.deprecated "Use Mirage.Key.v."]
-
 type mode_unix = [ `Unix | `MacOSX ]
 type mode_xen = [ `Xen | `Qubes ]
 type mode_solo5 = [ `Hvt | `Spt | `Virtio | `Muen | `Genode ]

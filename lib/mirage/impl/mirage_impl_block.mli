@@ -11,7 +11,6 @@ val generic_block :
   block impl
 
 val tar_kv_ro : block impl -> Mirage_impl_kv.ro impl
-val archive : block impl -> Mirage_impl_kv.ro impl
 val fat_ro : block impl -> Mirage_impl_kv.ro impl
 val ramdisk : string -> block impl
 val block_of_xenstore_id : string -> block impl

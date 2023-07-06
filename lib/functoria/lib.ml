@@ -210,14 +210,6 @@ module Make (P : S) = struct
     let files = Fpath.Set.add main files in
     Fpath.Set.(elements files)
 
-  let build (args : _ Cli.build_args) =
-    (* Get application name *)
-    let build_dir = build_dir args in
-    let* () = Filegen.write Fpath.(build_dir / "dune") "(include dune.build)" in
-    let cmd = Bos.Cmd.(v "dune" % "build" % "--root" % ".") in
-    Log.info (fun f -> f "dune build --root .");
-    Action.run_cmd_cli cmd
-
   let query ({ args; kind; depext; extra_repo } : _ Cli.query_args) =
     let { Config.jobs; info; _ } = args.Cli.context in
     let name = P.name_of_target info in
@@ -397,11 +389,6 @@ module Make (P : S) = struct
             let t = { t with args = with_output t.args } in
             Log.info (fun m -> pp_info m (Some Logs.Debug) t.args);
             configure t
-        | Cli.Build t ->
-            let t = with_output t in
-            Log.warn (fun m -> m "Deprecated, use 'make build' instead");
-            Log.info (fun m -> pp_info m (Some Logs.Debug) t);
-            build t
         | Cli.Query t ->
             let t = { t with args = with_output t.args } in
             Log.info (fun m -> pp_info m (Some Logs.Debug) t.args);
@@ -474,14 +461,13 @@ module Make (P : S) = struct
       eval_cached ~full ~output ~cache base_context config
     in
 
-    let build = eval_cached ~full:true ~output ~cache base_context config in
-    let clean = build in
-    let query = build in
-    let help = build in
+    let clean = eval_cached ~full:true ~output ~cache base_context config in
+    let query = clean in
+    let help = clean in
 
     handle_parse_args_result
       (Cli.eval ~name:P.name ~version:P.version ~configure ~query ~describe
-         ~build ~clean ~help ~mname:P.name argv)
+         ~clean ~help ~mname:P.name argv)
 
   let register ?(init = default_init) ?(src = `Auto) name jobs =
     (* 1. Pre-parse the arguments set the log level, config file

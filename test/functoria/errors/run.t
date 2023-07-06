@@ -3,12 +3,6 @@ Configure failure
   configuration file config.ml missing
   [1]
 
-Build failure
-  $ ./test.exe build --vote=dog
-  configuration file config.ml missing
-  [1]
-
-
 Query failure
   $ ./test.exe query --vote=dog
   configuration file config.ml missing
@@ -39,9 +33,6 @@ Help does not fail
          Use test help <command> for more information on a specific command.
   
   COMMANDS
-         build [OPTION]…
-             Build a test application (deprecated, use make build).
-  
          clean [OPTION]…
              Clean the files produced by test for a given application.
   

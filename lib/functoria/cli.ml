@@ -242,7 +242,6 @@ type 'a action =
   | Configure of 'a configure_args
   | Query of 'a query_args
   | Describe of 'a describe_args
-  | Build of 'a build_args
   | Clean of 'a clean_args
   | Help of 'a help_args
 
@@ -268,7 +267,6 @@ let pp_configure pp_a =
       field "depext" (fun (t : 'a configure_args) -> t.depext) Fmt.bool;
     ]
 
-let pp_build = pp_args
 let pp_clean = pp_args
 let pp_help = pp_args
 
@@ -302,7 +300,6 @@ let pp_action pp_a ppf = function
   | Configure c -> Fmt.pf ppf "@[configure:@ @[<2>%a@]@]" (pp_configure pp_a) c
   | Query q -> Fmt.pf ppf "@[query:@ @[<2>%a@]@]" (pp_query pp_a) q
   | Describe d -> Fmt.pf ppf "@[describe:@ @[<2>%a@]@]" (pp_describe pp_a) d
-  | Build b -> Fmt.pf ppf "@[build:@ @[<2>%a@]@]" (pp_build pp_a) b
   | Clean c -> Fmt.pf ppf "@[clean:@ @[<2>%a@]@]" (pp_clean pp_a) c
   | Help h -> Fmt.pf ppf "@[help:@ @[<2>%a@]@]" (pp_help pp_a) h
 
@@ -395,12 +392,6 @@ module Subcommands = struct
               );
           ] )
 
-  (** The 'build' subcommand *)
-  let build t =
-    let doc = "Build a $(mname) application (deprecated, use make build)." in
-    ( Term.(const (fun args -> Build args) $ T.args t),
-      Cmd.info "build" ~doc ~man:[ `S "DESCRIPTION"; `P doc ] )
-
   (** The 'clean' subcommand *)
   let clean t =
     let doc = "Clean the files produced by $(mname) for a given application." in
@@ -478,7 +469,7 @@ let peek_args ?(with_setup = false) ~mname argv =
   | _ -> None
 
 let eval ?(with_setup = true) ?help_ppf ?err_ppf ~name ~version ~configure
-    ~query ~describe ~build ~clean ~help ~mname argv =
+    ~query ~describe ~clean ~help ~mname argv =
   let default, info = Subcommands.default ~with_setup ~name ~version in
   let args context = { Subcommands.with_setup; mname; context } in
   let group =
@@ -489,7 +480,6 @@ let eval ?(with_setup = true) ?help_ppf ?err_ppf ~name ~version ~configure
            Subcommands.configure (args configure);
            Subcommands.describe (args describe);
            Subcommands.query (args query);
-           Subcommands.build (args build);
            Subcommands.clean (args clean);
            Subcommands.help (args help);
          ])
@@ -500,14 +490,13 @@ let eval ?(with_setup = true) ?help_ppf ?err_ppf ~name ~version ~configure
 
 let args = function
   | Configure { args; _ } -> args
-  | Build x | Clean x | Help x -> x
+  | Clean x | Help x -> x
   | Query { args; _ } -> args
   | Describe { args; _ } -> args
 
 let choices =
   [
     ("configure", `Configure);
-    ("build", `Build);
     ("clean", `Clean);
     ("query", `Query);
     ("describe", `Describe);
@@ -558,7 +547,7 @@ let rec find_next_choice argv i =
             (List.map fst cs)
       | [ (_, a) ] -> (
           match a with
-          | (`Configure | `Build | `Clean | `Describe | `Help) as c ->
+          | (`Configure | `Clean | `Describe | `Help) as c ->
               (Some c, remove_argv argv i)
           | `Query ->
               let k, argv = find_next_kind argv (i + 1) in
@@ -592,7 +581,6 @@ let peek ?(with_setup = false) ~mname argv : unit result =
   in
   match peek_choice argv with
   | `Ok `Configure -> peek_cmd Subcommands.configure
-  | `Ok `Build -> peek_cmd Subcommands.build
   | `Ok `Clean -> peek_cmd Subcommands.clean
   | `Ok (`Query _) -> peek_cmd Subcommands.query
   | `Ok `Describe -> peek_cmd Subcommands.describe

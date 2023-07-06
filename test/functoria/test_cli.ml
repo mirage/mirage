@@ -26,7 +26,7 @@ let test_configure () =
   in
   let result =
     eval ~configure:extra_term ~query:extra_term ~describe:extra_term
-      ~build:extra_term ~clean:extra_term ~help:extra_term ~mname:"test"
+      ~clean:extra_term ~help:extra_term ~mname:"test"
       [| "name"; "configure"; "--xyz"; "--verbose" |]
   in
   Alcotest.(check result_b)
@@ -63,7 +63,7 @@ let test_describe () =
   in
   let result =
     eval ~configure:extra_term ~query:extra_term ~describe:extra_term
-      ~build:extra_term ~clean:extra_term ~help:extra_term ~mname:"test"
+      ~clean:extra_term ~help:extra_term ~mname:"test"
       [|
         "name";
         "describe";
@@ -93,32 +93,6 @@ let test_describe () =
          }))
     result
 
-let test_build () =
-  let extra_term =
-    Cmdliner.(
-      Term.(
-        const (fun xyz cde -> (xyz, cde))
-        $ Arg.(value (flag (info [ "x"; "xyz" ])))
-        $ Arg.(value (flag (info [ "c"; "cde" ])))))
-  in
-  let result =
-    eval ~configure:extra_term ~query:extra_term ~describe:extra_term
-      ~build:extra_term ~clean:extra_term ~help:extra_term ~mname:"test"
-      [| "name"; "build"; "--cde"; "-x"; "--color=never"; "-v"; "-v" |]
-  in
-  Alcotest.(check result_b)
-    "build"
-    (`Ok
-      (Cli.Build
-         {
-           context = (true, true);
-           output = None;
-           config_file = Fpath.v "config.ml";
-           context_file = None;
-           dry_run = false;
-         }))
-    result
-
 let test_clean () =
   let extra_term =
     Cmdliner.(
@@ -129,7 +103,7 @@ let test_clean () =
   in
   let result =
     eval ~configure:extra_term ~query:extra_term ~describe:extra_term
-      ~build:extra_term ~clean:extra_term ~help:extra_term [| "name"; "clean" |]
+      ~clean:extra_term ~help:extra_term [| "name"; "clean" |]
       ~mname:"test"
   in
   Alcotest.(check result_b)
@@ -156,7 +130,7 @@ let test_help () =
   let null = Fmt.with_buffer (Buffer.create 10) in
   let result =
     eval ~help_ppf:null ~configure:extra_term ~query:extra_term
-      ~describe:extra_term ~build:extra_term ~clean:extra_term ~help:extra_term
+      ~describe:extra_term ~clean:extra_term ~help:extra_term
       ~mname:"test"
       [| "name"; "help"; "--help"; "plain" |]
   in
@@ -173,7 +147,7 @@ let test_default () =
   let null = Fmt.with_buffer (Buffer.create 10) in
   let result =
     eval ~help_ppf:null ~configure:extra_term ~query:extra_term
-      ~describe:extra_term ~build:extra_term ~clean:extra_term ~help:extra_term
+      ~describe:extra_term ~clean:extra_term ~help:extra_term
       ~mname:"test" [| "name" |]
   in
   Alcotest.(check result_b) "default" `Help result
@@ -204,7 +178,6 @@ let suite =
     ("read_full_eval", `Quick, test_read_full_eval);
     ("configure", `Quick, test_configure);
     ("describe", `Quick, test_describe);
-    ("build", `Quick, test_build);
     ("clean", `Quick, test_clean);
     ("help", `Quick, test_help);
     ("default", `Quick, test_default);

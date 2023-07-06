@@ -136,7 +136,7 @@ depends depend::
 	@@$(MAKE) --no-print-directory pull
 
 build::
-	dune build --root . $BUILD_DIR/dist
+	dune build --root . $(BUILD_DIR)dist
 
 clean::
 	mirage clean

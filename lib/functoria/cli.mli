@@ -100,7 +100,6 @@ type 'a action =
   | Configure of 'a configure_args
   | Query of 'a query_args
   | Describe of 'a describe_args
-  | Build of 'a build_args
   | Clean of 'a clean_args
   | Help of 'a help_args
 
@@ -121,7 +120,6 @@ val eval :
   configure:'a Term.t ->
   query:'a Term.t ->
   describe:'a Term.t ->
-  build:'a Term.t ->
   clean:'a Term.t ->
   help:'a Term.t ->
   mname:string ->

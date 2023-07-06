@@ -1,21 +1,8 @@
 Build an application.
 
   $ ./test.exe configure --file app/config.ml
-  $ ./test.exe build -v --file app/config.ml
-  test.exe: [INFO] run: build:
-                        { "context" = ;
-                          "config_file" = app/config.ml;
-                          "output" = None;
-                          "dry_run" = false }
-  test.exe: [INFO] Generating: app/test/dune-workspace.config (base)
-  test.exe: [INFO] Generating: dune-project (base)
-  test.exe: [INFO] Generating: app/dune.config (base)
-  config.exe: [INFO] reading cache app/test/context
-  config.exe: [WARNING] Deprecated, use 'make build' instead
-  config.exe: [INFO] Name       noop
-                     Keys       vote=cat (default),
-                                warn_error=false (default)
-  config.exe: [INFO] dune build --root .
+  $ make build
+  dune build --root . app/dist
   $ ls -a app/
   .
   ..
@@ -49,22 +36,8 @@ Build an application.
 Test `--output`:
 
   $ ./test.exe configure --file app/config.ml -o toto
-  $ ./test.exe build -v --file app/config.ml
-  test.exe: [INFO] run: build:
-                        { "context" = ;
-                          "config_file" = app/config.ml;
-                          "output" = None;
-                          "dry_run" = false }
-  test.exe: [INFO] Generating: app/test/dune-workspace.config (base)
-  test.exe: [INFO] Generating: dune-project (base)
-  test.exe: [INFO] Generating: app/dune.config (base)
-  config.exe: [INFO] reading cache app/test/context
-  config.exe: [WARNING] Deprecated, use 'make build' instead
-  config.exe: [INFO] Name       noop
-                     Keys       vote=cat (default),
-                                warn_error=false (default)
-                     Output     toto
-  config.exe: [INFO] dune build --root .
+  $ make build
+  dune build --root . app/dist
   $ ls -a app/
   .
   ..

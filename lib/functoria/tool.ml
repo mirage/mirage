@@ -134,7 +134,7 @@ module Make (P : S) = struct
     in
     let result =
       Cli.eval ?help_ppf ?err_ppf ~name:P.name ~version:P.version
-        ~configure:context ~query:context ~describe:context ~build:context
+        ~configure:context ~query:context ~describe:context
         ~clean:context ~help:context ~mname:P.name argv
     in
     let ok = Action.ok () in
@@ -212,7 +212,6 @@ module Make (P : S) = struct
     with_project_skeleton ~save_args:false args ?ppf ?err_ppf argv @@ fun () ->
     re_exec_cli args argv
 
-  let build (t : 'a Cli.build_args) = try_to_re_exec t
   let error t = try_to_re_exec t
   let query (t : 'a Cli.query_args) = try_to_re_exec t.args
   let describe (t : 'a Cli.describe_args) = try_to_re_exec t.args
@@ -250,7 +249,6 @@ module Make (P : S) = struct
         let ppf = help_ppf in
         match t with
         | Configure t -> run @@ configure t ?ppf ?err_ppf argv
-        | Build t -> run @@ build t ?ppf ?err_ppf argv
         | Clean t -> run @@ clean t ?ppf ?err_ppf argv
         | Query t -> run @@ query t ?ppf ?err_ppf argv
         | Describe t -> run @@ describe t ?ppf ?err_ppf argv

@@ -135,9 +135,6 @@ As well as the default command:
          Use test help <command> for more information on a specific command.
   
   COMMANDS
-         build [OPTION]…
-             Build a test application.
-  
          clean [OPTION]…
              Clean the files produced by test for a given application.
   

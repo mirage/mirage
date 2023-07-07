@@ -20,26 +20,6 @@ Configure
   * Run_cmd_cli '_build/default/./config.exe configure a b c --dry-run --context
                  ./test/context' (ok)
 
-Build
-  $ ./test.exe build a b c 2> build.err
-  $(dune build ./config.exe --root . --workspace ./test/dune-workspace.config)
-
-  $ cat build.err
-  * Is_file? config.ml -> true
-  * Mkdir test (created)
-  * Is_file? test/dune-workspace.config -> false
-  * Write to test/dune-workspace.config (65 bytes)
-  * Is_file? dune-project -> false
-  * Write to dune-project (47 bytes)
-  * Is_file? dune.config -> false
-  * Write to dune.config (132 bytes)
-  * Is_file? dune -> false
-  * Write to dune (52 bytes)
-  * Run_cmd 'dune build ./config.exe --root . --workspace
-             ./test/dune-workspace.config' (ok)
-  * Is_file? test/context -> false
-  * Run_cmd_cli '_build/default/./config.exe build a b c --dry-run' (ok)
-
 Clean
   $ ./test.exe clean a b c 2> clean.err
   $(dune build ./config.exe --root . --workspace ./test/dune-workspace.config)
@@ -63,7 +43,7 @@ Clean
   * Run_cmd_cli '_build/default/./config.exe clean a b c --dry-run' (ok)
   * Get_var INSIDE_FUNCTORIA_TESTS -> <not set>
   * Run_cmd 'dune clean' (ok)
-  * Ls ./ (11 entries)
+  * Ls ./ (10 entries)
   * Is_file? dune-project -> true
   * Read dune-project (47 bytes)
   * Rm dune-project (removed)
@@ -215,9 +195,6 @@ Help no config
          Use test help <command> for more information on a specific command.
   
   COMMANDS
-         build [OPTION]…
-             Build a test application.
-  
          clean [OPTION]…
              Clean the files produced by test for a given application.
   
@@ -280,77 +257,6 @@ Help no config with bad arguments
   * Is_file? empty/config.ml -> false
   configuration file empty/config.ml missing
   (exit 1)
-
-Build help no config with bad arguments
-  $ ./test.exe build --help=plain --file=empty/config.ml a b c 2> build-help-no-config-args.err
-  NAME
-         test-build - Build a test application.
-  
-  SYNOPSIS
-         test build [OPTION]…
-  
-  DESCRIPTION
-         Build a test application.
-  
-  CONFIGURE OPTIONS
-         --context-file=FILE (absent=test.context)
-             The context file to use.
-  
-         --dry-run
-             Display I/O actions instead of executing them.
-  
-         -f FILE, --file=FILE, --config-file=FILE (absent=config.ml)
-             The configuration file to use.
-  
-         -o FILE, --output=FILE
-             Name of the output file.
-  
-  APPLICATION OPTIONS
-         --vote=VOTE (absent=cat)
-             Vote.
-  
-         --warn-error=BOOL (absent=false)
-             Enable -warn-error when compiling OCaml sources.
-  
-  COMMON OPTIONS
-         --color=WHEN (absent=auto)
-             Colorize the output. WHEN must be one of auto, always or never.
-  
-         --help[=FMT] (default=auto)
-             Show this help in format FMT. The value FMT must be one of auto,
-             pager, groff or plain. With auto, the format is pager or plain
-             whenever the TERM env var is dumb or undefined.
-  
-         -q, --quiet
-             Be quiet. Takes over -v and --verbosity.
-  
-         -v, --verbose
-             Increase verbosity. Repeatable, but more than twice does not bring
-             more.
-  
-         --verbosity=LEVEL (absent=warning)
-             Be more or less verbose. LEVEL must be one of quiet, error,
-             warning, info or debug. Takes over -v.
-  
-         --version
-             Show version information.
-  
-  EXIT STATUS
-         test build exits with:
-  
-         0   on success.
-  
-         123 on indiscriminate errors reported on standard error.
-  
-         124 on command line parsing errors.
-  
-         125 on unexpected internal errors (bugs).
-  
-  SEE ALSO
-         test(1)
-  
-  $ cat build-help-no-config-args.err
-  * Is_file? empty/config.ml -> false
 
 Version configure
   $ ./test.exe configure --version a b c

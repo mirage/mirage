@@ -103,8 +103,7 @@ let test_clean () =
   in
   let result =
     eval ~configure:extra_term ~query:extra_term ~describe:extra_term
-      ~clean:extra_term ~help:extra_term [| "name"; "clean" |]
-      ~mname:"test"
+      ~clean:extra_term ~help:extra_term [| "name"; "clean" |] ~mname:"test"
   in
   Alcotest.(check result_b)
     "clean"
@@ -130,8 +129,7 @@ let test_help () =
   let null = Fmt.with_buffer (Buffer.create 10) in
   let result =
     eval ~help_ppf:null ~configure:extra_term ~query:extra_term
-      ~describe:extra_term ~clean:extra_term ~help:extra_term
-      ~mname:"test"
+      ~describe:extra_term ~clean:extra_term ~help:extra_term ~mname:"test"
       [| "name"; "help"; "--help"; "plain" |]
   in
   Alcotest.(check result_b) "help" `Help result
@@ -147,8 +145,8 @@ let test_default () =
   let null = Fmt.with_buffer (Buffer.create 10) in
   let result =
     eval ~help_ppf:null ~configure:extra_term ~query:extra_term
-      ~describe:extra_term ~clean:extra_term ~help:extra_term
-      ~mname:"test" [| "name" |]
+      ~describe:extra_term ~clean:extra_term ~help:extra_term ~mname:"test"
+      [| "name" |]
   in
   Alcotest.(check result_b) "default" `Help result
 

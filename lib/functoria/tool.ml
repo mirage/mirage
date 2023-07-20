@@ -134,8 +134,8 @@ module Make (P : S) = struct
     in
     let result =
       Cli.eval ?help_ppf ?err_ppf ~name:P.name ~version:P.version
-        ~configure:context ~query:context ~describe:context
-        ~clean:context ~help:context ~mname:P.name argv
+        ~configure:context ~query:context ~describe:context ~clean:context
+        ~help:context ~mname:P.name argv
     in
     let ok = Action.ok () in
     let error = Action.error error in

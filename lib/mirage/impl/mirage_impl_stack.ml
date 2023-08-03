@@ -47,7 +47,7 @@ let stackv4v6_direct_conf () =
     @-> stackv4v6)
 
 let direct_stackv4v6 ?(mclock = default_monotonic_clock)
-    ?(random = default_random) ?(time = default_time) ~ipv4_only ~ipv6_only
+    ?(random = default_random) ?(time = default_time) ?tcp ~ipv4_only ~ipv6_only
     network eth arp ipv4 ipv6 =
   let ip = keyed_ipv4v6 ~ipv4_only ~ipv6_only ipv4 ipv6 in
   stackv4v6_direct_conf ()
@@ -59,7 +59,8 @@ let direct_stackv4v6 ?(mclock = default_monotonic_clock)
   $ ip
   $ Mirage_impl_icmp.direct_icmpv4 ipv4
   $ direct_udp ~random ip
-  $ direct_tcp ~mclock ~random ~time ip
+  $
+  match tcp with None -> direct_tcp ~mclock ~random ~time ip | Some tcp -> tcp
 
 let static_ipv4v6_stack ?group ?ipv6_config ?ipv4_config ?(arp = arp ?time:None)
     tap =

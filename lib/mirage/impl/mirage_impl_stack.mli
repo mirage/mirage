@@ -8,6 +8,7 @@ val direct_stackv4v6 :
   ?mclock:Mirage_impl_mclock.mclock impl ->
   ?random:Mirage_impl_random.random impl ->
   ?time:Mirage_impl_time.time impl ->
+  ?tcp:Mirage_impl_tcp.tcpv4v6 impl ->
   ipv4_only:bool Mirage_key.key ->
   ipv6_only:bool Mirage_key.key ->
   Mirage_impl_network.network impl ->

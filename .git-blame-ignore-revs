@@ -1,2 +1,42 @@
 # Upgrade to OCamlformat 0.26.0
 d2cf205b07b9154bec2a6b490a348457d14fec09
+# Only formatting code
+c1a1f3c0e275121e9e1f7858eb8469bce9cd586f
+# Upgrade to OCamlformat 0.24.1
+27fd349a42c2ade2104e95fc054ab5b8a7a45e7a
+# Apply ocamlformat
+feff3f383c18879418aacdccf70ab4b41a3ee4c8
+# Upgrade to OCamlformat 0.23.0
+a42241e108273f72ec843ae929b465382cbf358d
+# Upgrade to OCamlformat 0.22.4
+4f639ec47c0a909a1be7caa73686a4c6fd2202f6
+# OCamlformat 0.21.0
+c206e4ff6db50bb4853045b82da1eb98561a69e7
+c430e1a2113faf607a8263de598fd3744f90c2cf
+# OCamlforamt 0.20.1
+625fb4db5e8d5ee4feeb4ed9cbb41a985a801881
+# use a compact style
+c57dff52da107254bc59ccd77a89cdc0c8850629
+# OCamlformat 0.19.0
+ba8881b6c38dd1272985919be5c50b458b7c9d60
+# OCamlformat 0.18.0
+ac127995407c52188cff325f94e5bd7f147e91f3
+# apply ocamlformat
+d6c69bf726ae589eefd4c4b0e65406eb3ef7f9fb
+# Upgrade to OCamlformat 0.15.0
+c0b1694cee573b6c733c8cb51d96390579b34b58
+# Upgrade to OCamlformat 0.14.2
+dfb7dd05c6dd85568dd205473799272812cf8b47
+# Upgrade to OCamlformat 0.14.1
+9ee30a571503a9a78c0acf293c1f23c972493395
+# Upgrade to OCamlformat 0.13.0
+779f5f651993fe1e1aca1daade7c0525583bfb43
+# Upgrade to OCamlformat 0.12.0
+1c3a0165d510c75e1702a49999899a2bd3b2f6fa
+# dune bu @fmt
+c0548358f0872c5067062494f065867bc826f2da
+5b1669664948b754a0aec8fdad9984adddc296d3
+11194994751069bcebebc451408cb61dfd586791
+31ca5ebb1f781a26416f946ba6d1dc80ec972d21
+e54ec1347b48768d25d805324db3a71e4ccbec33
+d5ba1ce504cdd1bad36bb503b6c5aa52f2e657c5

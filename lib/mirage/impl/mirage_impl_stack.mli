@@ -6,6 +6,7 @@ val direct_stackv4v6 :
   ?mclock:Mirage_impl_mclock.mclock Functoria.impl ->
   ?random:Mirage_impl_random.random Functoria.impl ->
   ?time:Mirage_impl_time.time Functoria.impl ->
+  ?tcp:Mirage_impl_tcp.tcpv4v6 Functoria.impl ->
   ipv4_only:bool Mirage_key.key ->
   ipv6_only:bool Mirage_key.key ->
   Mirage_impl_network.network Functoria.impl ->

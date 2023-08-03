@@ -581,6 +581,7 @@ val direct_stackv4v6 :
   ?mclock:mclock impl ->
   ?random:random impl ->
   ?time:time impl ->
+  ?tcp:tcpv4v6 impl ->
   ipv4_only:bool Key.key ->
   ipv6_only:bool Key.key ->
   network impl ->

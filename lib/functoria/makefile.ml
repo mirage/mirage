@@ -48,7 +48,7 @@ let opam_repo_add_rule extra =
   let ppf = Format.formatter_of_buffer buf in
   Fmt.pf ppf
     {|repo-add:
-	@@printf "\e[2musing overlay repository mirage: %a \e[0m\n"
+	@@printf "\033[2musing overlay repository mirage: %a \033[0m\n"
 |}
     Fmt.(brackets (list ~sep:(any ", ") (using fst string)))
     extra;
@@ -64,7 +64,7 @@ let opam_repo_remove_rule extra =
   let ppf = Format.formatter_of_buffer buf in
   Fmt.pf ppf
     {|repo-rm:
-	@@printf "\e[2mremoving overlay repository %a\e[0m\n"
+	@@printf "\033[2mremoving overlay repository %a\033[0m\n"
 |}
     Fmt.(brackets (list ~sep:(any ", ") (using fst string)))
     extra;

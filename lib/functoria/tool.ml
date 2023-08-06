@@ -197,16 +197,12 @@ module Make (P : S) = struct
     rm_gen_files ()
 
   (* App builder configuration *)
-  let with_alias ~save_args args ~depext:_ ~extra_repo:_ ?ppf ?err_ppf argv =
+  let configure ({ args; _ } : _ Cli.configure_args) ?ppf ?err_ppf argv =
     (* Files to build config.ml *)
-    with_project_skeleton ~save_args args ?ppf ?err_ppf argv @@ fun () ->
+    with_project_skeleton ~save_args:true args ?ppf ?err_ppf argv @@ fun () ->
     Log.info (fun f -> f "Set-up config skeleton.");
     (* Launch config.exe: additional generated files for the application. *)
     re_exec_cli args argv
-
-  let configure ({ args; depext; extra_repo } : _ Cli.configure_args) ?ppf
-      ?err_ppf argv =
-    with_alias ~save_args:true args ~depext ~extra_repo ?ppf ?err_ppf argv
 
   let try_to_re_exec args ?ppf ?err_ppf argv =
     with_project_skeleton ~save_args:false args ?ppf ?err_ppf argv @@ fun () ->

@@ -198,6 +198,66 @@ module Make (P : S) = struct
 
   (* App builder configuration *)
   let configure ({ args; _ } : _ Cli.configure_args) ?ppf ?err_ppf argv =
+    let* () =
+      match
+        Bos.(
+          OS.Cmd.out_string
+            (OS.Cmd.run_out ~err:OS.Cmd.err_null
+               Cmd.(v "head" % "-1" % p args.Cli.config_file)))
+      with
+      | Ok (data, _) ->
+          let first_str = "(* mirage " in
+          let fl = String.length first_str in
+          if
+            fl < String.length data
+            && String.equal (String.sub data 0 fl) first_str
+          then
+            let our_version = "%%VERSION_NUM%%" in
+            let pct = "%%" in
+            if String.equal our_version (pct ^ "VERSION_NUM" ^ pct) then (
+              Log.info (fun m ->
+                  m
+                    "skipping version check, since our_version is not \
+                     watermarked");
+              Action.ok ())
+            else
+              let* version =
+                match
+                  String.split_on_char ' '
+                    (String.sub data fl (String.length data - fl))
+                with
+                | ">=" :: v :: _ -> Action.ok v
+                | _ ->
+                    Action.error
+                      "Unknown first line, must be (* mirage >= a.b.c *)"
+              in
+              let rec geq a b =
+                match (a, b) with
+                | _, [] -> true
+                | [], _ -> false
+                | a :: tla, b :: tlb -> (
+                    let aint = int_of_string_opt a
+                    and bint = int_of_string_opt b in
+                    match (aint, bint) with
+                    | Some a, Some b -> a > b || (a = b && geq tla tlb)
+                    | _ -> false)
+              in
+              if
+                geq
+                  (String.split_on_char '.' our_version)
+                  (String.split_on_char '.' version)
+              then Action.ok ()
+              else
+                Action.error
+                  ("Version mismatch: required is mirage "
+                  ^ version
+                  ^ ", but only "
+                  ^ our_version
+                  ^ " is installed. Please upgrade your installation (opam \
+                     update && opam upgrade mirage)")
+          else Action.ok ()
+      | Error (`Msg e) -> Action.error e
+    in
     (* Files to build config.ml *)
     with_project_skeleton ~save_args:true args ?ppf ?err_ppf argv @@ fun () ->
     Log.info (fun f -> f "Set-up config skeleton.");

@@ -274,7 +274,7 @@ module Make (P : S) = struct
                         ^ ", but only "
                         ^ our_version
                         ^ " is installed. Please upgrade your installation \
-                           (opam update && opam upgrade '"
+                           (opam update && opam install '"
                         ^ pkg
                         ^ ">="
                         ^ v
@@ -297,7 +297,7 @@ module Make (P : S) = struct
                       ^ ", but "
                       ^ our_version
                       ^ " is installed. Please downgrade your installation \
-                         (opam update && opam upgrade '"
+                         (opam update && opam install '"
                       ^ pkg
                       ^ "<"
                       ^ v

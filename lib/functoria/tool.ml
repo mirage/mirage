@@ -231,7 +231,7 @@ module Make (P : S) = struct
                 (String.sub data fl (String.length data - fl))
             in
             let rec go lower upper = function
-              | "&&" :: tl -> go lower upper tl
+              | "&" :: tl -> go lower upper tl
               | ">=" :: v :: tl ->
                   if lower = None then go (Some v) upper tl
                   else Action.error "Bad comment, multiple >= constraints"
@@ -239,11 +239,13 @@ module Make (P : S) = struct
                   if upper = None then go lower (Some v) tl
                   else Action.error "Bad comment, multiple < constraints"
               | "*)" :: _ -> Action.ok (lower, upper)
-              | _ ->
+              | "" :: tl -> go lower upper tl
+              | x :: xs ->
                   Action.errorf
-                    "Unknown first line, must be (* %s [>= a.b.c] [&&] [< \
-                     d.e.f] *)"
-                    pkg
+                    "Unknown first line (token %s, tl %s), must be (* %s [>= \
+                     a.b.c] [&] [< d.e.f] *)"
+                    x (String.concat " " xs) pkg
+              | [] -> Action.ok (lower, upper)
             in
             go None None vs
           in
@@ -270,8 +272,8 @@ module Make (P : S) = struct
                 else
                   Action.errorf
                     "Version mismatch: required is %s >= %s, but %s is \
-                     installed. Please upgrade your installation (opam update \
-                     && opam install '%s>=%s')"
+                     installed. Please upgrade your installation (opam update; \
+                     opam install '%s>=%s')"
                     pkg v our_version pkg v
           in
           match upper_version with
@@ -285,7 +287,7 @@ module Make (P : S) = struct
               else
                 Action.errorf
                   "Version mismatch: required is %s < %s, but %s is installed. \
-                   Please downgrade your installation (opam update && opam \
+                   Please downgrade your installation (opam update; opam \
                    install '%s<%s')"
                   pkg v our_version pkg v
       else Action.ok ()

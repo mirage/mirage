@@ -4,6 +4,8 @@ Configure
 
   $ cat configure.err
   * Is_file? config.ml -> true
+  * Run_cmd 'head -1 config.ml' (ok)
+  * Is_file? config.ml -> true
   * Mkdir test (created)
   * Is_file? test/dune-workspace.config -> false
   * Write to test/dune-workspace.config (65 bytes)
@@ -162,6 +164,8 @@ Configure help
   $(dune build ./config.exe --root . --workspace ./test/dune-workspace.config)
 
   $ cat configure-help.err
+  * Is_file? config.ml -> true
+  * Run_cmd 'head -1 config.ml' (ok)
   * Is_file? config.ml -> true
   * Mkdir test (created)
   * Is_file? test/dune-workspace.config -> false

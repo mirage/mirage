@@ -198,112 +198,95 @@ module Make (P : S) = struct
 
   (* App builder configuration *)
   let configure ({ args; _ } : _ Cli.configure_args) ?ppf ?err_ppf argv =
+    let file = args.Cli.config_file in
     let* () =
-      match
-        Bos.(
-          OS.Cmd.out_string
-            (OS.Cmd.run_out ~err:OS.Cmd.err_null
-               Cmd.(v "head" % "-1" % p args.Cli.config_file)))
-      with
-      | Ok (data, _) ->
-          let pkg = "%%NAME%%" in
-          let first_str = "(* " ^ pkg in
-          let fl = String.length first_str in
-          if
-            fl < String.length data
-            && String.equal (String.sub data 0 fl) first_str
-          then
-            let our_version = "%%VERSION_NUM%%" in
-            let v_pct = "%%" ^ "VERSION_NUM%%" in
-            if String.equal our_version v_pct then (
-              Log.info (fun m ->
-                  m
-                    "Skipping version check, since our_version is not \
-                     watermarked");
-              Action.ok ())
-            else
-              let* lower_version, upper_version =
-                let vs =
-                  String.split_on_char ' '
-                    (String.sub data fl (String.length data - fl))
-                in
-                let rec go lower upper = function
-                  | "&&" :: tl -> go lower upper tl
-                  | ">=" :: v :: tl ->
-                      if lower = None then go (Some v) upper tl
-                      else Action.error "Bad comment, multiple >= constraints"
-                  | "<" :: v :: tl ->
-                      if upper = None then go lower (Some v) tl
-                      else Action.error "Bad comment, multiple < constraints"
-                  | "*)" :: _ -> Action.ok (lower, upper)
-                  | _ ->
-                      Action.error
-                        ("Unknown first line, must be (* "
-                        ^ pkg
-                        ^ " >= a.b.c *)")
-                in
-                go None None vs
-              in
-              let rec cmp ~eq a b =
-                match (a, b) with
-                | [], [] -> eq
-                | _, [] -> true
-                | [], _ -> false
-                | a :: tla, b :: tlb -> (
-                    let aint = int_of_string_opt a
-                    and bint = int_of_string_opt b in
-                    match (aint, bint) with
-                    | Some a, Some b -> a > b || (a = b && cmp ~eq tla tlb)
-                    | _ -> false)
-              in
-              let* () =
-                match lower_version with
-                | None -> Action.ok ()
-                | Some v ->
-                    if
-                      cmp ~eq:true
-                        (String.split_on_char '.' our_version)
-                        (String.split_on_char '.' v)
-                    then Action.ok ()
-                    else
-                      Action.error
-                        ("Version mismatch: required is "
-                        ^ pkg
-                        ^ " >= "
-                        ^ v
-                        ^ ", but only "
-                        ^ our_version
-                        ^ " is installed. Please upgrade your installation \
-                           (opam update && opam install '"
-                        ^ pkg
-                        ^ ">="
-                        ^ v
-                        ^ "')")
-              in
-              match upper_version with
-              | None -> Action.ok ()
-              | Some v ->
-                  if
-                    cmp ~eq:false
-                      (String.split_on_char '.' v)
-                      (String.split_on_char '.' our_version)
-                  then Action.ok ()
-                  else
-                    Action.error
-                      ("Version mismatch: required is "
-                      ^ pkg
-                      ^ " < "
-                      ^ v
-                      ^ ", but "
-                      ^ our_version
-                      ^ " is installed. Please downgrade your installation \
-                         (opam update && opam install '"
-                      ^ pkg
-                      ^ "<"
-                      ^ v
-                      ^ "')")
-          else Action.ok ()
-      | Error (`Msg e) -> Action.error e
+      let* is_file = Action.is_file file in
+      if not is_file then
+        Action.errorf "configuration file %a missing" Fpath.pp file
+      else Action.ok ()
+    in
+    let* () =
+      let* data =
+        let cmd = Bos.Cmd.(v "head" % "-1" % p file) in
+        Action.run_cmd_out ~err:`Null cmd
+      in
+      let pkg = "%%NAME%%" in
+      let first_str = "(* " ^ pkg in
+      let fl = String.length first_str in
+      if
+        fl < String.length data && String.equal (String.sub data 0 fl) first_str
+      then
+        let our_version = "%%VERSION_NUM%%" in
+        let v_pct = "%%" ^ "VERSION_NUM%%" in
+        if String.equal our_version v_pct then (
+          Log.info (fun m ->
+              m "Skipping version check, since our_version is not watermarked");
+          Action.ok ())
+        else
+          let* lower_version, upper_version =
+            let vs =
+              String.split_on_char ' '
+                (String.sub data fl (String.length data - fl))
+            in
+            let rec go lower upper = function
+              | "&&" :: tl -> go lower upper tl
+              | ">=" :: v :: tl ->
+                  if lower = None then go (Some v) upper tl
+                  else Action.error "Bad comment, multiple >= constraints"
+              | "<" :: v :: tl ->
+                  if upper = None then go lower (Some v) tl
+                  else Action.error "Bad comment, multiple < constraints"
+              | "*)" :: _ -> Action.ok (lower, upper)
+              | _ ->
+                  Action.errorf
+                    "Unknown first line, must be (* %s [>= a.b.c] [&&] [< \
+                     d.e.f] *)"
+                    pkg
+            in
+            go None None vs
+          in
+          let rec cmp ~eq a b =
+            match (a, b) with
+            | [], [] -> eq
+            | _, [] -> true
+            | [], _ -> false
+            | a :: tla, b :: tlb -> (
+                let aint = int_of_string_opt a and bint = int_of_string_opt b in
+                match (aint, bint) with
+                | Some a, Some b -> a > b || (a = b && cmp ~eq tla tlb)
+                | _ -> false)
+          in
+          let* () =
+            match lower_version with
+            | None -> Action.ok ()
+            | Some v ->
+                if
+                  cmp ~eq:true
+                    (String.split_on_char '.' our_version)
+                    (String.split_on_char '.' v)
+                then Action.ok ()
+                else
+                  Action.errorf
+                    "Version mismatch: required is %s >= %s, but %s is \
+                     installed. Please upgrade your installation (opam update \
+                     && opam install '%s>=%s')"
+                    pkg v our_version pkg v
+          in
+          match upper_version with
+          | None -> Action.ok ()
+          | Some v ->
+              if
+                cmp ~eq:false
+                  (String.split_on_char '.' v)
+                  (String.split_on_char '.' our_version)
+              then Action.ok ()
+              else
+                Action.errorf
+                  "Version mismatch: required is %s < %s, but %s is installed. \
+                   Please downgrade your installation (opam update && opam \
+                   install '%s<%s')"
+                  pkg v our_version pkg v
+      else Action.ok ()
     in
     (* Files to build config.ml *)
     with_project_skeleton ~save_args:true args ?ppf ?err_ppf argv @@ fun () ->

@@ -238,14 +238,13 @@ module Make (P : S) = struct
               | "<" :: v :: tl ->
                   if upper = None then go lower (Some v) tl
                   else Action.error "Bad comment, multiple < constraints"
-              | "*)" :: _ -> Action.ok (lower, upper)
+              | "*)" :: _ | [] -> Action.ok (lower, upper)
               | "" :: tl -> go lower upper tl
-              | x :: xs ->
+              | _ ->
                   Action.errorf
-                    "Unknown first line (token %s, tl %s), must be (* %s [>= \
-                     a.b.c] [&] [< d.e.f] *)"
-                    x (String.concat " " xs) pkg
-              | [] -> Action.ok (lower, upper)
+                    "Unknown first line, must be (* %s [>= a.b.c] [&] [< \
+                     d.e.f] *)"
+                    pkg
             in
             go None None vs
           in

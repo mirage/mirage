@@ -20,6 +20,13 @@
 
 open DSL
 
+val check_version :
+  name:string -> version:string -> string -> (unit, string) result
+(** [check_version ~name ~version data] checks [data] for version constraints,
+    and if present checks that the [version] matches the bounds. The [data] is
+    expected to be a single line (an OCaml comment):
+    [(* <name> [>= a.b.c] [&] [< d.e.f] *)]. *)
+
 module type S = sig
   val name : string
   (** Name of the tool. *)

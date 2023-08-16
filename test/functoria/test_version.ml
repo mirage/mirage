@@ -45,6 +45,11 @@ let good_comments =
     "(* name < 2.0.0 *)";
     "(* name >= 1.0.0 & < 2.0.0 *)";
     "(* name >= 1.0.0 *)";
+    "(* name >= 1.2 *)";
+    "(* name >= 1.0 & < 2.0 *)";
+    "(* name >= 1 & < 2 *)";
+    "(* name < 2.0 *)";
+    "(* name < 2 *)";
   ]
 
 let test_good_comments () =
@@ -52,7 +57,28 @@ let test_good_comments () =
     (fun data ->
       match Functoria.Tool.check_version ~name:"name" ~version:"1.2.3" data with
       | Ok _ -> ()
-      | Error _ -> Alcotest.fail ("expected good comment to be met for " ^ data))
+      | Error _ ->
+          Alcotest.fail
+            ("expected good comment to be met for " ^ data ^ " at version 1.2.3"))
+    good_comments;
+  List.iter
+    (fun data ->
+      match Functoria.Tool.check_version ~name:"name" ~version:"1.3" data with
+      | Ok _ -> ()
+      | Error _ ->
+          Alcotest.fail
+            ("expected good comment to be met for " ^ data ^ " at version 1.3"))
+    good_comments;
+  List.iter
+    (fun data ->
+      match
+        Functoria.Tool.check_version ~name:"name" ~version:"1.2.3-23-g453412"
+          data
+      with
+      | Ok _ -> ()
+      | Error _ ->
+          Alcotest.fail
+            ("expected good comment to be met for " ^ data ^ " at version 1.3"))
     good_comments
 
 let unmet_comments =

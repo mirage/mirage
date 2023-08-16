@@ -212,7 +212,7 @@ module Make (P : S) = struct
         let cmd = Bos.Cmd.(v "head" % "-1" % p file) in
         Action.run_cmd_out ~err:`Null cmd
       in
-      let pkg = "%%NAME%%" in
+      let pkg = P.name in
       let first_str = "(* " ^ pkg in
       let fl = String.length first_str in
       if

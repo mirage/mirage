@@ -6,4 +6,5 @@ let () =
       ("graph", Test_graph.suite);
       ("action", Test_action.suite);
       ("key", Test_key.suite);
+      ("version", Test_version.suite);
     ]

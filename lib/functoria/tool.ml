@@ -30,6 +30,79 @@ module type S = sig
   val create : job impl list -> job impl
 end
 
+let check_version ~name ~version data =
+  let ( let* ) = Result.bind in
+  let first_str = "(* " ^ name ^ " " in
+  let fl = String.length first_str in
+  if fl < String.length data && String.equal (String.sub data 0 fl) first_str
+  then
+    let* lower_version, upper_version =
+      let vs =
+        String.split_on_char ' ' (String.sub data fl (String.length data - fl))
+      in
+      let rec go lower upper = function
+        | "&" :: tl -> go lower upper tl
+        | ">=" :: v :: tl ->
+            if lower = None then go (Some v) upper tl
+            else Error "Bad comment, multiple >= constraints"
+        | "<" :: v :: tl ->
+            if upper = None then go lower (Some v) tl
+            else Error "Bad comment, multiple < constraints"
+        | "*)" :: _ -> Ok (lower, upper)
+        | "" :: tl -> go lower upper tl
+        | _ ->
+            Error
+              (Fmt.str
+                 "Unknown first line, must be (* %s [>= a.b.c] [&] [< d.e.f] *)"
+                 name)
+      in
+      go None None vs
+    in
+    let rec cmp ~eq a b =
+      match (a, b) with
+      | [], [] -> eq
+      | _, [] -> true
+      | [], _ -> false
+      | a :: tla, b :: tlb -> (
+          let aint = int_of_string_opt a and bint = int_of_string_opt b in
+          match (aint, bint) with
+          | Some a, Some b -> a > b || (a = b && cmp ~eq tla tlb)
+          | _ -> false)
+    in
+    let* () =
+      match lower_version with
+      | None -> Ok ()
+      | Some v ->
+          if
+            cmp ~eq:true
+              (String.split_on_char '.' version)
+              (String.split_on_char '.' v)
+          then Ok ()
+          else
+            Error
+              (Fmt.str
+                 "Version mismatch: required is %s >= %s, but %s is installed. \
+                  Please upgrade your installation (opam update; opam install \
+                  '%s>=%s')"
+                 name v version name v)
+    in
+    match upper_version with
+    | None -> Ok ()
+    | Some v ->
+        if
+          cmp ~eq:false
+            (String.split_on_char '.' v)
+            (String.split_on_char '.' version)
+        then Ok ()
+        else
+          Error
+            (Fmt.str
+               "Version mismatch: required is %s < %s, but %s is installed. \
+                Please downgrade your installation (opam update; opam install \
+                '%s<%s')"
+               name v version name v)
+  else Ok ()
+
 module Make (P : S) = struct
   module Filegen = Filegen.Make (P)
 
@@ -212,84 +285,10 @@ module Make (P : S) = struct
         let cmd = Bos.Cmd.(v "head" % "-1" % p file) in
         Action.run_cmd_out ~err:`Null cmd
       in
-      let pkg = P.name in
-      let first_str = "(* " ^ pkg in
-      let fl = String.length first_str in
-      if
-        fl < String.length data && String.equal (String.sub data 0 fl) first_str
-      then
-        let our_version = "%%VERSION_NUM%%" in
-        let v_pct = "%%" ^ "VERSION_NUM%%" in
-        if String.equal our_version v_pct then (
-          Log.info (fun m ->
-              m "Skipping version check, since our_version is not watermarked");
-          Action.ok ())
-        else
-          let* lower_version, upper_version =
-            let vs =
-              String.split_on_char ' '
-                (String.sub data fl (String.length data - fl))
-            in
-            let rec go lower upper = function
-              | "&" :: tl -> go lower upper tl
-              | ">=" :: v :: tl ->
-                  if lower = None then go (Some v) upper tl
-                  else Action.error "Bad comment, multiple >= constraints"
-              | "<" :: v :: tl ->
-                  if upper = None then go lower (Some v) tl
-                  else Action.error "Bad comment, multiple < constraints"
-              | "*)" :: _ | [] -> Action.ok (lower, upper)
-              | "" :: tl -> go lower upper tl
-              | _ ->
-                  Action.errorf
-                    "Unknown first line, must be (* %s [>= a.b.c] [&] [< \
-                     d.e.f] *)"
-                    pkg
-            in
-            go None None vs
-          in
-          let rec cmp ~eq a b =
-            match (a, b) with
-            | [], [] -> eq
-            | _, [] -> true
-            | [], _ -> false
-            | a :: tla, b :: tlb -> (
-                let aint = int_of_string_opt a and bint = int_of_string_opt b in
-                match (aint, bint) with
-                | Some a, Some b -> a > b || (a = b && cmp ~eq tla tlb)
-                | _ -> false)
-          in
-          let* () =
-            match lower_version with
-            | None -> Action.ok ()
-            | Some v ->
-                if
-                  cmp ~eq:true
-                    (String.split_on_char '.' our_version)
-                    (String.split_on_char '.' v)
-                then Action.ok ()
-                else
-                  Action.errorf
-                    "Version mismatch: required is %s >= %s, but %s is \
-                     installed. Please upgrade your installation (opam update; \
-                     opam install '%s>=%s')"
-                    pkg v our_version pkg v
-          in
-          match upper_version with
-          | None -> Action.ok ()
-          | Some v ->
-              if
-                cmp ~eq:false
-                  (String.split_on_char '.' v)
-                  (String.split_on_char '.' our_version)
-              then Action.ok ()
-              else
-                Action.errorf
-                  "Version mismatch: required is %s < %s, but %s is installed. \
-                   Please downgrade your installation (opam update; opam \
-                   install '%s<%s')"
-                  pkg v our_version pkg v
-      else Action.ok ()
+      Result.fold
+        ~ok:(fun () -> Action.ok ())
+        ~error:(fun msg -> Action.error msg)
+        (check_version ~name:P.name ~version:P.version data)
     in
     (* Files to build config.ml *)
     with_project_skeleton ~save_args:true args ?ppf ?err_ppf argv @@ fun () ->

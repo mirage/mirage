@@ -25,6 +25,7 @@ val static_ipv4v6_stack :
   ?arp:
     (Mirage_impl_ethernet.ethernet Functoria.impl ->
     Mirage_impl_arpv4.arpv4 Functoria.impl) ->
+  ?tcp:Mirage_impl_tcp.tcpv4v6 Functoria.impl ->
   Mirage_impl_network.network Functoria.impl ->
   stackv4v6 Functoria.impl
 
@@ -34,5 +35,6 @@ val generic_stackv4v6 :
   ?ipv4_config:Mirage_impl_ip.ipv4_config ->
   ?dhcp_key:bool Functoria.value ->
   ?net_key:[ `Direct | `Socket ] option Functoria.value ->
+  ?tcp:Mirage_impl_tcp.tcpv4v6 Functoria.impl ->
   Mirage_impl_network.network Functoria.impl ->
   stackv4v6 Functoria.impl

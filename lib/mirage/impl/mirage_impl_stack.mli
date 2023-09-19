@@ -25,6 +25,7 @@ val static_ipv4v6_stack :
   ?ipv6_config:Mirage_impl_ip.ipv6_config ->
   ?ipv4_config:Mirage_impl_ip.ipv4_config ->
   ?arp:(Mirage_impl_ethernet.ethernet impl -> Mirage_impl_arpv4.arpv4 impl) ->
+  ?tcp:Mirage_impl_tcp.tcpv4v6 impl ->
   Mirage_impl_network.network impl ->
   stackv4v6 impl
 
@@ -34,5 +35,6 @@ val generic_stackv4v6 :
   ?ipv4_config:Mirage_impl_ip.ipv4_config ->
   ?dhcp_key:bool value ->
   ?net_key:[ `Direct | `Socket ] option value ->
+  ?tcp:Mirage_impl_tcp.tcpv4v6 impl ->
   Mirage_impl_network.network impl ->
   stackv4v6 impl

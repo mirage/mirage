@@ -30,6 +30,89 @@ module type S = sig
   val create : job impl list -> job impl
 end
 
+let check_version ~name ~version data =
+  let ( let* ) = Result.bind in
+  let extract_version v =
+    try Ok (Scanf.sscanf v "%u.%u.%u" (fun ma mi pa -> (ma, mi, pa))) with
+    | Scanf.Scan_failure _ | End_of_file -> (
+        try Ok (Scanf.sscanf v "%u.%u" (fun ma mi -> (ma, mi, 0))) with
+        | Scanf.Scan_failure _ | End_of_file -> (
+            try Ok (Scanf.sscanf v "%u" (fun ma -> (ma, 0, 0)))
+            with Scanf.Scan_failure _ | Failure _ | End_of_file ->
+              Error ("couldn't extract version (%u) from " ^ v))
+        | Failure f ->
+            Error ("couldn't extract version (%u.%u) from " ^ v ^ ": " ^ f))
+    | Failure f ->
+        Error ("couldn't extract version (%u.%u.%u) from " ^ v ^ ": " ^ f)
+  in
+  if String.equal version ("%%" ^ "VERSION%%") then (
+    Log.info (fun m ->
+        m "Skipping version check, since our_version is not watermarked");
+    Ok ())
+  else
+    let* version' = extract_version version in
+    let first_str = "(* " ^ name ^ " " in
+    let fl = String.length first_str in
+    if fl < String.length data && String.equal (String.sub data 0 fl) first_str
+    then
+      let* lower_version, upper_version =
+        let vs =
+          String.split_on_char ' '
+            (String.sub data fl (String.length data - fl))
+        in
+        let rec go lower upper = function
+          | "&" :: tl -> go lower upper tl
+          | ">=" :: v :: tl ->
+              if lower = None then go (Some v) upper tl
+              else Error "Bad comment, multiple >= constraints"
+          | "<" :: v :: tl ->
+              if upper = None then go lower (Some v) tl
+              else Error "Bad comment, multiple < constraints"
+          | "*)" :: _ -> Ok (lower, upper)
+          | "" :: tl -> go lower upper tl
+          | _ ->
+              Error
+                (Fmt.str
+                   "Unknown first line, must be (* %s [>= a.b.c] [&] [< d.e.f] \
+                    *)"
+                   name)
+        in
+        go None None vs
+      in
+      let cmp ~eq (ma, mi, pa) (ma', mi', pa') =
+        ma > ma'
+        || (ma = ma' && mi > mi')
+        || (ma = ma' && mi = mi' && pa > pa')
+        || (ma = ma' && mi = mi' && pa = pa' && eq)
+      in
+      let* () =
+        match lower_version with
+        | None -> Ok ()
+        | Some v ->
+            let* v' = extract_version v in
+            if cmp ~eq:true version' v' then Ok ()
+            else
+              Error
+                (Fmt.str
+                   "Version mismatch: required is %s >= %s, but %s is \
+                    installed. Please upgrade your installation (opam update; \
+                    opam install '%s>=%s')"
+                   name v version name v)
+      in
+      match upper_version with
+      | None -> Ok ()
+      | Some v ->
+          let* v' = extract_version v in
+          if cmp ~eq:false v' version' then Ok ()
+          else
+            Error
+              (Fmt.str
+                 "Version mismatch: required is %s < %s, but %s is installed. \
+                  Please downgrade your installation (opam update; opam \
+                  install '%s<%s')"
+                 name v version name v)
+    else Ok ()
+
 module Make (P : S) = struct
   module Filegen = Filegen.Make (P)
 
@@ -197,16 +280,35 @@ module Make (P : S) = struct
     rm_gen_files ()
 
   (* App builder configuration *)
-  let with_alias ~save_args args ~depext:_ ~extra_repo:_ ?ppf ?err_ppf argv =
+  let configure ({ args; _ } : _ Cli.configure_args) ?ppf ?err_ppf argv =
+    let file = args.Cli.config_file in
+    let* () =
+      let* is_file = Action.is_file file in
+      if not is_file then
+        Action.errorf "configuration file %a missing" Fpath.pp file
+      else Action.ok ()
+    in
+    let* () =
+      let* data =
+        let cmd = Bos.Cmd.(v "head" % "-1" % p file) in
+        Action.run_cmd_out ~err:`Null cmd
+      in
+      let version =
+        let v = P.version in
+        if String.length v > 0 && String.get v 0 = 'v' then
+          String.sub v 1 (String.length v - 1)
+        else v
+      in
+      Result.fold
+        ~ok:(fun () -> Action.ok ())
+        ~error:(fun msg -> Action.error msg)
+        (check_version ~name:P.name ~version data)
+    in
     (* Files to build config.ml *)
-    with_project_skeleton ~save_args args ?ppf ?err_ppf argv @@ fun () ->
+    with_project_skeleton ~save_args:true args ?ppf ?err_ppf argv @@ fun () ->
     Log.info (fun f -> f "Set-up config skeleton.");
     (* Launch config.exe: additional generated files for the application. *)
     re_exec_cli args argv
-
-  let configure ({ args; depext; extra_repo } : _ Cli.configure_args) ?ppf
-      ?err_ppf argv =
-    with_alias ~save_args:true args ~depext ~extra_repo ?ppf ?err_ppf argv
 
   let try_to_re_exec args ?ppf ?err_ppf argv =
     with_project_skeleton ~save_args:false args ?ppf ?err_ppf argv @@ fun () ->

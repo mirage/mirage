@@ -19,34 +19,6 @@ module Key = Key
 open Astring
 open Cmdliner
 
-(** {2 Custom Descriptions} *)
-
-module Conv = struct
-  let make of_string to_string =
-    let parser s =
-      match of_string s with
-      | Error (`Msg m) -> `Error ("Can't parse ip address: " ^ s ^ ": " ^ m)
-      | Ok ip -> `Ok ip
-    and pp ppf t = Fmt.string ppf (to_string t) in
-    (parser, pp)
-
-  module type S = sig
-    type t
-
-    val of_string : string -> (t, [ `Msg of string ]) result
-    val to_string : t -> string
-  end
-
-  let of_module (type t) (module M : S with type t = t) =
-    make M.of_string M.to_string
-
-  let ipv4_address = of_module (module Ipaddr.V4)
-  let ipv4 = of_module (module Ipaddr.V4.Prefix)
-  let ipv6_address = of_module (module Ipaddr.V6)
-  let ipv6 = of_module (module Ipaddr.V6.Prefix)
-  let ip_address = of_module (module Ipaddr)
-end
-
 (** {2 Documentation helper} *)
 
 let mirage_section = "MIRAGE PARAMETERS"

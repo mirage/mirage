@@ -16,16 +16,6 @@
 
 (** Configuration-time keys for the Mirage tool. *)
 
-module Conv : sig
-  open Cmdliner
-
-  val ipv4_address : Ipaddr.V4.t Arg.conv
-  val ipv4 : Ipaddr.V4.Prefix.t Arg.conv
-  val ipv6_address : Ipaddr.V6.t Arg.conv
-  val ipv6 : Ipaddr.V6.Prefix.t Arg.conv
-  val ip_address : Ipaddr.t Arg.conv
-end
-
 include Functoria.KEY
 
 type mode_unix = [ `Unix | `MacOSX ]

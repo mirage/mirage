@@ -558,6 +558,7 @@ val direct_stackv4v6 :
   ?mclock:mclock impl ->
   ?random:random impl ->
   ?time:time impl ->
+  ?tcp:tcpv4v6 impl ->
   ipv4_only:bool Key.key ->
   ipv6_only:bool Key.key ->
   network impl ->
@@ -576,6 +577,7 @@ val static_ipv4v6_stack :
   ?ipv6_config:ipv6_config ->
   ?ipv4_config:ipv4_config ->
   ?arp:(ethernet impl -> arpv4 impl) ->
+  ?tcp:tcpv4v6 impl ->
   network impl ->
   stackv4v6 impl
 (** Build a stackv4v6 by checking the {!Key.V6.network}, and {!Key.V6.gateway}
@@ -588,6 +590,7 @@ val generic_stackv4v6 :
   ?ipv4_config:ipv4_config ->
   ?dhcp_key:bool value ->
   ?net_key:[ `Direct | `Socket ] option value ->
+  ?tcp:tcpv4v6 impl ->
   network impl ->
   stackv4v6 impl
 (** Generic stack using a [net] keys: {!Key.net}.

@@ -122,7 +122,7 @@ Query Makefile
   	@$(MAKE) --no-print-directory pull
   
   build::
-  	dune build --root . $(BUILD_DIR)dist
+  	dune build --profile release --root . $(BUILD_DIR)dist
   
   clean::
   	mirage clean
@@ -176,7 +176,7 @@ Query Makefile without depexts
   	@$(MAKE) --no-print-directory pull
   
   build::
-  	dune build --root . $(BUILD_DIR)dist
+  	dune build --profile release --root . $(BUILD_DIR)dist
   
   clean::
   	mirage clean
@@ -237,7 +237,7 @@ Query Makefile with depext
   	@$(MAKE) --no-print-directory pull
   
   build::
-  	dune build --root . $(BUILD_DIR)dist
+  	dune build --profile release --root . $(BUILD_DIR)dist
   
   clean::
   	mirage clean
@@ -299,8 +299,6 @@ Query dune-workspace
   (lang dune 2.0)
   
   (context (default))
-  
-  (profile release)
   
   (context (default
     (name solo5)

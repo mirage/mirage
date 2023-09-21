@@ -5,6 +5,7 @@ Query unikernel dune
   (rule
    (target noop-functor.v0)
    (enabled_if (= %{context_name} "default"))
+   (deps main.exe)
    (action
     (copy main.exe %{target})))
   

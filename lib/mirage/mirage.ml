@@ -295,6 +295,26 @@ let git_http ?authenticator ?headers ?(pclock = default_posix_clock) tcpv4v6 ctx
     =
   Mirage_impl_git.git_http ?authenticator headers $ pclock $ tcpv4v6 $ ctx
 
+let delay = job
+
+let delay_startup =
+  let delay_key = Key.delay in
+  let keys = [ Key.v delay_key ] in
+  let packages = [ package ~max:"1.0.0" "duration" ] in
+  let modname = ref "" in
+  let configure i =
+    modname :=
+      (match Mirage_impl_misc.get_target i with
+       | `Unix | `MacOSX -> "Unix_os.Time"
+       | `Xen | `Qubes -> "Xen_os.Time"
+       | `Virtio | `Hvt | `Spt | `Muen | `Genode -> "Solo5_os.Time");
+    Action.ok ()
+  in
+  let connect _ _ _ =
+    Fmt.str "%s.sleep_ns (Duration.of_sec %a)" !modname Mirage_impl_misc.pp_key delay_key
+  in
+  impl ~packages ~keys ~configure ~connect "Mirage_runtime" delay
+
 (** Functoria devices *)
 
 type info = Functoria.info
@@ -475,7 +495,7 @@ let register ?(argv = default_argv) ?(reporter = default_reporter ()) ?src name
        instead of `.. job .. [ main ]`.";
   let first = [ keys argv; backtrace; randomize_hashtables; gc_control ] in
   let reporter = if reporter == no_reporter then None else Some reporter in
-  let init = Some first ++ reporter in
+  let init = Some first ++ Some delay_startup ++ reporter in
   register ?init ?src name jobs
 
 module Action = Functoria.Action

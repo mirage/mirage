@@ -98,9 +98,16 @@ val custom_minor_max_size : int option key
 
     If a key has another, non-optional argument. It is the default value.
 
-    Keys are always named the same as their command line option.
+    Keys are always named the same as their command line option. *)
 
-    {3 File system keys} *)
+(** {3 Startup delay} *)
+
+val delay : int key
+(** The initial delay, specified in seconds, before a unikernel starting up.
+    Defaults to 0. Useful for tenders and environments that take some time to
+    bring devices up. *)
+
+(** {3 File system keys} *)
 
 val kv_ro : ?group:string -> unit -> [ `Crunch | `Direct ] key
 (** The type of key value store. Is one of ["crunch"], or ["direct"]. *)

@@ -298,6 +298,11 @@ let create_simple ?(group = "") ?(stage = `Both) ~doc ~default conv name =
   let key = Arg.opt ~stage conv default doc in
   Key.create (prefix ^ name) key
 
+(** {3 Initial delay} *)
+let delay =
+  let doc = Fmt.str "Delay n seconds before starting up" in
+  create_simple ~doc ~default:0 Arg.int "delay"
+
 (** {3 File system keys} *)
 
 let kv_ro ?group () =

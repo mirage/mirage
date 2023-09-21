@@ -1,3 +1,65 @@
+### Unreleased
+
+- This release introduces a significant change in the Mirage tool by
+  splitting the configure-time and runtime keys. Configure-time keys
+  are essential during the setup of module dependencies for the
+  unikernel, allowing for a specialized production of a unikernel for
+  a given target runtime environment. On the other hand, runtime keys
+  are useful for customizing deployments without altering the
+  dependencies of the unikernels. (#1449, #1450, #1451, #1455 @samoht,
+  review by @hannesm)
+
+  * API changes:
+    - There is no more `~stage` parameter for `Key.Arg.info`.
+    - `Key` now define configure-time keys only.
+    - There is a new module `Runtime_key` to define runtime keys.
+    - As there are no more keys type `'Both`, users are now expected to create
+      two separated keys in that case (one for configure-time, one for runtime)
+      or decide if the key is useful at runtime of configure-time.
+
+  * Intended use of configure-time keys (values of type `'a key`):
+    - Used to set up module dependencies of the unikernel, such as the
+      target (hvt, xen, etc.) and whether to use DHCP or a fixed IP address.
+    - Enable the production of specialized unikernels suitable for
+      specific target runtime environments and dedicated network and
+      storage stacks.
+    - Similar keys will produce reproducible binaries to be uploaded to artifact
+      repositories like Docker Hub or https://builds.robur.coop/.
+
+  * Intended use of runtime keys (values of type `a runtime_key`):
+    - Allow users to customize deployments by changing device
+      configuration, like IP addresses, secrets, block device names,
+      etc., post downloading of binaries.
+    - These keys don’t alter the dependencies of the unikernels.
+    - A runtime keys is just a reference to a normal Cmdliner term.
+
+  * Code migration:
+    ```ocaml
+    (* in `config.ml` *)
+    let key =
+      let doc = Key.Arg.info ~doc:"A Key." ~stage:`Run [ "key" ] in
+      Key.(create "key" Arg.(opt_all ~stage:`Run string doc))
+    ```
+    becomes:
+    ```ocaml
+    (* in unikernel.ml *)
+    open Cmdliner
+
+    let key =
+      let doc = Arg.info ~doc:"A Key." [ "key" ] in
+      Arg.(value & opt_all string [] doc)
+    ```
+
+   * Changes in the auto-generated `key_gen.ml` file:
+     - Users are not expected to refer to `Key_gen.<key_name>`
+       directy. Instead, they should use normal Cmdliner
+       terms. `mirage configure` is still generating a `key_gen.ml`
+       file containing (registered) runtime keys that are needed by
+       device-initialisation code.
+     - Configure-time keys are not registerd anymore. This means that
+       they are not available `key_gen.ml` anymore. As a consequence,
+       `Key_gen.target` has been removed.
+
 ### v4.4.0 (2023-06-19)
 
 - Fail configure if jobs without arguments are present

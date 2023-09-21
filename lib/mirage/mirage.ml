@@ -307,19 +307,17 @@ let delay_startup =
   let delay_key = Key.delay in
   let keys = [ Key.v delay_key ] in
   let packages = [ package ~max:"1.0.0" "duration" ] in
-  let modname = ref "" in
-  let configure i =
-    modname :=
-      (match Mirage_impl_misc.get_target i with
-       | `Unix | `MacOSX -> "Unix_os.Time"
-       | `Xen | `Qubes -> "Xen_os.Time"
-       | `Virtio | `Hvt | `Spt | `Muen | `Genode -> "Solo5_os.Time");
-    Action.ok ()
+  let connect i _ _ =
+    let modname =
+      match Mirage_impl_misc.get_target i with
+      | `Unix | `MacOSX -> "Unix_os.Time"
+      | `Xen | `Qubes -> "Xen_os.Time"
+      | `Virtio | `Hvt | `Spt | `Muen | `Genode -> "Solo5_os.Time"
+    in
+    Fmt.str "%s.sleep_ns (Duration.of_sec %a)" modname Mirage_impl_misc.pp_key
+      delay_key
   in
-  let connect _ _ _ =
-    Fmt.str "%s.sleep_ns (Duration.of_sec %a)" !modname Mirage_impl_misc.pp_key delay_key
-  in
-  impl ~packages ~keys ~configure ~connect "Mirage_runtime" delay
+  impl ~packages ~keys ~connect "Mirage_runtime" delay
 
 (** Functoria devices *)
 

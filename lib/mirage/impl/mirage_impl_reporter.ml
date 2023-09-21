@@ -23,7 +23,7 @@ let mirage_log ~default () =
     | [ _pclock ] ->
         Fmt.str
           "@[<v 2>let reporter = %s.create () in@ Mirage_runtime.set_level \
-           ~default:%a %a;@ Logs.set_reporter reporter;@ Lwt.return reporter"
+           ~default:%a %a;@ Logs.set_reporter reporter;@ Lwt.return reporter@]"
           modname pp_level default pp_key logs
     | _ -> failwith (connect_err "log" 1)
   in

@@ -10,6 +10,7 @@ Describe before configure (using defaults)
     custom-major-ratio= (default),
     custom-minor-max-size= (default),
     custom-minor-ratio= (default),
+    delay=0 (default),
     dhcp=false (default),
     gc-verbosity= (default),
     gc-window-size= (default),
@@ -45,6 +46,7 @@ Describe before configure (no eval)
     custom-major-ratio= (default),
     custom-minor-max-size= (default),
     custom-minor-ratio= (default),
+    delay=0 (default),
     dhcp=false (default),
     gc-verbosity= (default),
     gc-window-size= (default),
@@ -106,15 +108,16 @@ Describe before configure (no eval)
                 33 [label="app__33\nApp\n", shape="box"];
                 34 [label="pclock__34\nPclock\n", shape="box"];
                 35 [label="mirage_logs_make__35\nMirage_logs.Make\nlogs", shape="box"];
-                36 [label="gc__36\nGc\nallocation-policy, minor-heap-size, major-heap-increment, space-overhead, max-space-overhead, gc-verbosity, gc-window-size, custom-major-ratio, custom-minor-ratio, custom-minor-max-size", shape="box"];
-                37 [label="hashtbl__37\nHashtbl\nrandomize-hashtables", shape="box"];
-                38 [label="printexc__38\nPrintexc\nbacktrace", shape="box"];
-                39 [label="bootvar__39\nBootvar\n", shape="box"];
+                36 [label="mirage_runtime__36\nMirage_runtime\ndelay", shape="box"];
+                37 [label="gc__37\nGc\nallocation-policy, minor-heap-size, major-heap-increment, space-overhead, max-space-overhead, gc-verbosity, gc-window-size, custom-major-ratio, custom-minor-ratio, custom-minor-max-size", shape="box"];
+                38 [label="hashtbl__38\nHashtbl\nrandomize-hashtables", shape="box"];
+                39 [label="printexc__39\nPrintexc\nbacktrace", shape="box"];
                 40 [label="bootvar__40\nBootvar\n", shape="box"];
                 41 [label="bootvar__41\nBootvar\n", shape="box"];
-                42 [label="If\ntarget"];
-                43 [label="key_gen__43\nKey_gen\n", shape="box"];
-                44 [label="mirage_runtime__44\nMirage_runtime\ntarget", shape="box"];
+                42 [label="bootvar__42\nBootvar\n", shape="box"];
+                43 [label="If\ntarget"];
+                44 [label="key_gen__44\nKey_gen\n", shape="box"];
+                45 [label="mirage_runtime__45\nMirage_runtime\ntarget", shape="box"];
                 
                 3 -> 2 [style="dashed"];
                 3 -> 1 [style="dashed"];
@@ -186,21 +189,22 @@ Describe before configure (no eval)
                 32 -> 31 [style="bold", style="dotted", headport="n"];
                 33 -> 32 [];
                 35 -> 34 [];
-                42 -> 39 [style="dotted", headport="n"];
-                42 -> 39 [style="dotted", headport="n"];
-                42 -> 40 [style="dotted", headport="n"];
-                42 -> 40 [style="dotted", headport="n"];
-                42 -> 40 [style="dotted", headport="n"];
-                42 -> 40 [style="dotted", headport="n"];
-                42 -> 40 [style="dotted", headport="n"];
-                42 -> 41 [style="bold", style="dotted", headport="n"];
-                43 -> 42 [style="dashed"];
+                43 -> 40 [style="dotted", headport="n"];
+                43 -> 40 [style="dotted", headport="n"];
+                43 -> 41 [style="dotted", headport="n"];
+                43 -> 41 [style="dotted", headport="n"];
+                43 -> 41 [style="dotted", headport="n"];
+                43 -> 41 [style="dotted", headport="n"];
+                43 -> 41 [style="dotted", headport="n"];
+                43 -> 42 [style="bold", style="dotted", headport="n"];
                 44 -> 43 [style="dashed"];
-                44 -> 38 [style="dashed"];
-                44 -> 37 [style="dashed"];
-                44 -> 36 [style="dashed"];
-                44 -> 35 [style="dashed"];
-                44 -> 33 [style="dashed"];
+                45 -> 44 [style="dashed"];
+                45 -> 39 [style="dashed"];
+                45 -> 38 [style="dashed"];
+                45 -> 37 [style="dashed"];
+                45 -> 36 [style="dashed"];
+                45 -> 35 [style="dashed"];
+                45 -> 33 [style="dashed"];
                 }
 
 Describe after configure
@@ -214,6 +218,7 @@ Describe after configure
     custom-major-ratio= (default),
     custom-minor-max-size= (default),
     custom-minor-ratio= (default),
+    delay=0 (default),
     dhcp=false (default),
     gc-verbosity= (default),
     gc-window-size= (default),

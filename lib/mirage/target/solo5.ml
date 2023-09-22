@@ -31,7 +31,6 @@ let context_name _i = "solo5"
 
 (* OCaml solo5 build context. *)
 let build_context ?build_dir:_ i =
-  let profile_release = Dune.stanza "(profile release)" in
   let build_context =
     Dune.stanzaf
       {|
@@ -45,7 +44,7 @@ let build_context ?build_dir:_ i =
   |}
       (context_name i)
   in
-  [ profile_release; build_context ]
+  [ build_context ]
 
 (* Configure step *)
 let generate_manifest_json with_devices () =

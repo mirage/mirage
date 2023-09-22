@@ -2,7 +2,7 @@ Build an application.
 
   $ ./test.exe configure --file app/config.ml
   $ make build
-  dune build --root . app/dist
+  dune build --profile release --root . app/dist
   $ ls -a app/
   .
   ..
@@ -37,7 +37,7 @@ Test `--output`:
 
   $ ./test.exe configure --file app/config.ml -o toto
   $ make build
-  dune build --root . app/dist
+  dune build --profile release --root . app/dist
   $ ls -a app/
   .
   ..

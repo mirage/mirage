@@ -307,6 +307,11 @@ let runtime_key ?group ~doc ~default conv name =
 let configure_key ?group ~doc ~default conv name =
   create_key `Configure ?group ~doc ~default conv name
 
+(** {3 Initial delay} *)
+let delay =
+  let doc = Fmt.str "Delay n seconds before starting up" in
+  runtime_key ~doc ~default:0 Arg.int "delay"
+
 (** {3 File system keys} *)
 
 let kv_ro ?group () =

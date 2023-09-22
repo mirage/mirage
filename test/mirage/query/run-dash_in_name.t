@@ -11,7 +11,7 @@ Query unikernel dune
   
   (executable
    (name main)
-   (libraries lwt mirage-bootvar-unix mirage-clock-unix mirage-logs
+   (libraries duration lwt mirage-bootvar-unix mirage-clock-unix mirage-logs
      mirage-runtime mirage-unix)
    (link_flags (-thread))
    (modules (:standard \ config))
@@ -107,7 +107,7 @@ Query unikernel dune (hvt)
    (enabled_if (= %{context_name} "solo5"))
    (name main)
    (modes (native exe))
-   (libraries lwt mirage-bootvar-solo5 mirage-clock-solo5 mirage-logs
+   (libraries duration lwt mirage-bootvar-solo5 mirage-clock-solo5 mirage-logs
      mirage-runtime mirage-solo5)
    (link_flags :standard -w -70 -cclib "-z solo5-abi=hvt")
    (modules (:standard \ config manifest))

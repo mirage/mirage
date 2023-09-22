@@ -25,6 +25,7 @@ let dune i =
 (rule
  (target %s)
  (enabled_if (= %%{context_name} "default"))
+ (deps %s.exe)
  (action
   (copy %s.exe %%{target})))
 
@@ -37,7 +38,7 @@ let dune i =
  (enabled_if (= %%{context_name} "default"))
 )
 |}
-      public_name main main (pp_list "libraries") libraries Fpath.pp
+      public_name main main main (pp_list "libraries") libraries Fpath.pp
       (Fpath.rem_ext (Fpath.base (Info.config_file i)))
       (pp_list "flags") flags
   in

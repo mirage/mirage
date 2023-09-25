@@ -5,7 +5,7 @@ Describe before configure (using defaults)
   Name       describe
   Keys      
     accept-router-advertisements=true (default),
-    allocation-policy=next-fit (default),
+    allocation-policy=best-fit (default),
     backtrace=true (default),
     custom-major-ratio= (default),
     custom-minor-max-size= (default),
@@ -41,7 +41,7 @@ Describe before configure (no eval)
   Name       describe
   Keys      
     accept-router-advertisements=true (default),
-    allocation-policy=next-fit (default),
+    allocation-policy=best-fit (default),
     backtrace=true (default),
     custom-major-ratio= (default),
     custom-minor-max-size= (default),
@@ -213,7 +213,7 @@ Describe after configure
   Name       describe
   Keys      
     accept-router-advertisements=true (default),
-    allocation-policy=next-fit (default),
+    allocation-policy=best-fit (default),
     backtrace=true (default),
     custom-major-ratio= (default),
     custom-minor-max-size= (default),

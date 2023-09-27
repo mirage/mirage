@@ -180,7 +180,7 @@ let allocation_policy =
   let doc =
     Arg.info ~docs:ocaml_section ~docv:"ALLOCATION" ~doc [ "allocation-policy" ]
   in
-  let key = Arg.opt ~stage:`Run conv `Next_fit doc in
+  let key = Arg.opt ~stage:`Run conv `Best_fit doc in
   Key.create "allocation-policy" key
 
 let minor_heap_size =

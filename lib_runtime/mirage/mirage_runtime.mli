@@ -14,6 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+open Cmdliner
+
 (** Mirage run-time utilities.
 
     {e Release %%VERSION%%} *)
@@ -27,18 +29,50 @@ val set_level : default:Logs.level option -> log_threshold list -> unit
 (** [set_level ~default l] set the log levels needed to have all of the log
     sources appearing in [l] be used. *)
 
-module Arg : sig
-  (** {2 Mirage command-line arguments} *)
+val logs : log_threshold list Term.t
 
-  (** {2 Mirage command-line argument converters} *)
+(** {2 OCaml runtime keys}
 
-  val log_threshold : log_threshold Cmdliner.Arg.conv
-  (** [log_threshold] converts log reporter threshold. *)
+    The OCaml runtime is usually configurable via the [OCAMLRUNPARAM]
+    environment variable. We provide boot parameters covering these options. *)
 
-  val allocation_policy :
-    [ `Next_fit | `First_fit | `Best_fit ] Cmdliner.Arg.conv
-  (** [allocation_policy] converts allocation policy. *)
-end
+val backtrace : bool Term.t
+(** [--backtrace]: Output a backtrace if an uncaught exception terminated the
+    unikernel. *)
+
+val randomize_hashtables : bool Term.t
+(** [--randomize-hashtables]: Randomize all hash tables. *)
+
+(** {3 GC control}
+
+    The OCaml garbage collector can be configured, as described in detail in
+    {{:http://caml.inria.fr/pub/docs/manual-ocaml/libref/Gc.html#TYPEcontrol} GC
+      control}.
+
+    The following Term.ts allow boot time configuration. *)
+
+val allocation_policy : [ `Next_fit | `First_fit | `Best_fit ] Term.t
+val minor_heap_size : int option Term.t
+val major_heap_increment : int option Term.t
+val space_overhead : int option Term.t
+val max_space_overhead : int option Term.t
+val gc_verbosity : int option Term.t
+val gc_window_size : int option Term.t
+val custom_major_ratio : int option Term.t
+val custom_minor_ratio : int option Term.t
+val custom_minor_max_size : int option Term.t
+
+(** {3 Blocks *)
+
+val disk : string Term.t
+val analyze : bool Term.t
+
+(** {3 Startup delay} *)
+
+val delay : int Term.t
+(** The initial delay, specified in seconds, before a unikernel starting up.
+    Defaults to 0. Useful for tenders and environments that take some time to
+    bring devices up. *)
 
 include module type of Functoria_runtime
 

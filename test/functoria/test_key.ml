@@ -2,10 +2,7 @@ open Functoria
 
 let key_a = Key.create "a" Key.Arg.(flag @@ info [ "a" ])
 let key_b = Key.create "b" Key.Arg.(opt int 0 @@ info [ "b" ])
-
-let key_c =
-  Key.create "c" Key.Arg.(required ~stage:`Configure string @@ info [ "c" ])
-
+let key_c = Key.create "c" Key.Arg.(required string @@ info [ "c" ])
 let key_d = Key.create "d" Key.Arg.(opt_all int @@ info [ "d" ])
 let empty = Context.empty
 let ( & ) (k, v) c = Key.add_to_context k v c

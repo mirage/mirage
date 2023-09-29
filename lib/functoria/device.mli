@@ -66,6 +66,9 @@ val keys : ('a, 'b) t -> Key.t list
 (** [keys t] is the list of command-line keys which can be used to configure
     [t]. *)
 
+val runtime_keys : ('a, 'b) t -> Runtime_key.t list
+(** [keys t] is the list of command-line keys which can be used to run [t]. *)
+
 (** {1 Code Generation} *)
 
 type 'a code = string
@@ -106,6 +109,7 @@ val v :
   ?install:(Info.t -> Install.t) ->
   ?install_v:(Info.t -> Install.t Key.value) ->
   ?keys:Key.t list ->
+  ?runtime_keys:Runtime_key.t list ->
   ?extra_deps:'b list ->
   ?connect:(Info.t -> string -> string list -> 'a code) ->
   ?dune:(Info.t -> Dune.stanza list) ->

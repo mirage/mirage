@@ -32,16 +32,17 @@ module Keys = struct
   let configure ~file i =
     Log.info (fun m -> m "Generating: %a (keys)" Fpath.pp file);
     Action.with_output ~path:file ~purpose:"key_gen file" (fun ppf ->
-        let keys = Key.Set.of_list @@ Info.keys i in
-        let pp_var = Key.serialize (Info.context i) in
-        Fmt.pf ppf "@[<v>%a@]@." Fmt.(iter Key.Set.iter pp_var) keys)
+        let keys = Runtime_key.Set.of_list @@ Info.runtime_keys i in
+        Fmt.pf ppf "@[<v>%a@]@."
+          Fmt.(iter Runtime_key.Set.iter Runtime_key.serialize)
+          keys)
 end
 
 let keys ?(runtime_package = "functoria-runtime")
     ?(runtime_modname = "Functoria_runtime") (argv : Argv.t Impl.t) =
   let packages = [ Package.v runtime_package ] in
   let extra_deps = [ Impl.abstract argv ] in
-  let key_gen = Key.module_name in
+  let key_gen = Runtime_key.module_name in
   let file = Fpath.(v (String.Ascii.lowercase key_gen) + "ml") in
   let configure = Keys.configure ~file in
   let files _ = [ file ] in

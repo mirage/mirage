@@ -85,3 +85,13 @@ val merge : t -> t -> t option
 
 val pp : ?surround:string -> t Fmt.t
 (** [pp] is the pretty-printer for packages. *)
+
+module Set : sig
+  type elt = t
+  type t
+
+  val of_list : elt list -> t
+  val to_list : t -> elt list
+  val union : t -> t -> t
+  val empty : t
+end

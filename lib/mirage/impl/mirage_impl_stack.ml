@@ -11,6 +11,7 @@ open Mirage_impl_tcp
 open Mirage_impl_time
 open Mirage_impl_udp
 module Key = Mirage_key
+module Runtime_key = Mirage_runtime_key
 
 let dhcp_ipv4 ?random ?clock ?time tap e a =
   ipv4_of_dhcp ?random ?clock ?time tap e a
@@ -64,8 +65,8 @@ let direct_stackv4v6 ?(mclock = default_monotonic_clock)
 
 let static_ipv4v6_stack ?group ?ipv6_config ?ipv4_config ?(arp = arp ?time:None)
     ?tcp tap =
-  let ipv4_only = Key.ipv4_only ?group ()
-  and ipv6_only = Key.ipv6_only ?group () in
+  let ipv4_only = Runtime_key.ipv4_only ?group ()
+  and ipv6_only = Runtime_key.ipv6_only ?group () in
   let e = etif tap in
   let a = arp e in
   let i4 = create_ipv4 ?group ?config:ipv4_config ~no_init:ipv6_only e a in
@@ -74,8 +75,8 @@ let static_ipv4v6_stack ?group ?ipv6_config ?ipv4_config ?(arp = arp ?time:None)
 
 let generic_ipv4v6_stack p ?group ?ipv6_config ?ipv4_config
     ?(arp = arp ?time:None) ?tcp tap =
-  let ipv4_only = Key.ipv4_only ?group ()
-  and ipv6_only = Key.ipv6_only ?group () in
+  let ipv4_only = Runtime_key.ipv4_only ?group ()
+  and ipv6_only = Runtime_key.ipv6_only ?group () in
   let e = etif tap in
   let a = arp e in
   let i4 =
@@ -87,10 +88,10 @@ let generic_ipv4v6_stack p ?group ?ipv6_config ?ipv4_config
   direct_stackv4v6 ~ipv4_only ~ipv6_only ?tcp tap e a i4 i6
 
 let socket_stackv4v6 ?(group = "") () =
-  let v4key = Key.V4.network ~group Ipaddr.V4.Prefix.global in
-  let v6key = Key.V6.network ~group None in
-  let ipv4_only = Key.ipv4_only ~group () in
-  let ipv6_only = Key.ipv6_only ~group () in
+  let v4key = Runtime_key.V4.network ~group Ipaddr.V4.Prefix.global in
+  let v6key = Runtime_key.V6.network ~group None in
+  let ipv4_only = Runtime_key.ipv4_only ~group () in
+  let ipv6_only = Runtime_key.ipv6_only ~group () in
   let packages_v = right_tcpip_library ~sublibs:[ "stack-socket" ] "tcpip" in
   let extra_deps =
     [

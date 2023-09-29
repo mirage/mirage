@@ -14,6 +14,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+open Cmdliner
+include Functoria_runtime
+
+let ocaml_section = "OCAML RUNTIME PARAMETERS"
+let unikernel_section = "UNIKERNEL PARAMETERS"
+
 type log_threshold = [ `All | `Src of string ] * Logs.level option
 
 let set_level ~default l =
@@ -34,7 +40,7 @@ let set_level ~default l =
             Format.printf "WARNING: %s is not a valid log source.\n%!" src))
     l
 
-module Arg = struct
+module Conv = struct
   let log_threshold =
     let parser str =
       let level src s =
@@ -50,10 +56,10 @@ module Arg = struct
       | `All, l -> Format.pp_print_string ppf (Logs.level_to_string l)
       | `Src s, l -> Format.fprintf ppf "%s:%s" s (Logs.level_to_string l)
     in
-    Cmdliner.Arg.conv (parser, serialize)
+    Arg.conv (parser, serialize)
 
   let allocation_policy =
-    Cmdliner.Arg.enum
+    Arg.enum
       [
         ("next-fit", `Next_fit);
         ("first-fit", `First_fit);
@@ -61,7 +67,167 @@ module Arg = struct
       ]
 end
 
-include Functoria_runtime
+let backtrace =
+  let doc =
+    "Trigger the printing of a stack backtrace when an uncaught exception \
+     aborts the unikernel."
+  in
+  let doc = Arg.info ~docs:ocaml_section ~docv:"BOOL" ~doc [ "backtrace" ] in
+  Arg.(value & opt bool true doc)
+
+let randomize_hashtables =
+  let doc = "Turn on randomization of all hash tables by default." in
+  let doc =
+    Arg.info ~docs:ocaml_section ~docv:"BOOL" ~doc [ "randomize-hashtables" ]
+  in
+  Arg.(value & opt bool true doc)
+
+let allocation_policy =
+  let doc =
+    "The policy used for allocating in the OCaml heap. Possible values are: \
+     $(i,next-fit), $(i,first-fit), $(i,best-fit). Best-fit is only supported \
+     since OCaml 4.10."
+  in
+  let doc =
+    Arg.info ~docs:ocaml_section ~docv:"ALLOCATION" ~doc [ "allocation-policy" ]
+  in
+  Arg.(value & opt Conv.allocation_policy `Best_fit doc)
+
+let minor_heap_size =
+  let doc = "The size of the minor heap (in words). Default: 256k." in
+  let doc =
+    Arg.info ~docs:ocaml_section ~docv:"MINOR SIZE" ~doc [ "minor-heap-size" ]
+  in
+  Arg.(value & opt (some int) None doc)
+
+let major_heap_increment =
+  let doc =
+    "The size increment for the major heap (in words). If less than or equal \
+     1000, it is a percentage of the current heap size. If more than 1000, it \
+     is a fixed number of words. Default: 15."
+  in
+  let doc =
+    Arg.info ~docs:ocaml_section ~docv:"MAJOR INCREMENT" ~doc
+      [ "major-heap-increment" ]
+  in
+  Arg.(value & opt (some int) None doc)
+
+let space_overhead =
+  let doc =
+    "The percentage of live data of wasted memory, due to GC does not \
+     immediately collect unreachable blocks. The major GC speed is computed \
+     from this parameter, it will work more if smaller. Default: 80."
+  in
+  let doc =
+    Arg.info ~docs:ocaml_section ~docv:"SPACE OVERHEAD" ~doc
+      [ "space-overhead" ]
+  in
+  Arg.(value & opt (some int) None doc)
+
+let max_space_overhead =
+  let doc =
+    "Heap compaction is triggered when the estimated amount of wasted memory \
+     exceeds this (percentage of live data). If above 1000000, compaction is \
+     never triggered. Default: 500."
+  in
+  let doc =
+    Arg.info ~docs:ocaml_section ~docv:"MAX SPACE OVERHEAD" ~doc
+      [ "max-space-overhead" ]
+  in
+  Arg.(value & opt (some int) None doc)
+
+let gc_verbosity =
+  let doc =
+    "GC messages on standard error output. Sum of flags. Check GC module \
+     documentation for details."
+  in
+  let doc =
+    Arg.info ~docs:ocaml_section ~docv:"VERBOSITY" ~doc [ "gc-verbosity" ]
+  in
+  Arg.(value & opt (some int) None doc)
+
+let gc_window_size =
+  let doc =
+    "The size of the window used by the major GC for smoothing out variations \
+     in its workload. Between 1 adn 50, default: 1."
+  in
+  let doc =
+    Arg.info ~docs:ocaml_section ~docv:"WINDOW SIZE" ~doc [ "gc-window-size" ]
+  in
+  Arg.(value & opt (some int) None doc)
+
+let custom_major_ratio =
+  let doc =
+    "Target ratio of floating garbage to major heap size for out-of-heap \
+     memory held by custom values. Default: 44."
+  in
+  let doc =
+    Arg.info ~docs:ocaml_section ~docv:"CUSTOM MAJOR RATIO" ~doc
+      [ "custom-major-ratio" ]
+  in
+  Arg.(value & opt (some int) None doc)
+
+let custom_minor_ratio =
+  let doc =
+    "Bound on floating garbage for out-of-heap memory held by custom values in \
+     the minor heap. Default: 100."
+  in
+  let doc =
+    Arg.info ~docs:ocaml_section ~docv:"CUSTOM MINOR RATIO" ~doc
+      [ "custom-minor-ratio" ]
+  in
+  Arg.(value & opt (some int) None doc)
+
+let custom_minor_max_size =
+  let doc =
+    "Maximum amount of out-of-heap memory for each custom value allocated in \
+     the minor heap. Default: 8192 bytes."
+  in
+  let doc =
+    Arg.info ~docs:ocaml_section ~docv:"CUSTOM MINOR MAX SIZE" ~doc
+      [ "custom-minor-max-size" ]
+  in
+  Arg.(value & opt (some int) None doc)
+
+let logs =
+  let env = Cmd.Env.info "MIRAGE_LOGS" in
+  let docs = unikernel_section in
+  let logs = Arg.list Conv.log_threshold in
+  let doc =
+    "Be more or less verbose. $(docv) must be of the form@ \
+     $(b,*:info,foo:debug) means that that the log threshold is set to@ \
+     $(b,info) for every log sources but the $(b,foo) which is set to@ \
+     $(b,debug)."
+  in
+  let doc = Arg.info ~env ~docv:"LEVEL" ~doc ~docs [ "l"; "logs" ] in
+  Arg.(value & opt logs [] doc)
+
+(** {3 Blocks *)
+
+let disk =
+  let doc =
+    Arg.info
+      ~doc:
+        "Name of the docteur disk (for Solo5 targets, the name must contains \
+         only alpanumeric characters)."
+      [ "disk" ]
+  in
+  Arg.(value & opt string "disk" doc)
+
+let analyze =
+  let doc =
+    Arg.info ~doc:"Analyze at the boot time the given docteur disk."
+      [ "analyze" ]
+  in
+  Arg.(value & opt bool true doc)
+
+(** {3 Initial delay} *)
+
+let delay =
+  let doc = Arg.info ~doc:"Delay n seconds before starting up" [ "delay" ] in
+  Arg.(value & opt int 0 doc)
+
+(* Hooks *)
 
 let exit_hooks = ref []
 let enter_iter_hooks = ref []

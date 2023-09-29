@@ -1,96 +1,31 @@
-let accept_router_advertisements_t =
-  Cmdliner.Arg.(value (opt bool true
-    (info ~docs:"UNIKERNEL PARAMETERS" ~docv:"ACCEPT-ROUTER-ADVERTISEMENTS"
-    ~doc:"Accept router advertisements for the unikernel."
-    ["accept-router-advertisements"])))
+let key_flag = Functoria_runtime.key Key.flag
+
+let key_opt = Functoria_runtime.key Key.opt
+
+let key_opt_all = Functoria_runtime.key Key.opt_all
+
+let key_required = Functoria_runtime.key Key.required
 
 let accept_router_advertisements =
-  Functoria_runtime.key accept_router_advertisements_t
+  Functoria_runtime.key
+  (Mirage_runtime_network.V6.accept_router_advertisements ())
 
-let flag_t =
-  Cmdliner.Arg.(value (flag
-    (info ~docs:"APPLICATION OPTIONS" ~doc:"A flag." ["flag"])))
+let interface =
+  Functoria_runtime.key (Mirage_runtime_network.interface "tap0")
 
-let flag = Functoria_runtime.key flag_t
+let ipv4 =
+  Functoria_runtime.key
+  (Mirage_runtime_network.V4.network (Ipaddr.V4.Prefix.of_string_exn "10.0.0.2/24"))
 
-let interface_t =
-  Cmdliner.Arg.(value (opt string "tap0"
-    (info ~docs:"UNIKERNEL PARAMETERS" ~docv:"INTERFACE"
-    ~doc:"The network interface listened by the unikernel." ["interface"])))
+let ipv4_gateway =
+  Functoria_runtime.key (Mirage_runtime_network.V4.gateway None)
 
-let interface = Functoria_runtime.key interface_t
+let ipv4_only = Functoria_runtime.key (Mirage_runtime_network.ipv4_only ())
 
-let ipv4_t =
-  Cmdliner.Arg.(value (opt
-    (Functoria_runtime.Key.conv Ipaddr.V4.Prefix.of_string
-  Ipaddr.V4.Prefix.to_string)
-    (Ipaddr.V4.Prefix.of_string_exn "10.0.0.2/24")
-    (info ~docs:"UNIKERNEL PARAMETERS" ~docv:"IPV4"
-    ~doc:"The network of the unikernel specified as an IP address and netmask, e.g. 192.168.0.1/16 ."
-    ["ipv4"])))
+let ipv6 = Functoria_runtime.key (Mirage_runtime_network.V6.network None)
 
-let ipv4 = Functoria_runtime.key ipv4_t
+let ipv6_gateway =
+  Functoria_runtime.key (Mirage_runtime_network.V6.gateway None)
 
-let ipv4_gateway_t =
-  Cmdliner.Arg.(value (opt
-    (Cmdliner.Arg.some (Functoria_runtime.Key.conv Ipaddr.V4.of_string Ipaddr.V4.to_string))
-    None
-    (info ~docs:"UNIKERNEL PARAMETERS" ~docv:"IPV4-GATEWAY"
-    ~doc:"The gateway of the unikernel." ["ipv4-gateway"])))
-
-let ipv4_gateway = Functoria_runtime.key ipv4_gateway_t
-
-let ipv4_only_t =
-  Cmdliner.Arg.(value (opt bool false
-    (info ~docs:"UNIKERNEL PARAMETERS" ~docv:"IPV4-ONLY"
-    ~doc:"Only use IPv4 for the unikernel." ["ipv4-only"])))
-
-let ipv4_only = Functoria_runtime.key ipv4_only_t
-
-let ipv6_t =
-  Cmdliner.Arg.(value (opt
-    (Cmdliner.Arg.some (Functoria_runtime.Key.conv Ipaddr.V6.Prefix.of_string
-  Ipaddr.V6.Prefix.to_string))
-    None
-    (info ~docs:"UNIKERNEL PARAMETERS" ~docv:"IPV6"
-    ~doc:"The network of the unikernel specified as IPv6 address and prefix length."
-    ["ipv6"])))
-
-let ipv6 = Functoria_runtime.key ipv6_t
-
-let ipv6_gateway_t =
-  Cmdliner.Arg.(value (opt
-    (Cmdliner.Arg.some (Functoria_runtime.Key.conv Ipaddr.V6.of_string Ipaddr.V6.to_string))
-    None
-    (info ~docs:"UNIKERNEL PARAMETERS" ~docv:"IPV6-GATEWAY"
-    ~doc:"The gateway of the unikernel." ["ipv6-gateway"])))
-
-let ipv6_gateway = Functoria_runtime.key ipv6_gateway_t
-
-let ipv6_only_t =
-  Cmdliner.Arg.(value (opt bool false
-    (info ~docs:"UNIKERNEL PARAMETERS" ~docv:"IPV6-ONLY"
-    ~doc:"Only use IPv6 for the unikernel." ["ipv6-only"])))
-
-let ipv6_only = Functoria_runtime.key ipv6_only_t
-
-let opt_t =
-  Cmdliner.Arg.(value (opt string "default"
-    (info ~docs:"APPLICATION OPTIONS" ~doc:"An optional key." ["opt"])))
-
-let opt = Functoria_runtime.key opt_t
-
-let opt_all_t =
-  Cmdliner.Arg.(value (opt_all string []
-    (info ~docs:"APPLICATION OPTIONS" ~doc:"All the optional keys."
-    ["opt-all"])))
-
-let opt_all = Functoria_runtime.key opt_all_t
-
-let required_t =
-  Cmdliner.Arg.(required (opt (some string)
-    None (info ~docs:"APPLICATION OPTIONS"
-         ~doc:"A required key.  This key is required." ["required"])))
-
-let required = Functoria_runtime.key required_t
+let ipv6_only = Functoria_runtime.key (Mirage_runtime_network.ipv6_only ())
 

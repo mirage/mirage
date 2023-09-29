@@ -66,6 +66,9 @@ val dep : 'a impl -> abstract_impl
 type 'a key = 'a Key.key
 (** The type for command-line parameters. *)
 
+type 'a runtime_key = 'a Runtime_key.key
+(** The type for command-line parameters. *)
+
 type abstract_key = Key.t
 (** The type for abstract keys. *)
 
@@ -162,6 +165,7 @@ val impl :
   ?install:(Info.t -> Install.t) ->
   ?install_v:(Info.t -> Install.t Key.value) ->
   ?keys:Key.t list ->
+  ?runtime_keys:Runtime_key.t list ->
   ?extra_deps:abstract_impl list ->
   ?connect:(info -> string -> string list -> string) ->
   ?dune:(info -> Dune.stanza list) ->

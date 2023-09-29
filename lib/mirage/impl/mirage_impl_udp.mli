@@ -17,8 +17,8 @@ val socket_udpv4v6 :
   ?group:string -> Ipaddr.V4.t option -> Ipaddr.V6.t option -> udpv4v6 impl
 
 val udpv4v6_socket_conf :
-  ipv4_only:bool Mirage_key.key ->
-  ipv6_only:bool Mirage_key.key ->
-  Ipaddr.V4.Prefix.t Mirage_key.key ->
-  Ipaddr.V6.Prefix.t option Mirage_key.key ->
+  ipv4_only:bool runtime_key ->
+  ipv6_only:bool runtime_key ->
+  Ipaddr.V4.Prefix.t runtime_key ->
+  Ipaddr.V6.Prefix.t option runtime_key ->
   udpv4v6 impl

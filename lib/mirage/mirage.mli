@@ -127,6 +127,12 @@ module Key : module type of struct
   (** @inline *)
 end
 
+(** Configuration keys. *)
+module Runtime_key : module type of struct
+  include Mirage_runtime_key
+  (** @inline *)
+end
+
 (** {2 General mirage devices} *)
 
 type qubesdb
@@ -257,8 +263,8 @@ val generic_kv_ro :
 
 val docteur :
   ?mode:[ `Fast | `Light ] ->
-  ?disk:string Key.key ->
-  ?analyze:bool Key.key ->
+  ?disk:string key ->
+  ?analyze:bool runtime_key ->
   ?branch:string ->
   ?extra_deps:string list ->
   string ->
@@ -325,7 +331,10 @@ val kv_rw_mem : ?clock:pclock impl -> unit -> kv_rw impl
 (** An in-memory key-value store using [mirage-kv-mem]. *)
 
 val chamelon :
-  program_block_size:int key -> ?pclock:pclock impl -> block impl -> kv_rw impl
+  program_block_size:int runtime_key ->
+  ?pclock:pclock impl ->
+  block impl ->
+  kv_rw impl
 (** [chamelon ~program_block_size] returns a {!kv_rw} filesystem which is an
     implementation of {{:https://github.com/littlefs-project/littlefs} littlefs}
     in OCaml. The [chamelon] device expects a {i block-device}:
@@ -358,7 +367,8 @@ val tar_kv_rw : ?pclock:pclock impl -> block impl -> kv_rw impl
     append-only. That is, files can generally not be removed, [set_partial] only
     works on what is allocated, and there are restrictions on [rename]. *)
 
-val ccm_block : ?nonce_len:int -> string option key -> block impl -> block impl
+val ccm_block :
+  ?nonce_len:int -> string option runtime_key -> block impl -> block impl
 (** [ccm_block key block] returns a new block which is a AES-CCM encrypted disk.
 
     {b Note} also that the available size of an encrypted block is always
@@ -477,7 +487,7 @@ type ipv6_config = {
 val create_ipv4 :
   ?group:string ->
   ?config:ipv4_config ->
-  ?no_init:bool Key.key ->
+  ?no_init:bool runtime_key ->
   ?random:random impl ->
   ?clock:mclock impl ->
   ethernet impl ->
@@ -503,7 +513,7 @@ val create_ipv6 :
   ?clock:mclock impl ->
   ?group:string ->
   ?config:ipv6_config ->
-  ?no_init:bool Key.key ->
+  ?no_init:bool runtime_key ->
   network impl ->
   ethernet impl ->
   ipv6 impl
@@ -559,8 +569,8 @@ val direct_stackv4v6 :
   ?random:random impl ->
   ?time:time impl ->
   ?tcp:tcpv4v6 impl ->
-  ipv4_only:bool Key.key ->
-  ipv6_only:bool Key.key ->
+  ipv4_only:bool runtime_key ->
+  ipv6_only:bool runtime_key ->
   network impl ->
   ethernet impl ->
   arpv4 impl ->
@@ -637,8 +647,8 @@ type dns_client
 val dns_client : dns_client typ
 
 val generic_dns_client :
-  ?timeout:int64 option key ->
-  ?nameservers:string list key ->
+  ?timeout:int64 option runtime_key ->
+  ?nameservers:string list runtime_key ->
   ?random:random impl ->
   ?time:time impl ->
   ?mclock:mclock impl ->
@@ -676,12 +686,12 @@ type happy_eyeballs
 val happy_eyeballs : happy_eyeballs typ
 
 val generic_happy_eyeballs :
-  ?aaaa_timeout:int64 option key ->
-  ?connect_delay:int64 option key ->
-  ?connect_timeout:int64 option key ->
-  ?resolve_timeout:int64 option key ->
-  ?resolve_retries:int64 option key ->
-  ?timer_interval:int64 option key ->
+  ?aaaa_timeout:int64 option runtime_key ->
+  ?connect_delay:int64 option runtime_key ->
+  ?connect_timeout:int64 option runtime_key ->
+  ?resolve_timeout:int64 option runtime_key ->
+  ?resolve_retries:int64 option runtime_key ->
+  ?timer_interval:int64 option runtime_key ->
   ?time:time impl ->
   ?mclock:mclock impl ->
   stackv4v6 impl ->
@@ -807,7 +817,7 @@ type http_server
 
 val http_server : http_server typ
 
-val paf_server : port:int key -> tcpv4v6 impl -> http_server impl
+val paf_server : port:int runtime_key -> tcpv4v6 impl -> http_server impl
 (** [paf_server ~port tcpv4v6] creates an instance which will start to
     {i listen} on the given [port]. With this instance and the produced module
     [HTTP_server], the user can initiate:
@@ -970,9 +980,9 @@ val git_tcp : tcpv4v6 impl -> mimic impl -> git_client impl
     using TCP/IP. *)
 
 val git_ssh :
-  ?authenticator:string option key ->
-  key:string option key ->
-  password:string option key ->
+  ?authenticator:string option runtime_key ->
+  key:string option runtime_key ->
+  password:string option runtime_key ->
   ?mclock:mclock impl ->
   ?time:time impl ->
   tcpv4v6 impl ->
@@ -996,8 +1006,8 @@ val git_ssh :
     ]} *)
 
 val git_http :
-  ?authenticator:string option key ->
-  ?headers:(string * string) list key ->
+  ?authenticator:string option runtime_key ->
+  ?headers:(string * string) list runtime_key ->
   ?pclock:pclock impl ->
   tcpv4v6 impl ->
   mimic impl ->

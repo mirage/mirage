@@ -12,7 +12,7 @@ let connect_err name number =
   Fmt.str "The %s connect expects exactly %d argument%s" name number
     (if number = 1 then "" else "s")
 
-let pp_key fmt k = Mirage_key.serialize_call fmt (Mirage_key.v k)
+let pp_key fmt k = Runtime_key.call fmt k
 
 let query_ocamlfind ?(recursive = false) ?(format = "%p") ?predicates libs =
   let open Bos in

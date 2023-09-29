@@ -15,11 +15,13 @@ let run x = x
 let run ?(keys = []) ?init context device =
   let t = Impl.abstract device in
   let t = Impl.simplify ~full:false ~context t in
-  let keys = keys @ Key.Set.elements (Engine.all_keys t) in
+  let all_keys, runtime_keys = Engine.all_keys t in
+  let keys = keys @ Key.Set.elements all_keys in
+  let runtime_keys = Runtime_key.Set.elements runtime_keys in
   let packages = Key.eval context (Engine.packages t) in
   let info =
-    Functoria.Info.v ~packages ~context ~keys ~build_cmd:"build me" ~src:`None
-      "foo"
+    Functoria.Info.v ~packages ~context ~keys ~runtime_keys
+      ~build_cmd:"build me" ~src:`None "foo"
   in
   let t = Impl.eval ~context t in
   let* () = prelude info in

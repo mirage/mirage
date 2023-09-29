@@ -51,7 +51,11 @@ val opam :
 (** [opam scope t] is [t]'opam file to install in the [scope] context.*)
 
 val keys : t -> Key.t list
-(** [keys t] are the keys declared by the project. *)
+(** [keys t] are the configure-time keys declared by the project. *)
+
+val runtime_keys : t -> Runtime_key.t list
+(** [keys t] are the runtime keys declared by the project and used by the
+    declared devices. *)
 
 val context : t -> Context.t
 (** [parsed t] is a value representing the command-line argument being parsed. *)
@@ -63,6 +67,7 @@ val v :
   ?config_file:Fpath.t ->
   packages:Package.t list ->
   keys:Key.t list ->
+  runtime_keys:Runtime_key.t list ->
   context:Context.t ->
   ?configure_cmd:string ->
   ?pre_build_cmd:(Fpath.t option -> string) ->

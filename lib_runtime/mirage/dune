@@ -1,4 +1,11 @@
 (library
  (name mirage_runtime)
  (public_name mirage-runtime)
+ (modules mirage_runtime)
  (libraries functoria-runtime lwt logs))
+
+(library
+ (name mirage_runtime_network)
+ (public_name mirage-runtime.network)
+ (modules mirage_runtime_network)
+ (libraries functoria-runtime ipaddr))

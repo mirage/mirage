@@ -24,7 +24,7 @@ Build an application.
   noop.opam
   vote
   warn_error
-  $ ./app/main.exe
+  $ ./app/main.exe --required=foo
   Success: hello=Hello World! arg=-
   $ ./test.exe clean --file app/config.ml
   $ ls -a app/
@@ -59,7 +59,7 @@ Test `--output`:
   toto.ml
   vote
   warn_error
-  $ ./app/toto.exe
+  $ ./app/toto.exe --required=foo
   Success: hello=Hello World! arg=-
   $ ./test.exe clean --file app/config.ml
   $ ls -a app/

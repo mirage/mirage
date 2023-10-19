@@ -12,7 +12,7 @@ Configure
   * Is_file? dune-project -> false
   * Write to dune-project (47 bytes)
   * Is_file? dune.config -> false
-  * Write to dune.config (132 bytes)
+  * Write to dune.config (137 bytes)
   * Is_file? dune -> false
   * Write to dune (52 bytes)
   * Write to test/context (26 bytes)
@@ -36,7 +36,7 @@ Clean
   * Is_file? dune-project -> false
   * Write to dune-project (47 bytes)
   * Is_file? dune.config -> false
-  * Write to dune.config (132 bytes)
+  * Write to dune.config (137 bytes)
   * Is_file? dune -> false
   * Write to dune (52 bytes)
   * Run_cmd 'dune build ./config.exe --root . --workspace
@@ -56,7 +56,7 @@ Clean
   * Is_file? dune.build -> false
   * Rm dune.build (no-op)
   * Is_file? dune.config -> true
-  * Read dune.config (132 bytes)
+  * Read dune.config (137 bytes)
   * Rm dune.config (removed)
 
 Query
@@ -71,7 +71,7 @@ Query
   * Is_file? dune-project -> false
   * Write to dune-project (47 bytes)
   * Is_file? dune.config -> false
-  * Write to dune.config (132 bytes)
+  * Write to dune.config (137 bytes)
   * Is_file? dune -> false
   * Write to dune (52 bytes)
   * Run_cmd 'dune build ./config.exe --root . --workspace
@@ -91,7 +91,7 @@ Describe
   * Is_file? dune-project -> false
   * Write to dune-project (47 bytes)
   * Is_file? dune.config -> false
-  * Write to dune.config (132 bytes)
+  * Write to dune.config (137 bytes)
   * Is_file? dune -> false
   * Write to dune (52 bytes)
   * Run_cmd 'dune build ./config.exe --root . --workspace
@@ -111,7 +111,7 @@ Help
   * Is_file? dune-project -> false
   * Write to dune-project (47 bytes)
   * Is_file? dune.config -> false
-  * Write to dune.config (132 bytes)
+  * Write to dune.config (137 bytes)
   * Is_file? dune -> false
   * Write to dune (52 bytes)
   * Run_cmd 'dune build ./config.exe --root . --workspace
@@ -131,7 +131,7 @@ Simple help
   * Is_file? dune-project -> false
   * Write to dune-project (47 bytes)
   * Is_file? dune.config -> false
-  * Write to dune.config (132 bytes)
+  * Write to dune.config (137 bytes)
   * Is_file? dune -> false
   * Write to dune (52 bytes)
   * Run_cmd 'dune build ./config.exe --root . --workspace
@@ -151,7 +151,7 @@ Help configure
   * Is_file? dune-project -> false
   * Write to dune-project (47 bytes)
   * Is_file? dune.config -> false
-  * Write to dune.config (132 bytes)
+  * Write to dune.config (137 bytes)
   * Is_file? dune -> false
   * Write to dune (52 bytes)
   * Run_cmd 'dune build ./config.exe --root . --workspace
@@ -173,7 +173,7 @@ Configure help
   * Is_file? dune-project -> false
   * Write to dune-project (47 bytes)
   * Is_file? dune.config -> false
-  * Write to dune.config (132 bytes)
+  * Write to dune.config (137 bytes)
   * Is_file? dune -> false
   * Write to dune (52 bytes)
   * Write to test/context (25 bytes)
@@ -278,7 +278,7 @@ Ambiguous
   * Is_file? dune-project -> false
   * Write to dune-project (47 bytes)
   * Is_file? dune.config -> false
-  * Write to dune.config (132 bytes)
+  * Write to dune.config (137 bytes)
   * Is_file? dune -> false
   * Write to dune (52 bytes)
   * Run_cmd 'dune build ./config.exe --root . --workspace
@@ -298,7 +298,7 @@ Default
   * Is_file? dune-project -> false
   * Write to dune-project (47 bytes)
   * Is_file? dune.config -> false
-  * Write to dune.config (132 bytes)
+  * Write to dune.config (137 bytes)
   * Is_file? dune -> false
   * Write to dune (52 bytes)
   * Run_cmd 'dune build ./config.exe --root . --workspace

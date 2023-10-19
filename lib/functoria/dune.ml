@@ -105,8 +105,8 @@ let config_rule ~config_ml_file ~packages ~name ~version =
 
 let base ~packages ~name ~version ~config_ml_file =
   let dune_base = config_rule ~config_ml_file ~packages ~name ~version in
-  let disable_duniverse = "(data_only_dirs duniverse)" in
-  disable_duniverse :: dune_base
+  let disable_conflicting_directories = "(data_only_dirs duniverse dist)" in
+  disable_conflicting_directories :: dune_base
 
 let base_project = [ stanza "(lang dune 2.7)" ]
 let base_workspace = v [ stanza "(lang dune 2.0)\n(context default)" ]

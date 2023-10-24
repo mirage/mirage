@@ -73,7 +73,7 @@ Query makefile
   	@echo " ↳ fetch monorepo dependencies in the duniverse folder"
   	@env OPAMVAR_monorepo="opam-monorepo" $(OPAM) monorepo pull -l $< -r $(abspath $(BUILD_DIR))
   
-  install-switch:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked
+  install-switch:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam
   	@echo " ↳ opam install switch dependencies"
   	@$(OPAM) install $< --deps-only --yes
   	@$(MAKE) -s depext-lockfile

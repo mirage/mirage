@@ -263,14 +263,15 @@ val generic_kv_ro :
 
 val docteur :
   ?mode:[ `Fast | `Light ] ->
-  ?disk:string key ->
+  ?name:string key ->
+  ?output:string key ->
   ?analyze:bool runtime_key ->
   ?branch:string ->
   ?extra_deps:string list ->
   string ->
   kv_ro impl
-(** [docteur ?mode ?disk ?analyze remote] is a read-only, key-value store
-    device. Data is stored on that device using the Git PACK file format,
+(** [docteur ?mode ?name ?output ?analyze remote] is a read-only, key-value
+    store device. Data is stored on that device using the Git PACK file format,
     version 2. This format has very good compression factors for many similar
     files of relatively small size. For instance, 14Gb of HTML files can be
     compressed into a disk image of 240Mb.
@@ -300,6 +301,10 @@ val docteur :
     {[
       $ solo5-hvt --block:<name>=<path-to-the-image> -- unikernel.{hvt,...}
     ]}
+
+    The user is able to specify the name of the block device (default to
+    ["docteur"]). The user can also specify the output of [docteur.make], the
+    tool which generate the image (default to ["disk.img"]).
 
     For the Unix target, the program [open] the image at the beginning of the
     process. An integrity check of the image can be done via the [analyze] value

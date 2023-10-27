@@ -19,7 +19,8 @@ val block_conf : string -> block device
 
 val docteur :
   ?mode:[ `Fast | `Light ] ->
-  ?disk:string key ->
+  ?name:string key ->
+  ?output:string key ->
   ?analyze:bool runtime_key ->
   ?branch:string ->
   ?extra_deps:string list ->

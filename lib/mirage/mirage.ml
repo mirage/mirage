@@ -70,8 +70,9 @@ let kv_rw = Mirage_impl_kv.rw
 let direct_kv_rw = Mirage_impl_kv.direct_kv_rw
 let kv_rw_mem = Mirage_impl_kv.mem_kv_rw
 
-let docteur ?mode ?disk ?analyze ?branch ?extra_deps remote =
-  Mirage_impl_block.docteur ?mode ?disk ?analyze ?branch ?extra_deps remote
+let docteur ?mode ?name ?output ?analyze ?branch ?extra_deps remote =
+  Mirage_impl_block.docteur ?mode ?name ?output ?analyze ?branch ?extra_deps
+    remote
 
 let chamelon ~program_block_size ?(pclock = default_posix_clock) block =
   Mirage_impl_block.chamelon ~program_block_size $ block $ pclock

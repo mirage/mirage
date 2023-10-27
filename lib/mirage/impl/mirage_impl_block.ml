@@ -2,6 +2,7 @@ open Functoria
 open Mirage_impl_misc
 open Mirage_impl_kv
 open Mirage_impl_pclock
+open Cmdliner
 module Key = Mirage_key
 
 type block = BLOCK
@@ -141,10 +142,11 @@ let pp_branch ppf = function
   | None -> ()
   | Some branch -> Fmt.pf ppf " -b %s" branch
 
-let docteur_unix (mode : mode) extra_deps disk branch analyze remote =
+let docteur_unix (mode : mode) extra_deps ~name:_ ~output branch analyze remote
+    =
   let dune info =
     let ctx = Info.context info in
-    let disk = Key.get ctx disk in
+    let output = Key.get ctx output in
     let source_tree =
       let uri = Uri.of_string remote in
       match Uri.scheme uri with
@@ -165,41 +167,43 @@ let docteur_unix (mode : mode) extra_deps disk branch analyze remote =
  (deps (:make %%{bin:docteur.make})%a%s)
  (action (run %%{make} %s%a %s)))
 |dune}
-        disk
+        output
         Fmt.(list ~sep:nop (const string " " ++ string))
-        extra_deps source_tree remote pp_branch branch disk
+        extra_deps source_tree remote pp_branch branch output
     in
     [ dune ]
   in
   let install info =
     let ctx = Info.context info in
-    let disk = Fpath.v (Key.get ctx disk) in
-    Install.v ~etc:[ disk ] ()
+    let output = Fpath.v (Key.get ctx output) in
+    Install.v ~etc:[ output ] ()
   in
   let configure info =
     let ctx = Info.context info in
-    let disk = Key.get ctx disk in
-    let (_ : block_t) = make_block_t disk in
+    let name = Key.get ctx output in
+    let (_ : block_t) = make_block_t name in
     Action.ok ()
   in
-  let connect _info modname _ =
+  let connect info modname _ =
+    let ctx = Info.context info in
+    let name = Key.get ctx output in
     Fmt.str
       {ocaml|let ( <.> ) f g = fun x -> f (g x) in
              let f = Rresult.R.(failwith_error_msg <.> reword_error (msgf "%%a" %s.pp_error)) in
-             Lwt.map f (%s.connect ~analyze:%a %a)|ocaml}
-      modname modname Key.serialize_call (Key.v analyze) Key.serialize_call
-      (Key.v disk)
+             Lwt.map f (%s.connect ~analyze:%a %S)|ocaml}
+      modname modname Runtime_key.call analyze name
   in
-  let keys = [ Key.v disk; Key.v analyze ] in
+  let keys = [ Key.v output ] in
+  let runtime_keys = Runtime_key.[ v analyze ] in
   let packages = [ package "docteur-unix" ~min:"0.0.6" ] in
-  impl ~keys ~packages ~dune ~install ~configure ~connect
+  impl ~runtime_keys ~keys ~packages ~dune ~install ~configure ~connect
     (Fmt.str "Docteur_unix.%a" pp_mode mode)
     ro
 
-let docteur_solo5 (mode : mode) extra_deps disk branch analyze remote =
+let docteur_solo5 (mode : mode) extra_deps ~name ~output branch analyze remote =
   let dune info =
     let ctx = Info.context info in
-    let disk = Key.get ctx disk in
+    let output = Key.get ctx output in
     let source_tree =
       let uri = Uri.of_string remote in
       match Uri.scheme uri with
@@ -220,71 +224,86 @@ let docteur_solo5 (mode : mode) extra_deps disk branch analyze remote =
  (deps (:make %%{bin:docteur.make})%a%s)
  (action (run %%{make} %s%a %s)))
 |dune}
-        disk
+        output
         Fmt.(list ~sep:nop (const string " " ++ string))
-        extra_deps source_tree remote pp_branch branch disk
+        extra_deps source_tree remote pp_branch branch output
     in
     [ dune ]
   in
   let install info =
     let ctx = Info.context info in
-    let disk = Fpath.v (Key.get ctx disk) in
-    Install.v ~etc:[ disk ] ()
+    let output = Fpath.v (Key.get ctx output) in
+    Install.v ~etc:[ output ] ()
   in
   let configure info =
     let ctx = Info.context info in
-    let disk = Key.get ctx disk in
-    let (_ : block_t) = make_block_t disk in
+    let name = Key.get ctx name in
+    let (_ : block_t) = make_block_t name in
     Action.ok ()
   in
-  let connect _info modname _ =
+  let connect info modname _ =
+    let ctx = Info.context info in
+    let name = Key.get ctx name in
     Fmt.str
       {ocaml|let ( <.> ) f g = fun x -> f (g x) in
              let f = Rresult.R.(failwith_error_msg <.> reword_error (msgf "%%a" %s.pp_error)) in
-             Lwt.map f (%s.connect ~analyze:%a %a)|ocaml}
-      modname modname Key.serialize_call (Key.v analyze) Key.serialize_call
-      (Key.v disk)
+             Lwt.map f (%s.connect ~analyze:%a %S)|ocaml}
+      modname modname Runtime_key.call analyze name
   in
-  let keys = [ Key.v disk; Key.v analyze ] in
+  let keys = [ Key.v output; Key.v name ] in
+  let runtime_keys = Runtime_key.[ v analyze ] in
   let packages = [ package "docteur-solo5" ~min:"0.0.6" ] in
-  impl ~keys ~packages ~dune ~install ~configure ~connect
+  impl ~keys ~runtime_keys ~packages ~dune ~install ~configure ~connect
     (Fmt.str "Docteur_solo5.%a" pp_mode mode)
     ro
 
-let disk =
+let disk_name =
   let doc =
-    Key.Arg.info
+    Arg.info
       ~doc:
         "Name of the docteur disk (for Solo5 targets, the name must contains \
          only alpanumeric characters)."
-      [ "disk" ]
+      [ "disk-name" ]
   in
-  Key.(create "disk" Arg.(opt ~stage:`Run string "disk" doc))
+  let key = Key.Arg.opt Arg.string "docteur" doc in
+  Key.create "disk-name" key
 
-let analyze =
+let disk_output =
   let doc =
-    Key.Arg.info ~doc:"Analyze at the boot time the given docteur disk."
-      [ "analyze" ]
+    Arg.info ~doc:"The output of the generated docteur image." [ "disk-output" ]
   in
-  Key.(create "analyze" Arg.(opt ~stage:`Run bool true doc))
+  let key = Key.Arg.opt Arg.string "disk.img" doc in
+  Key.create "disk-output" key
 
-let docteur ?(mode = `Fast) ?(disk = disk) ?(analyze = analyze) ?branch
+let docteur_solo5 (mode : mode) extra_deps ?(name = disk_name)
+    ?(output = disk_output) branch analyze remote =
+  docteur_solo5 mode extra_deps ~name ~output branch analyze remote
+
+let docteur_unix (mode : mode) extra_deps ?(name = disk_name)
+    ?(output = disk_output) branch analyze remote =
+  docteur_unix mode extra_deps ~name ~output branch analyze remote
+
+let analyze = Runtime_key.create "Mirage_runtime.analyze"
+
+let docteur ?(mode = `Fast) ?name ?output ?(analyze = analyze) ?branch
     ?(extra_deps = []) remote =
   match_impl
     Key.(value target)
     [
-      (`Xen, docteur_solo5 mode extra_deps disk branch analyze remote);
-      (`Qubes, docteur_solo5 mode extra_deps disk branch analyze remote);
-      (`Virtio, docteur_solo5 mode extra_deps disk branch analyze remote);
-      (`Hvt, docteur_solo5 mode extra_deps disk branch analyze remote);
-      (`Spt, docteur_solo5 mode extra_deps disk branch analyze remote);
-      (`Muen, docteur_solo5 mode extra_deps disk branch analyze remote);
-      (`Genode, docteur_solo5 mode extra_deps disk branch analyze remote);
+      (`Xen, docteur_solo5 mode extra_deps ?name ?output branch analyze remote);
+      (`Qubes, docteur_solo5 mode extra_deps ?name ?output branch analyze remote);
+      ( `Virtio,
+        docteur_solo5 mode extra_deps ?name ?output branch analyze remote );
+      (`Hvt, docteur_solo5 mode extra_deps ?name ?output branch analyze remote);
+      (`Spt, docteur_solo5 mode extra_deps ?name ?output branch analyze remote);
+      (`Muen, docteur_solo5 mode extra_deps ?name ?output branch analyze remote);
+      ( `Genode,
+        docteur_solo5 mode extra_deps ?name ?output branch analyze remote );
     ]
-    ~default:(docteur_unix mode extra_deps disk branch analyze remote)
+    ~default:(docteur_unix mode extra_deps ?name ?output branch analyze remote)
 
 let chamelon ~program_block_size =
-  let keys = [ Key.v program_block_size ] in
+  let runtime_keys = Runtime_key.[ v program_block_size ] in
   let packages = [ package "chamelon" ~sublibs:[ "kv" ] ~min:"0.0.8" ] in
   let connect _ modname = function
     | [ block; _ ] ->
@@ -292,14 +311,14 @@ let chamelon ~program_block_size =
           {ocaml|%s.connect ~program_block_size:%a %s
                  >|= Result.map_error (Fmt.str "%%a" %s.pp_error)
                  >|= Result.fold ~ok:Fun.id ~error:failwith|ocaml}
-          modname Key.serialize_call (Key.v program_block_size) block modname
+          modname Runtime_key.call program_block_size block modname
     | _ -> assert false
   in
-  impl ~packages ~keys ~connect "Kv.Make"
+  impl ~packages ~runtime_keys ~connect "Kv.Make"
     (block @-> pclock @-> Mirage_impl_kv.rw)
 
 let ccm_block ?nonce_len key =
-  let keys = [ Key.v key ] in
+  let runtime_keys = Runtime_key.[ v key ] in
   let packages =
     [ package "mirage-block-ccm" ~min:"2.0.0" ~max:"3.0.0"; package "astring" ]
   in
@@ -311,9 +330,9 @@ let ccm_block ?nonce_len key =
                  | Some ("", key) -> key
                  | _ -> key in
                %s.connect ?nonce_len:%a ~key:(Cstruct.of_hex key) %s|ocaml}
-          Key.serialize_call (Key.v key) modname
+          Runtime_key.call key modname
           Fmt.(parens (Dump.option int))
           nonce_len block
     | _ -> assert false
   in
-  impl ~packages ~keys ~connect "Block_ccm.Make" (block @-> block)
+  impl ~packages ~runtime_keys ~connect "Block_ccm.Make" (block @-> block)

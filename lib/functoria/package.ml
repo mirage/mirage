@@ -123,3 +123,13 @@ let exts_to_string ppf (min, max, build, scope) =
 let pp ?(surround = "") ppf p =
   Fmt.pf ppf "%s%s%s%a" surround p.name surround exts_to_string
     (p.min, p.max, p.build, p.scope)
+
+module Set = struct
+  type elt = t
+  type t = elt String.Map.t
+
+  let of_list x = String.Map.of_list (List.map (fun p -> (name p, p)) x)
+  let to_list x = String.Map.fold (fun _ v acc -> v :: acc) x [] |> List.rev
+  let union x y = String.Map.union (fun _ -> merge) x y
+  let empty = String.Map.empty
+end

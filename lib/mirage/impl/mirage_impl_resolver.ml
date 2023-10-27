@@ -1,11 +1,12 @@
 open Functoria
-module Key = Mirage_key
 open Mirage_impl_misc
 open Mirage_impl_mclock
 open Mirage_impl_pclock
 open Mirage_impl_stack
 open Mirage_impl_random
 open Mirage_impl_time
+module Key = Mirage_key
+module Runtime_key = Mirage_runtime_key
 
 type resolver = Resolver
 
@@ -30,7 +31,7 @@ let resolver_unix_system =
 
 let resolver_dns_conf ~ns =
   let packages = [ Mirage_impl_conduit.pkg ] in
-  let keys = Key.[ v ns ] in
+  let runtime_keys = Runtime_key.[ v ns ] in
   let connect _ modname = function
     | [ _r; _t; _m; _p; stack ] ->
         Fmt.str
@@ -41,10 +42,10 @@ let resolver_dns_conf ~ns =
           pp_key ns modname stack
     | _ -> failwith (connect_err "resolver" 3)
   in
-  impl ~packages ~keys ~connect "Resolver_mirage.Make"
+  impl ~packages ~runtime_keys ~connect "Resolver_mirage.Make"
     (random @-> time @-> mclock @-> pclock @-> stackv4v6 @-> resolver)
 
 let resolver_dns ?ns ?(time = default_time) ?(mclock = default_monotonic_clock)
     ?(pclock = default_posix_clock) ?(random = default_random) stack =
-  let ns = Key.resolver ?default:ns () in
+  let ns = Runtime_key.resolver ?default:ns () in
   resolver_dns_conf ~ns $ random $ time $ mclock $ pclock $ stack

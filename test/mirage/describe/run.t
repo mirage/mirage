@@ -3,78 +3,20 @@
 Describe before configure (using defaults)
   $ ./config.exe describe -t spt
   Name       describe
-  Keys      
-    accept-router-advertisements=true (default),
-    allocation-policy=best-fit (default),
-    backtrace=true (default),
-    custom-major-ratio= (default),
-    custom-minor-max-size= (default),
-    custom-minor-ratio= (default),
-    delay=0 (default),
-    dhcp=false (default),
-    gc-verbosity= (default),
-    gc-window-size= (default),
-    interface=0 (default),
-    interface=service (default),
-    interface=tap0 (default),
-    ipv4=0.0.0.0/0 (default),
-    ipv4=10.0.0.2/24 (default),
-    ipv4-gateway= (default),
-    ipv4-only=false (default),
-    ipv4-only=false (default),
-    ipv6= (default),
-    ipv6= (default),
-    ipv6-gateway= (default),
-    ipv6-only=false (default),
-    ipv6-only=false (default),
-    logs= (default),
-    major-heap-increment= (default),
-    max-space-overhead= (default),
-    minor-heap-size= (default),
-    net= (default),
-    randomize-hashtables=true (default),
-    space-overhead= (default),
-    target=spt
+  Keys       dhcp=false (default),
+             net= (default),
+             target=spt
 
 Describe before configure (no eval)
   $ ./config.exe describe --no-eval --dot -o-
   Name       describe
-  Keys      
-    accept-router-advertisements=true (default),
-    allocation-policy=best-fit (default),
-    backtrace=true (default),
-    custom-major-ratio= (default),
-    custom-minor-max-size= (default),
-    custom-minor-ratio= (default),
-    delay=0 (default),
-    dhcp=false (default),
-    gc-verbosity= (default),
-    gc-window-size= (default),
-    interface=0 (default),
-    interface=service (default),
-    interface=tap0 (default),
-    ipv4=0.0.0.0/0 (default),
-    ipv4=10.0.0.2/24 (default),
-    ipv4-gateway= (default),
-    ipv4-only=false (default),
-    ipv4-only=false (default),
-    ipv6= (default),
-    ipv6= (default),
-    ipv6-gateway= (default),
-    ipv6-only=false (default),
-    ipv6-only=false (default),
-    logs= (default),
-    major-heap-increment= (default),
-    max-space-overhead= (default),
-    minor-heap-size= (default),
-    net= (default),
-    randomize-hashtables=true (default),
-    space-overhead= (default),
-    target=unix (default)
+  Keys       dhcp=false (default),
+             net= (default),
+             target=unix (default)
   Output     -digraph G {
                 ordering=out;
-                1 [label="tcpv4v6_socket__1\nTcpv4v6_socket\nipv4-only, ipv6-only, ipv4, ipv6", shape="box"];
-                2 [label="udpv4v6_socket__2\nUdpv4v6_socket\nipv4-only, ipv6-only, ipv4, ipv6", shape="box"];
+                1 [label="tcpv4v6_socket__1\nTcpv4v6_socket\n", shape="box"];
+                2 [label="udpv4v6_socket__2\nUdpv4v6_socket\n", shape="box"];
                 3 [label="tcpip_stack_socket_v4v6__3\nTcpip_stack_socket.V4V6\n", shape="box"];
                 4 [label="mclock__4\nMclock\n", shape="box"];
                 5 [label="unix_os_time__5\nUnix_os.Time\n", shape="box"];
@@ -82,24 +24,24 @@ Describe before configure (no eval)
                 7 [label="solo5_os_time__7\nSolo5_os.Time\n", shape="box"];
                 8 [label="If\ntarget"];
                 9 [label="mirage_crypto_rng_mirage_make__9\nMirage_crypto_rng_mirage.Make\n", shape="box"];
-                10 [label="netif__10\nNetif\ninterface", shape="box"];
-                11 [label="netif__11\nNetif\ninterface", shape="box"];
-                12 [label="netif__12\nNetif\ninterface", shape="box"];
-                13 [label="netif__13\nNetif\ninterface", shape="box"];
-                14 [label="netif__14\nNetif\ninterface", shape="box"];
-                15 [label="netif__15\nNetif\ninterface", shape="box"];
-                16 [label="netif__16\nNetif\ninterface", shape="box"];
-                17 [label="netif__17\nNetif\ninterface", shape="box"];
+                10 [label="netif__10\nNetif\n", shape="box"];
+                11 [label="netif__11\nNetif\n", shape="box"];
+                12 [label="netif__12\nNetif\n", shape="box"];
+                13 [label="netif__13\nNetif\n", shape="box"];
+                14 [label="netif__14\nNetif\n", shape="box"];
+                15 [label="netif__15\nNetif\n", shape="box"];
+                16 [label="netif__16\nNetif\n", shape="box"];
+                17 [label="netif__17\nNetif\n", shape="box"];
                 18 [label="If\ntarget"];
                 19 [label="ethernet_make__19\nEthernet.Make\n", shape="box"];
-                20 [label="ipv6_make__20\nIpv6.Make\nipv6, ipv6-gateway, accept-router-advertisements, ipv4-only", shape="box"];
+                20 [label="ipv6_make__20\nIpv6.Make\n", shape="box"];
                 21 [label="arp_make__21\nArp.Make\n", shape="box"];
                 22 [label="qubes_db__22\nQubes.DB\n", shape="box"];
                 23 [label="qubesdb_ipv4_make__23\nQubesdb_ipv4.Make\n", shape="box"];
                 24 [label="dhcp_ipv4_make__24\nDhcp_ipv4.Make\n", shape="box"];
-                25 [label="static_ipv4_make__25\nStatic_ipv4.Make\nipv6-only, ipv4-gateway, ipv4", shape="box"];
+                25 [label="static_ipv4_make__25\nStatic_ipv4.Make\n", shape="box"];
                 26 [label="If\ndhcp, net,\ntarget"];
-                27 [label="tcpip_stack_direct_ipv4v6__27\nTcpip_stack_direct.IPV4V6\nipv4-only, ipv6-only", shape="box"];
+                27 [label="tcpip_stack_direct_ipv4v6__27\nTcpip_stack_direct.IPV4V6\n", shape="box"];
                 28 [label="tcp_flow_make__28\nTcp.Flow.Make\n", shape="box"];
                 29 [label="udp_make__29\nUdp.Make\n", shape="box"];
                 30 [label="icmpv4_make__30\nIcmpv4.Make\n", shape="box"];
@@ -107,11 +49,11 @@ Describe before configure (no eval)
                 32 [label="If\ndhcp, net,\ntarget"];
                 33 [label="app__33\nApp\n", shape="box"];
                 34 [label="pclock__34\nPclock\n", shape="box"];
-                35 [label="mirage_logs_make__35\nMirage_logs.Make\nlogs", shape="box"];
-                36 [label="mirage_runtime__36\nMirage_runtime\ndelay", shape="box"];
-                37 [label="gc__37\nGc\nallocation-policy, minor-heap-size, major-heap-increment, space-overhead, max-space-overhead, gc-verbosity, gc-window-size, custom-major-ratio, custom-minor-ratio, custom-minor-max-size", shape="box"];
-                38 [label="hashtbl__38\nHashtbl\nrandomize-hashtables", shape="box"];
-                39 [label="printexc__39\nPrintexc\nbacktrace", shape="box"];
+                35 [label="mirage_logs_make__35\nMirage_logs.Make\n", shape="box"];
+                36 [label="mirage_runtime__36\nMirage_runtime\n", shape="box"];
+                37 [label="gc__37\nGc\n", shape="box"];
+                38 [label="hashtbl__38\nHashtbl\n", shape="box"];
+                39 [label="printexc__39\nPrintexc\n", shape="box"];
                 40 [label="bootvar__40\nBootvar\n", shape="box"];
                 41 [label="bootvar__41\nBootvar\n", shape="box"];
                 42 [label="bootvar__42\nBootvar\n", shape="box"];
@@ -211,29 +153,6 @@ Describe after configure
   $ echo "-txen" > context
   $ ./config.exe describe --context-file=context
   Name       describe
-  Keys      
-    accept-router-advertisements=true (default),
-    allocation-policy=best-fit (default),
-    backtrace=true (default),
-    custom-major-ratio= (default),
-    custom-minor-max-size= (default),
-    custom-minor-ratio= (default),
-    delay=0 (default),
-    dhcp=false (default),
-    gc-verbosity= (default),
-    gc-window-size= (default),
-    interface=0 (default),
-    ipv4=10.0.0.2/24 (default),
-    ipv4-gateway= (default),
-    ipv4-only=false (default),
-    ipv6= (default),
-    ipv6-gateway= (default),
-    ipv6-only=false (default),
-    logs= (default),
-    major-heap-increment= (default),
-    max-space-overhead= (default),
-    minor-heap-size= (default),
-    net= (default),
-    randomize-hashtables=true (default),
-    space-overhead= (default),
-    target=xen
+  Keys       dhcp=false (default),
+             net= (default),
+             target=xen

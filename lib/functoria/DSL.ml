@@ -17,6 +17,7 @@
  *)
 
 type 'a key = 'a Key.key
+type 'a runtime_key = 'a Runtime_key.key
 type 'a value = 'a Key.value
 type abstract_key = Key.t
 type package = Package.t
@@ -39,11 +40,11 @@ let dep = Impl.abstract
 let if_impl = Impl.if_
 let match_impl = Impl.match_
 
-let impl ?packages ?packages_v ?install ?install_v ?keys ?extra_deps ?connect
-    ?dune ?configure ?files module_name module_type =
+let impl ?packages ?packages_v ?install ?install_v ?keys ?runtime_keys
+    ?extra_deps ?connect ?dune ?configure ?files module_name module_type =
   of_device
-  @@ Device.v ?packages ?packages_v ?install ?install_v ?keys ?extra_deps
-       ?connect ?dune ?configure ?files module_name module_type
+  @@ Device.v ?packages ?packages_v ?install ?install_v ?keys ?runtime_keys
+       ?extra_deps ?connect ?dune ?configure ?files module_name module_type
 
 let main ?packages ?packages_v ?extra_deps module_name ty =
   let connect _ = Device.start in

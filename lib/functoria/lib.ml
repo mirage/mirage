@@ -35,6 +35,7 @@ module Config = struct
     build_cmd : string;
     packages : package list Key.value;
     if_keys : Key.Set.t;
+    runtime_keys : Runtime_key.Set.t;
     init : job impl list;
     jobs : Impl.abstract;
     src : [ `Auto | `None | `Some of string ];
@@ -47,13 +48,23 @@ module Config = struct
     device_graph : Device.Graph.t;
   }
 
+  (* In practice, we get all the keys associated to [if] cases, and
+     all the keys that have a setter to them. *)
+  let get_if_context jobs =
+    let all_keys, _ = Engine.all_keys jobs in
+    let skeys = Engine.if_keys jobs in
+    let f k s = if true then s else Key.Set.add k s in
+    Key.Set.fold f all_keys skeys
+
   let v ?(config_file = Fpath.v "config.ml") ?(init = []) ~configure_cmd
       ~pre_build_cmd ~lock_location ~build_cmd ~src name jobs =
     let jobs = Impl.abstract jobs in
-    let if_keys = Engine.if_keys jobs in
+    let if_keys = get_if_context jobs in
+    let runtime_keys = Runtime_key.Set.empty in
     {
       config_file;
       if_keys;
+      runtime_keys;
       name;
       init;
       configure_cmd;
@@ -75,6 +86,7 @@ module Config = struct
         build_cmd;
         packages;
         if_keys;
+        runtime_keys;
         jobs;
         init;
         src;
@@ -82,11 +94,15 @@ module Config = struct
     let jobs = Impl.simplify ~full ~context jobs in
     let device_graph = Impl.eval ~context jobs in
     let packages = Key.(pure List.append $ packages $ Engine.packages jobs) in
-    let keys = Key.Set.(elements (union if_keys @@ Engine.all_keys jobs)) in
+    let all_keys, all_runtime_keys = Engine.all_keys jobs in
+    let runtime_keys =
+      Runtime_key.Set.(elements (union runtime_keys all_runtime_keys))
+    in
+    let keys = Key.Set.(elements (union if_keys all_keys)) in
     let mk packages _ context =
       let info =
-        Info.v ~config_file ~packages ~keys ~context ~configure_cmd
-          ~pre_build_cmd ~lock_location ~build_cmd ~src n
+        Info.v ~config_file ~packages ~keys ~runtime_keys ~context
+          ~configure_cmd ~pre_build_cmd ~lock_location ~build_cmd ~src n
       in
       { init; jobs; info; device_graph }
     in

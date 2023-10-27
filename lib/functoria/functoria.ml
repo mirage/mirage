@@ -18,6 +18,7 @@
 
 module Context = Context
 module Key = Key
+module Runtime_key = Runtime_key
 module Package = Package
 module Info = Info
 module Type = Type
@@ -37,13 +38,17 @@ module type DSL = module type of DSL
 
 module type KEY =
   module type of Key
-    with type 'a Arg.converter = 'a Key.Arg.converter
-     and type 'a Arg.t = 'a Key.Arg.t
-     and type Arg.info = Key.Arg.info
+    with type 'a Arg.t = 'a Key.Arg.t
      and type 'a value = 'a Key.value
      and type 'a key = 'a Key.key
      and type t = Key.t
      and type Set.t = Key.Set.t
+
+module type RUNTIME_KEY =
+  module type of Runtime_key
+    with type 'a key = 'a Runtime_key.key
+     and type t = Runtime_key.t
+     and type Set.t = Runtime_key.Set.t
 
 (** Devices *)
 

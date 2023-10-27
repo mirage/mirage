@@ -27,20 +27,30 @@ let if_keys x =
     (function If cond -> Key.deps cond | App | Dev _ -> Key.Set.empty)
     x
 
+module Keys = struct
+  type t = Key.Set.t * Runtime_key.Set.t
+
+  let union (a, b) (c, d) = (Key.Set.union a c, Runtime_key.Set.union b d)
+  let empty = (Key.Set.empty, Runtime_key.Set.empty)
+end
+
 let all_keys x =
   Impl.collect
-    (module Key.Set)
+    (module Keys)
     (function
-      | Dev c -> Key.Set.of_list (Device.keys c)
-      | If cond -> Key.deps cond
-      | App -> Key.Set.empty)
+      | Dev c ->
+          let keys = Device.keys c in
+          let runtime_keys = Device.runtime_keys c in
+          (Key.Set.of_list keys, Runtime_key.Set.of_list runtime_keys)
+      | If cond -> (Key.deps cond, Runtime_key.Set.empty)
+      | App -> (Key.Set.empty, Runtime_key.Set.empty))
     x
 
 module Packages = struct
-  type t = Package.t String.Map.t Key.value
+  type t = Package.Set.t Key.value
 
-  let union x y = Key.(pure (String.Map.union (fun _ -> Package.merge)) $ x $ y)
-  let empty = Key.pure String.Map.empty
+  let union x y = Key.(pure Package.Set.union $ x $ y)
+  let empty = Key.pure Package.Set.empty
 end
 
 let packages t =
@@ -48,13 +58,19 @@ let packages t =
   let aux = function
     | Dev c ->
         let pkgs = Device.packages c in
-        let aux x =
-          String.Map.of_list (List.map (fun p -> (Package.name p, p)) x)
+        let runtime_keys = Device.runtime_keys c in
+        let extra_pkgs =
+          List.fold_left
+            (fun acc k ->
+              let pkgs = Runtime_key.packages k in
+              Package.Set.(union acc (of_list pkgs)))
+            Package.Set.empty runtime_keys
         in
+        let aux x = Package.Set.(union (of_list x) extra_pkgs) in
         Key.(pure aux $ pkgs)
     | If _ | App -> Packages.empty
   in
-  let return x = List.map snd (String.Map.bindings x) in
+  let return x = Package.Set.to_list x in
   Key.(pure return $ Impl.collect (module Packages) aux t)
 
 module Installs = struct

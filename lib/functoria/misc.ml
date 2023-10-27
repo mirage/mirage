@@ -58,7 +58,7 @@ module Name = struct
       (function
         | ('a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_') as c ->
             Buffer.add_char b c
-        | '-' | '.' -> Buffer.add_char b '_'
+        | '-' | '.' | ' ' -> Buffer.add_char b '_'
         | _ -> ())
       s;
     let s' = Buffer.contents b in

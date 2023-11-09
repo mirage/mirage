@@ -206,7 +206,7 @@ let logs =
 
 let disk =
   let doc =
-    Arg.info
+    Arg.info ~docs:unikernel_section
       ~doc:
         "Name of the docteur disk (for Solo5 targets, the name must contains \
          only alpanumeric characters)."
@@ -216,15 +216,18 @@ let disk =
 
 let analyze =
   let doc =
-    Arg.info ~doc:"Analyze at the boot time the given docteur disk."
-      [ "analyze" ]
+    Arg.info ~docs:unikernel_section
+      ~doc:"Analyze at the boot time the given docteur disk." [ "analyze" ]
   in
   Arg.(value & opt bool true doc)
 
 (** {3 Initial delay} *)
 
 let delay =
-  let doc = Arg.info ~doc:"Delay n seconds before starting up" [ "delay" ] in
+  let doc =
+    Arg.info ~docs:unikernel_section ~doc:"Delay n seconds before starting up"
+      [ "delay" ]
+  in
   Arg.(value & opt int 0 doc)
 
 (* Hooks *)

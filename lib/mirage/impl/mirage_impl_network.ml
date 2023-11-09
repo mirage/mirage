@@ -6,9 +6,7 @@ type network = NETWORK
 
 let network = Type.v NETWORK
 let all_networks = ref []
-
-let add_new_network name =
-  all_networks := name :: !all_networks
+let add_new_network name = all_networks := name :: !all_networks
 
 let network_conf name (intf : string runtime_key) =
   let runtime_keys = [ Runtime_key.v intf ] in

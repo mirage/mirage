@@ -7,11 +7,10 @@ type network = NETWORK
 let network = Type.v NETWORK
 let all_networks = ref []
 
-let add_new_network () =
-  let device = Fmt.str "net%d" (List.length !all_networks) in
-  all_networks := device :: !all_networks
+let add_new_network name =
+  all_networks := name :: !all_networks
 
-let network_conf (intf : string runtime_key) =
+let network_conf name (intf : string runtime_key) =
   let runtime_keys = [ Runtime_key.v intf ] in
   let packages_v =
     Key.match_ Key.(value target) @@ function
@@ -30,12 +29,12 @@ let network_conf (intf : string runtime_key) =
     Fmt.str "%s.connect %a" modname Runtime_key.call intf
   in
   let configure _ =
-    add_new_network ();
+    add_new_network name;
     Action.ok ()
   in
   impl ~runtime_keys ~packages_v ~connect ~configure "Netif" network
 
-let netif ?group dev = network_conf @@ Runtime_key.interface ?group dev
+let netif ?group dev = network_conf dev @@ Runtime_key.interface ?group dev
 
 let default_network =
   match_impl

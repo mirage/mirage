@@ -34,22 +34,22 @@ type mode_xen = [ `Xen | `Qubes ]
 type mode_solo5 = [ `Hvt | `Spt | `Virtio | `Muen | `Genode ]
 type mode = [ mode_unix | mode_xen | mode_solo5 ]
 
-let target_conv : mode Cmdliner.Arg.conv =
-  let parser, printer =
-    Cmdliner.Arg.enum
-      [
-        ("unix", `Unix);
-        ("macosx", `MacOSX);
-        ("xen", `Xen);
-        ("virtio", `Virtio);
-        ("hvt", `Hvt);
-        ("muen", `Muen);
-        ("qubes", `Qubes);
-        ("genode", `Genode);
-        ("spt", `Spt);
-      ]
+let (target_conv : mode Cmdliner.Arg.conv), target_doc_alts =
+  let enum =
+    [
+      ("unix", `Unix);
+      ("macosx", `MacOSX);
+      ("xen", `Xen);
+      ("virtio", `Virtio);
+      ("hvt", `Hvt);
+      ("muen", `Muen);
+      ("qubes", `Qubes);
+      ("genode", `Genode);
+      ("spt", `Spt);
+    ]
   in
-  (parser, printer)
+  let parser, printer = Cmdliner.Arg.enum enum in
+  ((parser, printer), Cmdliner.Arg.doc_alts_enum enum)
 
 let pp_target fmt m = snd target_conv fmt m
 
@@ -64,9 +64,8 @@ let default_target =
 
 let target =
   let doc =
-    "Target platform to compile the unikernel for. Valid values are: $(i,xen), \
-     $(i,qubes), $(i,unix), $(i,macosx), $(i,virtio), $(i,hvt), $(i,spt), \
-     $(i,muen), $(i,genode)."
+    Fmt.str "Target platform to compile the unikernel for. Valid values are: %s"
+      target_doc_alts
   in
   let doc =
     Arg.info ~docs:mirage_section ~docv:"TARGET" ~doc [ "t"; "target" ]
@@ -106,24 +105,24 @@ let configure_key ?(group = "") ~doc ~default conv name =
 (** {3 File system keys} *)
 
 let kv_ro ?group () =
-  let conv = Cmdliner.Arg.enum [ ("crunch", `Crunch); ("direct", `Direct) ] in
+  let enum = [ ("crunch", `Crunch); ("direct", `Direct) ] in
+  let conv = Cmdliner.Arg.enum enum in
   let doc =
-    Fmt.str
-      "Use a $(i,crunch) or $(i,direct) pass-through implementation for %a."
+    Fmt.str "Use %s pass-through implementation for %a."
+      (Cmdliner.Arg.doc_alts_enum enum)
       pp_group group
   in
   configure_key ~doc ?group ~default:`Crunch conv "kv_ro"
 
 (** {3 Block device keys} *)
 let block ?group () =
-  let conv =
-    Arg.enum
-      [ ("xenstore", `XenstoreId); ("file", `BlockFile); ("ramdisk", `Ramdisk) ]
+  let enum =
+    [ ("xenstore", `XenstoreId); ("file", `BlockFile); ("ramdisk", `Ramdisk) ]
   in
+  let conv = Arg.enum enum in
   let doc =
-    Fmt.str
-      "Use a $(i,ramdisk), $(i,xenstore), or $(i,file) pass-through \
-       implementation for %a."
+    Fmt.str "Use %s pass-through implementation for %a."
+      (Cmdliner.Arg.doc_alts_enum enum)
       pp_group group
   in
   configure_key ~doc ?group ~default:`Ramdisk conv "block"
@@ -135,9 +134,12 @@ let dhcp ?group () =
   configure_key ~doc ?group ~default:false Arg.bool "dhcp"
 
 let net ?group () : [ `Socket | `Direct ] option Key.key =
-  let conv = Cmdliner.Arg.enum [ ("socket", `Socket); ("direct", `Direct) ] in
+  let enum = [ ("socket", `Socket); ("direct", `Direct) ] in
+  let conv = Cmdliner.Arg.enum enum in
   let doc =
-    Fmt.str "Use $(i,socket) or $(i,direct) group for %a." pp_group group
+    Fmt.str "Use %s group for %a."
+      (Cmdliner.Arg.doc_alts_enum enum)
+      pp_group group
   in
   configure_key ~doc ?group ~default:None (Arg.some conv) "net"
 

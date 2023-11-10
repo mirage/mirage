@@ -81,11 +81,26 @@ let with_argv keys s argv =
   else
     let gather k rest = Term.(const (fun () () -> ()) $ k $ rest) in
     let t = List.fold_right gather keys (Term.const ()) in
-    match Cmd.(eval_value ~argv (Cmd.v (info s) t)) with
+    let exits =
+      [
+        Cmd.Exit.info ~doc:"on success." Cmd.Exit.ok;
+        Cmd.Exit.info ~doc:"on Solo5 internal error." 1;
+        Cmd.Exit.info ~doc:"on showing this help." help_version;
+        Cmd.Exit.info ~doc:"on any argument parsing error." argument_error;
+        Cmd.Exit.info
+          ~doc:
+            "on unexpected internal errors (bugs) while processing the boot \
+             parameters."
+          Cmd.Exit.internal_error;
+        Cmd.Exit.info ~doc:"on OCaml uncaught exception." 255;
+      ]
+    in
+    match Cmd.(eval_value ~argv (Cmd.v (info ~exits s) t)) with
     | Ok (`Ok _) ->
         initialized := true;
         ()
-    | Error _ -> exit argument_error
+    | Error (`Parse | `Term) -> exit argument_error
+    | Error `Exn -> exit Cmd.Exit.internal_error
     | Ok `Help | Ok `Version -> exit help_version
 
 type info = { name : string; libraries : (string * string) list }

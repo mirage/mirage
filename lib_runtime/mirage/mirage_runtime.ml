@@ -205,7 +205,7 @@ let logs =
   let doc = Arg.info ~env ~docv:"LEVEL" ~doc ~docs [ "l"; "logs" ] in
   Arg.(value & opt logs [] doc)
 
-(** {3 Blocks *)
+(** {3 Blocks} *)
 
 let disk =
   let doc =

@@ -197,9 +197,9 @@ let logs =
   let docs = unikernel_section in
   let logs = Arg.list Conv.log_threshold in
   let doc =
-    "Be more or less verbose. $(docv) must be of the form@ \
-     $(b,*:info,foo:debug) means that that the log threshold is set to@ \
-     $(b,info) for every log sources but the $(b,foo) which is set to@ \
+    "Be more or less verbose. $(docv) must be of the form \
+     $(b,*:info,foo:debug) means that that the log threshold is set to \
+     $(b,info) for every log sources but the $(b,foo) which is set to \
      $(b,debug)."
   in
   let doc = Arg.info ~env ~docv:"LEVEL" ~doc ~docs [ "l"; "logs" ] in

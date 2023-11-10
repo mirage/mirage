@@ -30,6 +30,17 @@ val set_level : default:Logs.level option -> log_threshold list -> unit
     sources appearing in [l] be used. *)
 
 val logs : log_threshold list Term.t
+(** [logs] is a command-liner term for setting the log_threshold. *)
+
+(** {2 Mirage command-line converters} *)
+module Conv : sig
+  val log_threshold : log_threshold Cmdliner.Arg.conv
+  (** [log_threshold] converts log reporter threshold. *)
+
+  val allocation_policy :
+    [ `Next_fit | `First_fit | `Best_fit ] Cmdliner.Arg.conv
+  (** [allocation_policy] converts allocation policy. *)
+end
 
 (** {2 OCaml runtime keys}
 

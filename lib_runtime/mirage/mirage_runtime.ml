@@ -58,13 +58,15 @@ module Conv = struct
     in
     Arg.conv (parser, serialize)
 
-  let allocation_policy =
-    Arg.enum
+  let allocation_policy, allocation_policy_doc_alts =
+    let enum =
       [
         ("next-fit", `Next_fit);
         ("first-fit", `First_fit);
         ("best-fit", `Best_fit);
       ]
+    in
+    (Arg.enum enum, Arg.doc_alts_enum enum)
 end
 
 let backtrace =
@@ -84,9 +86,10 @@ let randomize_hashtables =
 
 let allocation_policy =
   let doc =
-    "The policy used for allocating in the OCaml heap. Possible values are: \
-     $(i,next-fit), $(i,first-fit), $(i,best-fit). Best-fit is only supported \
-     since OCaml 4.10."
+    Printf.sprintf
+      "The policy used for allocating in the OCaml heap. Possible values are: \
+       %s. Best-fit is only supported since OCaml 4.10."
+      Conv.allocation_policy_doc_alts
   in
   let doc =
     Arg.info ~docs:ocaml_section ~docv:"ALLOCATION" ~doc [ "allocation-policy" ]

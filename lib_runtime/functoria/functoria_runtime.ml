@@ -39,12 +39,15 @@ module Key = struct
     Cmdliner.Arg.conv (of_string, pp)
 end
 
+let initialized = ref false
+
 let key t =
+  if !initialized then
+    invalid_arg "key: Called too late. Arguments have already been evaluated.";
   let u = Key.create t in
   runtime_keys_r := Key.term u :: !runtime_keys_r;
   fun () -> Key.get u
 
-let initialized = ref false
 let help_version = 63
 let argument_error = 64
 

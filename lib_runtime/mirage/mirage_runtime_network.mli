@@ -30,6 +30,15 @@ module V6 : sig
   (** An option whether to accept router advertisements. *)
 end
 
+val ipv4_address : Ipaddr.V4.t Cmdliner.Arg.conv
+(** [ipv4_address] converts an IPv4 address. *)
+
+val ipv6_address : Ipaddr.V6.t Cmdliner.Arg.conv
+(** [ipv6_address] converts an IPv6 address. *)
+
+val ip_address : Ipaddr.t Cmdliner.Arg.conv
+(** [ip_address] converts an IP address. *)
+
 val ipv4_only : ?group:string -> unit -> bool Term.t
 (** An option for dual stack to only use IPv4. *)
 

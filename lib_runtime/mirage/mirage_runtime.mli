@@ -73,7 +73,7 @@ val custom_major_ratio : int option Term.t
 val custom_minor_ratio : int option Term.t
 val custom_minor_max_size : int option Term.t
 
-(** {3 Blocks *)
+(** {3 Blocks} *)
 
 val disk : string Term.t
 val analyze : bool Term.t

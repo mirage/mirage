@@ -193,19 +193,18 @@ let custom_minor_max_size =
   Arg.(value & opt (some int) None doc)
 
 let logs =
-  let env = Cmd.Env.info "MIRAGE_LOGS" in
   let docs = unikernel_section in
   let logs = Arg.list Conv.log_threshold in
   let doc =
-    "Be more or less verbose. $(docv) must be of the form@ \
-     $(b,*:info,foo:debug) means that that the log threshold is set to@ \
-     $(b,info) for every log sources but the $(b,foo) which is set to@ \
+    "Be more or less verbose. $(docv) must be of the form \
+     $(b,*:info,foo:debug) means that that the log threshold is set to \
+     $(b,info) for every log sources but the $(b,foo) which is set to \
      $(b,debug)."
   in
-  let doc = Arg.info ~env ~docv:"LEVEL" ~doc ~docs [ "l"; "logs" ] in
+  let doc = Arg.info ~docv:"LEVEL" ~doc ~docs [ "l"; "logs" ] in
   Arg.(value & opt logs [] doc)
 
-(** {3 Blocks *)
+(** {3 Blocks} *)
 
 let disk =
   let doc =

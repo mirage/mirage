@@ -55,6 +55,8 @@ let randomize_hashtables =
   Cmdliner.Arg.(value & opt bool true doc)|}
        ocaml_section)
 
+(** {3 GC control} *)
+
 let allocation_policy =
   runtime_key ~name:"allocation-policy"
     (Fmt.str
@@ -213,6 +215,8 @@ let custom_minor_max_size =
   Cmdliner.Arg.(value & opt (some int) None doc)|}
        ocaml_section)
 
+(** {3 Logs} *)
+
 let logs =
   runtime_key ~name:"logs"
     (Fmt.str
@@ -333,25 +337,3 @@ let syslog_port default =
 
 let syslog_hostname default =
   runtime_keyf ~name:"syslog_hostname" "syslog_hostname %S" default
-
-(*
-(** {3 Blocks} *)
-
-let disk =
-  let doc =
-    Arg.info ~docs:unikernel_section
-      ~doc:
-        "Name of the docteur disk (for Solo5 targets, the name must contains \
-         only alpanumeric characters)."
-      [ "disk" ]
-  in
-  Arg.(value & opt string "disk" doc)
-
-let analyze =
-  let doc =
-    Arg.info ~docs:unikernel_section
-      ~doc:"Analyze at the boot time the given docteur disk." [ "analyze" ]
-  in
-  Arg.(value & opt bool true doc)
-
-  *)

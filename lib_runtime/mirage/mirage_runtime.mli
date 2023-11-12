@@ -33,6 +33,11 @@ module Conv : sig
   (** [log_threshold] converts log reporter threshold. *)
 end
 
+(** {3 Blocks} *)
+
+val disk : string Cmdliner.Term.t
+val analyze : bool Cmdliner.Term.t
+
 include module type of Functoria_runtime
 
 (** {2 Registering scheduler hooks} *)

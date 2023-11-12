@@ -56,6 +56,26 @@ module Conv = struct
     Arg.conv (parser, serialize)
 end
 
+(** {3 Blocks} *)
+let unikernel_section = "UNIKERNEL PARAMETERS"
+
+let disk =
+  let doc =
+    Arg.info ~docs:unikernel_section
+      ~doc:
+        "Name of the docteur disk (for Solo5 targets, the name must contains \
+         only alpanumeric characters)."
+      [ "disk" ]
+  in
+  Arg.(value & opt string "disk" doc)
+
+let analyze =
+  let doc =
+    Arg.info ~docs:unikernel_section
+      ~doc:"Analyze at the boot time the given docteur disk." [ "analyze" ]
+  in
+  Arg.(value & opt bool true doc)
+
 (* Hooks *)
 
 let exit_hooks = ref []

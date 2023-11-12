@@ -266,7 +266,7 @@ module Make (P : S) = struct
               | ("Makefile" | "dune-project" | "dune-workspace"), "" ->
                   Some file
               | _ ->
-                  Logs.info (fun f -> f "Skipped %a" Fpath.pp file);
+                  Log.info (fun f -> f "Skipped %a" Fpath.pp file);
                   None)
           files
       in

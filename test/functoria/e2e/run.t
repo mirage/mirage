@@ -41,10 +41,15 @@ Run an application
   
          0   on success.
   
-         123 on indiscriminate errors reported on standard error.
+         1   on Solo5 internal error.
   
-         124 on command line parsing errors.
+         63  on showing this help.
   
-         125 on unexpected internal errors (bugs).
+         64  on any argument parsing error.
+  
+         125 on unexpected internal errors (bugs) while processing the boot
+             parameters.
+  
+         255 on OCaml uncaught exception.
   
   [63]

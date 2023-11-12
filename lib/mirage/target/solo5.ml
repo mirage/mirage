@@ -1,6 +1,5 @@
 open Functoria
 open Action.Syntax
-open Astring
 module Key = Mirage_key
 
 let solo5_manifest_path = Fpath.v "manifest.json"
@@ -62,7 +61,7 @@ let generate_manifest_json with_devices () =
   let devices =
     if with_devices then List.map to_string (networks @ blocks) else []
   in
-  let s = String.concat ~sep:", " devices in
+  let s = String.concat ", " devices in
   let* () =
     Action.with_output ~path:solo5_manifest_path
       ~purpose:"Solo5 application manifest file" (fun fmt ->

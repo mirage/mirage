@@ -1,4 +1,3 @@
-open Astring
 open Functoria
 
 (* We generate an example .xl with common defaults, and a generic
@@ -90,8 +89,7 @@ let configure_main_xl ?substitutions ~ext i =
               let high, low = ((x / 26) - 1, (x mod 26) + 1) in
               let high' = if high = -1 then "" else string_of_int26 high in
               let low' =
-                String.v ~len:1 (fun _ ->
-                    char_of_int (low + int_of_char 'a' - 1))
+                String.make 1 (char_of_int (low + int_of_char 'a' - 1))
               in
               high' ^ low'
             in
@@ -100,7 +98,7 @@ let configure_main_xl ?substitutions ~ext i =
             Fmt.str "'format=raw, vdev=%s, access=rw, target=%s'" vdev path)
           (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks [])
       in
-      append fmt "disk = [ %s ]" (String.concat ~sep:", " blocks);
+      append fmt "disk = [ %s ]" (String.concat ", " blocks);
       append fmt "";
       let networks =
         List.map
@@ -113,4 +111,4 @@ let configure_main_xl ?substitutions ~ext i =
       append fmt "#     vif.default.script=\"vif-openvswitch\"";
       append fmt
         "# or add \"script=vif-openvswitch,\" before the \"bridge=\" below:";
-      append fmt "vif = [ %s ]" (String.concat ~sep:", " networks))
+      append fmt "vif = [ %s ]" (String.concat ", " networks))

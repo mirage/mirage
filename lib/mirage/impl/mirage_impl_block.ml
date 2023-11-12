@@ -326,10 +326,13 @@ let ccm_block ?nonce_len key =
     | [ block ] ->
         Fmt.str
           {ocaml|let key = %a in
-                 let key = match Astring.String.cut ~sep:"0x" key with
-                 | Some ("", key) -> key
-                 | _ -> key in
-               %s.connect ?nonce_len:%a ~key:(Cstruct.of_hex key) %s|ocaml}
+                 let key =
+                   if String.length key >= 2 && String.(equal "0x" (sub key 0 2)) then
+                     String.sub key 2 (String.length key - 2)
+                   else
+                     key
+                 in
+                 %s.connect ?nonce_len:%a ~key:(Cstruct.of_hex key) %s|ocaml}
           Runtime_key.call key modname
           Fmt.(parens (Dump.option int))
           nonce_len block

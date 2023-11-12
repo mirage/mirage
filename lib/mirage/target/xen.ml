@@ -1,6 +1,5 @@
 open Astring
 open Functoria
-module Log = Mirage_impl_misc.Log
 
 (* We generate an example .xl with common defaults, and a generic
    .xl.in which has @VARIABLES@ which must be substituted by sed

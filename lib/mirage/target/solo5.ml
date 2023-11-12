@@ -2,7 +2,6 @@ open Functoria
 open Action.Syntax
 open Astring
 module Key = Mirage_key
-module Log = Mirage_impl_misc.Log
 
 let solo5_manifest_path = Fpath.v "manifest.json"
 
@@ -48,7 +47,6 @@ let build_context ?build_dir:_ i =
 
 (* Configure step *)
 let generate_manifest_json with_devices () =
-  Log.info (fun m -> m "generating manifest");
   let networks =
     List.map (fun n -> (n, `Network)) !Mirage_impl_network.all_networks
   in

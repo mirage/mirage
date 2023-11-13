@@ -319,9 +319,7 @@ let chamelon ~program_block_size =
 
 let ccm_block ?nonce_len key =
   let runtime_keys = Runtime_key.[ v key ] in
-  let packages =
-    [ package "mirage-block-ccm" ~min:"2.0.0" ~max:"3.0.0"; package "astring" ]
-  in
+  let packages = [ package "mirage-block-ccm" ~min:"2.0.0" ~max:"3.0.0" ] in
   let connect _ modname = function
     | [ block ] ->
         Fmt.str

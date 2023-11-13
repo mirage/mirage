@@ -20,8 +20,9 @@ depends: [
   "ocaml" {>= "4.08.0"}
   "dune" {>= "2.9.0"}
   "functoria-runtime"  {= version}
-  "logs"
+  "logs" {>= "0.7.0"}
   "lwt" {>= "4.0.0"}
+  "ipaddr" {>= "5.5.0"}
 ]
 conflicts: [
   "result" {< "1.5"}

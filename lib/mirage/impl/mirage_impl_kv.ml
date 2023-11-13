@@ -10,12 +10,10 @@ let crunch dirname =
     | '0' .. '9' | 'a' .. 'z' | 'A' .. 'Z' -> true
     | _ -> false
   in
-  let modname =
-    let b = Bytes.make (String.length dirname) '_' in
-    String.iteri (fun idx c -> if is_valid c then Bytes.set b idx c) dirname;
-    Bytes.unsafe_to_string b
+  let name =
+    let modname = String.map (fun c -> if is_valid c then c else '_') dirname in
+    "Static_" ^ String.lowercase_ascii modname
   in
-  let name = "Static_" ^ String.lowercase_ascii modname in
   let packages =
     [
       package ~min:"3.0.0" ~max:"4.0.0" "mirage-kv-mem";

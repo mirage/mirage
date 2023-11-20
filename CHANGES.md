@@ -2,16 +2,16 @@
 
 - Document exit codes in `--help` (#1485 @hannesm)
 - Avoid dependency on environment variables (#1484 @hannesm)
-- Fix dune.config (#1475 @memst)
+- BUGFIX: Fix dune.config (#1475 @memst)
 - Allow git 3.14 (#1474 @hannesm)
 - Default to best-fit allocation (#1473 @hannesm)
-- Add a key "--delay" to all unikernels (#1472 @hannesm, fixes #1468)
+- FEATURE: Add a key "--delay" to all unikernels (#1472 @hannesm, fixes #1468)
 - Fix Unix target dune rule (add a deps) (#1469 @hannesm)
 - Optionally pass tcp in direct_stackv4v6, static_ipv4v6, generic_stackv4v6
   (#1467 @hannesm)
-- Support mirage version indication in first line of config.ml:
+- FEATURE: Support mirage version indication in first line of config.ml:
   (* mirage >= 2.3.4 & < 5.0.0 *) (#1466 @hannesm, fixes #1381)
-- Use \033 instead of \e in generated Makefile
+- Use \033 instead of \e in generated Makefile (#1464 @hannesm)
 - Adapt to mirage-logs 2.0.0 (#1460 @hannesm)
 
 ### v4.4.0 (2023-06-19)

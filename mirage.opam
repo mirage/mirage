@@ -24,7 +24,6 @@ depends: [
   "ipaddr" {>= "5.0.0"}
   "functoria" {= version}
   "bos"
-  "astring"
   "logs"
   "mirage-runtime" {= version}
   "opam-monorepo" {>= "0.3.2"}

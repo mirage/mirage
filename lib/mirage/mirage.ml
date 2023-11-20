@@ -24,7 +24,6 @@ module Dune = Dune
 module Key = Mirage_key
 module Runtime_key = Mirage_runtime_key
 module Context = Context
-module Log = Mirage_impl_misc.Log
 include Functoria.DSL
 
 (** {2 OCamlfind predicates} *)

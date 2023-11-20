@@ -1,5 +1,4 @@
 open Functoria
-open Astring
 module Key = Mirage_key
 
 type ro = RO
@@ -11,8 +10,10 @@ let crunch dirname =
     | '0' .. '9' | 'a' .. 'z' | 'A' .. 'Z' -> true
     | _ -> false
   in
-  let modname = String.filter is_valid dirname in
-  let name = "Static_" ^ String.Ascii.lowercase modname in
+  let name =
+    let modname = String.map (fun c -> if is_valid c then c else '_') dirname in
+    "Static_" ^ String.lowercase_ascii modname
+  in
   let packages =
     [
       package ~min:"3.0.0" ~max:"4.0.0" "mirage-kv-mem";
@@ -22,7 +23,7 @@ let crunch dirname =
   let connect _ modname _ = Fmt.str "%s.connect ()" modname in
   let dune _i =
     let dir = Fpath.(v dirname) in
-    let file ext = Fpath.(v (String.Ascii.lowercase name) + ext) in
+    let file ext = Fpath.(v name + ext) in
     let ml = file "ml" in
     let mli = file "mli" in
     let dune =

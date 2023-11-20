@@ -13,7 +13,7 @@
   (* mirage >= 2.3.4 & < 5.0.0 *) (#1466 @hannesm, fixes #1381)
 - Use \033 instead of \e in generated Makefile (#1464 @hannesm)
 - Adapt to mirage-logs 2.0.0 (#1460 @hannesm)
-- Allow version 0.8.0 of solo5 (#1490 @hannesm @palainp) 
+- Allow version 0.8.0 of solo5 (#1432 #1490 @hannesm @palainp) 
 
 ### v4.4.0 (2023-06-19)
 

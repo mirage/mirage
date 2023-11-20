@@ -437,7 +437,6 @@ let pp_threshold ppf (pattern, level) =
   Fmt.pf ppf "(%a,@ %a)" pp_pattern pattern pp_level level
 
 let logs =
-  let env = "MIRAGE_LOGS" in
   let docs = unikernel_section in
   let conv = Cmdliner.Arg.list Mirage_runtime.Arg.log_threshold in
   let serialize ppf levels =
@@ -452,7 +451,7 @@ let logs =
        $(b,debug)."
   in
   let logs = Key.Arg.conv ~conv ~serialize ~runtime_conv in
-  let info = Key.Arg.info ~env ~docv:"LEVEL" ~doc ~docs [ "l"; "logs" ] in
+  let info = Key.Arg.info ~docv:"LEVEL" ~doc ~docs [ "l"; "logs" ] in
   let arg = Key.Arg.(opt logs []) info in
   Key.create "logs" arg
 

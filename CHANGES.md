@@ -1,8 +1,9 @@
 ### v4.4.1 (2023-11-20)
 
 - Document exit codes in `--help` (#1485 @hannesm)
-- Avoid dependency on environment variables (#1484 @hannesm)
-- BUGFIX: Fix dune.config (#1475 @memst)
+- Avoid dependency on environment variable (removing MIRAGE_LOGS #1484 @hannesm)
+- BUGFIX: dune.config mark "dist" as data-only-dir to allow config.ml being
+  compiled (#1475 @memst)
 - Allow git 3.14 (#1474 @hannesm)
 - Default to best-fit allocation (#1473 @hannesm)
 - FEATURE: Add a key "--delay" to all unikernels (#1472 @hannesm, fixes #1468)
@@ -11,9 +12,10 @@
   (#1467 @hannesm)
 - FEATURE: Support mirage version indication in first line of config.ml:
   (* mirage >= 2.3.4 & < 5.0.0 *) (#1466 @hannesm, fixes #1381)
-- Use \033 instead of \e in generated Makefile (#1464 @hannesm)
+- Use \033 instead of \e in generated Makefile (fixes the output on non-Linux
+  systems #1464 @hannesm)
 - Adapt to mirage-logs 2.0.0 (#1460 @hannesm)
-- Allow version 0.8.0 of solo5 (#1432 #1490 @hannesm @palainp) 
+- Allow version 0.8.0 of solo5 (#1432 #1490 @hannesm @palainp)
 
 ### v4.4.0 (2023-06-19)
 

@@ -25,13 +25,16 @@ Help describe --man-format=plain
              Represented as diamonds. The bold arrow is the functor part.
   
   UNIKERNEL PARAMETERS
-         -l LEVEL, --logs=LEVEL (absent MIRAGE_LOGS env)
+         --delay=DELAY (absent=0)
+             Delay n seconds before starting up 
+  
+         -l LEVEL, --logs=LEVEL
              Be more or less verbose. LEVEL must be of the form
              *:info,foo:debug means that that the log threshold is set to info
              for every log sources but the foo which is set to debug. 
   
   OCAML RUNTIME PARAMETERS
-         --allocation-policy=ALLOCATION (absent=next-fit)
+         --allocation-policy=ALLOCATION (absent=best-fit)
              The policy used for allocating in the OCaml heap. Possible values
              are: next-fit, first-fit, best-fit. Best-fit is only supported
              since OCaml 4.10. 
@@ -157,9 +160,6 @@ Help describe --man-format=plain
   
   ENVIRONMENT
          These environment variables affect the execution of describe:
-  
-         MIRAGE_LOGS
-             See option --logs.
   
          MODE
              See option --target.
@@ -193,13 +193,16 @@ Help describe --help=plain
              Represented as diamonds. The bold arrow is the functor part.
   
   UNIKERNEL PARAMETERS
-         -l LEVEL, --logs=LEVEL (absent MIRAGE_LOGS env)
+         --delay=DELAY (absent=0)
+             Delay n seconds before starting up 
+  
+         -l LEVEL, --logs=LEVEL
              Be more or less verbose. LEVEL must be of the form
              *:info,foo:debug means that that the log threshold is set to info
              for every log sources but the foo which is set to debug. 
   
   OCAML RUNTIME PARAMETERS
-         --allocation-policy=ALLOCATION (absent=next-fit)
+         --allocation-policy=ALLOCATION (absent=best-fit)
              The policy used for allocating in the OCaml heap. Possible values
              are: next-fit, first-fit, best-fit. Best-fit is only supported
              since OCaml 4.10. 
@@ -325,9 +328,6 @@ Help describe --help=plain
   
   ENVIRONMENT
          These environment variables affect the execution of describe:
-  
-         MIRAGE_LOGS
-             See option --logs.
   
          MODE
              See option --target.

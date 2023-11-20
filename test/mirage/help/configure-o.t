@@ -12,13 +12,16 @@ Help configure -o --man-format=plain
          The configure command initializes a fresh mirage application.
   
   UNIKERNEL PARAMETERS
-         -l LEVEL, --logs=LEVEL (absent MIRAGE_LOGS env)
+         --delay=DELAY (absent=0)
+             Delay n seconds before starting up 
+  
+         -l LEVEL, --logs=LEVEL
              Be more or less verbose. LEVEL must be of the form
              *:info,foo:debug means that that the log threshold is set to info
              for every log sources but the foo which is set to debug. 
   
   OCAML RUNTIME PARAMETERS
-         --allocation-policy=ALLOCATION (absent=next-fit)
+         --allocation-policy=ALLOCATION (absent=best-fit)
              The policy used for allocating in the OCaml heap. Possible values
              are: next-fit, first-fit, best-fit. Best-fit is only supported
              since OCaml 4.10. 
@@ -147,9 +150,6 @@ Help configure -o --man-format=plain
   
          MIRAGE_EXTRA_REPOS
              See option --extra-repos.
-  
-         MIRAGE_LOGS
-             See option --logs.
   
          MODE
              See option --target.
@@ -170,13 +170,16 @@ Help configure -o --help=plain
          The configure command initializes a fresh mirage application.
   
   UNIKERNEL PARAMETERS
-         -l LEVEL, --logs=LEVEL (absent MIRAGE_LOGS env)
+         --delay=DELAY (absent=0)
+             Delay n seconds before starting up 
+  
+         -l LEVEL, --logs=LEVEL
              Be more or less verbose. LEVEL must be of the form
              *:info,foo:debug means that that the log threshold is set to info
              for every log sources but the foo which is set to debug. 
   
   OCAML RUNTIME PARAMETERS
-         --allocation-policy=ALLOCATION (absent=next-fit)
+         --allocation-policy=ALLOCATION (absent=best-fit)
              The policy used for allocating in the OCaml heap. Possible values
              are: next-fit, first-fit, best-fit. Best-fit is only supported
              since OCaml 4.10. 
@@ -305,9 +308,6 @@ Help configure -o --help=plain
   
          MIRAGE_EXTRA_REPOS
              See option --extra-repos.
-  
-         MIRAGE_LOGS
-             See option --logs.
   
          MODE
              See option --target.

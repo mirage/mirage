@@ -25,6 +25,7 @@ Query opam file
   ]
   
   depends: [
+    "duration" { ?monorepo & < "1.0.0" }
     "lwt" { ?monorepo }
     "mirage" { build & >= "4.4.0" & < "4.5.0" }
     "mirage-bootvar-unix" { ?monorepo & >= "0.1.0" & < "0.2.0" }
@@ -53,6 +54,7 @@ Query opam file
 
 Query packages
   $ ./config.exe query packages
+  "duration" { ?monorepo & < "1.0.0" }
   "lwt" { ?monorepo }
   "mirage" { build & >= "4.4.0" & < "4.5.0" }
   "mirage-bootvar-unix" { ?monorepo & >= "0.1.0" & < "0.2.0" }
@@ -261,7 +263,7 @@ Query unikernel dune
   
   (executable
    (name main)
-   (libraries lwt mirage-bootvar-unix mirage-clock-unix mirage-logs
+   (libraries duration lwt mirage-bootvar-unix mirage-clock-unix mirage-logs
      mirage-runtime mirage-unix)
    (link_flags (-thread))
    (modules (:standard \ config))

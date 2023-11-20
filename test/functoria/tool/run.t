@@ -34,7 +34,7 @@ Build
   * Is_file? dune-project -> false
   * Write to dune-project (47 bytes)
   * Is_file? dune.config -> false
-  * Write to dune.config (132 bytes)
+  * Write to dune.config (137 bytes)
   * Is_file? dune -> false
   * Write to dune (52 bytes)
   * Run_cmd 'dune build ./config.exe --root . --workspace

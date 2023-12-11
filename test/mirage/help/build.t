@@ -70,7 +70,7 @@ Help build --man-format=plain
              The percentage of live data of wasted memory, due to GC does not
              immediately collect unreachable blocks. The major GC speed is
              computed from this parameter, it will work more if smaller.
-             Default: 80. 
+             Default: 120. 
   
   MIRAGE PARAMETERS
          -t TARGET, --target=TARGET (absent=unix or MODE env)
@@ -208,7 +208,7 @@ Help build --help=plain
              The percentage of live data of wasted memory, due to GC does not
              immediately collect unreachable blocks. The major GC speed is
              computed from this parameter, it will work more if smaller.
-             Default: 80. 
+             Default: 120. 
   
   MIRAGE PARAMETERS
          -t TARGET, --target=TARGET (absent=unix or MODE env)

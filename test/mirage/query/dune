@@ -8,6 +8,11 @@
  (modules config_dash_in_name)
  (libraries mirage))
 
+(executable
+ (name config_noop)
+ (modules config_noop)
+ (libraries mirage))
+
 (cram
  (package mirage)
- (deps config.exe config_dash_in_name.exe))
+ (deps config.exe config_noop.exe config_dash_in_name.exe))

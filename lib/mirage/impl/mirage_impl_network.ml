@@ -6,13 +6,10 @@ type network = NETWORK
 
 let network = Type.v NETWORK
 let all_networks = ref []
+let add_new_network name = all_networks := name :: !all_networks
 
-let add_new_network () =
-  let device = Fmt.str "net%d" (List.length !all_networks) in
-  all_networks := device :: !all_networks
-
-let network_conf (intf : string runtime_key) =
-  let runtime_keys = [ Runtime_key.v intf ] in
+let network_conf ?(intf : string runtime_key option) name =
+  let runtime_keys = Option.to_list (Option.map Runtime_key.v intf) in
   let packages_v =
     Key.match_ Key.(value target) @@ function
     | `Unix -> [ package ~min:"3.0.0" ~max:"4.0.0" "mirage-net-unix" ]
@@ -27,15 +24,21 @@ let network_conf (intf : string runtime_key) =
         [ package ~min:"0.8.0" ~max:"0.9.0" "mirage-net-solo5" ]
   in
   let connect _ modname _ =
-    Fmt.str "%s.connect %a" modname Runtime_key.call intf
+    let name =
+      Option.value ~default:(Printf.sprintf "%S" name)
+        (Option.map (Fmt.to_to_string Runtime_key.call) intf)
+    in
+    Fmt.str "%s.connect %s" modname name
   in
   let configure _ =
-    add_new_network ();
+    add_new_network name;
     Action.ok ()
   in
   impl ~runtime_keys ~packages_v ~connect ~configure "Netif" network
 
-let netif ?group dev = network_conf @@ Runtime_key.interface ?group dev
+let netif ?group dev =
+  if_impl Key.is_solo5 (network_conf dev)
+    (network_conf ~intf:(Runtime_key.interface ?group dev) dev)
 
 let default_network =
   match_impl

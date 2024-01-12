@@ -15,6 +15,7 @@
  *)
 
 open Functoria
+open Ppxlib
 include Runtime_key
 
 (** {2 OCaml runtime} *)
@@ -35,9 +36,47 @@ let runtime_network_key ~name fmt =
        ~packages:[ package "mirage-runtime" ~sublibs:[ "network" ] ])
     ("(Mirage_runtime_network." ^^ fmt ^^ ")")
 
-let delay = runtime_key "delay"
-let backtrace = runtime_key "backtrace"
-let randomize_hashtables = runtime_key "randomize_hashtables"
+let str e = Ast_helper.(Exp.constant (Const.string e))
+let unikernel_section = str "UNIKERNEL PARAMETERS"
+let ocaml_section = str "OCAML RUNTIME PARAMETERS"
+
+let meta_key name e =
+  Runtime_key.create ~name (Pprintast.string_of_expression e)
+
+let delay =
+  let loc = Location.none (* FIXME *) in
+  meta_key "delay"
+    [%expr
+      let doc =
+        Arg.info ~docs:[%e unikernel_section]
+          ~doc:"Delay n seconds before starting up" [ "delay" ]
+      in
+      Arg.(value & opt int 0 doc)]
+
+let backtrace =
+  let loc = Location.none (* FIXME *) in
+  meta_key "backtrace"
+    [%expr
+      let doc =
+        "Trigger the printing of a stack backtrace when an uncaught exception \
+         aborts the unikernel."
+      in
+      let doc =
+        Arg.info ~docs:[%e ocaml_section] ~docv:"BOOL" ~doc [ "backtrace" ]
+      in
+      Arg.(value & opt bool true doc)]
+
+let randomize_hashtables =
+  let loc = Location.none (* FIXME *) in
+  meta_key "randomize_hashtables"
+    [%expr
+      let doc = "Turn on randomization of all hash tables by default." in
+      let doc =
+        Arg.info ~docs:[%e ocaml_section] ~docv:"BOOL" ~doc
+          [ "randomize-hashtables" ]
+      in
+      Arg.(value & opt bool true doc)]
+
 let allocation_policy = runtime_key "allocation_policy"
 let minor_heap_size = runtime_key "minor_heap_size"
 let major_heap_increment = runtime_key "major_heap_increment"

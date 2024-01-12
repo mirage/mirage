@@ -2,7 +2,8 @@
  (public_name mirage.key)
  (name mirage_key)
  (wrapped false)
- (libraries ipaddr functoria mirage-runtime bos)
+ (preprocess (pps ppxlib.metaquot))
+ (libraries ppxlib ipaddr functoria mirage-runtime bos)
  (modules mirage_key mirage_runtime_key))
 
 (library

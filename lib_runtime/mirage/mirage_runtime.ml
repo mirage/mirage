@@ -69,21 +69,6 @@ module Conv = struct
     (Arg.enum enum, Arg.doc_alts_enum enum)
 end
 
-let backtrace =
-  let doc =
-    "Trigger the printing of a stack backtrace when an uncaught exception \
-     aborts the unikernel."
-  in
-  let doc = Arg.info ~docs:ocaml_section ~docv:"BOOL" ~doc [ "backtrace" ] in
-  Arg.(value & opt bool true doc)
-
-let randomize_hashtables =
-  let doc = "Turn on randomization of all hash tables by default." in
-  let doc =
-    Arg.info ~docs:ocaml_section ~docv:"BOOL" ~doc [ "randomize-hashtables" ]
-  in
-  Arg.(value & opt bool true doc)
-
 let allocation_policy =
   let doc =
     Printf.sprintf
@@ -224,13 +209,6 @@ let analyze =
   Arg.(value & opt bool true doc)
 
 (** {3 Initial delay} *)
-
-let delay =
-  let doc =
-    Arg.info ~docs:unikernel_section ~doc:"Delay n seconds before starting up"
-      [ "delay" ]
-  in
-  Arg.(value & opt int 0 doc)
 
 (* Hooks *)
 

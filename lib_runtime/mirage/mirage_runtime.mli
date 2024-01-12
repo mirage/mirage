@@ -42,18 +42,6 @@ module Conv : sig
   (** [allocation_policy] converts allocation policy. *)
 end
 
-(** {2 OCaml runtime keys}
-
-    The OCaml runtime is usually configurable via the [OCAMLRUNPARAM]
-    environment variable. We provide boot parameters covering these options. *)
-
-val backtrace : bool Term.t
-(** [--backtrace]: Output a backtrace if an uncaught exception terminated the
-    unikernel. *)
-
-val randomize_hashtables : bool Term.t
-(** [--randomize-hashtables]: Randomize all hash tables. *)
-
 (** {3 GC control}
 
     The OCaml garbage collector can be configured, as described in detail in
@@ -77,13 +65,6 @@ val custom_minor_max_size : int option Term.t
 
 val disk : string Term.t
 val analyze : bool Term.t
-
-(** {3 Startup delay} *)
-
-val delay : int Term.t
-(** The initial delay, specified in seconds, before a unikernel starting up.
-    Defaults to 0. Useful for tenders and environments that take some time to
-    bring devices up. *)
 
 include module type of Functoria_runtime
 

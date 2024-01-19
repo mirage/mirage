@@ -33,7 +33,7 @@ type query_kind =
   | `Packages
   | `Opam
   | `Files
-  | `Dune of [ `Config | `Build | `Project | `Workspace | `Dist ]
+  | `Dune of [ `Build | `Config | `Project | `Workspace ]
   | `Makefile ]
 
 let query_kinds : (string * query_kind) list =
@@ -47,7 +47,6 @@ let query_kinds : (string * query_kind) list =
     ("dune.build", `Dune `Build);
     ("dune-project", `Dune `Project);
     ("dune-workspace", `Dune `Workspace);
-    ("dune.dist", `Dune `Dist);
   ]
 
 let setup ~with_setup =
@@ -142,6 +141,20 @@ let depext section =
   let eval_opts = [ (true, depext_doc); (false, no_depext_doc) ] in
   Arg.(value & vflag true eval_opts)
 
+let project_files section =
+  let project_files_doc =
+    Arg.info ~docs:section [ "project-files" ]
+      ~doc:"Generate project files during configure"
+  in
+  let no_project_files_doc =
+    Arg.info ~docs:section [ "no-project-files" ]
+      ~doc:"Do not generate project files during configure"
+  in
+  let eval_opts =
+    [ (true, project_files_doc); (false, no_project_files_doc) ]
+  in
+  Arg.(value & vflag true eval_opts)
+
 (** Argument specification for --eval *)
 let full_eval =
   let eval_doc =
@@ -216,6 +229,7 @@ let default_args =
 
 type 'a configure_args = {
   args : 'a args;
+  project_files : bool;
   depext : bool;
   extra_repo : (string * string) list;
 }
@@ -264,6 +278,7 @@ let pp_configure pp_a =
   record
     [
       field "args" (fun (t : 'a configure_args) -> t.args) (pp_args pp_a);
+      field "project_files" (fun t -> t.project_files) Fmt.bool;
       field "depext" (fun (t : 'a configure_args) -> t.depext) Fmt.bool;
     ]
 
@@ -326,10 +341,11 @@ module Subcommands = struct
   (** The 'configure' subcommand *)
   let configure t =
     ( Term.(
-        const (fun args depext extra_repo ->
-            Configure { args; depext; extra_repo })
+        const (fun args depext project_files extra_repo ->
+            Configure { args; depext; project_files; extra_repo })
         $ T.args t
         $ depext configuration_section
+        $ project_files configuration_section
         $ extra_repos configuration_section),
       Cmd.info "configure" ~doc:"Configure a $(mname) application."
         ~man:
@@ -419,9 +435,10 @@ module Subcommands = struct
           | `Ok t -> `Help (man_format, Some t))
     in
     ( Term.(
-        const (fun args _ _ _ () -> Help args)
+        const (fun args _ _ _ _ () -> Help args)
         $ T.args t
         $ depext configuration_section
+        $ project_files configuration_section
         $ extra_repos configuration_section
         $ full_eval
         $ ret (const help $ Arg.man_format $ Term.choice_names $ topic)),

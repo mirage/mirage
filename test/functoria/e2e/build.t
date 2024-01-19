@@ -10,15 +10,12 @@ Build an application.
   config.ml
   dist
   dune
-  dune.build
-  dune.config
   main.exe
   test
   $ ls -a app/test
   .
   ..
   context
-  dune-workspace.config
   key_gen.ml
   main.ml
   noop.opam
@@ -45,15 +42,12 @@ Test `--output`:
   config.ml
   dist
   dune
-  dune.build
-  dune.config
   test
   toto.exe
   $ ls -a app/test
   .
   ..
   context
-  dune-workspace.config
   key_gen.ml
   noop.opam
   toto.ml

@@ -36,8 +36,14 @@ Help configure --man-format=plain
          --no-extra-repo
              Disable the use of any overlay repository.
   
+         --no-project-files
+             Do not generate project files during configure
+  
          -o FILE, --output=FILE
              Name of the output file.
+  
+         --project-files
+             Generate project files during configure
   
   APPLICATION OPTIONS
          --vote=VOTE (absent=cat)
@@ -128,8 +134,14 @@ Configure help --help=plain
          --no-extra-repo
              Disable the use of any overlay repository.
   
+         --no-project-files
+             Do not generate project files during configure
+  
          -o FILE, --output=FILE
              Name of the output file.
+  
+         --project-files
+             Generate project files during configure
   
   APPLICATION OPTIONS
          --vote=VOTE (absent=cat)

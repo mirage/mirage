@@ -38,7 +38,7 @@ let headers ~name ~version =
     let name = name
     let version = version
   end) in
-  M.headers `Sexp
+  stanza (M.headers `Sexp)
 
 (* emulate the dune compact form for lists *)
 let compact_list ?(indent = 2) field ppf l =
@@ -65,8 +65,7 @@ let compact_list ?(indent = 2) field ppf l =
   flush ();
   Fmt.pf ppf "%s" (Buffer.contents all)
 
-let config_rule ~config_ml_file ~packages ~name ~version =
-  let headers = headers ~name ~version in
+let config ~config_ml_file ~packages =
   let pkgs =
     match packages with
     | [] -> ""
@@ -92,21 +91,15 @@ let config_rule ~config_ml_file ~packages ~name ~version =
   let contents =
     Fmt.str
       {|%s
-
-%s
 (executable
  (name config)
+ (enabled_if (= %%{context_name} "default"))
  (modules config)
  (libraries %s))
 |}
-      headers rename_config_file pkgs
+      rename_config_file pkgs
   in
-  v [ stanza contents ]
+  [ stanza contents ]
 
-let base ~packages ~name ~version ~config_ml_file =
-  let dune_base = config_rule ~config_ml_file ~packages ~name ~version in
-  let disable_conflicting_directories = "(data_only_dirs duniverse dist)" in
-  disable_conflicting_directories :: dune_base
-
-let base_project = [ stanza "(lang dune 2.9)" ]
-let base_workspace = v [ stanza "(lang dune 2.0)\n(context default)" ]
+let project = v [ stanza "(lang dune 2.9)\n(package (name pkg))" ]
+let workspace = v [ stanza "(lang dune 2.0)\n(context default)" ]

@@ -15,10 +15,7 @@ let configure i =
   let (module Target) = choose target in
   Target.configure i
 
-let build_context ?build_dir i =
-  let target = Info.get i Key.target in
-  let (module Target) = choose target in
-  Target.build_context ?build_dir i
+let build_context = Solo5.build_context @ Unix.build_context
 
 let context_name i =
   let target = Info.get i Key.target in

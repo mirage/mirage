@@ -353,23 +353,25 @@ let run t = %s.Main.run t ; exit 0|ocaml}
   let configure i = Mirage_target.configure i
 
   let dune_project =
-    [ Dune.stanza {|
-    (implicit_transitive_deps true)
-    |} ]
+    let dune =
+      [
+        Dune.stanza
+          {|
+(lang dune 2.9)
+(package (name pkg))
+(implicit_transitive_deps true)
+                                  |};
+      ]
+    in
+    Some (Dune.v dune)
 
   let dune_workspace =
-    let f ?build_dir i =
-      let stanzas = Mirage_target.build_context ?build_dir i in
-      let main =
-        Dune.stanza {|
+    let main = Dune.stanza {|
 (lang dune 2.0)
-
 (context (default))
-        |}
-      in
-      Dune.v (main :: stanzas)
-    in
-    Some f
+        |} in
+    let targets = Mirage_target.build_context in
+    Some (Dune.v (main :: targets))
 
   let context_name i = Mirage_target.context_name i
 
@@ -382,7 +384,7 @@ let run t = %s.Main.run t ; exit 0|ocaml}
         [
           package ~scope:`Monorepo "lwt";
           package ~scope:`Monorepo ~min ~max "mirage-runtime";
-          package ~scope:`Switch ~build:true ~min ~max "mirage";
+          package ~scope:`Monorepo ~build:true ~min ~max "mirage";
           package ~scope:`Switch ~build:true ~min:"0.3.2" "opam-monorepo";
         ]
       in

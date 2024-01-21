@@ -49,6 +49,7 @@ val pp_args : 'a Fmt.t -> 'a args Fmt.t
 
 type 'a configure_args = {
   args : 'a args;
+  project_files : bool;
   depext : bool;
   extra_repo : (string * string) list;
 }
@@ -68,7 +69,7 @@ type query_kind =
   | `Packages
   | `Opam
   | `Files
-  | `Dune of [ `Config | `Build | `Project | `Workspace | `Dist ]
+  | `Dune of [ `Build | `Config | `Project | `Workspace ]
   | `Makefile ]
 
 val pp_query_kind : query_kind Fmt.t

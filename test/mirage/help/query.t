@@ -50,7 +50,7 @@ Help query --man-format=plain
          INFO (absent=packages)
              The information to query. INFO must be one of 'name', 'packages',
              'opam', 'files', 'Makefile', 'dune.config', 'dune.build',
-             'dune-project', 'dune-workspace' or 'dune.dist'
+             'dune-project' or 'dune-workspace'
   
   COMMON OPTIONS
          --color=WHEN (absent=auto)
@@ -149,7 +149,7 @@ Help query --help=plain
          INFO (absent=packages)
              The information to query. INFO must be one of 'name', 'packages',
              'opam', 'files', 'Makefile', 'dune.config', 'dune.build',
-             'dune-project', 'dune-workspace' or 'dune.dist'
+             'dune-project' or 'dune-workspace'
   
   COMMON OPTIONS
          --color=WHEN (absent=auto)

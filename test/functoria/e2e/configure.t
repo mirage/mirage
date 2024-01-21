@@ -8,10 +8,11 @@ is passed:
                              "config_file" = app/config.ml;
                              "output" = None;
                              "dry_run" = false };
+                          "project_files" = true;
                           "depext" = true }
-  test.exe: [INFO] Generating: app/test/dune-workspace.config (base)
+  test.exe: [INFO] Generating: dune-workspace (base)
   test.exe: [INFO] Generating: dune-project (base)
-  test.exe: [INFO] Generating: app/dune.config (base)
+  test.exe: [INFO] Generating: app/dune (base)
   test.exe: [INFO] Preserving arguments in app/test/context:
                    [|"./test.exe"; "configure"; "-v"; "--file";
                      "app/config.ml"|]
@@ -27,10 +28,9 @@ is passed:
                               "dry_run" = false }
   config.exe: [INFO] Generating: main.ml (main file)
   config.exe: [INFO] Generating: key_gen.ml (keys)
-  config.exe: [INFO] Generating: dune.build (dune.build)
-  config.exe: [INFO] Generating: dune-workspace (dune-workspace)
-  config.exe: [INFO] Generating: dune-project (dune-project)
-  config.exe: [INFO] Generating: dune (dune.dist)
+  config.exe: [INFO] Generating: key_gen.ml (keys)
+  config.exe: [INFO] Generating: dune (dune.build)
+
   $ ls -a app/
   .
   ..
@@ -38,14 +38,11 @@ is passed:
   config.ml
   dist
   dune
-  dune.build
-  dune.config
   test
   $ ls -a app/test
   .
   ..
   context
-  dune-workspace.config
   key_gen.ml
   main.ml
   noop.opam

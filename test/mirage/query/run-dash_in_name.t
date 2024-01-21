@@ -1,6 +1,14 @@
 Query unikernel dune
   $ ./config_dash_in_name.exe query dune.build
-  (copy_files ./config/*)
+  (executable
+   (name config)
+   (enabled_if (= %{context_name} "default"))
+   (modules config)
+   (libraries mirage))
+  
+  (copy_files# ./mirage/key_gen.ml)
+  
+  (copy_files# ./mirage/main.ml)
   
   (rule
    (target noop-functor.v0)
@@ -18,16 +26,13 @@ Query unikernel dune
    (flags :standard -w -70)
    (enabled_if (= %{context_name} "default"))
   )
-
-Query dist dune
-  $ ./config_dash_in_name.exe query dune.dist
+  
+  (subdir dist
   (rule
    (mode (promote (until-clean)))
    (target noop-functor.v0)
    (enabled_if (= %{context_name} "default"))
-   (action
-    (copy ../noop-functor.v0 %{target}))
-  )
+   (action (copy ../noop-functor.v0 %{target}))))
 
 Query makefile
   $ ./config_dash_in_name.exe query Makefile --target unix
@@ -94,14 +99,24 @@ Query makefile
 Query dune-project
   $ ./config_dash_in_name.exe query dune-project --target unix
   (lang dune 2.9)
-  
-  (name noop-functor.v0-unix)
-  
+  (package (name pkg))
   (implicit_transitive_deps true)
 
 Query unikernel dune (hvt)
   $ ./config_dash_in_name.exe query --target hvt dune.build
-  (copy_files ./config/*)
+  (executable
+   (name config)
+   (enabled_if (= %{context_name} "default"))
+   (modules config)
+   (libraries mirage))
+  
+  (copy_files# ./mirage/key_gen.ml)
+  
+  (copy_files# ./mirage/main.ml)
+  
+  (copy_files ./mirage/manifest.json)
+  
+  (copy_files# ./mirage/manifest.ml)
   
   (executable
    (enabled_if (= %{context_name} "solo5"))
@@ -126,13 +141,10 @@ Query unikernel dune (hvt)
    (deps main.exe)
    (action
     (copy main.exe %{target})))
-
-Query dist dune (hvt)
-  $ ./config_dash_in_name.exe query --target hvt dune.dist
+  
+  (subdir dist
   (rule
    (mode (promote (until-clean)))
    (target noop-functor.v0.hvt)
    (enabled_if (= %{context_name} "solo5"))
-   (action
-    (copy ../noop-functor.v0.hvt %{target}))
-  )
+   (action (copy ../noop-functor.v0.hvt %{target}))))

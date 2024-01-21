@@ -28,19 +28,18 @@ let packages target = build_packages @ runtime_packages target
 let context_name _i = "solo5"
 
 (* OCaml solo5 build context. *)
-let build_context ?build_dir:_ i =
+let build_context =
   let build_context =
     Dune.stanzaf
       {|
   (context (default
-  (name %s)
+  (name solo5)
   (host default)
   (toolchain solo5)
   (merlin)
   (disable_dynamically_linked_foreign_archives true)
   ))
   |}
-      (context_name i)
   in
   [ build_context ]
 
@@ -120,12 +119,12 @@ let rename i =
     {|
 (rule
  (target %s)
- (enabled_if (= %%{context_name} "%s"))
+ (enabled_if (= %%{context_name} "solo5"))
  (deps %s.exe)
  (action
   (copy %s.exe %%{target})))
 |}
-    out (context_name i) main main
+    out main main
 
 let manifest _i =
   Dune.stanzaf
@@ -155,7 +154,7 @@ let main i =
   Dune.stanzaf
     {|
 (executable
- (enabled_if (= %%{context_name} "%s"))
+ (enabled_if (= %%{context_name} "solo5"))
  (name %s)
  (modes (native exe))
  (libraries %a)
@@ -164,8 +163,8 @@ let main i =
  (foreign_stubs (language c) (names manifest))
 )
 |}
-    (context_name i) main (pp_list "libraries") libraries (pp_list "link_flags")
-    flags (solo5_abi target) Fpath.pp
+    main (pp_list "libraries") libraries (pp_list "link_flags") flags
+    (solo5_abi target) Fpath.pp
     (Fpath.rem_ext (Fpath.base (Info.config_file i)))
 
 let subdir name s = Dune.stanzaf "(subdir %s\n %a)\n" name Dune.pp (Dune.v s)

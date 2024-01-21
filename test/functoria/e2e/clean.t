@@ -8,14 +8,11 @@ Make sure that clean remove everything:
   config.ml
   dist
   dune
-  dune.build
-  dune.config
   test
   $ ls -a app/test
   .
   ..
   context
-  dune-workspace.config
   key_gen.ml
   main.ml
   noop.opam
@@ -27,9 +24,7 @@ Make sure that clean remove everything:
                           "config_file" = app/config.ml;
                           "output" = None;
                           "dry_run" = false }
-  test.exe: [INFO] Generating: app/test/dune-workspace.config (base)
-  test.exe: [INFO] Generating: dune-project (base)
-  test.exe: [INFO] Generating: app/dune.config (base)
+  test.exe: [INFO] Generating: app/dune (base)
   config.exe: [INFO] reading cache app/test/context
   config.exe: [INFO] Name       noop
                      Keys       vote=cat (default),
@@ -54,14 +49,11 @@ Check that clean works with `--output`:
   config.ml
   dist
   dune
-  dune.build
-  dune.config
   test
   $ ls -a app/test
   .
   ..
   context
-  dune-workspace.config
   key_gen.ml
   noop.opam
   toto.ml
@@ -73,9 +65,7 @@ Check that clean works with `--output`:
                           "config_file" = app/config.ml;
                           "output" = None;
                           "dry_run" = false }
-  test.exe: [INFO] Generating: app/test/dune-workspace.config (base)
-  test.exe: [INFO] Generating: dune-project (base)
-  test.exe: [INFO] Generating: app/dune.config (base)
+  test.exe: [INFO] Generating: app/dune (base)
   config.exe: [INFO] reading cache app/test/context
   config.exe: [INFO] Name       noop
                      Keys       vote=cat (default),

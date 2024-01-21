@@ -1,184 +1,186 @@
 Configure
   $ ./test.exe configure a b c 2> configure.err
-  $(dune build ./config.exe --root . --workspace ./test/dune-workspace.config)
+  $(dune build ./config.exe --root .)
 
   $ cat configure.err
   * Is_file? config.ml -> true
   * Run_cmd 'head -1 config.ml' (ok)
   * Is_file? config.ml -> true
   * Mkdir test (created)
-  * Is_file? test/dune-workspace.config -> false
-  * Write to test/dune-workspace.config (65 bytes)
+  * Is_file? dune-workspace -> false
+  * Is_file? dune-workspace -> false
+  * Write to dune-workspace (65 bytes)
   * Is_file? dune-project -> false
-  * Write to dune-project (47 bytes)
-  * Is_file? dune.config -> false
-  * Write to dune.config (137 bytes)
+  * Is_file? dune-project -> false
+  * Write to dune-project (68 bytes)
   * Is_file? dune -> false
-  * Write to dune (52 bytes)
+  * Is_file? dune -> false
+  * Write to dune (147 bytes)
   * Write to test/context (26 bytes)
-  * Run_cmd 'dune build ./config.exe --root . --workspace
-             ./test/dune-workspace.config' (ok)
+  * Run_cmd 'dune build ./config.exe --root .' (ok)
   * Is_file? test/context -> true
   * Run_cmd_cli '_build/default/./config.exe configure a b c --dry-run --context
                  ./test/context' (ok)
 
 Clean
   $ ./test.exe clean a b c 2> clean.err
-  $(dune build ./config.exe --root . --workspace ./test/dune-workspace.config)
+  $(dune build ./config.exe --root .)
   $(dune clean)
 
   $ cat clean.err
   * Is_file? config.ml -> true
   * Is_file? config.ml -> true
   * Mkdir test (created)
-  * Is_file? test/dune-workspace.config -> false
-  * Write to test/dune-workspace.config (65 bytes)
+  * Is_file? dune-workspace -> false
+  * Is_file? dune-workspace -> false
+  * Write to dune-workspace (65 bytes)
   * Is_file? dune-project -> false
-  * Write to dune-project (47 bytes)
-  * Is_file? dune.config -> false
-  * Write to dune.config (137 bytes)
+  * Is_file? dune-project -> false
+  * Write to dune-project (68 bytes)
   * Is_file? dune -> false
-  * Write to dune (52 bytes)
-  * Run_cmd 'dune build ./config.exe --root . --workspace
-             ./test/dune-workspace.config' (ok)
+  * Is_file? dune -> false
+  * Write to dune (147 bytes)
+  * Run_cmd 'dune build ./config.exe --root .' (ok)
   * Is_file? test/context -> false
   * Run_cmd_cli '_build/default/./config.exe clean a b c --dry-run' (ok)
   * Get_var INSIDE_FUNCTORIA_TESTS -> <not set>
   * Run_cmd 'dune clean' (ok)
-  * Ls ./ (10 entries)
+  * Ls ./ (9 entries)
   * Is_file? dune-project -> true
-  * Read dune-project (47 bytes)
+  * Read dune-project (68 bytes)
   * Rm dune-project (removed)
+  * Is_file? dune-workspace -> true
+  * Read dune-workspace (65 bytes)
+  * Rm dune-workspace (removed)
   * Rm test/context (no-op)
   * Is_file? dune -> true
-  * Read dune (52 bytes)
+  * Read dune (147 bytes)
   * Rm dune (removed)
   * Is_file? dune.build -> false
   * Rm dune.build (no-op)
-  * Is_file? dune.config -> true
-  * Read dune.config (137 bytes)
-  * Rm dune.config (removed)
+  * Is_file? dune.config -> false
+  * Rm dune.config (no-op)
 
 Query
   $ ./test.exe query a b c 2> query.err
-  $(dune build ./config.exe --root . --workspace ./test/dune-workspace.config)
+  $(dune build ./config.exe --root .)
 
   $ cat query.err
   * Is_file? config.ml -> true
   * Mkdir test (created)
-  * Is_file? test/dune-workspace.config -> false
-  * Write to test/dune-workspace.config (65 bytes)
+  * Is_file? dune-workspace -> false
+  * Is_file? dune-workspace -> false
+  * Write to dune-workspace (65 bytes)
   * Is_file? dune-project -> false
-  * Write to dune-project (47 bytes)
-  * Is_file? dune.config -> false
-  * Write to dune.config (137 bytes)
+  * Is_file? dune-project -> false
+  * Write to dune-project (68 bytes)
   * Is_file? dune -> false
-  * Write to dune (52 bytes)
-  * Run_cmd 'dune build ./config.exe --root . --workspace
-             ./test/dune-workspace.config' (ok)
+  * Is_file? dune -> false
+  * Write to dune (147 bytes)
+  * Run_cmd 'dune build ./config.exe --root .' (ok)
   * Is_file? test/context -> false
   * Run_cmd_cli '_build/default/./config.exe query a b c --dry-run' (ok)
 
 Describe
   $ ./test.exe describe a b c 2> describe.err
-  $(dune build ./config.exe --root . --workspace ./test/dune-workspace.config)
+  $(dune build ./config.exe --root .)
 
   $ cat describe.err
   * Is_file? config.ml -> true
   * Mkdir test (created)
-  * Is_file? test/dune-workspace.config -> false
-  * Write to test/dune-workspace.config (65 bytes)
+  * Is_file? dune-workspace -> false
+  * Is_file? dune-workspace -> false
+  * Write to dune-workspace (65 bytes)
   * Is_file? dune-project -> false
-  * Write to dune-project (47 bytes)
-  * Is_file? dune.config -> false
-  * Write to dune.config (137 bytes)
+  * Is_file? dune-project -> false
+  * Write to dune-project (68 bytes)
   * Is_file? dune -> false
-  * Write to dune (52 bytes)
-  * Run_cmd 'dune build ./config.exe --root . --workspace
-             ./test/dune-workspace.config' (ok)
+  * Is_file? dune -> false
+  * Write to dune (147 bytes)
+  * Run_cmd 'dune build ./config.exe --root .' (ok)
   * Is_file? test/context -> false
   * Run_cmd_cli '_build/default/./config.exe describe a b c --dry-run' (ok)
 
 Help
   $ ./test.exe help a b c 2> help.err
-  $(dune build ./config.exe --root . --workspace ./test/dune-workspace.config)
+  $(dune build ./config.exe --root .)
 
   $ cat help.err
   * Is_file? config.ml -> true
   * Mkdir test (created)
-  * Is_file? test/dune-workspace.config -> false
-  * Write to test/dune-workspace.config (65 bytes)
+  * Is_file? dune-workspace -> false
+  * Is_file? dune-workspace -> false
+  * Write to dune-workspace (65 bytes)
   * Is_file? dune-project -> false
-  * Write to dune-project (47 bytes)
-  * Is_file? dune.config -> false
-  * Write to dune.config (137 bytes)
+  * Is_file? dune-project -> false
+  * Write to dune-project (68 bytes)
   * Is_file? dune -> false
-  * Write to dune (52 bytes)
-  * Run_cmd 'dune build ./config.exe --root . --workspace
-             ./test/dune-workspace.config' (ok)
+  * Is_file? dune -> false
+  * Write to dune (147 bytes)
+  * Run_cmd 'dune build ./config.exe --root .' (ok)
   * Is_file? test/context -> false
   * Run_cmd_cli '_build/default/./config.exe help a b c --dry-run' (ok)
 
 Simple help
   $ ./test.exe help 2> simple-help.err
-  $(dune build ./config.exe --root . --workspace ./test/dune-workspace.config)
+  $(dune build ./config.exe --root .)
 
   $ cat simple-help.err
   * Is_file? config.ml -> true
   * Mkdir test (created)
-  * Is_file? test/dune-workspace.config -> false
-  * Write to test/dune-workspace.config (65 bytes)
+  * Is_file? dune-workspace -> false
+  * Is_file? dune-workspace -> false
+  * Write to dune-workspace (65 bytes)
   * Is_file? dune-project -> false
-  * Write to dune-project (47 bytes)
-  * Is_file? dune.config -> false
-  * Write to dune.config (137 bytes)
+  * Is_file? dune-project -> false
+  * Write to dune-project (68 bytes)
   * Is_file? dune -> false
-  * Write to dune (52 bytes)
-  * Run_cmd 'dune build ./config.exe --root . --workspace
-             ./test/dune-workspace.config' (ok)
+  * Is_file? dune -> false
+  * Write to dune (147 bytes)
+  * Run_cmd 'dune build ./config.exe --root .' (ok)
   * Is_file? test/context -> false
   * Run_cmd_cli '_build/default/./config.exe help --dry-run' (ok)
 
 Help configure
   $ ./test.exe help configure 2> configure.err
-  $(dune build ./config.exe --root . --workspace ./test/dune-workspace.config)
+  $(dune build ./config.exe --root .)
 
   $ cat configure.err
   * Is_file? config.ml -> true
   * Mkdir test (created)
-  * Is_file? test/dune-workspace.config -> false
-  * Write to test/dune-workspace.config (65 bytes)
+  * Is_file? dune-workspace -> false
+  * Is_file? dune-workspace -> false
+  * Write to dune-workspace (65 bytes)
   * Is_file? dune-project -> false
-  * Write to dune-project (47 bytes)
-  * Is_file? dune.config -> false
-  * Write to dune.config (137 bytes)
+  * Is_file? dune-project -> false
+  * Write to dune-project (68 bytes)
   * Is_file? dune -> false
-  * Write to dune (52 bytes)
-  * Run_cmd 'dune build ./config.exe --root . --workspace
-             ./test/dune-workspace.config' (ok)
+  * Is_file? dune -> false
+  * Write to dune (147 bytes)
+  * Run_cmd 'dune build ./config.exe --root .' (ok)
   * Is_file? test/context -> false
   * Run_cmd_cli '_build/default/./config.exe help configure --dry-run' (ok)
 
 Configure help
   $ ./test.exe configure help 2> configure-help.err
-  $(dune build ./config.exe --root . --workspace ./test/dune-workspace.config)
+  $(dune build ./config.exe --root .)
 
   $ cat configure-help.err
   * Is_file? config.ml -> true
   * Run_cmd 'head -1 config.ml' (ok)
   * Is_file? config.ml -> true
   * Mkdir test (created)
-  * Is_file? test/dune-workspace.config -> false
-  * Write to test/dune-workspace.config (65 bytes)
+  * Is_file? dune-workspace -> false
+  * Is_file? dune-workspace -> false
+  * Write to dune-workspace (65 bytes)
   * Is_file? dune-project -> false
-  * Write to dune-project (47 bytes)
-  * Is_file? dune.config -> false
-  * Write to dune.config (137 bytes)
+  * Is_file? dune-project -> false
+  * Write to dune-project (68 bytes)
   * Is_file? dune -> false
-  * Write to dune (52 bytes)
+  * Is_file? dune -> false
+  * Write to dune (147 bytes)
   * Write to test/context (25 bytes)
-  * Run_cmd 'dune build ./config.exe --root . --workspace
-             ./test/dune-workspace.config' (ok)
+  * Run_cmd 'dune build ./config.exe --root .' (ok)
   * Is_file? test/context -> true
   * Run_cmd_cli '_build/default/./config.exe configure help --dry-run --context
                  ./test/context' (ok)
@@ -268,41 +270,41 @@ Version configure
 
 Ambiguous
   $ ./test.exe c a b c 2> ambiguous.err
-  $(dune build ./config.exe --root . --workspace ./test/dune-workspace.config)
+  $(dune build ./config.exe --root .)
 
   $ cat ambiguous.err
   * Is_file? config.ml -> true
   * Mkdir test (created)
-  * Is_file? test/dune-workspace.config -> false
-  * Write to test/dune-workspace.config (65 bytes)
+  * Is_file? dune-workspace -> false
+  * Is_file? dune-workspace -> false
+  * Write to dune-workspace (65 bytes)
   * Is_file? dune-project -> false
-  * Write to dune-project (47 bytes)
-  * Is_file? dune.config -> false
-  * Write to dune.config (137 bytes)
+  * Is_file? dune-project -> false
+  * Write to dune-project (68 bytes)
   * Is_file? dune -> false
-  * Write to dune (52 bytes)
-  * Run_cmd 'dune build ./config.exe --root . --workspace
-             ./test/dune-workspace.config' (ok)
+  * Is_file? dune -> false
+  * Write to dune (147 bytes)
+  * Run_cmd 'dune build ./config.exe --root .' (ok)
   * Is_file? test/context -> false
   * Run_cmd_cli '_build/default/./config.exe c a b c --dry-run' (ok)
 
 Default
   $ ./test.exe 2> default.err
-  $(dune build ./config.exe --root . --workspace ./test/dune-workspace.config)
+  $(dune build ./config.exe --root .)
 
   $ cat default.err
   * Is_file? config.ml -> true
   * Mkdir test (created)
-  * Is_file? test/dune-workspace.config -> false
-  * Write to test/dune-workspace.config (65 bytes)
+  * Is_file? dune-workspace -> false
+  * Is_file? dune-workspace -> false
+  * Write to dune-workspace (65 bytes)
   * Is_file? dune-project -> false
-  * Write to dune-project (47 bytes)
-  * Is_file? dune.config -> false
-  * Write to dune.config (137 bytes)
+  * Is_file? dune-project -> false
+  * Write to dune-project (68 bytes)
   * Is_file? dune -> false
-  * Write to dune (52 bytes)
-  * Run_cmd 'dune build ./config.exe --root . --workspace
-             ./test/dune-workspace.config' (ok)
+  * Is_file? dune -> false
+  * Write to dune (147 bytes)
+  * Run_cmd 'dune build ./config.exe --root .' (ok)
   * Is_file? test/context -> false
   * Run_cmd_cli '_build/default/./config.exe --dry-run' (ok)
 

@@ -15,8 +15,8 @@ module type TARGET = sig
   val configure : Info.t -> unit Action.t
   (** Configure-time actions. *)
 
-  val build_context : ?build_dir:Fpath.t -> Info.t -> Dune.stanza list
-  (** Generate build context configuration *)
+  val build_context : Dune.stanza list
+  (** build context *)
 
   val context_name : Info.t -> string
   (** Dune context *)

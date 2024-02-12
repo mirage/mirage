@@ -41,11 +41,11 @@ val v :
 (** [v ~scope ~build ~sublibs ~libs ~min ~max ~pin opam] is a [package]. [Build]
     indicates a build-time dependency only, defaults to [false]. The library
     name is by default the same as [opam], you can specify [~sublibs] to add
-    additional sublibraries (e.g. [~sublibs:\["mirage"\] "foo"] will result in
-    the library names [\["foo"; "foo.mirage"\]]. In case the library name is
-    disjoint (or empty), use [~libs]. Specifying both [~libs] and [~sublibs]
-    leads to an invalid argument. Version constraints are given as [min]
-    (inclusive) and [max] (exclusive). If [pin] is provided, a
+    additional sublibraries (e.g. [~sublibs:["mirage"] "foo"] will result in the
+    library names [["foo"; "foo.mirage"]]. In case the library name is disjoint
+    (or empty), use [~libs]. Specifying both [~libs] and [~sublibs] leads to an
+    invalid argument. Version constraints are given as [min] (inclusive) and
+    [max] (exclusive). If [pin] is provided, a
     {{:https://opam.ocaml.org/doc/Manual.html#opamfield-pin-depends}
       pin-depends} is generated, [pin_version] is ["dev"] by default. [~scope]
     specifies the installation location of the package. *)

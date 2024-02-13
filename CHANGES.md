@@ -1,3 +1,13 @@
+### v4.4.2 (2024-02-13)
+
+- Fix GC documentation (space overhead is 120 since best-fit is default)
+  (#1491 @hannesm)
+- use Option in printing of GC keys (#1491 @hannesm)
+- allow to use git 3.15 (#1491 @hannesm)
+- allow empty noop job (addresses an issue with #1428)
+  solves an issue reported by @MisterDA in mirage/mirage-www#815
+  (#1491 @hannesm)
+
 ### v4.4.1 (2023-11-20)
 
 - Document exit codes in `--help` (#1485 @hannesm)

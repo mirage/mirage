@@ -19,7 +19,7 @@
 type t
 
 val v : ?bin:(Fpath.t * Fpath.t) list -> ?etc:Fpath.t list -> unit -> t
-(** [v ~bin:\[(src,dst),...\] ~etc ()] is the installation of [src] as [dst] as
+(** [v ~bin:[(src,dst),...] ~etc ()] is the installation of [src] as [dst] as
     binary files, and [etc] as configuration/artifact. *)
 
 val union : t -> t -> t

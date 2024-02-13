@@ -389,7 +389,7 @@ let run t = %s.Main.run t ; exit 0|ocaml}
     let keys = Key.[ v target ] in
     let packages_v =
       (* XXX: use %%VERSION_NUM%% here instead of hardcoding a version? *)
-      let min = "4.4.0" and max = "4.5.0" in
+      let min = "4.4.1" and max = "4.5.0" in
       let common =
         [
           package ~scope:`Monorepo "lwt";
@@ -439,11 +439,10 @@ let gc_control =
     Fmt.(
       any name
       ++ any " = "
-      ++ any "(match "
-      ++ Mirage_impl_misc.pp_key
-      ++ any " with None -> ctrl."
+      ++ any "Option.value ~default:ctrl."
       ++ any name
-      ++ any " | Some x -> x)")
+      ++ any " "
+      ++ Mirage_impl_misc.pp_key)
   in
   let keys =
     Key.
@@ -462,8 +461,8 @@ let gc_control =
   in
   let connect _ _ _ =
     Fmt.str
-      "return (@.@[<v 2>let open Gc in@ let ctrl = get () in@ set ({ ctrl with \
-       %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a })@]@.)"
+      "return (@.@[<v 2>let open Gc in@ let ctrl = get () in@ set { ctrl with \
+       %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a }@]@.)"
       (pp_pol ~name:"allocation_policy")
       Key.allocation_policy
       (pp_k ~name:"minor_heap_size")

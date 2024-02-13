@@ -210,15 +210,15 @@ type console
 (** Abstract type for consoles. *)
 
 val console : console typ
-  [@@ocaml.deprecated "use Logs and Printf instead"]
+[@@ocaml.deprecated "use Logs and Printf instead"]
 (** Implementations of the [Mirage_console.S] signature. *)
 
 val default_console : console impl
-  [@@ocaml.deprecated "use Logs and Printf instead"]
+[@@ocaml.deprecated "use Logs and Printf instead"]
 (** Default console implementation. *)
 
 val custom_console : string -> console impl
-  [@@ocaml.deprecated "use Logs and Printf instead"]
+[@@ocaml.deprecated "use Logs and Printf instead"]
 (** Custom console implementation. *)
 
 (** {2 Block devices} *)
@@ -261,7 +261,7 @@ val tar_kv_ro : block impl -> kv_ro impl
 (** [tar_kv_ro block] is a read-only tar archive. *)
 
 val archive : block impl -> kv_ro impl
-  [@@ocaml.deprecated "use Mirage.tar_kv_ro"]
+[@@ocaml.deprecated "use Mirage.tar_kv_ro"]
 (** @deprecated You should use {!val:tar_kv_ro} (or {!val:tar_kv_rw}). *)
 
 val direct_kv_ro : string -> kv_ro impl

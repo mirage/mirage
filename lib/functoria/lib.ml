@@ -226,10 +226,85 @@ module Make (P : S) = struct
     let files = Fpath.Set.add main files in
     Fpath.Set.(elements files)
 
+  let opam_contents ~opam_name ~extra_repo args =
+    let { Config.info; jobs; _ } = args.Cli.context in
+    let install = Key.eval (Info.context info) (Engine.install info jobs) in
+    let name = Misc.Name.Opam.to_string opam_name in
+    let opam = Info.opam ~install ~extra_repo ~opam_name:name info in
+    Fmt.str "%a" Opam.pp opam
+
+  let generate_opam ~opam_name ~extra_repo args =
+    let contents = opam_contents ~opam_name ~extra_repo args in
+    let name = Misc.Name.Opam.to_string opam_name in
+    let file = Fpath.(v (name ^ ".opam")) in
+    Log.info (fun m ->
+        m "Generating: %a (%a)" Fpath.pp file Cli.pp_query_kind `Opam);
+    Filegen.write file contents
+
+  let dune_contents alias args =
+    let { Config.info; jobs; _ } = args.Cli.context in
+    let name = P.name_of_target info in
+    let build_dir = build_dir args in
+    match alias with
+    | `Build ->
+        let dune_copy_config = Dune.stanzaf "(copy_files ./%s/*)" P.name in
+        let dune = Dune.v (dune_copy_config :: Engine.dune info jobs) in
+        Fmt.str "%a\n" Dune.pp dune
+    | `Project ->
+        let dune =
+          Dune.v
+            (Dune.base_project
+            @ (Dune.stanzaf "(name %s)" name :: P.dune_project))
+        in
+        Fmt.str "%a\n" Dune.pp dune
+    | `Workspace ->
+        let dune =
+          match P.dune_workspace with
+          | None -> Dune.base_workspace
+          | Some f -> f ~build_dir info
+        in
+        Fmt.str "%a\n" Dune.pp dune
+    | `Dist ->
+        let install = Key.eval (Info.context info) (Engine.install info jobs) in
+        Fmt.str "%a\n" Dune.pp
+          (Install.dune ~context_name_for_bin:(P.context_name info)
+             ~context_name_for_etc:"default" install)
+    | `Config ->
+        let cwd = Bos.OS.Dir.current () |> Result.get_ok in
+        let config_ml_file = Fpath.(cwd // args.Cli.config_file) in
+        let dune =
+          Dune.base ~config_ml_file ~packages:P.packages ~name:P.name
+            ~version:P.version
+        in
+        Fmt.str "%a\n" Dune.pp dune
+
+  let generate_dune alias args =
+    let contents = dune_contents alias args in
+    let file =
+      match alias with
+      | `Dist -> Fpath.(v "dune")
+      | `Build -> Fpath.(v "dune.build")
+      | `Config -> Fpath.(v "dune.config")
+      | `Workspace -> Fpath.(v "dune-workspace")
+      | `Project -> Fpath.(v "dune-project")
+    in
+    Log.info (fun m ->
+        m "Generating: %a (%a)" Fpath.pp file Cli.pp_query_kind
+          (`Dune alias :> Cli.query_kind));
+    Filegen.write file contents
+
+  let makefile_contents ~build_dir ~depext ~extra_repo opam_name =
+    Fmt.to_to_string Makefile.pp
+      (Makefile.v ~build_dir ~depext ~builder_name:P.name ~extra_repo opam_name)
+
+  let generate_makefile ~build_dir ~depext ~extra_repo opam_name =
+    let contents = makefile_contents ~build_dir ~depext ~extra_repo opam_name in
+    let file = Fpath.(v "Makefile") in
+    Filegen.write file contents
+
   let query ({ args; kind; depext; extra_repo } : _ Cli.query_args) =
     let { Config.jobs; info; _ } = args.Cli.context in
     let name = P.name_of_target info in
-    let install = Key.eval (Info.context info) (Engine.install info jobs) in
     let build_dir = Fpath.parent args.config_file in
     match kind with
     | `Name -> Fmt.pr "%s\n%!" (Info.name info)
@@ -237,119 +312,25 @@ module Make (P : S) = struct
         let pkgs = Info.packages info in
         List.iter (Fmt.pr "%a\n%!" (Package.pp ~surround:"\"")) pkgs
     | `Opam ->
-        let opam_name = Misc.Name.(Opam.to_string (opamify name)) in
-        let opam = Info.opam ~extra_repo ~install ~opam_name info in
-        Fmt.pr "%a\n%!" Opam.pp opam
+        let opam_name = Misc.Name.opamify name in
+        let contents = opam_contents ~opam_name ~extra_repo args in
+        Fmt.pr "%s\n%!" contents
     | `Files ->
         let files = files info jobs in
         Fmt.pr "%a\n%!" Fmt.(list ~sep:(any " ") Fpath.pp) files
     | `Makefile ->
-        let file =
-          Makefile.v ~build_dir ~depext ~builder_name:P.name ~extra_repo
-            (Misc.Name.opamify name)
+        let opam_name = Misc.Name.opamify name in
+        let contents =
+          makefile_contents ~build_dir ~depext ~extra_repo opam_name
         in
-        Fmt.pr "%a\n%!" Makefile.pp file
-    | `Dune `Config ->
-        let cwd = Bos.OS.Dir.current () |> Result.get_ok in
-        let config_ml_file = Fpath.(cwd // args.Cli.config_file) in
-        let dune =
-          Dune.base ~config_ml_file ~packages:P.packages ~name:P.name
-            ~version:P.version
-        in
-        Fmt.pr "%a\n%!" Dune.pp dune
-    | `Dune `Build ->
-        let dune_copy_config = Dune.stanzaf "(copy_files ./config/*)" in
-        let dune = Dune.v (dune_copy_config :: Engine.dune info jobs) in
-        Fmt.pr "%a\n%!" Dune.pp dune
-    | `Dune `Project ->
-        let dune =
-          Dune.v
-            (Dune.base_project
-            @ (Dune.stanzaf "(name %s)" name :: P.dune_project))
-        in
-        Fmt.pr "%a\n%!" Dune.pp dune
-    | `Dune `Workspace ->
-        let dune =
-          match P.dune_workspace with
-          | None -> Dune.base_workspace
-          | Some f -> f ~build_dir info
-        in
-        Fmt.pr "%a\n%!" Dune.pp dune
-    | `Dune `Dist ->
-        let install = Key.eval (Info.context info) (Engine.install info jobs) in
-        Fmt.pr "%a\n%!" Dune.pp
-          (Install.dune ~context_name_for_bin:(P.context_name info)
-             ~context_name_for_etc:"default" install)
+        Fmt.pr "%s\n%!" contents
+    | `Dune alias -> Fmt.pr "%s%!" (dune_contents alias args)
 
   (* Configuration step. *)
-
-  let generate_opam ~opam_name ~extra_repo (args : _ Cli.args) () =
-    let { Config.info; jobs; _ } = args.Cli.context in
-    let install = Key.eval (Info.context info) (Engine.install info jobs) in
-    let name = Misc.Name.Opam.to_string opam_name in
-    let opam = Info.opam ~install ~extra_repo ~opam_name:name info in
-    let contents = Fmt.str "%a" Opam.pp opam in
-    let file = Fpath.(v (name ^ ".opam")) in
-    Log.info (fun m ->
-        m "Generating: %a (%a)" Fpath.pp file Cli.pp_query_kind `Opam);
-    Filegen.write file contents
-
-  let generate_dune alias (args : _ Cli.args) () =
-    let { Config.info; jobs; _ } = args.Cli.context in
-    let name = P.name_of_target info in
-    let build_dir = build_dir args in
-    let file =
-      match alias with
-      | `Dist -> Fpath.(v "dune")
-      | `Build -> Fpath.(v "dune.build")
-      | `Workspace -> Fpath.(v "dune-workspace")
-      | `Project -> Fpath.(v "dune-project")
-    in
-    Log.info (fun m ->
-        m "Generating: %a (%a)" Fpath.pp file Cli.pp_query_kind
-          (`Dune alias :> Cli.query_kind));
-    let contents =
-      match alias with
-      | `Build ->
-          let import_config = Dune.stanzaf "(copy_files ./%s/*)" P.name in
-          let dune = Dune.v (import_config :: Engine.dune info jobs) in
-          Fmt.str "%a\n" Dune.pp dune
-      | `Project ->
-          let dune =
-            Dune.v
-              (Dune.base_project
-              @ (Dune.stanzaf "(name %s)" name :: P.dune_project))
-          in
-          Fmt.str "%a\n" Dune.pp dune
-      | `Workspace ->
-          let dune =
-            match P.dune_workspace with
-            | None -> Dune.base_workspace
-            | Some f -> f ~build_dir info
-          in
-          Fmt.str "%a\n" Dune.pp dune
-      | `Dist ->
-          let install =
-            Key.eval (Info.context info) (Engine.install info jobs)
-          in
-          Fmt.str "%a\n" Dune.pp
-            (Install.dune ~context_name_for_bin:(P.context_name info)
-               ~context_name_for_etc:"default" install)
-    in
-    Filegen.write file contents
 
   let clean (args : _ Cli.clean_args) =
     let* () = Action.rmdir (mirage_dir args) in
     Action.rmdir (artifacts_dir args)
-
-  let generate_makefile ~build_dir ~depext ~extra_repo opam_name =
-    let file = Fpath.(v "Makefile") in
-    let contents =
-      Fmt.to_to_string Makefile.pp
-        (Makefile.v ~build_dir ~depext ~builder_name:P.name ~extra_repo
-           opam_name)
-    in
-    Filegen.write file contents
 
   let configure ({ args; depext; extra_repo; _ } : _ Cli.configure_args) =
     let { Config.init; info; device_graph; _ } = args.Cli.context in
@@ -362,23 +343,23 @@ module Make (P : S) = struct
     let* () =
       Action.with_dir (mirage_dir args) (fun () ->
           (* OPAM file *)
-          let* () = generate_opam ~opam_name ~extra_repo args () in
+          let* () = generate_opam ~opam_name ~extra_repo args in
           (* Generate application specific-files *)
           Log.info (fun m -> m "in dir %a" (Cli.pp_args (fun _ _ -> ())) args);
           configure_main info init device_graph)
     in
     let* () =
       Action.with_dir build_dir (fun () ->
-          let* () = generate_dune `Build args () in
+          let* () = generate_dune `Build args in
           Filegen.write Fpath.(v "dune") "(include dune.build)")
     in
     (* dune-workspace: defines compilation contexts *)
-    let* () = generate_dune `Workspace args () in
+    let* () = generate_dune `Workspace args in
     (* dune-project *)
-    let* () = generate_dune `Project args () in
+    let* () = generate_dune `Project args in
     (* Get install spec *)
     let* _ = Action.mkdir (artifacts_dir args) in
-    Action.with_dir (artifacts_dir args) (generate_dune `Dist args)
+    Action.with_dir (artifacts_dir args) (fun () -> generate_dune `Dist args)
 
   let ok () = Action.ok ()
   let exit () = Action.error ""

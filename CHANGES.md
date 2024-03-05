@@ -60,19 +60,6 @@
        they are not available `key_gen.ml` anymore. As a consequence,
        `Key_gen.target` has been removed.
 - BUGFIX: fix `mirage describe` output (#1446 @samoht), add test (#1458 @samoht)
-- BUGFIX: fix escape sequence in Makefile (#1464 @hannesm)
-- BUGFIX: fix unix target rule (#1469 @hannesm)
-- BUGFIX: dune.config mark "dist" as data-only-dir to allow config.ml being
-  compiled (#1475 @memst)
-- FEATURE: Allow a comment in "config.ml" specifying the expected mirage version
-  "(* mirage >= 4.5.0 & < 5.0.0 *)"
-  This allows to have nicer error messages if an unsupported (too old or too
-  new) version of mirage is used (#1466 @hannesm)
-- FEATURE: Add a "--delay" boot parameter to delay network activity by N seconds
-  (#1472 @hannesm, fixes #1468)
-- Default to best-fit allocator (#1473 @hannesm)
-- Prepare for alternative TCP stack (pass `?tcp` in `direct_stackv4v6`,
-  `static_ipv4v6_stack`, and `generic_stackv4v6` (#1467 @hannesm)
 - Remove ipaddr from runtime (#1437 @samoht, #1465 @hannesm)
 - BREAKING: Mirage.register (and Functoria.register) no longer have `?packages`
   and `?keys` arguments (#1433, #1434 @hannesm)
@@ -81,9 +68,6 @@
   (#1404 @hannesm), put `--profile release` in Makefile instead of
   dune-workspace (#1470 @hannesm)
 - Increase dune version to 2.9 in generated dune-project (#1443 @samoht)
-- Allow solo5 0.8 releases (#1432 @hannesm)
-- Allow mirage-logs 2.x releases (#1460 @hannesm)
-- Allow git 3.14 releases (#1477 @hannesm)
 
 ### v4.4.2 (2024-02-13)
 

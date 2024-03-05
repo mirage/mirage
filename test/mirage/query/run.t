@@ -252,7 +252,9 @@ Query version
 
 Query unikernel dune
   $ ./config.exe query dune.build
-  (copy_files ./mirage/*)
+  (copy_files# ./mirage/key_gen.ml)
+  
+  (copy_files# ./mirage/main.ml)
   
   (rule
    (target noop)

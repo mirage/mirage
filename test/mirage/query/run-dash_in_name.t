@@ -1,6 +1,8 @@
 Query unikernel dune
   $ ./config_dash_in_name.exe query dune.build
-  (copy_files ./mirage/*)
+  (copy_files# ./mirage/key_gen.ml)
+  
+  (copy_files# ./mirage/main.ml)
   
   (rule
    (target noop-functor.v0)
@@ -101,7 +103,13 @@ Query dune-project
 
 Query unikernel dune (hvt)
   $ ./config_dash_in_name.exe query --target hvt dune.build
-  (copy_files ./mirage/*)
+  (copy_files# ./mirage/key_gen.ml)
+  
+  (copy_files# ./mirage/main.ml)
+  
+  (copy_files ./mirage/manifest.json)
+  
+  (copy_files# ./mirage/manifest.ml)
   
   (executable
    (enabled_if (= %{context_name} "solo5"))

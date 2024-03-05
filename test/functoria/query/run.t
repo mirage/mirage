@@ -234,7 +234,13 @@ Query version
 
 Query unikernel dune
   $ ./config.exe query dune.build
-  (copy_files ./test/*)
+  (copy_files# ./test/key_gen.ml)
+  
+  (copy_files# ./test/main.ml)
+  
+  (copy_files ./test/vote)
+  
+  (copy_files ./test/warn_error)
   
   (executable
     (public_name f0)

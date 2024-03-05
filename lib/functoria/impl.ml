@@ -44,6 +44,9 @@ let abstract t = Abstract t
 
 let rec app_has_no_arguments = function
   | App { args = Cons _; _ } | Dev { args = Cons _; _ } -> false
+  | Dev { dev; _ } when String.equal (Device.module_name dev) "Unit" ->
+      (* special hack for Job.noop *)
+      false
   | App _ | Dev _ -> true
   | If { cond = _; branches; default } ->
       app_has_no_arguments default

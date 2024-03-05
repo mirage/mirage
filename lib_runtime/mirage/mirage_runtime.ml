@@ -119,7 +119,7 @@ let space_overhead =
   let doc =
     "The percentage of live data of wasted memory, due to GC does not \
      immediately collect unreachable blocks. The major GC speed is computed \
-     from this parameter, it will work more if smaller. Default: 80."
+     from this parameter, it will work more if smaller. Default: 120."
   in
   let doc =
     Arg.info ~docs:ocaml_section ~docv:"SPACE OVERHEAD" ~doc

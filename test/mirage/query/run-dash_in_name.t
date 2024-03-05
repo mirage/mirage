@@ -1,6 +1,6 @@
 Query unikernel dune
   $ ./config_dash_in_name.exe query dune.build
-  (copy_files ./config/*)
+  (copy_files ./mirage/*)
   
   (rule
    (target noop-functor.v0)
@@ -101,7 +101,7 @@ Query dune-project
 
 Query unikernel dune (hvt)
   $ ./config_dash_in_name.exe query --target hvt dune.build
-  (copy_files ./config/*)
+  (copy_files ./mirage/*)
   
   (executable
    (enabled_if (= %{context_name} "solo5"))

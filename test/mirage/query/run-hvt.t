@@ -250,7 +250,7 @@ Query version
 
 Query unikernel dune
   $ ./config.exe query --target hvt dune.build
-  (copy_files ./config/*)
+  (copy_files ./mirage/*)
   
   (executable
    (enabled_if (= %{context_name} "solo5"))

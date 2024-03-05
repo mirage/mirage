@@ -241,14 +241,23 @@ module Make (P : S) = struct
         m "Generating: %a (%a)" Fpath.pp file Cli.pp_query_kind `Opam);
     Filegen.write file contents
 
+  let copy_files files =
+    List.map
+      (fun f ->
+        match Fpath.split_ext f with
+        | _, (".ml" | ".mli") -> Dune.stanzaf "(copy_files# %a)" Fpath.pp f
+        | _ -> Dune.stanzaf "(copy_files %a)" Fpath.pp f)
+      files
+
   let dune_contents alias args =
     let { Config.info; jobs; _ } = args.Cli.context in
     let name = P.name_of_target info in
     let build_dir = build_dir args in
     match alias with
     | `Build ->
-        let dune_copy_config = Dune.stanzaf "(copy_files ./%s/*)" P.name in
-        let dune = Dune.v (dune_copy_config :: Engine.dune info jobs) in
+        let files = files info jobs in
+        let files = List.map (fun p -> Fpath.(v "." / P.name // p)) files in
+        let dune = Dune.v (copy_files files @ Engine.dune info jobs) in
         Fmt.str "%a\n" Dune.pp dune
     | `Project ->
         let dune =

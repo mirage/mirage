@@ -27,6 +27,7 @@ is passed:
                               "dry_run" = false }
   config.exe: [INFO] Generating: main.ml (main file)
   config.exe: [INFO] Generating: key_gen.ml (keys)
+  config.exe: [INFO] Generating: key_gen.ml (keys)
   config.exe: [INFO] Generating: dune.build (dune.build)
   config.exe: [INFO] Generating: dune-workspace (dune-workspace)
   config.exe: [INFO] Generating: dune-project (dune-project)

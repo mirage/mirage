@@ -12,7 +12,7 @@
   * API changes:
     - There is no more `~stage` parameter for `Key.Arg.info`.
     - `Key` now define configure-time keys only.
-    - There is a new module `Runtime_key` to define runtime keys.
+    - There is a new module `Runtime_arg` to define runtime keys.
     - As there are no more keys type `'Both`, users are now expected to create
       two separated keys in that case (one for configure-time, one for runtime)
       or decide if the key is useful at runtime of configure-time.
@@ -26,7 +26,7 @@
     - Similar keys will produce reproducible binaries to be uploaded to artifact
       repositories like Docker Hub or https://builds.robur.coop/.
 
-  * Intended use of runtime keys (values of type `a runtime_key`):
+  * Intended use of runtime keys (values of type `a runtime_arg`):
     - Allow users to customize deployments by changing device
       configuration, like IP addresses, secrets, block device names,
       etc., post downloading of binaries.
@@ -59,6 +59,7 @@
      - Configure-time keys are not registerd anymore. This means that
        they are not available `key_gen.ml` anymore. As a consequence,
        `Key_gen.target` has been removed.
+
 - BUGFIX: fix `mirage describe` output (#1446 @samoht), add test (#1458 @samoht)
 - Remove ipaddr from runtime (#1437 @samoht, #1465 @hannesm)
 - BREAKING: Mirage.register (and Functoria.register) no longer have `?packages`

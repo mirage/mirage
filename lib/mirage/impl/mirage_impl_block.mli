@@ -21,7 +21,7 @@ val docteur :
   ?mode:[ `Fast | `Light ] ->
   ?name:string key ->
   ?output:string key ->
-  ?analyze:bool runtime_key ->
+  ?analyze:bool runtime_arg ->
   ?branch:string ->
   ?extra_deps:string list ->
   string ->
@@ -32,11 +32,11 @@ type block_t = { filename : string; number : int }
 val all_blocks : (string, block_t) Hashtbl.t
 
 val chamelon :
-  program_block_size:int runtime_key ->
+  program_block_size:int runtime_arg ->
   (block -> Mirage_impl_pclock.pclock -> Mirage_impl_kv.rw) impl
 
 val tar_kv_rw :
   Mirage_impl_pclock.pclock impl -> block impl -> Mirage_impl_kv.rw impl
 
 val ccm_block :
-  ?nonce_len:int -> string option runtime_key -> (block -> block) impl
+  ?nonce_len:int -> string option runtime_arg -> (block -> block) impl

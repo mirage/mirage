@@ -14,10 +14,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-let runtime_keys_r = ref []
-let runtime_keys () = !runtime_keys_r
+let runtime_args_r = ref []
+let runtime_args () = !runtime_args_r
 
-module Key = struct
+module Arg = struct
   type 'a t = { arg : 'a Cmdliner.Term.t; mutable value : 'a option }
 
   let create arg = { arg; value = None }
@@ -26,8 +26,8 @@ module Key = struct
     match t.value with
     | None ->
         invalid_arg
-          "Key.get: Called too early. Please delay this call after cmdliner's \
-           evaluation."
+          "Functoria_runtime.Arg.get: Called too early. Please delay this call \
+           after cmdliner's evaluation."
     | Some v -> v
 
   let term (type a) (t : a t) =
@@ -39,10 +39,10 @@ module Key = struct
     Cmdliner.Arg.conv (of_string, pp)
 end
 
-let key t =
-  let u = Key.create t in
-  runtime_keys_r := Key.term u :: !runtime_keys_r;
-  fun () -> Key.get u
+let register t =
+  let u = Arg.create t in
+  runtime_args_r := Arg.term u :: !runtime_args_r;
+  fun () -> Arg.get u
 
 let initialized = ref false
 let help_version = 63

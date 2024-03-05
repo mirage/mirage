@@ -32,7 +32,7 @@ type ipv6_config = {
 val create_ipv4 :
   ?group:string ->
   ?config:ipv4_config ->
-  ?no_init:bool runtime_key ->
+  ?no_init:bool runtime_arg ->
   ?random:random impl ->
   ?clock:mclock impl ->
   ethernet impl ->
@@ -45,7 +45,7 @@ val create_ipv6 :
   ?clock:mclock impl ->
   ?group:string ->
   ?config:ipv6_config ->
-  ?no_init:bool runtime_key ->
+  ?no_init:bool runtime_arg ->
   network impl ->
   ethernet impl ->
   ipv6 impl
@@ -70,8 +70,8 @@ val ipv4_qubes :
 val create_ipv4v6 : ?group:string -> ipv4 impl -> ipv6 impl -> ipv4v6 impl
 
 val keyed_ipv4v6 :
-  ipv4_only:bool runtime_key ->
-  ipv6_only:bool runtime_key ->
+  ipv4_only:bool runtime_arg ->
+  ipv6_only:bool runtime_arg ->
   ipv4 impl ->
   ipv6 impl ->
   ipv4v6 impl

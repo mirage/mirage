@@ -40,36 +40,36 @@ let git_ssh ?authenticator key password =
         | None ->
             Fmt.str
               {ocaml|%s.connect %s >>= %s.with_optionnal_key ~key:%a ~password:%a|ocaml}
-              modname ctx modname Runtime_key.call key Runtime_key.call password
+              modname ctx modname Runtime_arg.call key Runtime_arg.call password
         | Some authenticator ->
             Fmt.str
               {ocaml|%s.connect %s >>= %s.with_optionnal_key ?authenticator:%a ~key:%a ~password:%a|ocaml}
-              modname ctx modname Runtime_key.call authenticator
-              Runtime_key.call key Runtime_key.call password)
+              modname ctx modname Runtime_arg.call authenticator
+              Runtime_arg.call key Runtime_arg.call password)
     | _ -> assert false
   in
-  let runtime_keys =
-    Runtime_key.v key
-    :: Runtime_key.v password
-    :: List.map Runtime_key.v (Option.to_list authenticator)
+  let runtime_args =
+    Runtime_arg.v key
+    :: Runtime_arg.v password
+    :: List.map Runtime_arg.v (Option.to_list authenticator)
   in
-  impl ~packages ~connect ~runtime_keys "Git_mirage_ssh.Make"
+  impl ~packages ~connect ~runtime_args "Git_mirage_ssh.Make"
     (mclock @-> tcpv4v6 @-> time @-> mimic @-> git_client)
 
 let git_http ?authenticator headers =
   let packages =
     [ package "git-mirage" ~sublibs:[ "http" ] ~min:"3.10.0" ~max:"3.16.0" ]
   in
-  let runtime_keys =
+  let runtime_args =
     let keys = [] in
     let keys =
       match headers with
-      | Some headers -> Runtime_key.v headers :: keys
+      | Some headers -> Runtime_arg.v headers :: keys
       | None -> keys
     in
     let keys =
       match authenticator with
-      | Some authenticator -> Runtime_key.v authenticator :: keys
+      | Some authenticator -> Runtime_arg.v authenticator :: keys
       | None -> []
     in
     keys
@@ -78,12 +78,12 @@ let git_http ?authenticator headers =
     | [ _pclock; _tcpv4v6; ctx ] ->
         let serialize_headers ppf = function
           | None -> ()
-          | Some headers -> Fmt.pf ppf " ?headers:%a" Runtime_key.call headers
+          | Some headers -> Fmt.pf ppf " ?headers:%a" Runtime_arg.call headers
         in
         let serialize_authenticator ppf = function
           | None -> ()
           | Some authenticator ->
-              Fmt.pf ppf " ?authenticator:%a" Runtime_key.call authenticator
+              Fmt.pf ppf " ?authenticator:%a" Runtime_arg.call authenticator
         in
         Fmt.str
           {ocaml|%s.connect %s >>= fun ctx -> %s.with_optional_tls_config_and_headers%a%a ctx|ocaml}
@@ -91,5 +91,5 @@ let git_http ?authenticator headers =
           serialize_headers headers
     | _ -> assert false
   in
-  impl ~packages ~connect ~runtime_keys "Git_mirage_http.Make"
+  impl ~packages ~connect ~runtime_args "Git_mirage_http.Make"
     (pclock @-> tcpv4v6 @-> mimic @-> git_client)

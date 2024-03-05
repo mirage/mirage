@@ -21,7 +21,7 @@ type http_server
 val http_server : http_server typ
 
 val paf_server :
-  int runtime_key -> (Mirage_impl_tcp.tcpv4v6 -> http_server) impl
+  int runtime_arg -> (Mirage_impl_tcp.tcpv4v6 -> http_server) impl
 
 type alpn_client
 

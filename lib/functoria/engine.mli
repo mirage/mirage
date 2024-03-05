@@ -21,8 +21,11 @@
 val if_keys : Impl.abstract -> Key.Set.t
 (** [if_keys t] is the set of [if] keys in the graph [t]. *)
 
-val all_keys : Impl.abstract -> Key.Set.t * Runtime_key.Set.t
-(** [all_keys t] is the set of keys in the graph [t]. *)
+val keys : Impl.abstract -> Key.Set.t
+(** [keys t] is the set of keys in the graph [t]. *)
+
+val runtime_args : Impl.abstract -> Runtime_arg.Set.t
+(** [runtime_args t] is the set of runtime arguments in the graph [t]. *)
 
 val packages : Impl.abstract -> Package.t list Key.value
 (** [packages t] is the set of packages in the graph [t]. *)

@@ -15,39 +15,39 @@
  *)
 
 open Functoria
-include Runtime_key
+include Runtime_arg
 
 (** {2 OCaml runtime} *)
 
-let runtime_key name =
-  Runtime_key.create ~name
+let runtime_arg name =
+  Runtime_arg.create ~name
     ~packages:[ package "mirage-runtime" ]
     (Fmt.str "Mirage_runtime.%s" name)
 
-let runtime_keyf ~name fmt =
+let runtime_argf ~name fmt =
   Fmt.kstr
-    (Runtime_key.create ~name ~packages:[ package "mirage-runtime" ])
+    (Runtime_arg.create ~name ~packages:[ package "mirage-runtime" ])
     ("Mirage_runtime." ^^ fmt)
 
 let runtime_network_key ~name fmt =
   Fmt.kstr
-    (Runtime_key.create ~name
+    (Runtime_arg.create ~name
        ~packages:[ package "mirage-runtime" ~sublibs:[ "network" ] ])
     ("(Mirage_runtime_network." ^^ fmt ^^ ")")
 
-let delay = runtime_key "delay"
-let backtrace = runtime_key "backtrace"
-let randomize_hashtables = runtime_key "randomize_hashtables"
-let allocation_policy = runtime_key "allocation_policy"
-let minor_heap_size = runtime_key "minor_heap_size"
-let major_heap_increment = runtime_key "major_heap_increment"
-let space_overhead = runtime_key "space_overhead"
-let max_space_overhead = runtime_key "max_space_overhead"
-let gc_verbosity = runtime_key "gc_verbosity"
-let gc_window_size = runtime_key "gc_window_size"
-let custom_major_ratio = runtime_key "custom_major_ratio"
-let custom_minor_ratio = runtime_key "custom_minor_ratio"
-let custom_minor_max_size = runtime_key "custom_minor_max_size"
+let delay = runtime_arg "delay"
+let backtrace = runtime_arg "backtrace"
+let randomize_hashtables = runtime_arg "randomize_hashtables"
+let allocation_policy = runtime_arg "allocation_policy"
+let minor_heap_size = runtime_arg "minor_heap_size"
+let major_heap_increment = runtime_arg "major_heap_increment"
+let space_overhead = runtime_arg "space_overhead"
+let max_space_overhead = runtime_arg "max_space_overhead"
+let gc_verbosity = runtime_arg "gc_verbosity"
+let gc_window_size = runtime_arg "gc_window_size"
+let custom_major_ratio = runtime_arg "custom_major_ratio"
+let custom_minor_ratio = runtime_arg "custom_minor_ratio"
+let custom_minor_max_size = runtime_arg "custom_minor_max_size"
 
 let pp_group ppf = function
   | None | Some "" -> ()
@@ -128,12 +128,12 @@ let resolver ?(default = []) () =
 let pp_ipaddr ppf p = Fmt.pf ppf "Ipaddr.of_string %a" (escape Ipaddr.pp) p
 
 let syslog default =
-  runtime_keyf ~name:"syslog" "syslog %a" (pp_option pp_ipaddr) default
+  runtime_argf ~name:"syslog" "syslog %a" (pp_option pp_ipaddr) default
 
 let syslog_port default =
-  runtime_keyf ~name:"syslog_port" "syslog_port %a" (pp_option Fmt.int) default
+  runtime_argf ~name:"syslog_port" "syslog_port %a" (pp_option Fmt.int) default
 
 let syslog_hostname default =
-  runtime_keyf ~name:"syslog_hostname" "syslog_hostname %S" default
+  runtime_argf ~name:"syslog_hostname" "syslog_hostname %S" default
 
-let logs = runtime_key "logs"
+let logs = runtime_arg "logs"

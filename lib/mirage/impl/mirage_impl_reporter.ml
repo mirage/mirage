@@ -1,6 +1,6 @@
 open Functoria
 module Key = Mirage_key
-module Runtime_key = Mirage_runtime_key
+module Runtime_arg = Mirage_runtime_arg
 open Mirage_impl_pclock
 open Mirage_impl_misc
 
@@ -17,9 +17,9 @@ let pp_level ppf = function
   | None -> Fmt.string ppf "None"
 
 let mirage_log ~default () =
-  let logs = Runtime_key.logs in
+  let logs = Runtime_arg.logs in
   let packages = [ package ~min:"2.0.0" ~max:"3.0.0" "mirage-logs" ] in
-  let runtime_keys = [ Runtime_key.v logs ] in
+  let runtime_args = [ Runtime_arg.v logs ] in
   let connect _ modname = function
     | [ _pclock ] ->
         Fmt.str
@@ -28,7 +28,7 @@ let mirage_log ~default () =
           modname pp_level default pp_key logs
     | _ -> failwith (connect_err "log" 1)
   in
-  impl ~packages ~runtime_keys ~connect "Mirage_logs.Make" (pclock @-> reporter)
+  impl ~packages ~runtime_args ~connect "Mirage_logs.Make" (pclock @-> reporter)
 
 let default_reporter ?(clock = default_posix_clock) ?(level = Some Logs.Info) ()
     =

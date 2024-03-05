@@ -3,7 +3,7 @@ open Mirage_impl_misc
 open Mirage_impl_pclock
 open Mirage_impl_stack
 module Key = Mirage_key
-module Runtime_key = Mirage_runtime_key
+module Runtime_arg = Mirage_runtime_arg
 
 type syslog_config = {
   hostname : string;
@@ -31,11 +31,11 @@ let opt_string = opt (fun pp v -> Format.fprintf pp "%S" v)
 let pkg sublibs = [ package ~min:"0.4.0" ~max:"0.5.0" ~sublibs "logs-syslog" ]
 
 let syslog_udp_conf config =
-  let endpoint = Runtime_key.syslog config.server in
-  let port = Runtime_key.syslog_port config.port in
-  let hostname = Runtime_key.syslog_hostname config.hostname in
+  let endpoint = Runtime_arg.syslog config.server in
+  let port = Runtime_arg.syslog_port config.port in
+  let hostname = Runtime_arg.syslog_hostname config.hostname in
   let packages = pkg [ "mirage" ] in
-  let runtime_keys = Runtime_key.[ v endpoint; v hostname; v port ] in
+  let runtime_args = Runtime_arg.[ v endpoint; v hostname; v port ] in
   let connect _i modname = function
     | [ pclock; stack ] ->
         Fmt.str
@@ -47,7 +47,7 @@ let syslog_udp_conf config =
           (opt_int "truncate") config.truncate
     | _ -> failwith (connect_err "syslog udp" 2)
   in
-  impl ~packages ~runtime_keys ~connect "Logs_syslog_mirage.Udp"
+  impl ~packages ~runtime_args ~connect "Logs_syslog_mirage.Udp"
     (pclock @-> stackv4v6 @-> syslog)
 
 let syslog_udp ?(config = default_syslog_config) ?(clock = default_posix_clock)
@@ -55,11 +55,11 @@ let syslog_udp ?(config = default_syslog_config) ?(clock = default_posix_clock)
   syslog_udp_conf config $ clock $ stack
 
 let syslog_tcp_conf config =
-  let endpoint = Runtime_key.syslog config.server in
-  let port = Runtime_key.syslog_port config.port in
-  let hostname = Runtime_key.syslog_hostname config.hostname in
+  let endpoint = Runtime_arg.syslog config.server in
+  let port = Runtime_arg.syslog_port config.port in
+  let hostname = Runtime_arg.syslog_hostname config.hostname in
   let packages = pkg [ "mirage" ] in
-  let runtime_keys = Runtime_key.[ v endpoint; v hostname; v port ] in
+  let runtime_args = Runtime_arg.[ v endpoint; v hostname; v port ] in
   let connect _i modname = function
     | [ pclock; stack ] ->
         Fmt.str
@@ -71,7 +71,7 @@ let syslog_tcp_conf config =
           (opt_int "truncate") config.truncate
     | _ -> failwith (connect_err "syslog tcp" 2)
   in
-  impl ~packages ~runtime_keys ~connect "Logs_syslog_mirage.Tcp"
+  impl ~packages ~runtime_args ~connect "Logs_syslog_mirage.Tcp"
     (pclock @-> stackv4v6 @-> syslog)
 
 let syslog_tcp ?(config = default_syslog_config) ?(clock = default_posix_clock)
@@ -79,11 +79,11 @@ let syslog_tcp ?(config = default_syslog_config) ?(clock = default_posix_clock)
   syslog_tcp_conf config $ clock $ stack
 
 let syslog_tls_conf ?keyname config =
-  let endpoint = Runtime_key.syslog config.server in
-  let port = Runtime_key.syslog_port config.port in
-  let hostname = Runtime_key.syslog_hostname config.hostname in
+  let endpoint = Runtime_arg.syslog config.server in
+  let port = Runtime_arg.syslog_port config.port in
+  let hostname = Runtime_arg.syslog_hostname config.hostname in
   let packages = pkg [ "mirage"; "mirage.tls" ] in
-  let runtime_keys = Runtime_key.[ v endpoint; v hostname; v port ] in
+  let runtime_args = Runtime_arg.[ v endpoint; v hostname; v port ] in
   let connect _i modname = function
     | [ pclock; stack; kv ] ->
         Fmt.str
@@ -95,7 +95,7 @@ let syslog_tls_conf ?keyname config =
           (opt_int "truncate") config.truncate (opt_string "keyname") keyname
     | _ -> failwith (connect_err "syslog tls" 3)
   in
-  impl ~packages ~runtime_keys ~connect "Logs_syslog_mirage_tls.Tls"
+  impl ~packages ~runtime_args ~connect "Logs_syslog_mirage_tls.Tls"
     (pclock @-> stackv4v6 @-> Mirage_impl_kv.ro @-> syslog)
 
 let syslog_tls ?(config = default_syslog_config) ?keyname

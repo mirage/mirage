@@ -17,18 +17,18 @@
 (** Runtime key for the Mirage tool. *)
 
 open Functoria
-include RUNTIME_KEY
+include RUNTIME_ARG
 
 (** {2 OCaml runtime keys}
 
     The OCaml runtime is usually configurable via the [OCAMLRUNPARAM]
     environment variable. We provide boot parameters covering these options. *)
 
-val backtrace : bool runtime_key
+val backtrace : bool runtime_arg
 (** [--backtrace]: Output a backtrace if an uncaught exception terminated the
     unikernel. *)
 
-val randomize_hashtables : bool runtime_key
+val randomize_hashtables : bool runtime_arg
 (** [--randomize-hashtables]: Randomize all hash tables. *)
 
 (** {3 GC control}
@@ -39,30 +39,30 @@ val randomize_hashtables : bool runtime_key
 
     The following keys allow boot time configuration. *)
 
-val allocation_policy : [ `Next_fit | `First_fit | `Best_fit ] runtime_key
-val minor_heap_size : int option runtime_key
-val major_heap_increment : int option runtime_key
-val space_overhead : int option runtime_key
-val max_space_overhead : int option runtime_key
-val gc_verbosity : int option runtime_key
-val gc_window_size : int option runtime_key
-val custom_major_ratio : int option runtime_key
-val custom_minor_ratio : int option runtime_key
-val custom_minor_max_size : int option runtime_key
+val allocation_policy : [ `Next_fit | `First_fit | `Best_fit ] runtime_arg
+val minor_heap_size : int option runtime_arg
+val major_heap_increment : int option runtime_arg
+val space_overhead : int option runtime_arg
+val max_space_overhead : int option runtime_arg
+val gc_verbosity : int option runtime_arg
+val gc_window_size : int option runtime_arg
+val custom_major_ratio : int option runtime_arg
+val custom_minor_ratio : int option runtime_arg
+val custom_minor_max_size : int option runtime_arg
 
 (** {3 Network keys} *)
 
-val interface : ?group:string -> string -> string runtime_key
+val interface : ?group:string -> string -> string runtime_arg
 (** A network interface. *)
 
 (** Ipv4 keys. *)
 module V4 : sig
   open Ipaddr.V4
 
-  val network : ?group:string -> Prefix.t -> Prefix.t runtime_key
+  val network : ?group:string -> Prefix.t -> Prefix.t runtime_arg
   (** A network defined by an address and netmask. *)
 
-  val gateway : ?group:string -> t option -> t option runtime_key
+  val gateway : ?group:string -> t option -> t option runtime_arg
   (** A default gateway option. *)
 end
 
@@ -70,41 +70,41 @@ end
 module V6 : sig
   open Ipaddr.V6
 
-  val network : ?group:string -> Prefix.t option -> Prefix.t option runtime_key
+  val network : ?group:string -> Prefix.t option -> Prefix.t option runtime_arg
   (** A network defined by an address and netmask. *)
 
-  val gateway : ?group:string -> t option -> t option runtime_key
+  val gateway : ?group:string -> t option -> t option runtime_arg
   (** A default gateway option. *)
 
-  val accept_router_advertisements : ?group:string -> unit -> bool runtime_key
+  val accept_router_advertisements : ?group:string -> unit -> bool runtime_arg
   (** An option whether to accept router advertisements. *)
 end
 
-val ipv4_only : ?group:string -> unit -> bool runtime_key
+val ipv4_only : ?group:string -> unit -> bool runtime_arg
 (** An option for dual stack to only use IPv4. *)
 
-val ipv6_only : ?group:string -> unit -> bool runtime_key
+val ipv6_only : ?group:string -> unit -> bool runtime_arg
 (** An option for dual stack to only use IPv6. *)
 
-val resolver : ?default:string list -> unit -> string list option runtime_key
+val resolver : ?default:string list -> unit -> string list option runtime_arg
 (** The address of the DNS resolver to use. See $REFERENCE for format. *)
 
-val syslog : Ipaddr.t option -> Ipaddr.t option runtime_key
+val syslog : Ipaddr.t option -> Ipaddr.t option runtime_arg
 (** The address to send syslog frames to. *)
 
-val syslog_port : int option -> int option runtime_key
+val syslog_port : int option -> int option runtime_arg
 (** The port to send syslog frames to. *)
 
-val syslog_hostname : string -> string runtime_key
+val syslog_hostname : string -> string runtime_arg
 (** The hostname to use in syslog frames. *)
 
 (** {3 Logs} *)
 
-val logs : Mirage_runtime.log_threshold list runtime_key
+val logs : Mirage_runtime.log_threshold list runtime_arg
 
 (** {3 Startup delay} *)
 
-val delay : int runtime_key
+val delay : int runtime_arg
 (** The initial delay, specified in seconds, before a unikernel starting up.
     Defaults to 0. Useful for tenders and environments that take some time to
     bring devices up. *)

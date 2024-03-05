@@ -1,9 +1,9 @@
 open Mirage
 
-let opt = Runtime_key.create "Key.opt"
-let opt_all = Runtime_key.create "Key.opt_all"
-let flag = Runtime_key.create "Key.flag"
-let required = Runtime_key.create "Key.required"
+let opt = Runtime_arg.create "Key.opt"
+let opt_all = Runtime_arg.create "Key.opt_all"
+let flag = Runtime_arg.create "Key.flag"
+let required = Runtime_arg.create "Key.required"
 
 let test () =
   let context = Key.add_to_context Key.target `Unix Context.empty in
@@ -13,8 +13,8 @@ let test () =
   let arp = arp etif in
   let ipv4 = create_ipv4 etif arp in
   let ipv6 = create_ipv6 network etif in
-  let ipv4_only = Runtime_key.ipv4_only () in
-  let ipv6_only = Runtime_key.ipv6_only () in
+  let ipv4_only = Runtime_arg.ipv4_only () in
+  let ipv6_only = Runtime_arg.ipv6_only () in
   let stackv4v6 =
     direct_stackv4v6 ~ipv4_only ~ipv6_only network etif arp ipv4 ipv6
   in
@@ -26,7 +26,7 @@ let test () =
   let job =
     let connect _ _ _ = "return ()" in
     Functoria.impl
-      ~runtime_keys:Runtime_key.[ v opt; v opt_all; v flag; v required ]
+      ~runtime_args:Runtime_arg.[ v opt; v opt_all; v flag; v required ]
       ~extra_deps:[ dep job; dep init ]
       "Functoria_runtime" ~connect Functoria.job
   in

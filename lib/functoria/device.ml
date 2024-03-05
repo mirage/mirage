@@ -29,7 +29,7 @@ type ('a, 'impl) t = {
   module_name : string;
   module_type : 'a Type.t;
   keys : Key.t list;
-  runtime_keys : Runtime_key.t list;
+  runtime_args : Runtime_arg.t list;
   packages : package list value;
   install : info -> Install.t value;
   connect : info -> string -> string list -> 'a code;
@@ -76,7 +76,7 @@ let merge_packages = merge [] List.append
 let merge_install = merge Install.empty Install.union
 
 let v ?packages ?packages_v ?install ?install_v ?(keys = [])
-    ?(runtime_keys = []) ?(extra_deps = []) ?(connect = default_connect)
+    ?(runtime_args = []) ?(extra_deps = []) ?(connect = default_connect)
     ?(dune = nil) ?(configure = niet) ?files module_name module_type =
   let id = Typeid.gen () in
   let packages = merge_packages packages packages_v in
@@ -89,7 +89,7 @@ let v ?packages ?packages_v ?install ?install_v ?(keys = [])
     id;
     module_name;
     keys;
-    runtime_keys;
+    runtime_args;
     connect;
     packages;
     install;
@@ -115,7 +115,7 @@ let files t i =
 
 let dune t = t.dune
 let keys t = t.keys
-let runtime_keys t = t.runtime_keys
+let runtime_args t = t.runtime_args
 let extra_deps t = t.extra_deps
 
 let start impl_name args =

@@ -23,7 +23,7 @@ type t = {
   name : string;
   output : string option;
   keys : Key.Set.t;
-  runtime_keys : Runtime_key.Set.t;
+  runtime_args : Runtime_arg.Set.t;
   context : Context.t;
   packages : Package.t String.Map.t;
   opam :
@@ -62,13 +62,13 @@ let pins packages =
     [] packages
 
 let keys t = Key.Set.elements t.keys
-let runtime_keys t = Runtime_key.Set.elements t.runtime_keys
+let runtime_args t = Runtime_arg.Set.elements t.runtime_args
 let context t = t.context
 
-let v ?(config_file = Fpath.v "config.ml") ~packages ~keys ~runtime_keys
+let v ?(config_file = Fpath.v "config.ml") ~packages ~keys ~runtime_args
     ~context ?configure_cmd ?pre_build_cmd ?lock_location ~build_cmd ~src name =
   let keys = Key.Set.of_list keys in
-  let runtime_keys = Runtime_key.Set.of_list runtime_keys in
+  let runtime_args = Runtime_arg.Set.of_list runtime_args in
   let opam ~extra_repo ~install ~opam_name =
     Opam.v ~depends:packages ~install ~pins:(pins packages) ~extra_repo
       ?configure:configure_cmd ?pre_build:pre_build_cmd ?lock_location
@@ -90,7 +90,7 @@ let v ?(config_file = Fpath.v "config.ml") ~packages ~keys ~runtime_keys
     config_file;
     name;
     keys;
-    runtime_keys;
+    runtime_args;
     packages;
     context;
     output = None;
@@ -121,7 +121,7 @@ let pp verbose ppf ({ name; keys; context; output; _ } as t) =
 
 let t =
   let i =
-    v ~config_file:(Fpath.v "config.ml") ~packages:[] ~keys:[] ~runtime_keys:[]
+    v ~config_file:(Fpath.v "config.ml") ~packages:[] ~keys:[] ~runtime_args:[]
       ~build_cmd:"dummy" ~context:Context.empty ~src:`None "dummy"
   in
   Type.v i

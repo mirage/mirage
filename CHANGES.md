@@ -85,6 +85,35 @@
 - Allow mirage-logs 2.x releases (#1460 @hannesm)
 - Allow git 3.14 releases (#1477 @hannesm)
 
+### v4.4.2 (2024-02-13)
+
+- Fix GC documentation (space overhead is 120 since best-fit is default)
+  (#1491 @hannesm)
+- use Option in printing of GC keys (#1491 @hannesm)
+- allow to use git 3.15 (#1491 @hannesm)
+- allow empty noop job (addresses an issue with #1428)
+  solves an issue reported by @MisterDA in mirage/mirage-www#815
+  (#1491 @hannesm)
+
+### v4.4.1 (2023-11-20)
+
+- Document exit codes in `--help` (#1485 @hannesm)
+- Avoid dependency on environment variable (removing MIRAGE_LOGS #1484 @hannesm)
+- BUGFIX: dune.config mark "dist" as data-only-dir to allow config.ml being
+  compiled (#1475 @memst)
+- Allow git 3.14 (#1474 @hannesm)
+- Default to best-fit allocation (#1473 @hannesm)
+- FEATURE: Add a key "--delay" to all unikernels (#1472 @hannesm, fixes #1468)
+- Fix Unix target dune rule (add a deps) (#1469 @hannesm)
+- Optionally pass tcp in direct_stackv4v6, static_ipv4v6, generic_stackv4v6
+  (#1467 @hannesm)
+- FEATURE: Support mirage version indication in first line of config.ml:
+  (* mirage >= 2.3.4 & < 5.0.0 *) (#1466 @hannesm, fixes #1381)
+- Use \033 instead of \e in generated Makefile (fixes the output on non-Linux
+  systems #1464 @hannesm)
+- Adapt to mirage-logs 2.0.0 (#1460 @hannesm)
+- Allow version 0.8.0 of solo5 (#1432 #1490 @hannesm @palainp)
+
 ### v4.4.0 (2023-06-19)
 
 - Fail configure if jobs without arguments are present

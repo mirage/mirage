@@ -86,7 +86,7 @@ let static_ipv4_make__7 = lazy (
   __mclock__2 >>= fun _mclock__2 ->
   __ethernet_make__5 >>= fun _ethernet_make__5 ->
   __arp_make__6 >>= fun _arp_make__6 ->
-  Static_ipv4_make__7.connect  ~cidr:(Key_gen.ipv4 ())
+  Static_ipv4_make__7.connect ~cidr:(Key_gen.ipv4 ())
                            ?gateway:(Key_gen.ipv4_gateway ())
                            _ethernet_make__5 _arp_make__6
   )
@@ -103,7 +103,7 @@ let ipv6_make__8 = lazy (
   __mirage_crypto_rng_mirage_make__3 >>= fun _mirage_crypto_rng_mirage_make__3 ->
   __unix_os_time__1 >>= fun _unix_os_time__1 ->
   __mclock__2 >>= fun _mclock__2 ->
-  Ipv6_make__8.connect  ~handle_ra:(Key_gen.accept_router_advertisements ())
+  Ipv6_make__8.connect ~handle_ra:(Key_gen.accept_router_advertisements ())
                     ?cidr:(Key_gen.ipv6 ())
                     ?gateway:(Key_gen.ipv6_gateway ()) _netif__4
                     _ethernet_make__5

@@ -34,7 +34,7 @@ module C = struct
   let version = "1.0~test"
   let packages = [ package "functoria"; package "f0" ]
   let keys = Key.[ v vote; v warn_error ]
-  let connect _ _ _ = "()"
+  let connect _ _ _ = code ~pos:__POS__ "()"
 
   let dune i =
     let dune =

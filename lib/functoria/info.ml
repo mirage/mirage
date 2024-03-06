@@ -21,6 +21,7 @@ open Astring
 type t = {
   config_file : Fpath.t;
   name : string;
+  project_name : string;
   output : string option;
   keys : Key.Set.t;
   runtime_args : Runtime_arg.Set.t;
@@ -34,6 +35,7 @@ type t = {
 }
 
 let name t = t.name
+let project_name t = t.project_name
 let config_file t = t.config_file
 
 let main t =
@@ -66,7 +68,8 @@ let runtime_args t = Runtime_arg.Set.elements t.runtime_args
 let context t = t.context
 
 let v ?(config_file = Fpath.v "config.ml") ~packages ~keys ~runtime_args
-    ~context ?configure_cmd ?pre_build_cmd ?lock_location ~build_cmd ~src name =
+    ~context ?configure_cmd ?pre_build_cmd ?lock_location ~build_cmd ~src
+    ~project_name name =
   let keys = Key.Set.of_list keys in
   let runtime_args = Runtime_arg.Set.of_list runtime_args in
   let opam ~extra_repo ~install ~opam_name =
@@ -89,6 +92,7 @@ let v ?(config_file = Fpath.v "config.ml") ~packages ~keys ~runtime_args
   {
     config_file;
     name;
+    project_name;
     keys;
     runtime_args;
     packages;
@@ -123,5 +127,6 @@ let t =
   let i =
     v ~config_file:(Fpath.v "config.ml") ~packages:[] ~keys:[] ~runtime_args:[]
       ~build_cmd:"dummy" ~context:Context.empty ~src:`None "dummy"
+      ~project_name:"dummy"
   in
   Type.v i

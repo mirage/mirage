@@ -13,9 +13,9 @@ let git_client = Type.v Git_client
 let git_merge_clients =
   let packages = [ package "mimic" ] in
   let connect _ _modname = function
-    | [ a; b ] -> Fmt.str "Lwt.return (Mimic.merge %s %s)" a b
-    | [ x ] -> Fmt.str "%s.ctx" x
-    | _ -> Fmt.str "Lwt.return Mimic.empty"
+    | [ a; b ] -> code ~pos:__POS__ "Lwt.return (Mimic.merge %s %s)" a b
+    | [ x ] -> code ~pos:__POS__ "%s.ctx" x
+    | _ -> code ~pos:__POS__ "Lwt.return Mimic.empty"
   in
   impl ~packages ~connect "Mimic.Merge"
     (git_client @-> git_client @-> git_client)
@@ -25,7 +25,8 @@ let git_tcp =
     [ package "git-mirage" ~sublibs:[ "tcp" ] ~min:"3.10.0" ~max:"3.16.0" ]
   in
   let connect _ modname = function
-    | [ _tcpv4v6; ctx ] -> Fmt.str {ocaml|%s.connect %s|ocaml} modname ctx
+    | [ _tcpv4v6; ctx ] ->
+        code ~pos:__POS__ {ocaml|%s.connect %s|ocaml} modname ctx
     | _ -> connect_err "git_tcp" 2
   in
   impl ~packages ~connect "Git_mirage_tcp.Make"
@@ -37,10 +38,11 @@ let git_ssh ?authenticator key password =
   in
   let connect _ modname = function
     | [ _mclock; _tcpv4v6; _time; ctx ] ->
-        Fmt.str {ocaml|%s.connect %s >>= %s.with_optionnal_key%a%a%a|ocaml}
-          modname ctx modname (pp_opt "authenticator") authenticator
-          (pp_label "key") (Some key) (pp_label "password") (Some password)
-    | _ -> connect_err "git_sssh" 4
+        code ~pos:__POS__
+          {ocaml|%s.connect %s >>= %s.with_optionnal_key%a%a%a|ocaml} modname
+          ctx modname (pp_opt "authenticator") authenticator (pp_label "key")
+          (Some key) (pp_label "password") (Some password)
+    | _ -> connect_err "git_ssh" 4
   in
   let runtime_args =
     runtime_args_opt [ Some key; Some password; authenticator ]
@@ -55,7 +57,7 @@ let git_http ?authenticator headers =
   let runtime_args = runtime_args_opt [ headers; authenticator ] in
   let connect _ modname = function
     | [ _pclock; _tcpv4v6; ctx ] ->
-        Fmt.str
+        code ~pos:__POS__
           {ocaml|%s.connect %s >>= fun ctx ->
            %s.with_optional_tls_config_and_headers%a%a ctx|ocaml}
           modname ctx modname (pp_opt "authenticator") authenticator

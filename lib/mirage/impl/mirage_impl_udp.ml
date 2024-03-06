@@ -15,7 +15,7 @@ let udpv4v6 : udpv4v6 typ = udp
 let udp_direct_func () =
   let packages_v = right_tcpip_library ~sublibs:[ "udp" ] "tcpip" in
   let connect _ modname = function
-    | [ ip; _random ] -> Fmt.str "%s.connect %s" modname ip
+    | [ ip; _random ] -> code ~pos:__POS__ "%s.connect %s" modname ip
     | _ -> connect_err "udp" 2
   in
   impl ~packages_v ~connect "Udp.Make" (ip @-> random @-> udp)
@@ -32,8 +32,8 @@ let udpv4v6_socket_conf ~ipv4_only ~ipv6_only ipv4_key ipv6_key =
     | _ -> Action.error "UDPv4v6 socket not supported on non-UNIX targets."
   in
   let connect _ modname _ =
-    Fmt.str "%s.connect ~ipv4_only:%a ~ipv6_only:%a %a %a" modname pp_key
-      ipv4_only pp_key ipv6_only pp_key ipv4_key pp_key ipv6_key
+    code ~pos:__POS__ "%s.connect ~ipv4_only:%a ~ipv6_only:%a %a %a" modname
+      pp_key ipv4_only pp_key ipv6_only pp_key ipv4_key pp_key ipv6_key
   in
   impl ~runtime_args ~packages_v ~configure ~connect "Udpv4v6_socket" udpv4v6
 

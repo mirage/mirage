@@ -11,7 +11,7 @@ let pkg = package ~min:"6.0.1" ~max:"7.0.0" "conduit-mirage"
 let tcp =
   let packages = [ pkg ] in
   let connect _ _ = function
-    | [ stack ] -> Fmt.str "Lwt.return %s@;" stack
+    | [ stack ] -> code ~pos:__POS__ "Lwt.return %s@;" stack
     | _ -> connect_err "tcp_conduit" 1
   in
   impl ~packages ~connect "Conduit_mirage.TCP" (stackv4v6 @-> conduit)
@@ -20,7 +20,7 @@ let tls random =
   let packages = [ pkg; package ~min:"0.13.0" ~max:"0.18.0" "tls-mirage" ] in
   let extra_deps = [ dep random ] in
   let connect _ _ = function
-    | [ stack; _random ] -> Fmt.str "Lwt.return %s@;" stack
+    | [ stack; _random ] -> code ~pos:__POS__ "Lwt.return %s@;" stack
     | _ -> connect_err "tls_conduit" 2
   in
   impl ~packages ~connect ~extra_deps "Conduit_mirage.TLS" (conduit @-> conduit)

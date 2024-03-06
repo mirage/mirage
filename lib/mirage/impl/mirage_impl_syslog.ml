@@ -38,7 +38,7 @@ let syslog_udp_conf config =
   let runtime_args = Runtime_arg.[ v endpoint; v hostname; v port ] in
   let connect _i modname = function
     | [ pclock; stack ] ->
-        Fmt.str
+        code ~pos:__POS__
           "@[<v 2>match %a with@ | None -> Lwt.return_unit@ | Some server ->@ \
            let port = %a in@ let reporter =@ %s.create %s %s ~hostname:%a \
            ?port server %a ()@ in@ Logs.set_reporter reporter;@ \
@@ -62,7 +62,7 @@ let syslog_tcp_conf config =
   let runtime_args = Runtime_arg.[ v endpoint; v hostname; v port ] in
   let connect _i modname = function
     | [ pclock; stack ] ->
-        Fmt.str
+        code ~pos:__POS__
           "@[<v 2>match %a with@ | None -> Lwt.return_unit@ | Some server ->@ \
            let port = %a in@ %s.create %s %s ~hostname:%a ?port server %a () \
            >>= function@ | Ok reporter -> Logs.set_reporter reporter; \
@@ -86,7 +86,7 @@ let syslog_tls_conf ?keyname config =
   let runtime_args = Runtime_arg.[ v endpoint; v hostname; v port ] in
   let connect _i modname = function
     | [ pclock; stack; kv ] ->
-        Fmt.str
+        code ~pos:__POS__
           "@[<v 2>match %a with@ | None -> Lwt.return_unit@ | Some server ->@ \
            let port = %a in@ %s.create %s %s %s ~hostname:%a ?port server %a \
            %a () >>= function@ | Ok reporter -> Logs.set_reporter reporter; \

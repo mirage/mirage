@@ -12,7 +12,7 @@ let run x = x
 
 |}
 
-let run ?(keys = []) ?init context device =
+let run ?(keys = []) ?init ?(project_name = "test") context device =
   let t = Impl.abstract device in
   let t = Impl.simplify ~full:false ~context t in
   let all_keys = Engine.keys t in
@@ -22,7 +22,7 @@ let run ?(keys = []) ?init context device =
   let packages = Key.eval context (Engine.packages t) in
   let info =
     Functoria.Info.v ~packages ~context ~keys ~runtime_args
-      ~build_cmd:"build me" ~src:`None "foo"
+      ~build_cmd:"build me" ~project_name ~src:`None "foo"
   in
   let t = Impl.eval ~context t in
   let* () = prelude info in

@@ -15,7 +15,7 @@ type http_client = HTTP_client
 let http_client = Type.v HTTP_client
 
 let connect err _i modname = function
-  | [ conduit ] -> Fmt.str "Lwt.return (%s.listen %s)" modname conduit
+  | [ conduit ] -> code ~pos:__POS__ "Lwt.return (%s.listen %s)" modname conduit
   | _ -> connect_err err 1
 
 let cohttp_server =
@@ -29,7 +29,7 @@ let cohttp_client =
   let packages = [ package ~min:"4.0.0" ~max:"6.0.0" "cohttp-mirage" ] in
   let connect _i modname = function
     | [ _pclock; resolver; conduit ] ->
-        Fmt.str "Lwt.return (%s.ctx %s %s)" modname resolver conduit
+        code ~pos:__POS__ "Lwt.return (%s.ctx %s %s)" modname resolver conduit
     | _ -> connect_err "http" 2
   in
   impl ~packages ~connect "Cohttp_mirage.Client.Make"
@@ -51,8 +51,8 @@ let http_server = Type.v HTTP_server
 let paf_server port =
   let connect _ modname = function
     | [ tcpv4v6 ] ->
-        Fmt.str {ocaml|%s.init ~port:%a %s|ocaml} modname Runtime_arg.call port
-          tcpv4v6
+        code ~pos:__POS__ {ocaml|%s.init ~port:%a %s|ocaml} modname
+          Runtime_arg.call port tcpv4v6
     | _ -> connect_err "paf_server" 1
   in
   let packages =
@@ -70,7 +70,7 @@ let paf_client =
   let packages = [ package "http-mirage-client" ~min:"0.0.1" ~max:"0.1.0" ] in
   let connect _ modname = function
     | [ _pclock; _tcpv4v6; ctx ] ->
-        Fmt.str {ocaml|%s.connect %s|ocaml} modname ctx
+        code ~pos:__POS__ {ocaml|%s.connect %s|ocaml} modname ctx
     | _ -> connect_err "paf_client" 3
   in
   impl ~connect ~packages "Http_mirage_client.Make"

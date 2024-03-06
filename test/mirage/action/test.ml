@@ -15,7 +15,7 @@ let print_banner s =
 
 let info context =
   Info.v ~packages:[] ~keys:[] ~runtime_args:[] ~build_cmd:"mirage build"
-    ~context ~src:`None "NAME"
+    ~context ~src:`None ~project_name:"test" "NAME"
 
 let test target =
   print_banner target;

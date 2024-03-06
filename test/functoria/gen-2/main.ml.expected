@@ -7,18 +7,23 @@ let run x = x
 module App_make__4 = App.Make(Key_gen)(Unit)
 
 let sys__1 = lazy (
+# 24 "lib/functoria/argv.ml"
   return Sys.argv
-  )
+);;
+# 13 "test/main.ml"
 
 let key_gen__2 = lazy (
   let __sys__1 = Lazy.force sys__1 in
   __sys__1 >>= fun _sys__1 ->
+# 51 "lib/functoria/job.ml"
   return Functoria_runtime.(with_argv (runtime_args ()) "foo" _sys__1)
-  )
+);;
+# 21 "test/main.ml"
 
 let unit__3 = lazy (
   return ()
-  )
+);;
+# 26 "test/main.ml"
 
 let app_make__4 = lazy (
   let __key_gen__2 = Lazy.force key_gen__2 in
@@ -26,11 +31,12 @@ let app_make__4 = lazy (
   __key_gen__2 >>= fun _key_gen__2 ->
   __unit__3 >>= fun _unit__3 ->
   App_make__4.start _key_gen__2 _unit__3
-  )
+);;
+# 35 "test/main.ml"
 
 let () =
-  let t =
-  Lazy.force key_gen__2 >>= fun _ ->
-    Lazy.force unit__3 >>= fun _ ->
-    Lazy.force app_make__4
-  in run t
+  let t = Lazy.force key_gen__2 >>= fun _ ->
+  Lazy.force unit__3 >>= fun _ ->
+  Lazy.force app_make__4 in
+  run t
+;;

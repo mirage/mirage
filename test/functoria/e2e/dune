@@ -14,6 +14,7 @@
   help.exe
   (source_tree app)
   (source_tree lib)
+  (source_tree errors)
   (package functoria)
   (package functoria-runtime))
  (enabled_if

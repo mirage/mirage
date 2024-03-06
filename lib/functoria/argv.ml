@@ -21,5 +21,5 @@ type t = ARGV
 let argv = Type.v ARGV
 
 let sys_argv =
-  let connect _ _ _ = "return Sys.argv" in
+  let connect _ _ _ = Device.code ~pos:__POS__ "return Sys.argv" in
   Impl.v ~connect "Sys" argv

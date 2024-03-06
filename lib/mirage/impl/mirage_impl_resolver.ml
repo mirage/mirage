@@ -26,7 +26,9 @@ let resolver_unix_system =
     | `Unix | `MacOSX -> Action.ok ()
     | _ -> Action.error "Unix resolver not supported on non-UNIX targets."
   in
-  let connect _ _modname _ = "Lwt.return Resolver_lwt_unix.system" in
+  let connect _ _modname _ =
+    code ~pos:__POS__ "Lwt.return Resolver_lwt_unix.system"
+  in
   impl ~packages_v ~configure ~connect "Resolver_lwt" resolver
 
 let resolver_dns_conf ~ns =
@@ -34,7 +36,7 @@ let resolver_dns_conf ~ns =
   let runtime_args = Runtime_arg.[ v ns ] in
   let connect _ modname = function
     | [ _r; _t; _m; _p; stack ] ->
-        Fmt.str
+        code ~pos:__POS__
           "let nameservers = %a in@;\
            %s.v ?nameservers %s >|= function@;\
            | Ok r -> r@;\

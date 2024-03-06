@@ -71,8 +71,17 @@ val runtime_args : ('a, 'b) t -> Runtime_arg.t list
 
 (** {1 Code Generation} *)
 
-type 'a code = string
+type 'a code = private {
+  pos : (string * int * int * int) option;
+  code : string;
+}
 (** The type for fragments of code of type ['a]. *)
+
+val code :
+  pos:string * int * int * int ->
+  ('a, Format.formatter, unit, 'b code) format4 ->
+  'a
+(** Generate localised code. *)
 
 val connect : ('a, 'b) t -> Info.t -> string -> string list -> 'a code
 (** [connect t info impl_name args] is the code to execute in order to create a
@@ -80,8 +89,8 @@ val connect : ('a, 'b) t -> Info.t -> string -> string list -> 'a code
     [args], in the context of the project information [info]. The freshly
     created state will be made available in [var_name t] *)
 
-val start : string -> string list -> 'a code
-(** [start impl_name args] is the code [<impl_name>.start <args>]. *)
+val start : ?pos:string * int * int * int -> string -> string list -> 'a code
+(** [start ?pos impl_name args] is the code [<impl_name>.start <args>]. *)
 
 val nice_name : _ t -> string
 (** [nice_name d] provides a identifier unique to [d] which is a valid OCaml

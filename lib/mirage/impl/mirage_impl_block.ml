@@ -43,7 +43,7 @@ let xenstore_conf id =
           "XenStore IDs are only valid ways of specifying block devices when \
            the target is Xen or Qubes."
   in
-  let connect _ impl_name _ = Fmt.str "%s.connect %S" impl_name id in
+  let connect _ impl_name _ = code ~pos:__POS__ "%s.connect %S" impl_name id in
   impl ~configure ~connect ~packages:xen_block_packages "Block" block
 
 let block_of_xenstore_id id = xenstore_conf id
@@ -82,7 +82,7 @@ let block_conf file =
   let connect i s _ =
     match get_target i with
     | `Muen -> failwith "Block devices not supported on Muen target."
-    | _ -> Fmt.str "%s.connect %S" s (connect_name (get_target i))
+    | _ -> code ~pos:__POS__ "%s.connect %S" s (connect_name (get_target i))
   in
   Device.v ~configure ~packages_v ~connect "Block" block
 
@@ -90,7 +90,7 @@ let block_of_file file = of_device (block_conf file)
 
 let ramdisk rname =
   let packages = [ package "mirage-block-ramdisk" ] in
-  let connect _ m _ = Fmt.str "%s.connect ~name:%S" m rname in
+  let connect _ m _ = code ~pos:__POS__ "%s.connect ~name:%S" m rname in
   impl ~connect ~packages "Ramdisk" block
 
 let generic_block ?group ?(key = Key.value @@ Key.block ?group ()) name =
@@ -105,7 +105,7 @@ let generic_block ?group ?(key = Key.value @@ Key.block ?group ()) name =
 let tar_kv_ro_conf =
   let packages = [ package ~min:"1.0.0" ~max:"3.0.0" "tar-mirage" ] in
   let connect _ modname = function
-    | [ block ] -> Fmt.str "%s.connect %s" modname block
+    | [ block ] -> code ~pos:__POS__ "%s.connect %s" modname block
     | _ -> connect_err "tar_kv_ro" 1
   in
   impl ~packages ~connect "Tar_mirage.Make_KV_RO" (block @-> Mirage_impl_kv.ro)
@@ -113,7 +113,7 @@ let tar_kv_ro_conf =
 let tar_kv_rw_conf =
   let packages = [ package ~min:"2.2.0" ~max:"3.0.0" "tar-mirage" ] in
   let connect _ modname = function
-    | [ _pclock; block ] -> Fmt.str "%s.connect %s" modname block
+    | [ _pclock; block ] -> code ~pos:__POS__ "%s.connect %s" modname block
     | _ -> connect_err "tar_kv_rw" 2
   in
   impl ~packages ~connect "Tar_mirage.Make_KV_RW"
@@ -125,7 +125,7 @@ let tar_kv_rw pclock block = tar_kv_rw_conf $ pclock $ block
 let fat_conf =
   let packages = [ package ~min:"0.15.0" ~max:"0.16.0" "fat-filesystem" ] in
   let connect _ modname = function
-    | [ block ] -> Fmt.str "%s.connect %s" modname block
+    | [ block ] -> code ~pos:__POS__ "%s.connect %s" modname block
     | _ -> connect_err "fat" 1
   in
   impl ~packages ~connect "Fat.KV_RO" (block @-> Mirage_impl_kv.ro)
@@ -187,7 +187,7 @@ let docteur_unix (mode : mode) extra_deps ~name:_ ~output branch analyze remote
   let connect info modname _ =
     let ctx = Info.context info in
     let name = Key.get ctx output in
-    Fmt.str
+    code ~pos:__POS__
       {ocaml|let ( <.> ) f g = fun x -> f (g x) in
              let f = Rresult.R.(failwith_error_msg <.> reword_error (msgf "%%a" %s.pp_error)) in
              Lwt.map f (%s.connect ~analyze:%a %S)|ocaml}
@@ -244,7 +244,7 @@ let docteur_solo5 (mode : mode) extra_deps ~name ~output branch analyze remote =
   let connect info modname _ =
     let ctx = Info.context info in
     let name = Key.get ctx name in
-    Fmt.str
+    code ~pos:__POS__
       {ocaml|let ( <.> ) f g = fun x -> f (g x) in
              let f = Rresult.R.(failwith_error_msg <.> reword_error (msgf "%%a" %s.pp_error)) in
              Lwt.map f (%s.connect ~analyze:%a %S)|ocaml}
@@ -307,7 +307,7 @@ let chamelon ~program_block_size =
   let packages = [ package "chamelon" ~sublibs:[ "kv" ] ~min:"0.0.8" ] in
   let connect _ modname = function
     | [ block; _ ] ->
-        Fmt.str
+        code ~pos:__POS__
           {ocaml|%s.connect ~program_block_size:%a %s
                  >|= Result.map_error (Fmt.str "%%a" %s.pp_error)
                  >|= Result.fold ~ok:Fun.id ~error:failwith|ocaml}
@@ -322,7 +322,7 @@ let ccm_block ?nonce_len key =
   let packages = [ package "mirage-block-ccm" ~min:"2.0.0" ~max:"3.0.0" ] in
   let connect _ modname = function
     | [ block ] ->
-        Fmt.str
+        code ~pos:__POS__
           {ocaml|let key = %a in
                  let key =
                    if String.length key >= 2 && String.(equal "0x" (sub key 0 2)) then

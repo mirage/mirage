@@ -24,13 +24,13 @@ let test () =
   in
 
   let job =
-    let connect _ _ _ = "return ()" in
+    let connect _ _ _ = code ~pos:__POS__ "return ()" in
     Functoria.impl
       ~runtime_args:Runtime_arg.[ v opt; v opt_all; v flag; v required ]
       ~extra_deps:[ dep job; dep init ]
       "Functoria_runtime" ~connect Functoria.job
   in
-  Functoria_test.run context job
+  Functoria_test.run ~project_name:"mirage" context job
 
 let () =
   match Functoria.Action.run (test ()) with

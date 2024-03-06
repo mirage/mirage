@@ -63,8 +63,8 @@ let v ?packages ?packages_v ?keys ?extra_deps ?connect ?dune ?configure ?files
   @@ Device.v ?packages ?packages_v ?keys ?extra_deps ?connect ?dune ?configure
        ?files module_name module_type
 
-let main ?packages ?packages_v ?keys ?extra_deps module_name ty =
-  let connect _ = Device.start in
+let main ?pos ?packages ?packages_v ?keys ?extra_deps module_name ty =
+  let connect _ = Device.start ?pos in
   v ?packages ?packages_v ?keys ?extra_deps ~connect module_name ty
 
 (* If *)

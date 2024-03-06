@@ -32,9 +32,9 @@ module Keys = struct
   let configure ~file i =
     Log.info (fun m -> m "Generating: %a (keys)" Fpath.pp file);
     Action.with_output ~path:file ~purpose:"key_gen file" (fun ppf ->
-        let keys = Runtime_key.Set.of_list @@ Info.runtime_keys i in
+        let keys = Runtime_arg.Set.of_list @@ Info.runtime_args i in
         Fmt.pf ppf "@[<v>%a@]@."
-          Fmt.(iter Runtime_key.Set.iter Runtime_key.serialize)
+          Fmt.(iter Runtime_arg.Set.iter Runtime_arg.serialize)
           keys)
 end
 
@@ -42,13 +42,13 @@ let keys ?(runtime_package = "functoria-runtime")
     ?(runtime_modname = "Functoria_runtime") (argv : Argv.t Impl.t) =
   let packages = [ Package.v runtime_package ] in
   let extra_deps = [ Impl.abstract argv ] in
-  let key_gen = Runtime_key.module_name in
+  let key_gen = Runtime_arg.module_name in
   let file = Fpath.(v (String.Ascii.lowercase key_gen) + "ml") in
   let configure = Keys.configure ~file in
   let files _ = [ file ] in
   let connect info _ = function
     | [ argv ] ->
-        Fmt.str "return %s.(with_argv (runtime_keys ()) %S %s)" runtime_modname
+        Fmt.str "return %s.(with_argv (runtime_args ()) %S %s)" runtime_modname
           (Info.name info) argv
     | _ -> failwith "The keys connect should receive exactly one argument."
   in

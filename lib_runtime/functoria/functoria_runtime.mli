@@ -18,16 +18,17 @@
 
 (** Functoria runtime. *)
 
-(** [Key] defines values that can be set by runtime command-line arguments. This
-    module is the runtime companion of {!Key}. *)
-module Key : sig
-  (** {1 Runtime keys} *)
+(** [Arg] defines values that can be set by runtime command-line arguments. This
+    module is the runtime companion of {!Functoria.Runtime_argq}. *)
+module Arg : sig
+  (** {1 Command-line Arguments} *)
 
   type 'a t
-  (** The type for runtime keys containing a value of type ['a]. *)
+  (** The type for runtime keys parsing values of type ['a]. *)
 
   val create : 'a Cmdliner.Term.t -> 'a t
-  (** [create conv] create a new runtime key. *)
+  (** [create t] is the command-line argument built from the [Cmdliner] term
+      [t]. *)
 
   val conv :
     (string -> ('a, [ `Msg of string ]) result) ->
@@ -35,7 +36,7 @@ module Key : sig
     'a Cmdliner.Arg.conv
 end
 
-val key : 'a Cmdliner.Term.t -> unit -> 'a
+val register : 'a Cmdliner.Term.t -> unit -> 'a
 (** [key t] registers the Cmdliner term [k] as a runtime key and return a
     callback [f] that evaluates to [t]s' value passed on the command-line.
 
@@ -50,4 +51,4 @@ val with_argv : unit Cmdliner.Term.t list -> string -> string array -> unit
     application calls [exit(3)] with status [64]. If [`Help] or [`Version] were
     evaluated, [exit(3)] is called with status [63]. *)
 
-val runtime_keys : unit -> unit Cmdliner.Term.t list
+val runtime_args : unit -> unit Cmdliner.Term.t list

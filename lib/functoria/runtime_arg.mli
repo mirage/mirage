@@ -16,18 +16,17 @@
 
 (** Runtime command-line arguments. *)
 
-type 'a key
-(** The type for runtime keys. Keys are used to retrieve the cross-stage values
-    they are holding. *)
+type 'a arg
+(** The type for command-line arguments that parses values of type ['a].. *)
 
-val create : ?name:string -> ?packages:Package.t list -> string -> 'a key
+val create : ?name:string -> ?packages:Package.t list -> string -> 'a arg
 
 type t
 (** The type for abstract {{!type:key} keys}. *)
 
 val packages : t -> Package.t list
 
-val v : 'a key -> t
+val v : 'a arg -> t
 (** [v k] is the [k] with its type hidden. *)
 
 (** [Set] implements sets over [t] elements. *)
@@ -40,7 +39,7 @@ end
 
 (** {1 Code Serialization} *)
 
-val call : 'a key Fmt.t
+val call : 'a arg Fmt.t
 (** [call fmt k] outputs [name ()] to [fmt], where [n] is [k]'s {{!ocaml_name}
     OCaml name}. *)
 

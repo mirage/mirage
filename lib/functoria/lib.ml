@@ -35,7 +35,7 @@ module Config = struct
     build_cmd : string;
     packages : package list Key.value;
     if_keys : Key.Set.t;
-    runtime_keys : Runtime_key.Set.t;
+    runtime_args : Runtime_arg.Set.t;
     init : job impl list;
     jobs : Impl.abstract;
     src : [ `Auto | `None | `Some of string ];
@@ -51,7 +51,7 @@ module Config = struct
   (* In practice, we get all the keys associated to [if] cases, and
      all the keys that have a setter to them. *)
   let get_if_context jobs =
-    let all_keys, _ = Engine.all_keys jobs in
+    let all_keys = Engine.keys jobs in
     let skeys = Engine.if_keys jobs in
     let f k s = if true then s else Key.Set.add k s in
     Key.Set.fold f all_keys skeys
@@ -60,11 +60,11 @@ module Config = struct
       ~pre_build_cmd ~lock_location ~build_cmd ~src name jobs =
     let jobs = Impl.abstract jobs in
     let if_keys = get_if_context jobs in
-    let runtime_keys = Runtime_key.Set.empty in
+    let runtime_args = Runtime_arg.Set.empty in
     {
       config_file;
       if_keys;
-      runtime_keys;
+      runtime_args;
       name;
       init;
       configure_cmd;
@@ -86,7 +86,7 @@ module Config = struct
         build_cmd;
         packages;
         if_keys;
-        runtime_keys;
+        runtime_args;
         jobs;
         init;
         src;
@@ -94,14 +94,15 @@ module Config = struct
     let jobs = Impl.simplify ~full ~context jobs in
     let device_graph = Impl.eval ~context jobs in
     let packages = Key.(pure List.append $ packages $ Engine.packages jobs) in
-    let all_keys, all_runtime_keys = Engine.all_keys jobs in
-    let runtime_keys =
-      Runtime_key.Set.(elements (union runtime_keys all_runtime_keys))
+    let all_keys = Engine.keys jobs in
+    let all_runtime_args = Engine.runtime_args jobs in
+    let runtime_args =
+      Runtime_arg.Set.(elements (union runtime_args all_runtime_args))
     in
     let keys = Key.Set.(elements (union if_keys all_keys)) in
     let mk packages _ context =
       let info =
-        Info.v ~config_file ~packages ~keys ~runtime_keys ~context
+        Info.v ~config_file ~packages ~keys ~runtime_args ~context
           ~configure_cmd ~pre_build_cmd ~lock_location ~build_cmd ~src n
       in
       { init; jobs; info; device_graph }

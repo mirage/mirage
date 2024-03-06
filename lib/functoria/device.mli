@@ -63,11 +63,11 @@ val files : ('a, 'b) t -> Info.t -> Fpath.Set.t
 (** [files t info s] is the list of files generated configure-time. *)
 
 val keys : ('a, 'b) t -> Key.t list
-(** [keys t] is the list of command-line keys which can be used to configure
-    [t]. *)
+(** [keys t] is the list of keys which can be used to configure [t]. *)
 
-val runtime_keys : ('a, 'b) t -> Runtime_key.t list
-(** [keys t] is the list of command-line keys which can be used to run [t]. *)
+val runtime_args : ('a, 'b) t -> Runtime_arg.t list
+(** [runtime_args t] is the list of command-line arguments which can be used to
+    configure [t] at runtime. *)
 
 (** {1 Code Generation} *)
 
@@ -109,7 +109,7 @@ val v :
   ?install:(Info.t -> Install.t) ->
   ?install_v:(Info.t -> Install.t Key.value) ->
   ?keys:Key.t list ->
-  ?runtime_keys:Runtime_key.t list ->
+  ?runtime_args:Runtime_arg.t list ->
   ?extra_deps:'b list ->
   ?connect:(Info.t -> string -> string list -> 'a code) ->
   ?dune:(Info.t -> Dune.stanza list) ->

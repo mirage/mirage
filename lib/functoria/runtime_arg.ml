@@ -16,8 +16,8 @@
 
 open Misc
 
-type 'a key = { name : string; code : string; packages : Package.t list }
-type t = Any : 'a key -> t
+type 'a arg = { name : string; code : string; packages : Package.t list }
+type t = Any : 'a arg -> t
 
 (* Set of keys, where keys with the same name but with different
    defaults are distinguished. This is useful to build the graph of
@@ -56,7 +56,7 @@ let module_name = "Key_gen"
 let ocaml_name k = String.lowercase_ascii (Name.ocamlify k)
 
 let serialize fmt (Any k) =
-  Format.fprintf fmt "@[<2>let %s =@ @[Functoria_runtime.key@ %s@]@]@,"
+  Format.fprintf fmt "@[<2>let %s =@ @[Functoria_runtime.register@ %s@]@]@,"
     (ocaml_name k.name) k.code
 
 let call fmt k = Fmt.pf fmt "(%s.%s ())" module_name (ocaml_name k.name)

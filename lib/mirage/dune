@@ -3,10 +3,10 @@
  (name mirage_key)
  (wrapped false)
  (libraries ipaddr functoria mirage-runtime bos)
- (modules mirage_key mirage_runtime_key))
+ (modules mirage_key mirage_runtime_arg))
 
 (library
  (public_name mirage)
  (wrapped false)
  (libraries mirage.impl mirage.target)
- (modules :standard \ mirage_key mirage_runtime_key))
+ (modules :standard \ mirage_key mirage_runtime_arg))

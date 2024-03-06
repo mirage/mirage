@@ -13,20 +13,20 @@ let generic_happy_eyeballs aaaa_timeout connect_delay connect_timeout
   let packages =
     [ package "happy-eyeballs-mirage" ~min:"0.6.0" ~max:"1.0.0" ]
   in
-  let runtime_keys =
+  let runtime_args =
     let cons_if_some v l = match v with Some x -> x :: l | None -> l in
     cons_if_some aaaa_timeout []
     |> cons_if_some connect_delay
     |> cons_if_some resolve_timeout
     |> cons_if_some resolve_retries
     |> cons_if_some timer_interval
-    |> List.map Runtime_key.v
+    |> List.map Runtime_arg.v
   in
   let connect _info modname = function
     | [ _time; _mclock; stack; dns ] ->
         let pp_optional_argument ~name ppf = function
           | None -> ()
-          | Some key -> Fmt.pf ppf "?%s:%a " name Runtime_key.call key
+          | Some key -> Fmt.pf ppf "?%s:%a " name Runtime_arg.call key
         in
         Fmt.str {ocaml|%s.connect_device %a%a%a%a%a%a %s %s|ocaml} modname
           (pp_optional_argument ~name:"aaaa_timeout")
@@ -43,5 +43,5 @@ let generic_happy_eyeballs aaaa_timeout connect_delay connect_timeout
           timer_interval dns stack
     | _ -> assert false
   in
-  impl ~runtime_keys ~packages ~connect "Happy_eyeballs_mirage.Make"
+  impl ~runtime_args ~packages ~connect "Happy_eyeballs_mirage.Make"
     (time @-> mclock @-> stackv4v6 @-> dns_client @-> happy_eyeballs)

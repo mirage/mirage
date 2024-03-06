@@ -18,7 +18,7 @@
 
 module Context = Context
 module Key = Key
-module Runtime_key = Runtime_key
+module Runtime_arg = Runtime_arg
 module Package = Package
 module Info = Info
 module Type = Type
@@ -44,11 +44,11 @@ module type KEY =
      and type t = Key.t
      and type Set.t = Key.Set.t
 
-module type RUNTIME_KEY =
-  module type of Runtime_key
-    with type 'a key = 'a Runtime_key.key
-     and type t = Runtime_key.t
-     and type Set.t = Runtime_key.Set.t
+module type RUNTIME_ARG =
+  module type of Runtime_arg
+    with type 'a arg = 'a Runtime_arg.arg
+     and type t = Runtime_arg.t
+     and type Set.t = Runtime_arg.Set.t
 
 (** Devices *)
 

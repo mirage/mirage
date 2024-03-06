@@ -28,22 +28,35 @@ let if_keys x =
     x
 
 module Keys = struct
-  type t = Key.Set.t * Runtime_key.Set.t
+  type t = Key.Set.t
 
-  let union (a, b) (c, d) = (Key.Set.union a c, Runtime_key.Set.union b d)
-  let empty = (Key.Set.empty, Runtime_key.Set.empty)
+  let union a b = Key.Set.union a b
+  let empty = Key.Set.empty
 end
 
-let all_keys x =
+let keys x =
   Impl.collect
     (module Keys)
     (function
-      | Dev c ->
-          let keys = Device.keys c in
-          let runtime_keys = Device.runtime_keys c in
-          (Key.Set.of_list keys, Runtime_key.Set.of_list runtime_keys)
-      | If cond -> (Key.deps cond, Runtime_key.Set.empty)
-      | App -> (Key.Set.empty, Runtime_key.Set.empty))
+      | Dev c -> Key.Set.of_list (Device.keys c)
+      | If cond -> Key.deps cond
+      | App -> Keys.empty)
+    x
+
+module Runtime_args = struct
+  type t = Runtime_arg.Set.t
+
+  let union a b = Runtime_arg.Set.union a b
+  let empty = Runtime_arg.Set.empty
+end
+
+let runtime_args x =
+  Impl.collect
+    (module Runtime_args)
+    (function
+      | Dev c -> Runtime_arg.Set.of_list (Device.runtime_args c)
+      | If _ -> Runtime_args.empty
+      | App -> Runtime_args.empty)
     x
 
 module Packages = struct
@@ -58,13 +71,13 @@ let packages t =
   let aux = function
     | Dev c ->
         let pkgs = Device.packages c in
-        let runtime_keys = Device.runtime_keys c in
+        let runtime_args = Device.runtime_args c in
         let extra_pkgs =
           List.fold_left
             (fun acc k ->
-              let pkgs = Runtime_key.packages k in
+              let pkgs = Runtime_arg.packages k in
               Package.Set.(union acc (of_list pkgs)))
-            Package.Set.empty runtime_keys
+            Package.Set.empty runtime_args
         in
         let aux x = Package.Set.(union (of_list x) extra_pkgs) in
         Key.(pure aux $ pkgs)

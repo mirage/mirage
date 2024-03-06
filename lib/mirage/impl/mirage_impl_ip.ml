@@ -8,7 +8,7 @@ open Mirage_impl_qubesdb
 open Mirage_impl_random
 open Mirage_impl_time
 module Key = Mirage_key
-module Runtime_key = Mirage_runtime_key
+module Runtime_arg = Mirage_runtime_arg
 
 type v4
 type v6
@@ -33,7 +33,7 @@ let opt_opt_key s = Fmt.(option @@ (any ("?" ^^ s ^^ ":") ++ pp_key))
 let opt_key s = Fmt.(option @@ (any ("~" ^^ s ^^ ":") ++ pp_key))
 let opt_map f = function Some x -> Some (f x) | None -> None
 let ( @? ) x l = match x with Some s -> s :: l | None -> l
-let ( @?? ) x y = opt_map Runtime_key.v x @? y
+let ( @?? ) x y = opt_map Runtime_arg.v x @? y
 
 (* convenience function for linking tcpip.unix for checksums *)
 let right_tcpip_library ?libs ~sublibs pkg =
@@ -42,7 +42,7 @@ let right_tcpip_library ?libs ~sublibs pkg =
 
 let ipv4_keyed_conf ~ip ?gateway ?no_init () =
   let packages_v = right_tcpip_library ~sublibs:[ "ipv4" ] "tcpip" in
-  let runtime_keys = no_init @?? gateway @?? [ Runtime_key.v ip ] in
+  let runtime_args = no_init @?? gateway @?? [ Runtime_arg.v ip ] in
   let connect _ modname = function
     | [ _random; _mclock; etif; arp ] ->
         Fmt.str "%s.connect@[@ %a@ %a@ %a@ %s@ %s@]" modname (opt_key "no_init")
@@ -51,7 +51,7 @@ let ipv4_keyed_conf ~ip ?gateway ?no_init () =
           ip (opt_opt_key "gateway") gateway etif arp
     | _ -> failwith (connect_err "ipv4 keyed" 4)
   in
-  impl ~packages_v ~runtime_keys ~connect "Static_ipv4.Make"
+  impl ~packages_v ~runtime_args ~connect "Static_ipv4.Make"
     (random @-> mclock @-> ethernet @-> arpv4 @-> ipv4)
 
 let ipv4_dhcp_conf =
@@ -77,8 +77,8 @@ let create_ipv4 ?group ?config ?no_init ?(random = default_random)
     | None -> (Ipaddr.V4.Prefix.of_string_exn "10.0.0.2/24", None)
     | Some { network; gateway } -> (network, gateway)
   in
-  let ip = Runtime_key.V4.network ?group network
-  and gateway = Runtime_key.V4.gateway ?group gateway in
+  let ip = Runtime_arg.V4.network ?group network
+  and gateway = Runtime_arg.V4.gateway ?group gateway in
   ipv4_keyed_conf ~ip ~gateway ?no_init () $ random $ clock $ etif $ arp
 
 type ipv6_config = {
@@ -103,7 +103,7 @@ let ipv4_qubes ?(random = default_random) ?(clock = default_monotonic_clock) db
 
 let ipv6_conf ?ip ?gateway ?handle_ra ?no_init () =
   let packages_v = right_tcpip_library ~sublibs:[ "ipv6" ] "tcpip" in
-  let runtime_keys = ip @?? gateway @?? handle_ra @?? no_init @?? [] in
+  let runtime_args = ip @?? gateway @?? handle_ra @?? no_init @?? [] in
   let connect _ modname = function
     | [ netif; etif; _random; _time; _clock ] ->
         Fmt.str "%s.connect@[@ %a@ %a@ %a@ %a@ %s@ %s@]" modname
@@ -111,7 +111,7 @@ let ipv6_conf ?ip ?gateway ?handle_ra ?no_init () =
           (opt_opt_key "cidr") ip (opt_opt_key "gateway") gateway netif etif
     | _ -> failwith (connect_err "ipv6" 5)
   in
-  impl ~packages_v ~runtime_keys ~connect "Ipv6.Make"
+  impl ~packages_v ~runtime_args ~connect "Ipv6.Make"
     (network @-> ethernet @-> random @-> time @-> mclock @-> ipv6)
 
 let create_ipv6 ?(random = default_random) ?(time = default_time)
@@ -121,9 +121,9 @@ let create_ipv6 ?(random = default_random) ?(time = default_time)
     | None -> (None, None)
     | Some { network; gateway } -> (Some network, gateway)
   in
-  let ip = Runtime_key.V6.network ?group network
-  and gateway = Runtime_key.V6.gateway ?group gateway
-  and handle_ra = Runtime_key.V6.accept_router_advertisements ?group () in
+  let ip = Runtime_arg.V6.network ?group network
+  and gateway = Runtime_arg.V6.gateway ?group gateway
+  and handle_ra = Runtime_arg.V6.accept_router_advertisements ?group () in
   ipv6_conf ~ip ~gateway ~handle_ra ?no_init ()
   $ netif
   $ etif
@@ -133,20 +133,20 @@ let create_ipv6 ?(random = default_random) ?(time = default_time)
 
 let ipv4v6_conf ?ipv4_only ?ipv6_only () =
   let packages_v = right_tcpip_library ~sublibs:[ "stack-direct" ] "tcpip" in
-  let runtime_keys = ipv4_only @?? ipv6_only @?? [] in
+  let runtime_args = ipv4_only @?? ipv6_only @?? [] in
   let connect _ modname = function
     | [ ipv4; ipv6 ] ->
         Fmt.str "%s.connect@[@ %a@ %a@ %s@ %s@]" modname (opt_key "ipv4_only")
           ipv4_only (opt_key "ipv6_only") ipv6_only ipv4 ipv6
     | _ -> failwith (connect_err "ipv4v6" 2)
   in
-  impl ~packages_v ~runtime_keys ~connect "Tcpip_stack_direct.IPV4V6"
+  impl ~packages_v ~runtime_args ~connect "Tcpip_stack_direct.IPV4V6"
     (ipv4 @-> ipv6 @-> ipv4v6)
 
 let keyed_ipv4v6 ~ipv4_only ~ipv6_only ipv4 ipv6 =
   ipv4v6_conf ~ipv4_only ~ipv6_only () $ ipv4 $ ipv6
 
 let create_ipv4v6 ?group ipv4 ipv6 =
-  let ipv4_only = Runtime_key.ipv4_only ?group ()
-  and ipv6_only = Runtime_key.ipv6_only ?group () in
+  let ipv4_only = Runtime_arg.ipv4_only ?group ()
+  and ipv6_only = Runtime_arg.ipv6_only ?group () in
   keyed_ipv4v6 ~ipv4_only ~ipv6_only ipv4 ipv6

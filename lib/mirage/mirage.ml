@@ -22,7 +22,7 @@ module Impl = Impl
 module Info = Info
 module Dune = Dune
 module Key = Mirage_key
-module Runtime_key = Mirage_runtime_key
+module Runtime_arg = Mirage_runtime_arg
 module Context = Context
 include Functoria.DSL
 
@@ -299,8 +299,8 @@ let git_http ?authenticator ?headers ?(pclock = default_posix_clock) tcpv4v6 ctx
 let delay = job
 
 let delay_startup =
-  let delay_key = Runtime_key.delay in
-  let runtime_keys = [ Runtime_key.v delay_key ] in
+  let delay_key = Runtime_arg.delay in
+  let runtime_args = [ Runtime_arg.v delay_key ] in
   let packages = [ package ~max:"1.0.0" "duration" ] in
   let connect i _ _ =
     let modname =
@@ -312,7 +312,7 @@ let delay_startup =
     Fmt.str "%s.sleep_ns (Duration.of_sec %a)" modname Mirage_impl_misc.pp_key
       delay_key
   in
-  impl ~packages ~runtime_keys ~connect "Mirage_runtime" delay
+  impl ~packages ~runtime_args ~connect "Mirage_runtime" delay
 
 (** Functoria devices *)
 
@@ -400,20 +400,20 @@ include Lib.Make (Project)
 module Tool = Tool.Make (Project)
 
 let backtrace =
-  let runtime_keys = Runtime_key.[ v backtrace ] in
+  let runtime_args = Runtime_arg.[ v backtrace ] in
   let connect _ _ _ =
     Fmt.str "return (Printexc.record_backtrace %a)" Mirage_impl_misc.pp_key
-      Runtime_key.backtrace
+      Runtime_arg.backtrace
   in
-  impl ~runtime_keys ~connect "Printexc" job
+  impl ~runtime_args ~connect "Printexc" job
 
 let randomize_hashtables =
-  let runtime_keys = Runtime_key.[ v randomize_hashtables ] in
+  let runtime_args = Runtime_arg.[ v randomize_hashtables ] in
   let connect _ _ _ =
     Fmt.str "return (if %a then Hashtbl.randomize ())" Mirage_impl_misc.pp_key
-      Runtime_key.randomize_hashtables
+      Runtime_arg.randomize_hashtables
   in
-  impl ~runtime_keys ~connect "Hashtbl" job
+  impl ~runtime_args ~connect "Hashtbl" job
 
 let gc_control =
   let pp_pol ~name =
@@ -432,8 +432,8 @@ let gc_control =
       ++ any " "
       ++ Mirage_impl_misc.pp_key)
   in
-  let runtime_keys =
-    Runtime_key.
+  let runtime_args =
+    Runtime_arg.
       [
         v allocation_policy;
         v minor_heap_size;
@@ -452,25 +452,25 @@ let gc_control =
       "return (@.@[<v 2>let open Gc in@ let ctrl = get () in@ set { ctrl with \
        %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a }@]@.)"
       (pp_pol ~name:"allocation_policy")
-      Runtime_key.allocation_policy
+      Runtime_arg.allocation_policy
       (pp_k ~name:"minor_heap_size")
-      Runtime_key.minor_heap_size
+      Runtime_arg.minor_heap_size
       (pp_k ~name:"major_heap_increment")
-      Runtime_key.major_heap_increment
+      Runtime_arg.major_heap_increment
       (pp_k ~name:"space_overhead")
-      Runtime_key.space_overhead
+      Runtime_arg.space_overhead
       (pp_k ~name:"max_overhead")
-      Runtime_key.max_space_overhead (pp_k ~name:"verbose")
-      Runtime_key.gc_verbosity (pp_k ~name:"window_size")
-      Runtime_key.gc_window_size
+      Runtime_arg.max_space_overhead (pp_k ~name:"verbose")
+      Runtime_arg.gc_verbosity (pp_k ~name:"window_size")
+      Runtime_arg.gc_window_size
       (pp_k ~name:"custom_major_ratio")
-      Runtime_key.custom_major_ratio
+      Runtime_arg.custom_major_ratio
       (pp_k ~name:"custom_minor_ratio")
-      Runtime_key.custom_minor_ratio
+      Runtime_arg.custom_minor_ratio
       (pp_k ~name:"custom_minor_max_size")
-      Runtime_key.custom_minor_max_size
+      Runtime_arg.custom_minor_max_size
   in
-  impl ~runtime_keys ~connect "Gc" job
+  impl ~runtime_args ~connect "Gc" job
 
 (** Custom registration *)
 

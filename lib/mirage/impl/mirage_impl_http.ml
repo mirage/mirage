@@ -51,15 +51,15 @@ let http_server = Type.v HTTP_server
 let paf_server port =
   let connect _ modname = function
     | [ tcpv4v6 ] ->
-        Fmt.str {ocaml|%s.init ~port:%a %s|ocaml} modname Runtime_key.call port
+        Fmt.str {ocaml|%s.init ~port:%a %s|ocaml} modname Runtime_arg.call port
           tcpv4v6
     | _ -> assert false
   in
   let packages =
     [ package "paf" ~sublibs:[ "mirage" ] ~min:"0.3.0" ~max:"0.6.0" ]
   in
-  let runtime_keys = Runtime_key.[ v port ] in
-  impl ~connect ~packages ~runtime_keys "Paf_mirage.Make"
+  let runtime_args = Runtime_arg.[ v port ] in
+  impl ~connect ~packages ~runtime_args "Paf_mirage.Make"
     (tcpv4v6 @-> http_server)
 
 type alpn_client = ALPN_client

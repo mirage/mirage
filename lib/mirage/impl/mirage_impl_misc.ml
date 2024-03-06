@@ -6,7 +6,7 @@ let connect_err name number =
   Fmt.str "The %s connect expects exactly %d argument%s" name number
     (if number = 1 then "" else "s")
 
-let pp_key fmt k = Runtime_key.call fmt k
+let pp_key fmt k = Runtime_arg.call fmt k
 
 let terminal () =
   let dumb = try Sys.getenv "TERM" = "dumb" with Not_found -> true in

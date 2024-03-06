@@ -191,12 +191,12 @@ let docteur_unix (mode : mode) extra_deps ~name:_ ~output branch analyze remote
       {ocaml|let ( <.> ) f g = fun x -> f (g x) in
              let f = Rresult.R.(failwith_error_msg <.> reword_error (msgf "%%a" %s.pp_error)) in
              Lwt.map f (%s.connect ~analyze:%a %S)|ocaml}
-      modname modname Runtime_key.call analyze name
+      modname modname Runtime_arg.call analyze name
   in
   let keys = [ Key.v output ] in
-  let runtime_keys = Runtime_key.[ v analyze ] in
+  let runtime_args = Runtime_arg.[ v analyze ] in
   let packages = [ package "docteur-unix" ~min:"0.0.6" ] in
-  impl ~runtime_keys ~keys ~packages ~dune ~install ~configure ~connect
+  impl ~runtime_args ~keys ~packages ~dune ~install ~configure ~connect
     (Fmt.str "Docteur_unix.%a" pp_mode mode)
     ro
 
@@ -248,12 +248,12 @@ let docteur_solo5 (mode : mode) extra_deps ~name ~output branch analyze remote =
       {ocaml|let ( <.> ) f g = fun x -> f (g x) in
              let f = Rresult.R.(failwith_error_msg <.> reword_error (msgf "%%a" %s.pp_error)) in
              Lwt.map f (%s.connect ~analyze:%a %S)|ocaml}
-      modname modname Runtime_key.call analyze name
+      modname modname Runtime_arg.call analyze name
   in
   let keys = [ Key.v output; Key.v name ] in
-  let runtime_keys = Runtime_key.[ v analyze ] in
+  let runtime_args = Runtime_arg.[ v analyze ] in
   let packages = [ package "docteur-solo5" ~min:"0.0.6" ] in
-  impl ~keys ~runtime_keys ~packages ~dune ~install ~configure ~connect
+  impl ~keys ~runtime_args ~packages ~dune ~install ~configure ~connect
     (Fmt.str "Docteur_solo5.%a" pp_mode mode)
     ro
 
@@ -283,7 +283,7 @@ let docteur_unix (mode : mode) extra_deps ?(name = disk_name)
     ?(output = disk_output) branch analyze remote =
   docteur_unix mode extra_deps ~name ~output branch analyze remote
 
-let analyze = Runtime_key.create "Mirage_runtime.analyze"
+let analyze = Runtime_arg.create "Mirage_runtime.analyze"
 
 let docteur ?(mode = `Fast) ?name ?output ?(analyze = analyze) ?branch
     ?(extra_deps = []) remote =
@@ -303,7 +303,7 @@ let docteur ?(mode = `Fast) ?name ?output ?(analyze = analyze) ?branch
     ~default:(docteur_unix mode extra_deps ?name ?output branch analyze remote)
 
 let chamelon ~program_block_size =
-  let runtime_keys = Runtime_key.[ v program_block_size ] in
+  let runtime_args = Runtime_arg.[ v program_block_size ] in
   let packages = [ package "chamelon" ~sublibs:[ "kv" ] ~min:"0.0.8" ] in
   let connect _ modname = function
     | [ block; _ ] ->
@@ -311,14 +311,14 @@ let chamelon ~program_block_size =
           {ocaml|%s.connect ~program_block_size:%a %s
                  >|= Result.map_error (Fmt.str "%%a" %s.pp_error)
                  >|= Result.fold ~ok:Fun.id ~error:failwith|ocaml}
-          modname Runtime_key.call program_block_size block modname
+          modname Runtime_arg.call program_block_size block modname
     | _ -> assert false
   in
-  impl ~packages ~runtime_keys ~connect "Kv.Make"
+  impl ~packages ~runtime_args ~connect "Kv.Make"
     (block @-> pclock @-> Mirage_impl_kv.rw)
 
 let ccm_block ?nonce_len key =
-  let runtime_keys = Runtime_key.[ v key ] in
+  let runtime_args = Runtime_arg.[ v key ] in
   let packages = [ package "mirage-block-ccm" ~min:"2.0.0" ~max:"3.0.0" ] in
   let connect _ modname = function
     | [ block ] ->
@@ -331,9 +331,9 @@ let ccm_block ?nonce_len key =
                      key
                  in
                  %s.connect ?nonce_len:%a ~key:(Cstruct.of_hex key) %s|ocaml}
-          Runtime_key.call key modname
+          Runtime_arg.call key modname
           Fmt.(parens (Dump.option int))
           nonce_len block
     | _ -> assert false
   in
-  impl ~packages ~runtime_keys ~connect "Block_ccm.Make" (block @-> block)
+  impl ~packages ~runtime_args ~connect "Block_ccm.Make" (block @-> block)

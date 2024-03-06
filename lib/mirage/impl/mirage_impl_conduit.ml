@@ -12,7 +12,7 @@ let tcp =
   let packages = [ pkg ] in
   let connect _ _ = function
     | [ stack ] -> Fmt.str "Lwt.return %s@;" stack
-    | _ -> failwith (connect_err "tcp_conduit" 1)
+    | _ -> connect_err "tcp_conduit" 1
   in
   impl ~packages ~connect "Conduit_mirage.TCP" (stackv4v6 @-> conduit)
 
@@ -21,7 +21,7 @@ let tls random =
   let extra_deps = [ dep random ] in
   let connect _ _ = function
     | [ stack; _random ] -> Fmt.str "Lwt.return %s@;" stack
-    | _ -> failwith (connect_err "tls_conduit" 1)
+    | _ -> connect_err "tls_conduit" 2
   in
   impl ~packages ~connect ~extra_deps "Conduit_mirage.TLS" (conduit @-> conduit)
 

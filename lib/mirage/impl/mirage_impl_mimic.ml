@@ -2,6 +2,7 @@ open Functoria
 open Mirage_impl_dns
 open Mirage_impl_stack
 open Mirage_impl_happy_eyeballs
+open Mirage_impl_misc
 
 type mimic = Mimic
 
@@ -21,7 +22,7 @@ let mimic_happy_eyeballs =
   let connect _ modname = function
     | [ _stackv4v6; _dns_client; happy_eyeballs ] ->
         Fmt.str {ocaml|%s.connect %s|ocaml} modname happy_eyeballs
-    | _ -> assert false
+    | _ -> connect_err "mimic" 3
   in
   impl ~packages ~connect "Mimic_happy_eyeballs.Make"
     (stackv4v6 @-> dns_client @-> happy_eyeballs @-> mimic)

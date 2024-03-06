@@ -40,7 +40,7 @@ let resolver_dns_conf ~ns =
            | Ok r -> r@;\
            | Error (`Msg e) -> invalid_arg e@;"
           pp_key ns modname stack
-    | _ -> failwith (connect_err "resolver" 3)
+    | _ -> connect_err "resolver" 5
   in
   impl ~packages ~runtime_args ~connect "Resolver_mirage.Make"
     (random @-> time @-> mclock @-> pclock @-> stackv4v6 @-> resolver)

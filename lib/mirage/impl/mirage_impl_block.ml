@@ -106,7 +106,7 @@ let tar_kv_ro_conf =
   let packages = [ package ~min:"1.0.0" ~max:"3.0.0" "tar-mirage" ] in
   let connect _ modname = function
     | [ block ] -> Fmt.str "%s.connect %s" modname block
-    | _ -> failwith (connect_err "tar_kv_ro" 1)
+    | _ -> connect_err "tar_kv_ro" 1
   in
   impl ~packages ~connect "Tar_mirage.Make_KV_RO" (block @-> Mirage_impl_kv.ro)
 
@@ -114,7 +114,7 @@ let tar_kv_rw_conf =
   let packages = [ package ~min:"2.2.0" ~max:"3.0.0" "tar-mirage" ] in
   let connect _ modname = function
     | [ _pclock; block ] -> Fmt.str "%s.connect %s" modname block
-    | _ -> failwith (connect_err "tar_kv_rw" 2)
+    | _ -> connect_err "tar_kv_rw" 2
   in
   impl ~packages ~connect "Tar_mirage.Make_KV_RW"
     (pclock @-> block @-> Mirage_impl_kv.rw)
@@ -126,7 +126,7 @@ let fat_conf =
   let packages = [ package ~min:"0.15.0" ~max:"0.16.0" "fat-filesystem" ] in
   let connect _ modname = function
     | [ block ] -> Fmt.str "%s.connect %s" modname block
-    | _ -> failwith (connect_err "fat" 1)
+    | _ -> connect_err "fat" 1
   in
   impl ~packages ~connect "Fat.KV_RO" (block @-> Mirage_impl_kv.ro)
 
@@ -312,7 +312,7 @@ let chamelon ~program_block_size =
                  >|= Result.map_error (Fmt.str "%%a" %s.pp_error)
                  >|= Result.fold ~ok:Fun.id ~error:failwith|ocaml}
           modname Runtime_arg.call program_block_size block modname
-    | _ -> assert false
+    | _ -> connect_err "chamelon" 2
   in
   impl ~packages ~runtime_args ~connect "Kv.Make"
     (block @-> pclock @-> Mirage_impl_kv.rw)
@@ -334,6 +334,6 @@ let ccm_block ?nonce_len key =
           Runtime_arg.call key modname
           Fmt.(parens (Dump.option int))
           nonce_len block
-    | _ -> assert false
+    | _ -> connect_err "ccm_block" 1
   in
   impl ~packages ~runtime_args ~connect "Block_ccm.Make" (block @-> block)

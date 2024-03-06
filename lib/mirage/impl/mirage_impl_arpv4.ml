@@ -14,7 +14,7 @@ let arp_conf =
   in
   let connect _ modname = function
     | [ eth; _time ] -> Fmt.str "%s.connect %s" modname eth
-    | _ -> failwith (connect_err "arp" 3)
+    | _ -> connect_err "arp" 2
   in
   impl ~packages ~connect "Arp.Make" (ethernet @-> time @-> arpv4)
 

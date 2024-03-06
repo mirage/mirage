@@ -16,7 +16,7 @@ let udp_direct_func () =
   let packages_v = right_tcpip_library ~sublibs:[ "udp" ] "tcpip" in
   let connect _ modname = function
     | [ ip; _random ] -> Fmt.str "%s.connect %s" modname ip
-    | _ -> failwith (connect_err "udp" 2)
+    | _ -> connect_err "udp" 2
   in
   impl ~packages_v ~connect "Udp.Make" (ip @-> random @-> udp)
 

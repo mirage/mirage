@@ -4,6 +4,7 @@ open Mirage_impl_mclock
 open Mirage_impl_pclock
 open Mirage_impl_tcp
 open Mirage_impl_mimic
+open Mirage_impl_misc
 
 type git_client = Git_client
 
@@ -25,7 +26,7 @@ let git_tcp =
   in
   let connect _ modname = function
     | [ _tcpv4v6; ctx ] -> Fmt.str {ocaml|%s.connect %s|ocaml} modname ctx
-    | _ -> assert false
+    | _ -> connect_err "git_tcp" 2
   in
   impl ~packages ~connect "Git_mirage_tcp.Make"
     (tcpv4v6 @-> mimic @-> git_client)
@@ -35,23 +36,14 @@ let git_ssh ?authenticator key password =
     [ package "git-mirage" ~sublibs:[ "ssh" ] ~min:"3.13.0" ~max:"3.16.0" ]
   in
   let connect _ modname = function
-    | [ _mclock; _tcpv4v6; _time; ctx ] -> (
-        match authenticator with
-        | None ->
-            Fmt.str
-              {ocaml|%s.connect %s >>= %s.with_optionnal_key ~key:%a ~password:%a|ocaml}
-              modname ctx modname Runtime_arg.call key Runtime_arg.call password
-        | Some authenticator ->
-            Fmt.str
-              {ocaml|%s.connect %s >>= %s.with_optionnal_key ?authenticator:%a ~key:%a ~password:%a|ocaml}
-              modname ctx modname Runtime_arg.call authenticator
-              Runtime_arg.call key Runtime_arg.call password)
-    | _ -> assert false
+    | [ _mclock; _tcpv4v6; _time; ctx ] ->
+        Fmt.str {ocaml|%s.connect %s >>= %s.with_optionnal_key%a%a%a|ocaml}
+          modname ctx modname (pp_opt "authenticator") authenticator
+          (pp_label "key") (Some key) (pp_label "password") (Some password)
+    | _ -> connect_err "git_sssh" 4
   in
   let runtime_args =
-    Runtime_arg.v key
-    :: Runtime_arg.v password
-    :: List.map Runtime_arg.v (Option.to_list authenticator)
+    runtime_args_opt [ Some key; Some password; authenticator ]
   in
   impl ~packages ~connect ~runtime_args "Git_mirage_ssh.Make"
     (mclock @-> tcpv4v6 @-> time @-> mimic @-> git_client)
@@ -60,36 +52,15 @@ let git_http ?authenticator headers =
   let packages =
     [ package "git-mirage" ~sublibs:[ "http" ] ~min:"3.10.0" ~max:"3.16.0" ]
   in
-  let runtime_args =
-    let keys = [] in
-    let keys =
-      match headers with
-      | Some headers -> Runtime_arg.v headers :: keys
-      | None -> keys
-    in
-    let keys =
-      match authenticator with
-      | Some authenticator -> Runtime_arg.v authenticator :: keys
-      | None -> []
-    in
-    keys
-  in
+  let runtime_args = runtime_args_opt [ headers; authenticator ] in
   let connect _ modname = function
     | [ _pclock; _tcpv4v6; ctx ] ->
-        let serialize_headers ppf = function
-          | None -> ()
-          | Some headers -> Fmt.pf ppf " ?headers:%a" Runtime_arg.call headers
-        in
-        let serialize_authenticator ppf = function
-          | None -> ()
-          | Some authenticator ->
-              Fmt.pf ppf " ?authenticator:%a" Runtime_arg.call authenticator
-        in
         Fmt.str
-          {ocaml|%s.connect %s >>= fun ctx -> %s.with_optional_tls_config_and_headers%a%a ctx|ocaml}
-          modname ctx modname serialize_authenticator authenticator
-          serialize_headers headers
-    | _ -> assert false
+          {ocaml|%s.connect %s >>= fun ctx ->
+           %s.with_optional_tls_config_and_headers%a%a ctx|ocaml}
+          modname ctx modname (pp_opt "authenticator") authenticator
+          (pp_opt "headers") headers
+    | _ -> connect_err "git_http" 3
   in
   impl ~packages ~connect ~runtime_args "Git_mirage_http.Make"
     (pclock @-> tcpv4v6 @-> mimic @-> git_client)

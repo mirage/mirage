@@ -12,7 +12,7 @@ let icmpv4_direct () =
   let packages_v = right_tcpip_library ~sublibs:[ "icmpv4" ] "tcpip" in
   let connect _ modname = function
     | [ ip ] -> Fmt.str "%s.connect %s" modname ip
-    | _ -> failwith (connect_err "icmpv4" 1)
+    | _ -> connect_err "icmpv4" 1
   in
   impl ~packages_v ~connect "Icmpv4.Make" (ip @-> icmp)
 

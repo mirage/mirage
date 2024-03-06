@@ -45,7 +45,7 @@ let syslog_udp_conf config =
            Lwt.return_unit@]"
           pp_key endpoint pp_key port modname pclock stack pp_key hostname
           (opt_int "truncate") config.truncate
-    | _ -> failwith (connect_err "syslog udp" 2)
+    | _ -> connect_err "syslog_udp" 2
   in
   impl ~packages ~runtime_args ~connect "Logs_syslog_mirage.Udp"
     (pclock @-> stackv4v6 @-> syslog)
@@ -69,7 +69,7 @@ let syslog_tcp_conf config =
            Lwt.return_unit@ | Error e -> invalid_arg e@]"
           pp_key endpoint pp_key port modname pclock stack pp_key hostname
           (opt_int "truncate") config.truncate
-    | _ -> failwith (connect_err "syslog tcp" 2)
+    | _ -> connect_err "syslog_tcp" 2
   in
   impl ~packages ~runtime_args ~connect "Logs_syslog_mirage.Tcp"
     (pclock @-> stackv4v6 @-> syslog)
@@ -93,7 +93,7 @@ let syslog_tls_conf ?keyname config =
            Lwt.return_unit@ | Error e -> invalid_arg e@]"
           pp_key endpoint pp_key port modname pclock stack kv pp_key hostname
           (opt_int "truncate") config.truncate (opt_string "keyname") keyname
-    | _ -> failwith (connect_err "syslog tls" 3)
+    | _ -> connect_err "syslog_tls" 3
   in
   impl ~packages ~runtime_args ~connect "Logs_syslog_mirage_tls.Tls"
     (pclock @-> stackv4v6 @-> Mirage_impl_kv.ro @-> syslog)

@@ -18,7 +18,7 @@ let tcp_direct_func () =
   let packages_v = right_tcpip_library ~sublibs:[ "tcp" ] "tcpip" in
   let connect _ modname = function
     | [ ip; _time; _clock; _random ] -> Fmt.str "%s.connect %s" modname ip
-    | _ -> failwith (connect_err "direct tcp" 4)
+    | _ -> connect_err "tcp" 4
   in
   impl ~packages_v ~connect "Tcp.Flow.Make"
     (ip @-> time @-> mclock @-> random @-> tcp)

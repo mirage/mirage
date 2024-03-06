@@ -42,7 +42,7 @@ let ipv4_keyed_conf ~ip ?gateway ?no_init () =
         Fmt.str "%s.connect@[%a%a%a@ %s@ %s@]" modname (pp_label "no_init")
           no_init (pp_label "cidr") (Some ip) (pp_opt "gateway") gateway etif
           arp
-    | _ -> failwith (connect_err "ipv4 keyed" 4)
+    | _ -> connect_err "ipv4_keyed" 4
   in
   impl ~packages_v ~runtime_args ~connect "Static_ipv4.Make"
     (random @-> mclock @-> ethernet @-> arpv4 @-> ipv4)
@@ -54,7 +54,7 @@ let ipv4_dhcp_conf =
   let connect _ modname = function
     | [ _random; _mclock; _time; network; ethernet; arp ] ->
         Fmt.str "%s.connect@[@ %s@ %s@ %s@]" modname network ethernet arp
-    | _ -> failwith (connect_err "ipv4 dhcp" 5)
+    | _ -> connect_err "ipv4_dhcp" 6
   in
   impl ~packages ~connect "Dhcp_ipv4.Make"
     (random @-> mclock @-> time @-> network @-> ethernet @-> arpv4 @-> ipv4)
@@ -85,7 +85,7 @@ let ipv4_qubes_conf =
   let connect _ modname = function
     | [ db; _random; _mclock; etif; arp ] ->
         Fmt.str "%s.connect@[@ %s@ %s@ %s@]" modname db etif arp
-    | _ -> failwith (connect_err "qubes ipv4" 5)
+    | _ -> connect_err "ipv4_qubes" 5
   in
   impl ~packages ~connect "Qubesdb_ipv4.Make"
     (qubesdb @-> random @-> mclock @-> ethernet @-> arpv4 @-> ipv4)
@@ -102,7 +102,7 @@ let ipv6_conf ?ip ?gateway ?handle_ra ?no_init () =
         Fmt.str "%s.connect@[%a%a%a%a@ %s@ %s@]" modname (pp_label "no_init")
           no_init (pp_label "handle_ra") handle_ra (pp_opt "cidr") ip
           (pp_opt "gateway") gateway netif etif
-    | _ -> failwith (connect_err "ipv6" 5)
+    | _ -> connect_err "ipv6" 5
   in
   impl ~packages_v ~runtime_args ~connect "Ipv6.Make"
     (network @-> ethernet @-> random @-> time @-> mclock @-> ipv6)
@@ -131,7 +131,7 @@ let ipv4v6_conf ?ipv4_only ?ipv6_only () =
     | [ ipv4; ipv6 ] ->
         Fmt.str "%s.connect@[%a%a@ %s@ %s@]" modname (pp_label "ipv4_only")
           ipv4_only (pp_label "ipv6_only") ipv6_only ipv4 ipv6
-    | _ -> failwith (connect_err "ipv4v6" 2)
+    | _ -> connect_err "ipv4v6" 2
   in
   impl ~packages_v ~runtime_args ~connect "Tcpip_stack_direct.IPV4V6"
     (ipv4 @-> ipv6 @-> ipv4v6)

@@ -21,7 +21,7 @@ let generic_dns_client timeout nameservers =
     | [ _random; _time; _mclock; _pclock; stackv4v6 ] ->
         Fmt.str {ocaml|%s.connect%a%a %s|ocaml} modname pp_nameservers
           nameservers (pp_opt "timeout") timeout stackv4v6
-    | _ -> assert false
+    | _ -> connect_err "dns" 5
   in
   impl ~runtime_args ~packages ~connect "Dns_client_mirage.Make"
     (random @-> time @-> mclock @-> pclock @-> stackv4v6 @-> dns_client)

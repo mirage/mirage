@@ -26,7 +26,7 @@ let git_tcp =
   in
   let connect _ modname = function
     | [ _tcpv4v6; ctx ] -> Fmt.str {ocaml|%s.connect %s|ocaml} modname ctx
-    | _ -> assert false
+    | _ -> connect_err "git_tcp" 2
   in
   impl ~packages ~connect "Git_mirage_tcp.Make"
     (tcpv4v6 @-> mimic @-> git_client)
@@ -40,7 +40,7 @@ let git_ssh ?authenticator key password =
         Fmt.str {ocaml|%s.connect %s >>= %s.with_optionnal_key%a%a%a|ocaml}
           modname ctx modname (pp_opt "authenticator") authenticator
           (pp_label "key") (Some key) (pp_label "password") (Some password)
-    | _ -> assert false
+    | _ -> connect_err "git_sssh" 4
   in
   let runtime_args =
     runtime_args_opt [ Some key; Some password; authenticator ]
@@ -60,7 +60,7 @@ let git_http ?authenticator headers =
            %s.with_optional_tls_config_and_headers%a%a ctx|ocaml}
           modname ctx modname (pp_opt "authenticator") authenticator
           (pp_opt "headers") headers
-    | _ -> assert false
+    | _ -> connect_err "git_http" 3
   in
   impl ~packages ~connect ~runtime_args "Git_mirage_http.Make"
     (pclock @-> tcpv4v6 @-> mimic @-> git_client)

@@ -31,7 +31,7 @@ let generic_happy_eyeballs aaaa_timeout connect_delay connect_timeout
           connect_delay (pp_opt "connect_timeout") connect_timeout
           (pp_opt "resolve_timeout") resolve_timeout (pp_opt "resolve_retries")
           resolve_retries (pp_opt "timer_interval") timer_interval dns stack
-    | _ -> assert false
+    | _ -> connect_err "happy_eyeballs" 4
   in
   impl ~runtime_args ~packages ~connect "Happy_eyeballs_mirage.Make"
     (time @-> mclock @-> stackv4v6 @-> dns_client @-> happy_eyeballs)

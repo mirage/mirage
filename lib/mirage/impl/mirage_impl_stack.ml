@@ -33,7 +33,7 @@ let stackv4v6_direct_conf () =
     | [ _t; _r; interface; ethif; arp; ipv4v6; icmpv4; udp; tcp ] ->
         Fmt.str "%s.connect %s %s %s %s %s %s %s" modname interface ethif arp
           ipv4v6 icmpv4 udp tcp
-    | _ -> failwith (connect_err "direct stack" 8)
+    | _ -> connect_err "stackv4v6" 9
   in
   impl ~packages_v ~connect "Tcpip_stack_direct.MakeV4V6"
     (time
@@ -101,7 +101,7 @@ let socket_stackv4v6 ?(group = "") () =
   in
   let connect _i modname = function
     | [ udp; tcp ] -> Fmt.str "%s.connect %s %s" modname udp tcp
-    | _ -> failwith (connect_err "socket stack" 2)
+    | _ -> connect_err "socket_stackv4v6" 2
   in
   impl ~packages_v ~extra_deps ~connect "Tcpip_stack_socket.V4V6" stackv4v6
 

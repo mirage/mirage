@@ -132,7 +132,7 @@ end
 module Make (P : S) = struct
   module Filegen = Filegen.Make (P)
 
-  let default_init = [ Job.keys Argv.sys_argv ]
+  let default_init = [ Job.runtime_args Argv.sys_argv ]
   let build_dir args = Fpath.parent args.Cli.config_file
   let config_file args = args.Cli.config_file
   let mirage_dir args = Fpath.(build_dir args / P.name)

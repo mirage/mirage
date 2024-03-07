@@ -1,7 +1,7 @@
 open Functoria
 
 let test () =
-  let i1 = keys sys_argv in
+  let i1 = runtime_args sys_argv in
   let i2 = noop in
   let context = Context.empty in
   let sigs = job @-> job @-> job in

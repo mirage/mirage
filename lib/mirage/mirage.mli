@@ -1041,8 +1041,8 @@ val job : job typ
 val noop : job impl
 (** [noop] is a job that does nothing, has no dependency and returns [()] *)
 
-val keys : argv impl -> job impl
-(** [keys argv] is a job that loads argv. *)
+val runtime_args : argv impl -> job impl
+(** [runtime_args argv] is a job that loads argv. *)
 
 (** {2 Application registering} *)
 

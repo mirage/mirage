@@ -18,7 +18,7 @@ let test () =
   let stackv4v6 =
     direct_stackv4v6 ~ipv4_only ~ipv6_only network etif arp ipv4 ipv6
   in
-  let init = Functoria.(keys sys_argv) in
+  let init = Functoria.(runtime_args sys_argv) in
   let job =
     main "App.Make" sigs $ conduit_direct ~tls:true stackv4v6 $ default_random
   in

@@ -57,8 +57,8 @@ include DSL
 let job = Job.t
 let noop = Job.noop
 
-let keys ?runtime_package ?runtime_modname x =
-  Job.keys ?runtime_package ?runtime_modname x
+let runtime_args ?runtime_package ?runtime_modname x =
+  Job.runtime_args ?runtime_package ?runtime_modname x
 
 type argv = Argv.t
 

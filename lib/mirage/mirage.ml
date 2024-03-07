@@ -475,8 +475,8 @@ let gc_control =
 
 (** Custom registration *)
 
-let keys argv =
-  Functoria.keys ~runtime_package:"mirage-runtime"
+let runtime_args argv =
+  Functoria.runtime_args ~runtime_package:"mirage-runtime"
     ~runtime_modname:"Mirage_runtime" argv
 
 let ( ++ ) acc x =
@@ -493,7 +493,9 @@ let register ?(argv = default_argv) ?(reporter = default_reporter ()) ?src name
        dependency in your config.ml: use `let main = Mirage.main \
        \"Unikernel.hello\" (job @-> job) register \"hello\" [ main $ noop ]` \
        instead of `.. job .. [ main ]`.";
-  let first = [ keys argv; backtrace; randomize_hashtables; gc_control ] in
+  let first =
+    [ runtime_args argv; backtrace; randomize_hashtables; gc_control ]
+  in
   let reporter = if reporter == no_reporter then None else Some reporter in
   let init = Some first ++ Some delay_startup ++ reporter in
   register ?init ?src name jobs

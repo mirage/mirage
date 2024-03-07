@@ -60,6 +60,9 @@
        they are not available `key_gen.ml` anymore. As a consequence,
        `Key_gen.target` has been removed.
 
+- BREAKING: remove `foreign` from the DSL. Use `main` instead (#1505, @samoht)
+- BREAKING: `main` does not take a `?extra_deps` parameter anymore
+  (#1505, @samoht)
 - BREAKING: the `connect` functions passed to create devices (with `impl`)  now
   take values of type `code` instead of `string`. Value of type `code` are
   created using a new `code` function, that takes `~pos:__POS__` as parameter.

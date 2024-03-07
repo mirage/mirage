@@ -873,7 +873,7 @@ val paf_server : port:int runtime_arg -> tcpv4v6 impl -> http_server impl
         in
         Key.(create "port" Arg.(opt int 8080 doc))
 
-      let main = foreign "Unikernel.Make" (http_server @-> job)
+      let main = main "Unikernel.Make" (http_server @-> job)
       let stackv4v6 = generic_stackv4v6 default_network
       let http_server = paf_server ~port (tcpv4v6_of_stackv4v6 stackv4v6)
       let () = register "main" [ main $ http_server ]
@@ -912,7 +912,7 @@ val paf_client :
     {[
       open Mirage
 
-      let main = foreign "Unikernel.Make" (alpn_client @-> job)
+      let main = main "Unikernel.Make" (alpn_client @-> job)
       let stackv4v6 = generic_stackv4v6 default_network
       let dns = generic_dns_client stack
 

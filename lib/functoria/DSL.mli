@@ -118,7 +118,7 @@ val package :
 (** {1:app Application Builder}
 
     Values of type {!type-impl} are tied to concrete module implementation with
-    the {!device} and {!foreign} construct. Module implementations of type
+    the {!device} and {!main} construct. Module implementations of type
     {!type-job} can then be {{!Functoria.Lib.Make.register} registered} into an
     application builder. The builder is in charge if parsing the command-line
     arguments and of generating code for the final application. See
@@ -127,31 +127,18 @@ val package :
 type info = Info.t
 (** The type for build information. *)
 
-val foreign :
-  ?packages:package list ->
-  ?packages_v:package list value ->
-  ?deps:abstract_impl list ->
-  string ->
-  'a typ ->
-  'a impl
-(** Alias for {!main}, where [?extra_deps] has been renamed to [?deps]. *)
-
 val main :
   ?pos:string * int * int * int ->
   ?packages:package list ->
   ?packages_v:package list value ->
-  ?extra_deps:abstract_impl list ->
   string ->
   'a typ ->
   'a impl
-(** [foreign name typ] is the functor [name], having the module type [typ]. The
+(** [main name typ] is the functor [name], having the module type [typ]. The
     connect code will call [<name>.start].
 
     - If [packages] or [packages_v] is set, then the given packages are
-      installed before compiling the current application.
-    - If [extra_deps] is set, the given list of {{!abstract_impl} abstract}
-      implementations is added as data-dependencies: they will be initialized
-      before calling [<name>.connect]. *)
+      installed before compiling the current application. *)
 
 (** {1 Devices} *)
 

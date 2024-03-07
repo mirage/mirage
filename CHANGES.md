@@ -60,6 +60,11 @@
        they are not available `key_gen.ml` anymore. As a consequence,
        `Key_gen.target` has been removed.
 
+- BREAKING: the `connect` functions passed to create devices (with `impl`)  now
+  take values of type `code` instead of `string`. Value of type `code` are
+  created using a new `code` function, that takes `~pos:__POS__` as parameter.
+  This is used to generate better locations in the generated code, leading to
+  better error messages (#1504, @samoht)
 - BUGFIX: fix `mirage describe` output (#1446 @samoht), add test (#1458 @samoht)
 - Remove ipaddr from runtime (#1437 @samoht, #1465 @hannesm)
 - BREAKING: Mirage.register (and Functoria.register) no longer have `?packages`

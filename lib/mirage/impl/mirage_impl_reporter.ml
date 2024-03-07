@@ -22,7 +22,7 @@ let mirage_log ~default () =
   let runtime_args = [ Runtime_arg.v logs ] in
   let connect _ modname = function
     | [ _pclock ] ->
-        Fmt.str
+        code ~pos:__POS__
           "@[<v 2>let reporter = %s.create () in@ Mirage_runtime.set_level \
            ~default:%a %a;@ Logs.set_reporter reporter;@ Lwt.return reporter@]"
           modname pp_level default pp_key logs
@@ -35,5 +35,5 @@ let default_reporter ?(clock = default_posix_clock) ?(level = Some Logs.Info) ()
   mirage_log ~default:level () $ clock
 
 let no_reporter =
-  let connect _ _ _ = "assert false" in
+  let connect _ _ _ = code ~pos:__POS__ "assert false" in
   impl ~connect "Mirage_runtime" reporter

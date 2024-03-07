@@ -39,9 +39,9 @@ let ipv4_keyed_conf ~ip ?gateway ?no_init () =
   let runtime_args = runtime_args_opt [ no_init; gateway; Some ip ] in
   let connect _ modname = function
     | [ _random; _mclock; etif; arp ] ->
-        Fmt.str "%s.connect@[%a%a%a@ %s@ %s@]" modname (pp_label "no_init")
-          no_init (pp_label "cidr") (Some ip) (pp_opt "gateway") gateway etif
-          arp
+        code ~pos:__POS__ "%s.connect@[%a%a%a@ %s@ %s@]" modname
+          (pp_label "no_init") no_init (pp_label "cidr") (Some ip)
+          (pp_opt "gateway") gateway etif arp
     | _ -> connect_err "ipv4_keyed" 4
   in
   impl ~packages_v ~runtime_args ~connect "Static_ipv4.Make"
@@ -53,7 +53,8 @@ let ipv4_dhcp_conf =
   in
   let connect _ modname = function
     | [ _random; _mclock; _time; network; ethernet; arp ] ->
-        Fmt.str "%s.connect@[@ %s@ %s@ %s@]" modname network ethernet arp
+        code ~pos:__POS__ "%s.connect@[@ %s@ %s@ %s@]" modname network ethernet
+          arp
     | _ -> connect_err "ipv4_dhcp" 6
   in
   impl ~packages ~connect "Dhcp_ipv4.Make"
@@ -84,7 +85,7 @@ let ipv4_qubes_conf =
   let packages = [ package ~min:"0.9.0" ~max:"0.10.0" "mirage-qubes-ipv4" ] in
   let connect _ modname = function
     | [ db; _random; _mclock; etif; arp ] ->
-        Fmt.str "%s.connect@[@ %s@ %s@ %s@]" modname db etif arp
+        code ~pos:__POS__ "%s.connect@[@ %s@ %s@ %s@]" modname db etif arp
     | _ -> connect_err "ipv4_qubes" 5
   in
   impl ~packages ~connect "Qubesdb_ipv4.Make"
@@ -99,9 +100,9 @@ let ipv6_conf ?ip ?gateway ?handle_ra ?no_init () =
   let runtime_args = runtime_args_opt [ ip; gateway; handle_ra; no_init ] in
   let connect _ modname = function
     | [ netif; etif; _random; _time; _clock ] ->
-        Fmt.str "%s.connect@[%a%a%a%a@ %s@ %s@]" modname (pp_label "no_init")
-          no_init (pp_label "handle_ra") handle_ra (pp_opt "cidr") ip
-          (pp_opt "gateway") gateway netif etif
+        code ~pos:__POS__ "%s.connect@[%a%a%a%a@ %s@ %s@]" modname
+          (pp_label "no_init") no_init (pp_label "handle_ra") handle_ra
+          (pp_opt "cidr") ip (pp_opt "gateway") gateway netif etif
     | _ -> connect_err "ipv6" 5
   in
   impl ~packages_v ~runtime_args ~connect "Ipv6.Make"
@@ -129,8 +130,9 @@ let ipv4v6_conf ?ipv4_only ?ipv6_only () =
   let runtime_args = runtime_args_opt [ ipv4_only; ipv6_only ] in
   let connect _ modname = function
     | [ ipv4; ipv6 ] ->
-        Fmt.str "%s.connect@[%a%a@ %s@ %s@]" modname (pp_label "ipv4_only")
-          ipv4_only (pp_label "ipv6_only") ipv6_only ipv4 ipv6
+        code ~pos:__POS__ "%s.connect@[%a%a@ %s@ %s@]" modname
+          (pp_label "ipv4_only") ipv4_only (pp_label "ipv6_only") ipv6_only ipv4
+          ipv6
     | _ -> connect_err "ipv4v6" 2
   in
   impl ~packages_v ~runtime_args ~connect "Tcpip_stack_direct.IPV4V6"

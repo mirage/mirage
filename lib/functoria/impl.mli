@@ -59,7 +59,7 @@ val v :
   ?packages_v:Package.t list Key.value ->
   ?keys:Key.t list ->
   ?extra_deps:abstract list ->
-  ?connect:(Info.t -> string -> string list -> string) ->
+  ?connect:(Info.t -> string -> string list -> 'a Device.code) ->
   ?dune:(Info.t -> Dune.stanza list) ->
   ?configure:(Info.t -> unit Action.t) ->
   ?files:(Info.t -> Fpath.t list) ->
@@ -69,6 +69,7 @@ val v :
 (** [v ...] is [of_device @@ Device.v ...] *)
 
 val main :
+  ?pos:string * int * int * int ->
   ?packages:Package.t list ->
   ?packages_v:Package.t list Key.value ->
   ?keys:Key.t list ->

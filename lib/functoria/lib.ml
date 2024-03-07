@@ -29,6 +29,7 @@ module Config = struct
   type t = {
     config_file : Fpath.t;
     name : string;
+    project_name : string;
     configure_cmd : string;
     pre_build_cmd : Fpath.t option -> string;
     lock_location : Fpath.t option -> string -> string;
@@ -57,7 +58,7 @@ module Config = struct
     Key.Set.fold f all_keys skeys
 
   let v ?(config_file = Fpath.v "config.ml") ?(init = []) ~configure_cmd
-      ~pre_build_cmd ~lock_location ~build_cmd ~src name jobs =
+      ~pre_build_cmd ~lock_location ~build_cmd ~src ~project_name name jobs =
     let jobs = Impl.abstract jobs in
     let if_keys = get_if_context jobs in
     let runtime_args = Runtime_arg.Set.empty in
@@ -66,6 +67,7 @@ module Config = struct
       if_keys;
       runtime_args;
       name;
+      project_name;
       init;
       configure_cmd;
       pre_build_cmd;
@@ -80,6 +82,7 @@ module Config = struct
       {
         config_file;
         name = n;
+        project_name;
         configure_cmd;
         pre_build_cmd;
         lock_location;
@@ -103,7 +106,8 @@ module Config = struct
     let mk packages _ context =
       let info =
         Info.v ~config_file ~packages ~keys ~runtime_args ~context
-          ~configure_cmd ~pre_build_cmd ~lock_location ~build_cmd ~src n
+          ~configure_cmd ~pre_build_cmd ~lock_location ~build_cmd ~src
+          ~project_name n
       in
       { init; jobs; info; device_graph }
     in
@@ -494,7 +498,7 @@ module Make (P : S) = struct
       let main_dev = P.create (init @ jobs) in
       let c =
         Config.v ~config_file ~init ~configure_cmd ~pre_build_cmd ~lock_location
-          ~build_cmd ~src name main_dev
+          ~build_cmd ~src ~project_name:P.name name main_dev
       in
       run_with_argv argv args c
     in

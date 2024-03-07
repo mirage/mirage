@@ -168,8 +168,9 @@ let tcpv4v6_of_stackv4v6 v =
       [ package "tcpip" ~sublibs:[ "stack-direct" ] ~min:"7.1.0" ]
     in
     let connect _ modname = function
-      | [ stackv4v6 ] -> Fmt.str {ocaml|%s.connect %s|ocaml} modname stackv4v6
-      | _ -> assert false
+      | [ stackv4v6 ] ->
+          code ~pos:__POS__ {ocaml|%s.connect %s|ocaml} modname stackv4v6
+      | _ -> Mirage_impl_misc.connect_err "tcpv4v6_of_stackv4v6" 1
     in
     impl ~packages ~connect "Tcpip_stack_direct.TCPV4V6" (stackv4v6 @-> tcpv4v6)
   in
@@ -309,8 +310,8 @@ let delay_startup =
       | `Xen | `Qubes -> "Xen_os.Time"
       | `Virtio | `Hvt | `Spt | `Muen | `Genode -> "Solo5_os.Time"
     in
-    Fmt.str "%s.sleep_ns (Duration.of_sec %a)" modname Mirage_impl_misc.pp_key
-      delay_key
+    code ~pos:__POS__ "%s.sleep_ns (Duration.of_sec %a)" modname
+      Mirage_impl_misc.pp_key delay_key
   in
   impl ~packages ~runtime_args ~connect "Mirage_runtime" delay
 
@@ -391,7 +392,7 @@ let run t = %s.Main.run t ; exit 0|ocaml}
     in
     let install = Mirage_target.install in
     let extra_deps = List.map dep jobs in
-    let connect _ _ _ = "return ()" in
+    let connect _ _ _ = code ~pos:__POS__ "return ()" in
     impl ~keys ~packages_v ~configure ~dune ~connect ~extra_deps ~install
       "Mirage_runtime" job
 end
@@ -402,16 +403,16 @@ module Tool = Tool.Make (Project)
 let backtrace =
   let runtime_args = Runtime_arg.[ v backtrace ] in
   let connect _ _ _ =
-    Fmt.str "return (Printexc.record_backtrace %a)" Mirage_impl_misc.pp_key
-      Runtime_arg.backtrace
+    code ~pos:__POS__ "return (Printexc.record_backtrace %a)"
+      Mirage_impl_misc.pp_key Runtime_arg.backtrace
   in
   impl ~runtime_args ~connect "Printexc" job
 
 let randomize_hashtables =
   let runtime_args = Runtime_arg.[ v randomize_hashtables ] in
   let connect _ _ _ =
-    Fmt.str "return (if %a then Hashtbl.randomize ())" Mirage_impl_misc.pp_key
-      Runtime_arg.randomize_hashtables
+    code ~pos:__POS__ "return (if %a then Hashtbl.randomize ())"
+      Mirage_impl_misc.pp_key Runtime_arg.randomize_hashtables
   in
   impl ~runtime_args ~connect "Hashtbl" job
 
@@ -448,7 +449,7 @@ let gc_control =
       ]
   in
   let connect _ _ _ =
-    Fmt.str
+    code ~pos:__POS__
       "return (@.@[<v 2>let open Gc in@ let ctrl = get () in@ set { ctrl with \
        %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a }@]@.)"
       (pp_pol ~name:"allocation_policy")

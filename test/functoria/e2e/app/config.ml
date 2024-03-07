@@ -8,7 +8,7 @@ let required : string runtime_arg = Runtime_arg.create "App.required"
 
 let keys =
   let connect _ _ _ =
-    Fmt.str
+    code ~pos:__POS__
       {|
       let _ : string = %a
       and _ : string list = %a

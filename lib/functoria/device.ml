@@ -22,7 +22,10 @@ open Astring
 type package = Package.t
 type info = Info.t
 type 'a value = 'a Key.value
-type 'a code = string
+type 'a code = { pos : (string * int * int * int) option; code : string }
+
+let code_opt ?pos fmt = Fmt.kstr (fun code -> { pos; code }) fmt
+let code ~pos fmt = Fmt.kstr (fun code -> { pos = Some pos; code }) fmt
 
 type ('a, 'impl) t = {
   id : 'a Typeid.t;
@@ -58,10 +61,7 @@ let pp : type a b. b Fmt.t -> (a, b) t Fmt.t =
 let equal x y = Typeid.equal x.id y.id
 let witness x y = Typeid.witness x.id y.id
 let hash x = Typeid.id x.id
-
-let default_connect _ _ l =
-  Printf.sprintf "return (%s)" (String.concat ~sep:", " l)
-
+let default_connect _ _ l = code_opt "return (%s)" (String.concat ~sep:", " l)
 let niet _ = Action.ok ()
 let nil _ = []
 
@@ -118,8 +118,8 @@ let keys t = t.keys
 let runtime_args t = t.runtime_args
 let extra_deps t = t.extra_deps
 
-let start impl_name args =
-  Fmt.str "@[%s.start@ %a@]" impl_name Fmt.(list ~sep:sp string) args
+let start ?pos impl_name args =
+  code_opt ?pos "@[%s.start@ %a@]" impl_name Fmt.(list ~sep:sp string) args
 
 let uniq t = Fpath.Set.(elements (of_list t))
 let exec_hook i = function None -> Action.ok () | Some h -> h i

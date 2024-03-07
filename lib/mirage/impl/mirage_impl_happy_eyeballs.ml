@@ -26,8 +26,8 @@ let generic_happy_eyeballs aaaa_timeout connect_delay connect_timeout
   in
   let connect _info modname = function
     | [ _time; _mclock; stack; dns ] ->
-        Fmt.str {ocaml|%s.connect_device%a%a%a%a%a%a %s %s|ocaml} modname
-          (pp_opt "aaaa_timeout") aaaa_timeout (pp_opt "connect_delay")
+        code ~pos:__POS__ {ocaml|%s.connect_device%a%a%a%a%a%a %s %s|ocaml}
+          modname (pp_opt "aaaa_timeout") aaaa_timeout (pp_opt "connect_delay")
           connect_delay (pp_opt "connect_timeout") connect_timeout
           (pp_opt "resolve_timeout") resolve_timeout (pp_opt "resolve_retries")
           resolve_retries (pp_opt "timer_interval") timer_interval dns stack

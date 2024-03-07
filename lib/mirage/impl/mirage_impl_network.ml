@@ -28,7 +28,7 @@ let network_conf ?(intf : string runtime_arg option) name =
       Option.value ~default:(Printf.sprintf "%S" name)
         (Option.map (Fmt.to_to_string Runtime_arg.call) intf)
     in
-    Fmt.str "%s.connect %s" modname name
+    code ~pos:__POS__ "%s.connect %s" modname name
   in
   let configure _ =
     add_new_network name;

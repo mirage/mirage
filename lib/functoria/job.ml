@@ -48,8 +48,8 @@ let keys ?(runtime_package = "functoria-runtime")
   let files _ = [ file ] in
   let connect info _ = function
     | [ argv ] ->
-        Fmt.str "return %s.(with_argv (runtime_args ()) %S %s)" runtime_modname
-          (Info.name info) argv
+        Device.code ~pos:__POS__ "return %s.(with_argv (runtime_args ()) %S %s)"
+          runtime_modname (Info.name info) argv
     | _ -> failwith "The keys connect should receive exactly one argument."
   in
   Impl.v ~files ~configure ~packages ~extra_deps ~connect key_gen t

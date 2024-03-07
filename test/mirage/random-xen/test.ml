@@ -17,7 +17,7 @@ let test () =
   let job =
     main "App.Make" sigs $ conduit_direct ~tls:true stackv4v6 $ default_random
   in
-  Functoria_test.run ~keys context job
+  Functoria_test.run ~keys ~project_name:"mirage" context job
 
 let () =
   match Functoria.Action.run (test ()) with

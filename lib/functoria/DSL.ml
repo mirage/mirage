@@ -29,7 +29,9 @@ type 'a device = ('a, Impl.abstract) Device.t
 type context = Context.t
 type job = Job.t
 type info = Info.t
+type 'a code = 'a Device.code
 
+let code = Device.code
 let package = Package.v
 let ( @-> ) = Type.( @-> )
 let typ = Type.v
@@ -46,8 +48,8 @@ let impl ?packages ?packages_v ?install ?install_v ?keys ?runtime_args
   @@ Device.v ?packages ?packages_v ?install ?install_v ?keys ?runtime_args
        ?extra_deps ?connect ?dune ?configure ?files module_name module_type
 
-let main ?packages ?packages_v ?extra_deps module_name ty =
-  let connect _ = Device.start in
+let main ?pos ?packages ?packages_v ?extra_deps module_name ty =
+  let connect _ = Device.start ?pos in
   impl ?packages ?packages_v ?extra_deps ~connect module_name ty
 
 let foreign ?packages ?packages_v ?deps module_name ty =

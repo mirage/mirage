@@ -31,8 +31,8 @@ let stackv4v6_direct_conf () =
   let packages_v = right_tcpip_library ~sublibs:[ "stack-direct" ] "tcpip" in
   let connect _i modname = function
     | [ _t; _r; interface; ethif; arp; ipv4v6; icmpv4; udp; tcp ] ->
-        Fmt.str "%s.connect %s %s %s %s %s %s %s" modname interface ethif arp
-          ipv4v6 icmpv4 udp tcp
+        code ~pos:__POS__ "%s.connect %s %s %s %s %s %s %s" modname interface
+          ethif arp ipv4v6 icmpv4 udp tcp
     | _ -> connect_err "stackv4v6" 9
   in
   impl ~packages_v ~connect "Tcpip_stack_direct.MakeV4V6"
@@ -100,7 +100,7 @@ let socket_stackv4v6 ?(group = "") () =
     ]
   in
   let connect _i modname = function
-    | [ udp; tcp ] -> Fmt.str "%s.connect %s %s" modname udp tcp
+    | [ udp; tcp ] -> code ~pos:__POS__ "%s.connect %s %s" modname udp tcp
     | _ -> connect_err "socket_stackv4v6" 2
   in
   impl ~packages_v ~extra_deps ~connect "Tcpip_stack_socket.V4V6" stackv4v6

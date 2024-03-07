@@ -19,7 +19,7 @@ let generic_dns_client timeout nameservers =
   in
   let connect _info modname = function
     | [ _random; _time; _mclock; _pclock; stackv4v6 ] ->
-        Fmt.str {ocaml|%s.connect%a%a %s|ocaml} modname pp_nameservers
+        code ~pos:__POS__ {ocaml|%s.connect%a%a %s|ocaml} modname pp_nameservers
           nameservers (pp_opt "timeout") timeout stackv4v6
     | _ -> connect_err "dns" 5
   in

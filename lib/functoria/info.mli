@@ -27,6 +27,9 @@ val config_file : t -> Fpath.t
 val name : t -> string
 (** [name t] is the name of the application. *)
 
+val project_name : t -> string
+(** [project_name t] is the project name. *)
+
 val main : t -> Fpath.t
 (** [main t] is the name of the main application file. *)
 
@@ -74,6 +77,7 @@ val v :
   ?lock_location:(Fpath.t option -> string -> string) ->
   build_cmd:string ->
   src:[ `Auto | `None | `Some of string ] ->
+  project_name:string ->
   string ->
   t
 (** [create context n r] contains information about the application being built. *)

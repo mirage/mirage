@@ -5,21 +5,21 @@ let ty = Functoria.argv
 
 let argv_unix =
   let packages = [ package ~min:"0.1.0" ~max:"0.2.0" "mirage-bootvar-unix" ] in
-  let connect _ _ _ = "Bootvar.argv ()" in
+  let connect _ _ _ = code ~pos:__POS__ "Bootvar.argv ()" in
   impl ~packages ~connect "Bootvar" ty
 
 let argv_solo5 =
   let packages = [ package ~min:"0.6.0" ~max:"0.7.0" "mirage-bootvar-solo5" ] in
-  let connect _ _ _ = "Bootvar.argv ()" in
+  let connect _ _ _ = code ~pos:__POS__ "Bootvar.argv ()" in
   impl ~packages ~connect "Bootvar" ty
 
 let no_argv =
-  let connect _ _ _ = "return [|\"\"|]" in
+  let connect _ _ _ = code ~pos:__POS__ "return [|\"\"|]" in
   impl ~connect "Mirage_runtime" ty
 
 let argv_xen =
   let packages = [ package ~min:"0.8.0" ~max:"0.9.0" "mirage-bootvar-xen" ] in
-  let connect _ _ _ = "Bootvar.argv ()" in
+  let connect _ _ _ = code ~pos:__POS__ "Bootvar.argv ()" in
   impl ~packages ~connect "Bootvar" ty
 
 let default_argv =

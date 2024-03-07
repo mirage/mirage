@@ -137,6 +137,7 @@ val foreign :
 (** Alias for {!main}, where [?extra_deps] has been renamed to [?deps]. *)
 
 val main :
+  ?pos:string * int * int * int ->
   ?packages:package list ->
   ?packages_v:package list value ->
   ?extra_deps:abstract_impl list ->
@@ -154,6 +155,13 @@ val main :
 
 (** {1 Devices} *)
 
+type 'a code = 'a Device.code
+
+val code :
+  pos:string * int * int * int ->
+  ('a, Format.formatter, unit, 'b code) format4 ->
+  'a
+
 type 'a device = ('a, abstract_impl) Device.t
 
 val of_device : 'a device -> 'a impl
@@ -167,7 +175,7 @@ val impl :
   ?keys:Key.t list ->
   ?runtime_args:Runtime_arg.t list ->
   ?extra_deps:abstract_impl list ->
-  ?connect:(info -> string -> string list -> string) ->
+  ?connect:(info -> string -> string list -> 'a code) ->
   ?dune:(info -> Dune.stanza list) ->
   ?configure:(info -> unit Action.t) ->
   ?files:(info -> Fpath.t list) ->

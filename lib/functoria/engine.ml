@@ -121,7 +121,9 @@ let dune info =
    the functor [c] applies to [args]. *)
 let module_expression fmt (c, args) =
   Fmt.pf fmt "%s%a" (Device.module_name c)
-    Fmt.(list (parens @@ of_to_string @@ Device.Graph.impl_name))
+    Fmt.(
+      list ~sep:(any "")
+        (any "(" ++ of_to_string Device.Graph.impl_name ++ any ")"))
     args
 
 let find_all_devices info g i =
@@ -140,56 +142,82 @@ let iter_actions f t =
   in
   Device.Graph.fold f t (Action.ok ())
 
-let append_main i msg fmt =
-  let path = Info.main i in
+let lines_of_str str =
+  String.fold_left (fun n -> function '\n' -> n + 1 | _ -> n) 0 str
+
+type main = { dir : Fpath.t; path : Fpath.t; mutable lines : int }
+
+let main info =
+  let path = Info.main info in
+  let dir = Fpath.(Info.(parent (config_file info) / project_name info)) in
+  let+ str = Action.read_file path in
+  let lines = lines_of_str str in
+  { dir; path; lines }
+
+let append_main main msg fmt =
   let purpose = Fmt.str "Append to main.ml (%s)" msg in
   Fmt.kstr
     (fun str ->
-      Action.with_output ~path ~append:true ~purpose (fun ppf ->
+      main.lines <- main.lines + lines_of_str str + 1;
+      Action.with_output ~path:main.path ~append:true ~purpose (fun ppf ->
           Fmt.pf ppf "%s@." str))
     fmt
 
 let configure info t =
+  let* main = main info in
   let f (v : t) =
     let (D { dev; args; _ }) = v in
     let* () = Device.configure dev info in
     if args = [] then Action.ok ()
     else
-      append_main info "configure" "@[<2>module %s =@ %a@]@."
-        (Device.Graph.impl_name v) module_expression (dev, args)
+      append_main main "configure" "module %s = %a\n" (Device.Graph.impl_name v)
+        module_expression (dev, args)
   in
   iter_actions f t
 
 let meta_init fmt (connect_name, result_name) =
-  Fmt.pf fmt "let _%s =@[@ Lazy.force %s @]in@ " result_name connect_name
+  Fmt.pf fmt "  let _%s = Lazy.force %s in@ " result_name connect_name
 
-let emit_connect fmt (iname, names, connect_string) =
+let pp_pos ppf = function
+  | None -> ()
+  | Some (file, line, _, _) -> Fmt.pf ppf "# %d %S@." line file
+
+let reset_pos { dir; path; lines } =
+  let file = Fpath.(dir // path) |> Fpath.normalize |> Fpath.to_string in
+  Some (file, lines + 1, 0, 0)
+
+let emit_connect fmt (iname, names, connect_code) =
   (* We avoid potential collision between double application
      by prefixing with "_". This also avoid warnings. *)
   let rnames = List.map (fun x -> "_" ^ x) names in
-  let bind ppf name = Fmt.pf ppf "_%s >>= fun %s ->@ " name name in
-  Fmt.pf fmt "@[<v 2>let %s = lazy (@ %a%a%s@ )@]@." iname
+  let bind ppf name = Fmt.pf ppf "  _%s >>= fun %s ->\n" name name in
+  let { Device.pos; code } = connect_code rnames in
+  Fmt.pf fmt "let %s = lazy (\n%a%a%a  %s\n);;" iname
     Fmt.(list ~sep:nop meta_init)
     (List.combine names rnames)
     Fmt.(list ~sep:nop bind)
-    rnames (connect_string rnames)
+    rnames pp_pos pos code
 
-let emit_run info init main =
+let emit_run main init main_name =
   (* "exit 1" is ok in this code, since cmdliner will print help. *)
-  let force ppf name = Fmt.pf ppf "Lazy.force %s >>= fun _ ->@ " name in
-  append_main info "emit_run"
-    "@[<v 2>let () =@ let t =@ @[<v 2>%aLazy.force %s@]@ in run t@]"
+  let force ppf name = Fmt.pf ppf "Lazy.force %s >>= fun _ ->\n  " name in
+  append_main main "emit_run"
+    "let () =\n  let t = %aLazy.force %s in\n  run t\n;;"
     Fmt.(list ~sep:nop force)
-    init main
+    init main_name
 
 let connect ?(init = []) info t =
+  let* main = main info in
   let f (v : t) =
     let (D { dev; args; deps; _ }) = v in
     let var_name = Device.Graph.var_name v in
     let impl_name = Device.Graph.impl_name v in
     let arg_names = List.map Device.Graph.var_name (args @ deps) in
-    append_main info "connect" "%a" emit_connect
-      (var_name, arg_names, Device.connect dev info impl_name)
+    let* () =
+      append_main main "connect" "%a" emit_connect
+        (var_name, arg_names, Device.connect dev info impl_name)
+    in
+    append_main main "reset" "%a" pp_pos (reset_pos main)
   in
   let* () = iter_actions f t in
   let main_name = Device.Graph.var_name t in
@@ -202,4 +230,4 @@ let connect ?(init = []) info t =
       [] init
     |> List.rev
   in
-  emit_run info init_names main_name
+  emit_run main init_names main_name

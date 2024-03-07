@@ -28,7 +28,7 @@ let t = Type.v JOB
 (* Noop, the job that does nothing. *)
 let noop = Impl.v "Unit" t
 
-module Keys = struct
+module Args = struct
   let configure ~file i =
     Log.info (fun m -> m "Generating: %a (keys)" Fpath.pp file);
     Action.with_output ~path:file ~purpose:"key_gen file" (fun ppf ->
@@ -38,13 +38,13 @@ module Keys = struct
           keys)
 end
 
-let keys ?(runtime_package = "functoria-runtime")
+let runtime_args ?(runtime_package = "functoria-runtime")
     ?(runtime_modname = "Functoria_runtime") (argv : Argv.t Impl.t) =
   let packages = [ Package.v runtime_package ] in
   let extra_deps = [ Impl.abstract argv ] in
   let key_gen = Runtime_arg.module_name in
   let file = Fpath.(v (String.Ascii.lowercase key_gen) + "ml") in
-  let configure = Keys.configure ~file in
+  let configure = Args.configure ~file in
   let files _ = [ file ] in
   let connect info _ = function
     | [ argv ] ->

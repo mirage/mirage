@@ -162,9 +162,9 @@ val argv : argv typ
 val sys_argv : argv impl
 (** [sys_argv] is a device providing command-line arguments by using [Sys.argv]. *)
 
-val keys :
+val runtime_args :
   ?runtime_package:string -> ?runtime_modname:string -> argv impl -> job impl
-(** [keys a] is an implementation of {!type-job} that holds the parsed
+(** [runtinme_args a] is an implementation of {!type-job} that holds the parsed
     command-line arguments. By default [runtime_package] is
     ["functoria-runtime"] and [runtime_modname] is ["Functoria_runtime"]. *)
 

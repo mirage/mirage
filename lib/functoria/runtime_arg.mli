@@ -14,15 +14,20 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Runtime command-line arguments. *)
+(** Define runtime command-line arguments. *)
 
 type 'a arg
-(** The type for command-line arguments that parses values of type ['a].. *)
+(** The type for command-line arguments that reads a value of type ['a]. *)
 
-val create : ?name:string -> ?packages:Package.t list -> string -> 'a arg
+val create :
+  pos:string * int * int * int ->
+  ?name:string ->
+  ?packages:Package.t list ->
+  string ->
+  'a arg
 
 type t
-(** The type for abstract {{!type:key} keys}. *)
+(** The type command-line arguments where the type of the value is abstract. *)
 
 val packages : t -> Package.t list
 
@@ -39,15 +44,12 @@ end
 
 (** {1 Code Serialization} *)
 
-val call : 'a arg Fmt.t
+val call : t Fmt.t
 (** [call fmt k] outputs [name ()] to [fmt], where [n] is [k]'s {{!ocaml_name}
     OCaml name}. *)
 
-val serialize : t Fmt.t
+val serialize : runtime_modname:string -> t Fmt.t
 (** [serialize ctx ppf k] outputs the [Cmdliner] runes to parse command-line
     arguments represented by [k] at runtime. *)
 
-(**/**)
-
-val module_name : string
-(** Name of the generated module containing the keys. *)
+val var_name : t -> string

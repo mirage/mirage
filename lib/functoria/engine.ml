@@ -186,17 +186,23 @@ let reset_pos { dir; path; lines } =
   let file = Fpath.(dir // path) |> Fpath.normalize |> Fpath.to_string in
   Some (file, lines + 1, 0, 0)
 
-let emit_connect fmt (iname, names, connect_code) =
+let emit_connect fmt (iname, names, runtime_args, connect_code) =
   (* We avoid potential collision between double application
      by prefixing with "_". This also avoid warnings. *)
   let rnames = List.map (fun x -> "_" ^ x) names in
+  let knames = List.map (fun k -> "_" ^ Runtime_arg.var_name k) runtime_args in
   let bind ppf name = Fmt.pf ppf "  _%s >>= fun %s ->\n" name name in
-  let { Device.pos; code } = connect_code rnames in
-  Fmt.pf fmt "let %s = lazy (\n%a%a%a  %s\n);;" iname
+  let bind_key ppf k =
+    Fmt.pf ppf "  let _%s = %a in\n" (Runtime_arg.var_name k) Runtime_arg.call k
+  in
+  let { Device.pos; code } = connect_code (rnames @ knames) in
+  Fmt.pf fmt "let %s = lazy (\n%a%a%a%a  %s@\n);;\n" iname
     Fmt.(list ~sep:nop meta_init)
     (List.combine names rnames)
     Fmt.(list ~sep:nop bind)
-    rnames pp_pos pos code
+    rnames
+    Fmt.(list ~sep:nop bind_key)
+    runtime_args pp_pos pos code
 
 let emit_run main init main_name =
   (* "exit 1" is ok in this code, since cmdliner will print help. *)
@@ -213,9 +219,10 @@ let connect ?(init = []) info t =
     let var_name = Device.Graph.var_name v in
     let impl_name = Device.Graph.impl_name v in
     let arg_names = List.map Device.Graph.var_name (args @ deps) in
+    let runtime_args = Device.runtime_args dev in
     let* () =
       append_main main "connect" "%a" emit_connect
-        (var_name, arg_names, Device.connect dev info impl_name)
+        (var_name, arg_names, runtime_args, Device.connect dev info impl_name)
     in
     append_main main "reset" "%a" pp_pos (reset_pos main)
   in

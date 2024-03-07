@@ -21,12 +21,12 @@ let mirage_log ~default () =
   let packages = [ package ~min:"2.0.0" ~max:"3.0.0" "mirage-logs" ] in
   let runtime_args = [ Runtime_arg.v logs ] in
   let connect _ modname = function
-    | [ _pclock ] ->
+    | [ _pclock; logs ] ->
         code ~pos:__POS__
           "@[<v 2>let reporter = %s.create () in@ Mirage_runtime.set_level \
-           ~default:%a %a;@ Logs.set_reporter reporter;@ Lwt.return reporter@]"
-          modname pp_level default pp_key logs
-    | _ -> connect_err "log" 1
+           ~default:%a %s;@ Logs.set_reporter reporter;@ Lwt.return reporter@]"
+          modname pp_level default logs
+    | _ -> connect_err "log" 2
   in
   impl ~packages ~runtime_args ~connect "Mirage_logs.Make" (pclock @-> reporter)
 

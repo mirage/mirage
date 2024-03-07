@@ -16,7 +16,6 @@ Make sure that clean remove everything:
   ..
   context
   dune-workspace.config
-  key_gen.ml
   main.ml
   noop.opam
   vote
@@ -63,7 +62,6 @@ Check that clean works with `--output`:
   ..
   context
   dune-workspace.config
-  key_gen.ml
   noop.opam
   toto.ml
   vote

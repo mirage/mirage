@@ -44,21 +44,13 @@ module type KEY =
      and type t = Key.t
      and type Set.t = Key.Set.t
 
-module type RUNTIME_ARG =
-  module type of Runtime_arg
-    with type 'a arg = 'a Runtime_arg.arg
-     and type t = Runtime_arg.t
-     and type Set.t = Runtime_arg.Set.t
-
 (** Devices *)
 
 include DSL
 
 let job = Job.t
 let noop = Job.noop
-
-let runtime_args ?runtime_package ?runtime_modname x =
-  Job.runtime_args ?runtime_package ?runtime_modname x
+let runtime_args = Job.runtime_args
 
 type argv = Argv.t
 

@@ -67,7 +67,7 @@ Query packages
 
 Query files
   $ ./config.exe query --target hvt files
-  key_gen.ml main.ml manifest.json manifest.ml
+  main.ml manifest.json manifest.ml
 
 Query Makefile
   $ ./config.exe query --target hvt Makefile
@@ -250,8 +250,6 @@ Query version
 
 Query unikernel dune
   $ ./config.exe query --target hvt dune.build
-  (copy_files# ./mirage/key_gen.ml)
-  
   (copy_files# ./mirage/main.ml)
   
   (copy_files ./mirage/manifest.json)

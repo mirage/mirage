@@ -14,9 +14,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Configuration-time keys for the Mirage tool. *)
+(** Command-line arguments for the Mirage configuration tool. *)
 
-include Functoria.KEY
+include module type of Functoria.Key
 
 type mode_unix = [ `Unix | `MacOSX ]
 type mode_xen = [ `Xen | `Qubes ]

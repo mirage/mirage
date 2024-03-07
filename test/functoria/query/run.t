@@ -48,7 +48,7 @@ Query packages
 
 Query files
   $ ./config.exe query files
-  key_gen.ml main.ml vote warn_error
+  main.ml vote warn_error
 
 Query Makefile
   $ ./config.exe query Makefile
@@ -234,8 +234,6 @@ Query version
 
 Query unikernel dune
   $ ./config.exe query dune.build
-  (copy_files# ./test/key_gen.ml)
-  
   (copy_files# ./test/main.ml)
   
   (copy_files ./test/vote)

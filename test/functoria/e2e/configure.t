@@ -26,8 +26,6 @@ is passed:
                               "output" = None;
                               "dry_run" = false }
   config.exe: [INFO] Generating: main.ml (main file)
-  config.exe: [INFO] Generating: key_gen.ml (keys)
-  config.exe: [INFO] Generating: key_gen.ml (keys)
   config.exe: [INFO] Generating: dune.build (dune.build)
   config.exe: [INFO] Generating: dune-workspace (dune-workspace)
   config.exe: [INFO] Generating: dune-project (dune-project)
@@ -47,7 +45,6 @@ is passed:
   ..
   context
   dune-workspace.config
-  key_gen.ml
   main.ml
   noop.opam
   vote

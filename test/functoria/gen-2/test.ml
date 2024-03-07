@@ -5,7 +5,7 @@ let test () =
   let i2 = noop in
   let context = Context.empty in
   let sigs = job @-> job @-> job in
-  let job = main "App.Make" sigs $ i1 $ i2 in
+  let job = main ~pos:__POS__ "App.Make" sigs $ i1 $ i2 in
   Functoria_test.run ~init:[ i1; i2 ] context job
 
 let () =

@@ -30,7 +30,7 @@ let cohttp_client =
   let connect _i modname = function
     | [ _pclock; resolver; conduit ] ->
         code ~pos:__POS__ "Lwt.return (%s.ctx %s %s)" modname resolver conduit
-    | _ -> connect_err "http" 2
+    | _ -> connect_err "http" 3
   in
   impl ~packages ~connect "Cohttp_mirage.Client.Make"
     (pclock @-> resolver @-> conduit @-> http_client)
@@ -50,10 +50,9 @@ let http_server = Type.v HTTP_server
 
 let paf_server port =
   let connect _ modname = function
-    | [ tcpv4v6 ] ->
-        code ~pos:__POS__ {ocaml|%s.init ~port:%a %s|ocaml} modname
-          Runtime_arg.call port tcpv4v6
-    | _ -> connect_err "paf_server" 1
+    | [ tcpv4v6; port ] ->
+        code ~pos:__POS__ {ocaml|%s.init ~port:%s %s|ocaml} modname port tcpv4v6
+    | _ -> connect_err "paf_server" 2
   in
   let packages =
     [ package "paf" ~sublibs:[ "mirage" ] ~min:"0.3.0" ~max:"0.6.0" ]

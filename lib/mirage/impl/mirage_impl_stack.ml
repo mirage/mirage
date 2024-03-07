@@ -33,7 +33,7 @@ let stackv4v6_direct_conf () =
     | [ _t; _r; interface; ethif; arp; ipv4v6; icmpv4; udp; tcp ] ->
         code ~pos:__POS__ "%s.connect %s %s %s %s %s %s %s" modname interface
           ethif arp ipv4v6 icmpv4 udp tcp
-    | _ -> connect_err "stackv4v6" 9
+    | _ -> connect_err "direct stack" 9
   in
   impl ~packages_v ~connect "Tcpip_stack_direct.MakeV4V6"
     (time

@@ -1,9 +1,9 @@
 open Mirage
 
-let opt = Runtime_arg.create "Key.opt"
-let opt_all = Runtime_arg.create "Key.opt_all"
-let flag = Runtime_arg.create "Key.flag"
-let required = Runtime_arg.create "Key.required"
+let opt = runtime_arg ~pos:__POS__ "Key.opt"
+let opt_all = runtime_arg ~pos:__POS__ "Key.opt_all"
+let flag = runtime_arg ~pos:__POS__ "Key.flag"
+let required = runtime_arg ~pos:__POS__ "Key.required"
 
 let test () =
   let context = Key.add_to_context Key.target `Unix Context.empty in
@@ -20,13 +20,15 @@ let test () =
   in
   let init = Functoria.(runtime_args sys_argv) in
   let job =
-    main "App.Make" sigs $ conduit_direct ~tls:true stackv4v6 $ default_random
+    main ~pos:__POS__ "App.Make" sigs
+    $ conduit_direct ~tls:true stackv4v6
+    $ default_random
   in
 
   let job =
     let connect _ _ _ = code ~pos:__POS__ "return ()" in
     Functoria.impl
-      ~runtime_args:Runtime_arg.[ v opt; v opt_all; v flag; v required ]
+      ~runtime_args:[ opt; opt_all; flag; required ]
       ~extra_deps:[ dep job; dep init ]
       "Functoria_runtime" ~connect Functoria.job
   in

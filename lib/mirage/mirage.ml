@@ -303,15 +303,16 @@ let delay_startup =
   let delay_key = Runtime_arg.delay in
   let runtime_args = [ Runtime_arg.v delay_key ] in
   let packages = [ package ~max:"1.0.0" "duration" ] in
-  let connect i _ _ =
-    let modname =
-      match Mirage_impl_misc.get_target i with
-      | `Unix | `MacOSX -> "Unix_os.Time"
-      | `Xen | `Qubes -> "Xen_os.Time"
-      | `Virtio | `Hvt | `Spt | `Muen | `Genode -> "Solo5_os.Time"
-    in
-    code ~pos:__POS__ "%s.sleep_ns (Duration.of_sec %a)" modname
-      Mirage_impl_misc.pp_key delay_key
+  let connect i _ = function
+    | [ delay_key ] ->
+        let modname =
+          match Mirage_impl_misc.get_target i with
+          | `Unix | `MacOSX -> "Unix_os.Time"
+          | `Xen | `Qubes -> "Xen_os.Time"
+          | `Virtio | `Hvt | `Spt | `Muen | `Genode -> "Solo5_os.Time"
+        in
+        code ~pos:__POS__ "%s.sleep_ns (Duration.of_sec %s)" modname delay_key
+    | _ -> Mirage_impl_misc.connect_err "delay_startup" 1
   in
   impl ~packages ~runtime_args ~connect "Mirage_runtime" delay
 
@@ -402,17 +403,20 @@ module Tool = Tool.Make (Project)
 
 let backtrace =
   let runtime_args = Runtime_arg.[ v backtrace ] in
-  let connect _ _ _ =
-    code ~pos:__POS__ "return (Printexc.record_backtrace %a)"
-      Mirage_impl_misc.pp_key Runtime_arg.backtrace
+  let connect _ _ = function
+    | [ backtrace ] ->
+        code ~pos:__POS__ "return (Printexc.record_backtrace %s)" backtrace
+    | _ -> Mirage_impl_misc.connect_err "backtrace" 1
   in
   impl ~runtime_args ~connect "Printexc" job
 
 let randomize_hashtables =
   let runtime_args = Runtime_arg.[ v randomize_hashtables ] in
-  let connect _ _ _ =
-    code ~pos:__POS__ "return (if %a then Hashtbl.randomize ())"
-      Mirage_impl_misc.pp_key Runtime_arg.randomize_hashtables
+  let connect _ _ = function
+    | [ randomize_hashtables ] ->
+        code ~pos:__POS__ "return (if %s then Hashtbl.randomize ())"
+          randomize_hashtables
+    | _ -> Mirage_impl_misc.connect_err "randomize_hashtables" 2
   in
   impl ~runtime_args ~connect "Hashtbl" job
 
@@ -422,16 +426,17 @@ let gc_control =
       any name
       ++ any " = "
       ++ any "(match "
-      ++ Mirage_impl_misc.pp_key
+      ++ string
       ++ any " with `Next_fit -> 0 | `First_fit -> 1 | `Best_fit -> 2)")
   and pp_k ~name =
     Fmt.(
       any name
       ++ any " = "
-      ++ any "Option.value ~default:ctrl."
+      ++ any "(match "
+      ++ string
+      ++ any " with None -> ctrl."
       ++ any name
-      ++ any " "
-      ++ Mirage_impl_misc.pp_key)
+      ++ any " | Some x -> x)")
   in
   let runtime_args =
     Runtime_arg.
@@ -448,28 +453,40 @@ let gc_control =
         v custom_minor_max_size;
       ]
   in
-  let connect _ _ _ =
-    code ~pos:__POS__
-      "return (@.@[<v 2>let open Gc in@ let ctrl = get () in@ set { ctrl with \
-       %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a }@]@.)"
-      (pp_pol ~name:"allocation_policy")
-      Runtime_arg.allocation_policy
-      (pp_k ~name:"minor_heap_size")
-      Runtime_arg.minor_heap_size
-      (pp_k ~name:"major_heap_increment")
-      Runtime_arg.major_heap_increment
-      (pp_k ~name:"space_overhead")
-      Runtime_arg.space_overhead
-      (pp_k ~name:"max_overhead")
-      Runtime_arg.max_space_overhead (pp_k ~name:"verbose")
-      Runtime_arg.gc_verbosity (pp_k ~name:"window_size")
-      Runtime_arg.gc_window_size
-      (pp_k ~name:"custom_major_ratio")
-      Runtime_arg.custom_major_ratio
-      (pp_k ~name:"custom_minor_ratio")
-      Runtime_arg.custom_minor_ratio
-      (pp_k ~name:"custom_minor_max_size")
-      Runtime_arg.custom_minor_max_size
+  let connect _ _ = function
+    | [
+        allocation_policy;
+        minor_heap_size;
+        major_heap_increment;
+        space_overhead;
+        max_space_overhead;
+        gc_verbosity;
+        gc_window_size;
+        custom_major_ratio;
+        custom_minor_ratio;
+        custom_minor_max_size;
+      ] ->
+        code ~pos:__POS__
+          "return (@.@[<v 2>let open Gc in@ let ctrl = get () in@ set ({ ctrl \
+           with %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a })@]@.)"
+          (pp_pol ~name:"allocation_policy")
+          allocation_policy
+          (pp_k ~name:"minor_heap_size")
+          minor_heap_size
+          (pp_k ~name:"major_heap_increment")
+          major_heap_increment
+          (pp_k ~name:"space_overhead")
+          space_overhead
+          (pp_k ~name:"max_overhead")
+          max_space_overhead (pp_k ~name:"verbose") gc_verbosity
+          (pp_k ~name:"window_size") gc_window_size
+          (pp_k ~name:"custom_major_ratio")
+          custom_major_ratio
+          (pp_k ~name:"custom_minor_ratio")
+          custom_minor_ratio
+          (pp_k ~name:"custom_minor_max_size")
+          custom_minor_max_size
+    | _ -> Mirage_impl_misc.connect_err "gc_control" 11
   in
   impl ~runtime_args ~connect "Gc" job
 

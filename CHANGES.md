@@ -60,18 +60,20 @@
        they are not available `key_gen.ml` anymore. As a consequence,
        `Key_gen.target` has been removed.
 
-- BREAKING: remove `foreign` from the DSL. Use `main` instead (#1505, @samoht)
-- BREAKING: `main` does not take a `?extra_deps` parameter anymore
+- BREAKING: `Mirage.keys` is renamed to `Mirage.runtime_args` (#1506, @samoht)
+- BREAKING: remove `Mirage.foreign. Use `Mirage.main` instead (#1505, @samoht)
+- BREAKING: `Mirage.main` does not take a `?extra_deps` parameter anymore
   (#1505, @samoht)
-- BREAKING: the `connect` functions passed to create devices (with `impl`)  now
-  take values of type `code` instead of `string`. Value of type `code` are
-  created using a new `code` function, that takes `~pos:__POS__` as parameter.
-  This is used to generate better locations in the generated code, leading to
-  better error messages (#1504, @samoht)
+- BREAKING: the `Mirage.connect` functions passed to create devices
+  (with `Mirage.impl`)  now take values of type `'a Mirage.code` instead
+  of `string`. Value of type `code` are created using a new `Mirage.code`
+  function, that takes `~pos:__POS__` as parameter. This is used to generate
+  better locations in the generated code, leading to better error messages
+  (#1504, @samoht)
 - BUGFIX: fix `mirage describe` output (#1446 @samoht), add test (#1458 @samoht)
 - Remove ipaddr from runtime (#1437 @samoht, #1465 @hannesm)
-- BREAKING: Mirage.register (and Functoria.register) no longer have `?packages`
-  and `?keys` arguments (#1433, #1434 @hannesm)
+- BREAKING: `Mirage.register` no longer have `?packages` and `?keys` arguments
+  (#1433, #1434 @hannesm)
 - BREAKING: Remove deprecated bindings and types (#1461 @hannesm)
 - BREAKING: Remove `mirage build` subcommand, use `dune build` in Makefile
   (#1404 @hannesm), put `--profile release` in Makefile instead of

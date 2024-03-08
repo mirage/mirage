@@ -12,7 +12,7 @@ let cast = function #t as t -> t | _ -> invalid_arg "not a solo5 target."
 
 let build_packages =
   [
-    Functoria.package ~min:"0.8.1" ~max:"0.9.0" ~scope:`Switch ~build:true
+    Functoria.package ~min:"0.8.2" ~max:"0.9.0" ~scope:`Switch ~build:true
       "ocaml-solo5";
     Functoria.package ~min:"0.7.5" ~max:"0.9.0" ~scope:`Switch ~build:true
       "solo5";

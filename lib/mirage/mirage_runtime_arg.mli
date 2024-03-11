@@ -138,7 +138,10 @@ val syslog_hostname :
 
 (** {3 Logs} *)
 
-val logs : Mirage_runtime.log_threshold list runtime_arg
+type log_threshold = [ `All | `Src of string ] * Logs.level option
+(** The type for log threshold. A log level of [None] disables logging. *)
+
+val logs : log_threshold list runtime_arg
 
 (** {3 Startup delay} *)
 

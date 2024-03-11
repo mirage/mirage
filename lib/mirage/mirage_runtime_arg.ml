@@ -153,4 +153,6 @@ let syslog_hostname ?group ?docs default =
   runtime_network_key ~pos:__POS__ ~name "syslog_hostname %a%a%S" pp_group group
     pp_docs docs default
 
+type log_threshold = [ `All | `Src of string ] * Logs.level option
+
 let logs = runtime_arg ~pos:__POS__ "logs"

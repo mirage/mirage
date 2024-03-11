@@ -2,7 +2,7 @@
  (public_name mirage.key)
  (name mirage_key)
  (wrapped false)
- (libraries ipaddr functoria mirage-runtime bos)
+ (libraries ipaddr functoria bos)
  (modules mirage_key mirage_runtime_arg))
 
 (library

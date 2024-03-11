@@ -184,14 +184,16 @@ let docteur_unix (mode : mode) extra_deps ~name:_ ~output branch analyze remote
     let (_ : block_t) = make_block_t name in
     Action.ok ()
   in
-  let connect info modname _ =
-    let ctx = Info.context info in
-    let name = Key.get ctx output in
-    code ~pos:__POS__
-      {ocaml|let ( <.> ) f g = fun x -> f (g x) in
+  let connect info modname = function
+    | [ analyze ] ->
+        let ctx = Info.context info in
+        let name = Key.get ctx output in
+        code ~pos:__POS__
+          {ocaml|let ( <.> ) f g = fun x -> f (g x) in
              let f = Rresult.R.(failwith_error_msg <.> reword_error (msgf "%%a" %s.pp_error)) in
-             Lwt.map f (%s.connect ~analyze:%a %S)|ocaml}
-      modname modname Runtime_arg.call analyze name
+             Lwt.map f (%s.connect ~analyze:%s %S)|ocaml}
+          modname modname analyze name
+    | _ -> connect_err "docteur_unix" 1
   in
   let keys = [ Key.v output ] in
   let runtime_args = Runtime_arg.[ v analyze ] in
@@ -241,14 +243,16 @@ let docteur_solo5 (mode : mode) extra_deps ~name ~output branch analyze remote =
     let (_ : block_t) = make_block_t name in
     Action.ok ()
   in
-  let connect info modname _ =
-    let ctx = Info.context info in
-    let name = Key.get ctx name in
-    code ~pos:__POS__
-      {ocaml|let ( <.> ) f g = fun x -> f (g x) in
+  let connect info modname = function
+    | [ analyze ] ->
+        let ctx = Info.context info in
+        let name = Key.get ctx name in
+        code ~pos:__POS__
+          {ocaml|let ( <.> ) f g = fun x -> f (g x) in
              let f = Rresult.R.(failwith_error_msg <.> reword_error (msgf "%%a" %s.pp_error)) in
-             Lwt.map f (%s.connect ~analyze:%a %S)|ocaml}
-      modname modname Runtime_arg.call analyze name
+             Lwt.map f (%s.connect ~analyze:%s %S)|ocaml}
+          modname modname analyze name
+    | _ -> connect_err "docteur_solo5" 1
   in
   let keys = [ Key.v output; Key.v name ] in
   let runtime_args = Runtime_arg.[ v analyze ] in
@@ -283,7 +287,7 @@ let docteur_unix (mode : mode) extra_deps ?(name = disk_name)
     ?(output = disk_output) branch analyze remote =
   docteur_unix mode extra_deps ~name ~output branch analyze remote
 
-let analyze = Runtime_arg.create "Mirage_runtime.analyze"
+let analyze = Runtime_arg.create ~pos:__POS__ "Mirage_runtime.analyze"
 
 let docteur ?(mode = `Fast) ?name ?output ?(analyze = analyze) ?branch
     ?(extra_deps = []) remote =
@@ -306,13 +310,13 @@ let chamelon ~program_block_size =
   let runtime_args = Runtime_arg.[ v program_block_size ] in
   let packages = [ package "chamelon" ~sublibs:[ "kv" ] ~min:"0.0.8" ] in
   let connect _ modname = function
-    | [ block; _ ] ->
+    | [ block; _; program_block_size ] ->
         code ~pos:__POS__
-          {ocaml|%s.connect ~program_block_size:%a %s
+          {ocaml|%s.connect ~program_block_size:%s %s
                  >|= Result.map_error (Fmt.str "%%a" %s.pp_error)
                  >|= Result.fold ~ok:Fun.id ~error:failwith|ocaml}
-          modname Runtime_arg.call program_block_size block modname
-    | _ -> connect_err "chamelon" 2
+          modname program_block_size block modname
+    | _ -> connect_err "chameleon" 3
   in
   impl ~packages ~runtime_args ~connect "Kv.Make"
     (block @-> pclock @-> Mirage_impl_kv.rw)
@@ -321,9 +325,9 @@ let ccm_block ?nonce_len key =
   let runtime_args = Runtime_arg.[ v key ] in
   let packages = [ package "mirage-block-ccm" ~min:"2.0.0" ~max:"3.0.0" ] in
   let connect _ modname = function
-    | [ block ] ->
+    | [ block; key ] ->
         code ~pos:__POS__
-          {ocaml|let key = %a in
+          {ocaml|let key = %s in
                  let key =
                    if String.length key >= 2 && String.(equal "0x" (sub key 0 2)) then
                      String.sub key 2 (String.length key - 2)
@@ -331,9 +335,9 @@ let ccm_block ?nonce_len key =
                      key
                  in
                  %s.connect ?nonce_len:%a ~key:(Cstruct.of_hex key) %s|ocaml}
-          Runtime_arg.call key modname
+          key modname
           Fmt.(parens (Dump.option int))
           nonce_len block
-    | _ -> connect_err "ccm_block" 1
+    | _ -> connect_err "ccm_block" 2
   in
   impl ~packages ~runtime_args ~connect "Block_ccm.Make" (block @-> block)

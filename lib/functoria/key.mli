@@ -50,6 +50,17 @@ module Arg : sig
         Cmdliner.Arg.flag} but for cross-stage command-line flags. *)
 
   val opt_all : 'a Arg.conv -> Arg.info -> 'a list t
+
+  val info :
+    ?deprecated:string ->
+    ?absent:string ->
+    ?docs:string ->
+    ?docv:string ->
+    ?doc:string ->
+    ?env:Cmd.Env.info ->
+    string list ->
+    Arg.info
+  (** Same as {!Cmdliner.Arg.info}. *)
 end
 
 (** {1 Configuration Keys} *)

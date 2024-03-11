@@ -1,4 +1,5 @@
 open Functoria
+open Mirage_impl_misc
 module Key = Mirage_key
 module Runtime_arg = Mirage_runtime_arg
 
@@ -23,12 +24,10 @@ let network_conf ?(intf : string runtime_arg option) name =
     | #Mirage_key.mode_solo5 ->
         [ package ~min:"0.8.0" ~max:"0.9.0" "mirage-net-solo5" ]
   in
-  let connect _ modname _ =
-    let name =
-      Option.value ~default:(Printf.sprintf "%S" name)
-        (Option.map (Fmt.to_to_string Runtime_arg.call) intf)
-    in
-    code ~pos:__POS__ "%s.connect %s" modname name
+  let connect _ modname = function
+    | [] -> code ~pos:__POS__ "%s.connect %S" modname name
+    | [ intf ] -> code ~pos:__POS__ "%s.connect %s" modname intf
+    | _ -> connect_err "network_conf" 0 ~max:1
   in
   let configure _ =
     add_new_network name;

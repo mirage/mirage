@@ -74,7 +74,7 @@ Describe before configure (no eval)
                 57 [label="bootvar__57\nBootvar\n", shape="box"];
                 58 [label="bootvar__58\nBootvar\n", shape="box"];
                 59 [label="If\ntarget"];
-                60 [label="key_gen__60\nKey_gen\n", shape="box"];
+                60 [label="struct_end__60\nstruct end\n", shape="box"];
                 61 [label="mirage_runtime__61\nMirage_runtime\ntarget", shape="box"];
                 
                 3 -> 2 [style="dashed"];

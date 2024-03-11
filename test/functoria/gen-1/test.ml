@@ -2,9 +2,9 @@ open Functoria
 
 let test () =
   let context = Context.empty in
-  let sigs = job @-> job in
-  let job = main "App.Make" sigs $ runtime_args sys_argv in
-  Functoria_test.run context job
+  let i0 = runtime_args sys_argv in
+  let job = main ~pos:__POS__ "App.Make" (job @-> job) $ i0 in
+  Functoria_test.run ~project_name:"test" context job
 
 let () =
   match Action.run (test ()) with Ok () -> () | Error (`Msg e) -> failwith e

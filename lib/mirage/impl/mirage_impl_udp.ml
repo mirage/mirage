@@ -31,9 +31,11 @@ let udpv4v6_socket_conf ~ipv4_only ~ipv6_only ipv4_key ipv6_key =
     | `Unix | `MacOSX -> Action.ok ()
     | _ -> Action.error "UDPv4v6 socket not supported on non-UNIX targets."
   in
-  let connect _ modname _ =
-    code ~pos:__POS__ "%s.connect ~ipv4_only:%a ~ipv6_only:%a %a %a" modname
-      pp_key ipv4_only pp_key ipv6_only pp_key ipv4_key pp_key ipv6_key
+  let connect _ modname = function
+    | [ ipv4_only; ipv6_only; ipv4_key; ipv6_key ] ->
+        code ~pos:__POS__ "%s.connect ~ipv4_only:%s ~ipv6_only:%s %s %s" modname
+          ipv4_only ipv6_only ipv4_key ipv6_key
+    | _ -> connect_err "udpv4v6_socket_conf" 4
   in
   impl ~runtime_args ~packages_v ~configure ~connect "Udpv4v6_socket" udpv4v6
 

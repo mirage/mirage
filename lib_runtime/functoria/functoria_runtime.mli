@@ -19,16 +19,15 @@
 (** Functoria runtime. *)
 
 (** [Arg] defines values that can be set by runtime command-line arguments. This
-    module is the runtime companion of {!Functoria.Runtime_argq}. *)
+    module is the runtime companion of {!Functora.Runtime_arg}. *)
 module Arg : sig
   (** {1 Command-line Arguments} *)
 
   type 'a t
-  (** The type for runtime keys parsing values of type ['a]. *)
+  (** The type for command-line arguments containing a value of type ['a]. *)
 
   val create : 'a Cmdliner.Term.t -> 'a t
-  (** [create t] is the command-line argument built from the [Cmdliner] term
-      [t]. *)
+  (** [create conv] create a new command-line argument from a [Cmdliner] term. *)
 
   val conv :
     (string -> ('a, [ `Msg of string ]) result) ->
@@ -37,13 +36,10 @@ module Arg : sig
 end
 
 val register : 'a Cmdliner.Term.t -> unit -> 'a
-(** [key t] registers the Cmdliner term [k] as a runtime key and return a
+(** [register t] registers the Cmdliner term [k] as a runtime key and return a
     callback [f] that evaluates to [t]s' value passed on the command-line.
 
     [f] will raise [Invalid_argument] if called before cmdliner's evaluation. *)
-
-val argument_error : int
-(** [argument_error] is the exit code used for argument parsing errors: 64. *)
 
 val with_argv : unit Cmdliner.Term.t list -> string -> string array -> unit
 (** [with_argv keys name argv] evaluates the [keys] {{!Key.term} terms} on the
@@ -52,3 +48,11 @@ val with_argv : unit Cmdliner.Term.t list -> string -> string array -> unit
     evaluated, [exit(3)] is called with status [63]. *)
 
 val runtime_args : unit -> unit Cmdliner.Term.t list
+
+(** {2 Exit Codes} *)
+
+val argument_error : int
+(** [argument_error] is the exit code used for argument parsing errors: 64. *)
+
+val help_version : int
+(** [help_version] is the exit code used when help/version is used: 63. *)

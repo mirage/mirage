@@ -66,7 +66,7 @@ Query packages
 
 Query files
   $ ./config.exe query files
-  key_gen.ml main.ml
+  main.ml
 
 Query Makefile
   $ ./config.exe query Makefile --target unix
@@ -252,8 +252,6 @@ Query version
 
 Query unikernel dune
   $ ./config.exe query dune.build
-  (copy_files# ./mirage/key_gen.ml)
-  
   (copy_files# ./mirage/main.ml)
   
   (rule

@@ -15,7 +15,9 @@ let test () =
     direct_stackv4v6 ~ipv4_only ~ipv6_only network etif arp ipv4 ipv6
   in
   let job =
-    main "App.Make" sigs $ conduit_direct ~tls:true stackv4v6 $ default_random
+    main "App.Make" ~pos:__POS__ sigs
+    $ conduit_direct ~tls:true stackv4v6
+    $ default_random
   in
   Functoria_test.run ~keys ~project_name:"mirage" context job
 

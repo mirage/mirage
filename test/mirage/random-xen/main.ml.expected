@@ -33,12 +33,14 @@ module App_make__16 = App.Make(Conduit_mirage_tls__15)(Mirage_crypto_rng_mirage_
 let xen_os_time__1 = lazy (
   return ()
 );;
-# 36 "mirage/main.ml"
+
+# 37 "mirage/main.ml"
 
 let mclock__2 = lazy (
   return ()
 );;
-# 41 "mirage/main.ml"
+
+# 43 "mirage/main.ml"
 
 let mirage_crypto_rng_mirage_make__3 = lazy (
   let __xen_os_time__1 = Lazy.force xen_os_time__1 in
@@ -48,13 +50,16 @@ let mirage_crypto_rng_mirage_make__3 = lazy (
 # 18 "lib/mirage/impl/mirage_impl_random.ml"
   Mirage_crypto_rng_mirage_make__3.initialize (module Mirage_crypto_rng.Fortuna)
 );;
-# 51 "mirage/main.ml"
+
+# 54 "mirage/main.ml"
 
 let netif__4 = lazy (
-# 31 "lib/mirage/impl/mirage_impl_network.ml"
-  Netif.connect (Key_gen.interface ())
+  let _interface = interface__key () in
+# 29 "lib/mirage/impl/mirage_impl_network.ml"
+  Netif.connect _interface
 );;
-# 57 "mirage/main.ml"
+
+# 62 "mirage/main.ml"
 
 let ethernet_make__5 = lazy (
   let __netif__4 = Lazy.force netif__4 in
@@ -62,7 +67,8 @@ let ethernet_make__5 = lazy (
 # 13 "lib/mirage/impl/mirage_impl_ethernet.ml"
   Ethernet_make__5.connect _netif__4
 );;
-# 65 "mirage/main.ml"
+
+# 71 "mirage/main.ml"
 
 let arp_make__6 = lazy (
   let __ethernet_make__5 = Lazy.force ethernet_make__5 in
@@ -72,7 +78,8 @@ let arp_make__6 = lazy (
 # 16 "lib/mirage/impl/mirage_impl_arpv4.ml"
   Arp_make__6.connect _ethernet_make__5
 );;
-# 75 "mirage/main.ml"
+
+# 82 "mirage/main.ml"
 
 let static_ipv4_make__7 = lazy (
   let __mirage_crypto_rng_mirage_make__3 = Lazy.force mirage_crypto_rng_mirage_make__3 in
@@ -83,12 +90,14 @@ let static_ipv4_make__7 = lazy (
   __mclock__2 >>= fun _mclock__2 ->
   __ethernet_make__5 >>= fun _ethernet_make__5 ->
   __arp_make__6 >>= fun _arp_make__6 ->
-# 42 "lib/mirage/impl/mirage_impl_ip.ml"
-  Static_ipv4_make__7.connect ~cidr:(Key_gen.ipv4 ())
-                           ?gateway:(Key_gen.ipv4_gateway ())
+  let _ipv4_gateway = ipv4_gateway__key () in
+  let _ipv4 = ipv4__key () in
+# 47 "lib/mirage/impl/mirage_impl_ip.ml"
+  Static_ipv4_make__7.connect ~cidr:_ipv4 ?gateway:_ipv4_gateway
                            _ethernet_make__5 _arp_make__6
 );;
-# 91 "mirage/main.ml"
+
+# 100 "mirage/main.ml"
 
 let ipv6_make__8 = lazy (
   let __netif__4 = Lazy.force netif__4 in
@@ -101,25 +110,30 @@ let ipv6_make__8 = lazy (
   __mirage_crypto_rng_mirage_make__3 >>= fun _mirage_crypto_rng_mirage_make__3 ->
   __xen_os_time__1 >>= fun _xen_os_time__1 ->
   __mclock__2 >>= fun _mclock__2 ->
-# 103 "lib/mirage/impl/mirage_impl_ip.ml"
-  Ipv6_make__8.connect ~handle_ra:(Key_gen.accept_router_advertisements ())
-                    ?cidr:(Key_gen.ipv6 ())
-                    ?gateway:(Key_gen.ipv6_gateway ()) _netif__4
-                    _ethernet_make__5
+  let _ipv6 = ipv6__key () in
+  let _ipv6_gateway = ipv6_gateway__key () in
+  let _accept_router_advertisements = accept_router_advertisements__key () in
+# 114 "lib/mirage/impl/mirage_impl_ip.ml"
+  Ipv6_make__8.connect ~handle_ra:_accept_router_advertisements ?cidr:_ipv6
+                    ?gateway:_ipv6_gateway _netif__4 _ethernet_make__5
 );;
-# 110 "mirage/main.ml"
+
+# 121 "mirage/main.ml"
 
 let tcpip_stack_direct_ipv4v6__9 = lazy (
   let __static_ipv4_make__7 = Lazy.force static_ipv4_make__7 in
   let __ipv6_make__8 = Lazy.force ipv6_make__8 in
   __static_ipv4_make__7 >>= fun _static_ipv4_make__7 ->
   __ipv6_make__8 >>= fun _ipv6_make__8 ->
-# 133 "lib/mirage/impl/mirage_impl_ip.ml"
-  Tcpip_stack_direct_ipv4v6__9.connect ~ipv4_only:(Key_gen.ipv4_only ())
-                                    ~ipv6_only:(Key_gen.ipv6_only ())
+  let _ipv4_only = ipv4_only__key () in
+  let _ipv6_only = ipv6_only__key () in
+# 148 "lib/mirage/impl/mirage_impl_ip.ml"
+  Tcpip_stack_direct_ipv4v6__9.connect ~ipv4_only:_ipv4_only
+                                    ~ipv6_only:_ipv6_only
                                     _static_ipv4_make__7 _ipv6_make__8
 );;
-# 122 "mirage/main.ml"
+
+# 136 "mirage/main.ml"
 
 let icmpv4_make__10 = lazy (
   let __static_ipv4_make__7 = Lazy.force static_ipv4_make__7 in
@@ -127,7 +141,8 @@ let icmpv4_make__10 = lazy (
 # 14 "lib/mirage/impl/mirage_impl_icmp.ml"
   Icmpv4_make__10.connect _static_ipv4_make__7
 );;
-# 130 "mirage/main.ml"
+
+# 145 "mirage/main.ml"
 
 let udp_make__11 = lazy (
   let __tcpip_stack_direct_ipv4v6__9 = Lazy.force tcpip_stack_direct_ipv4v6__9 in
@@ -137,7 +152,8 @@ let udp_make__11 = lazy (
 # 18 "lib/mirage/impl/mirage_impl_udp.ml"
   Udp_make__11.connect _tcpip_stack_direct_ipv4v6__9
 );;
-# 140 "mirage/main.ml"
+
+# 156 "mirage/main.ml"
 
 let tcp_flow_make__12 = lazy (
   let __tcpip_stack_direct_ipv4v6__9 = Lazy.force tcpip_stack_direct_ipv4v6__9 in
@@ -151,7 +167,8 @@ let tcp_flow_make__12 = lazy (
 # 21 "lib/mirage/impl/mirage_impl_tcp.ml"
   Tcp_flow_make__12.connect _tcpip_stack_direct_ipv4v6__9
 );;
-# 154 "mirage/main.ml"
+
+# 171 "mirage/main.ml"
 
 let tcpip_stack_direct_makev4v6__13 = lazy (
   let __xen_os_time__1 = Lazy.force xen_os_time__1 in
@@ -175,7 +192,8 @@ let tcpip_stack_direct_makev4v6__13 = lazy (
 # 34 "lib/mirage/impl/mirage_impl_stack.ml"
   Tcpip_stack_direct_makev4v6__13.connect _netif__4 _ethernet_make__5 _arp_make__6 _tcpip_stack_direct_ipv4v6__9 _icmpv4_make__10 _udp_make__11 _tcp_flow_make__12
 );;
-# 178 "mirage/main.ml"
+
+# 196 "mirage/main.ml"
 
 let conduit_mirage_tcp__14 = lazy (
   let __tcpip_stack_direct_makev4v6__13 = Lazy.force tcpip_stack_direct_makev4v6__13 in
@@ -184,7 +202,8 @@ let conduit_mirage_tcp__14 = lazy (
   Lwt.return _tcpip_stack_direct_makev4v6__13
 
 );;
-# 187 "mirage/main.ml"
+
+# 206 "mirage/main.ml"
 
 let conduit_mirage_tls__15 = lazy (
   let __conduit_mirage_tcp__14 = Lazy.force conduit_mirage_tcp__14 in
@@ -195,16 +214,19 @@ let conduit_mirage_tls__15 = lazy (
   Lwt.return _conduit_mirage_tcp__14
 
 );;
-# 198 "mirage/main.ml"
+
+# 218 "mirage/main.ml"
 
 let app_make__16 = lazy (
   let __conduit_mirage_tls__15 = Lazy.force conduit_mirage_tls__15 in
   let __mirage_crypto_rng_mirage_make__3 = Lazy.force mirage_crypto_rng_mirage_make__3 in
   __conduit_mirage_tls__15 >>= fun _conduit_mirage_tls__15 ->
   __mirage_crypto_rng_mirage_make__3 >>= fun _mirage_crypto_rng_mirage_make__3 ->
+# 18 "test/mirage/random-xen/test.ml"
   App_make__16.start _conduit_mirage_tls__15 _mirage_crypto_rng_mirage_make__3
 );;
-# 207 "mirage/main.ml"
+
+# 229 "mirage/main.ml"
 
 let () =
   let t = Lazy.force app_make__16 in

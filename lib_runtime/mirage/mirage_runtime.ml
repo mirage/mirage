@@ -118,7 +118,7 @@ let space_overhead =
   let doc =
     "The percentage of live data of wasted memory, due to GC does not \
      immediately collect unreachable blocks. The major GC speed is computed \
-     from this parameter, it will work more if smaller. Default: 120."
+     from this parameter, it will work more if smaller. Default: 80."
   in
   let doc =
     Arg.info ~docs:ocaml_section ~docv:"SPACE OVERHEAD" ~doc
@@ -249,5 +249,8 @@ let run_leave_iter_hooks () = run leave_iter_hooks
 let at_exit f = add f exit_hooks
 let at_leave_iter f = add f leave_iter_hooks
 let at_enter_iter f = add f enter_iter_hooks
-
-include Functoria_runtime
+let with_argv = Functoria_runtime.with_argv
+let runtime_args = Functoria_runtime.runtime_args
+let register = Functoria_runtime.register
+let argument_error = Functoria_runtime.argument_error
+let help_version = Functoria_runtime.help_version

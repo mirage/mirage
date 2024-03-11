@@ -69,3 +69,7 @@ end
 
 include Lib.Make (C)
 include Tool.Make (C)
+
+let register ?(init = []) ?src name typ =
+  let init = runtime_args sys_argv :: init in
+  register ~init ?src name typ

@@ -14,12 +14,24 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Runtime key for the Mirage tool. *)
+(** Command-line arguments for Mirage applications. *)
 
-open Functoria
-include RUNTIME_ARG
+open Functoria.DSL
 
-(** {2 OCaml runtime keys}
+type 'a arg = 'a runtime_arg
+(** The type for command-line arguments that reads a value of type ['a]. *)
+
+val create :
+  pos:string * int * int * int ->
+  ?name:string ->
+  ?packages:package list ->
+  string ->
+  'a arg
+
+val v : 'a arg -> Functoria.Runtime_arg.t
+(** [v k] is the [k] with its type hidden. *)
+
+(** {2 OCaml Arguments}
 
     The OCaml runtime is usually configurable via the [OCAMLRUNPARAM]
     environment variable. We provide boot parameters covering these options. *)
@@ -37,7 +49,7 @@ val randomize_hashtables : bool runtime_arg
     {{:http://caml.inria.fr/pub/docs/manual-ocaml/libref/Gc.html#TYPEcontrol} GC
       control}.
 
-    The following keys allow boot time configuration. *)
+    The following arguments allow boot time configuration. *)
 
 val allocation_policy : [ `Next_fit | `First_fit | `Best_fit ] runtime_arg
 val minor_heap_size : int option runtime_arg
@@ -50,52 +62,78 @@ val custom_major_ratio : int option runtime_arg
 val custom_minor_ratio : int option runtime_arg
 val custom_minor_max_size : int option runtime_arg
 
-(** {3 Network keys} *)
+(** {3 Network Arguments} *)
 
-val interface : ?group:string -> string -> string runtime_arg
+val interface : ?group:string -> ?docs:string -> string -> string runtime_arg
 (** A network interface. *)
 
-(** Ipv4 keys. *)
+(** Ipv4 Arguments. *)
 module V4 : sig
   open Ipaddr.V4
 
-  val network : ?group:string -> Prefix.t -> Prefix.t runtime_arg
+  val network :
+    ?group:string -> ?docs:string -> Prefix.t -> Prefix.t runtime_arg
   (** A network defined by an address and netmask. *)
 
-  val gateway : ?group:string -> t option -> t option runtime_arg
+  val gateway :
+    ?group:string -> ?docs:string -> t option -> t option runtime_arg
   (** A default gateway option. *)
 end
 
-(** Ipv6 keys. *)
+(** Ipv6 Arguments. *)
 module V6 : sig
   open Ipaddr.V6
 
-  val network : ?group:string -> Prefix.t option -> Prefix.t option runtime_arg
+  val network :
+    ?group:string ->
+    ?docs:string ->
+    Prefix.t option ->
+    Prefix.t option runtime_arg
   (** A network defined by an address and netmask. *)
 
-  val gateway : ?group:string -> t option -> t option runtime_arg
+  val gateway :
+    ?group:string -> ?docs:string -> t option -> t option runtime_arg
   (** A default gateway option. *)
 
-  val accept_router_advertisements : ?group:string -> unit -> bool runtime_arg
+  val accept_router_advertisements :
+    ?group:string -> ?docs:string -> unit -> bool runtime_arg
   (** An option whether to accept router advertisements. *)
 end
 
-val ipv4_only : ?group:string -> unit -> bool runtime_arg
+val ipv4_only : ?group:string -> ?docs:string -> unit -> bool runtime_arg
 (** An option for dual stack to only use IPv4. *)
 
-val ipv6_only : ?group:string -> unit -> bool runtime_arg
+val ipv6_only : ?group:string -> ?docs:string -> unit -> bool runtime_arg
 (** An option for dual stack to only use IPv6. *)
 
-val resolver : ?default:string list -> unit -> string list option runtime_arg
+val resolver :
+  ?group:string ->
+  ?docs:string ->
+  ?default:string list ->
+  unit ->
+  string list option runtime_arg
 (** The address of the DNS resolver to use. See $REFERENCE for format. *)
 
-val syslog : Ipaddr.t option -> Ipaddr.t option runtime_arg
+val syslog :
+  ?group:string ->
+  ?docs:string ->
+  Ipaddr.t option ->
+  Ipaddr.t option runtime_arg
 (** The address to send syslog frames to. *)
 
-val syslog_port : int option -> int option runtime_arg
+val monitor :
+  ?group:string ->
+  ?docs:string ->
+  Ipaddr.t option ->
+  Ipaddr.t option runtime_arg
+(** The address to send monitor statistics to. *)
+
+val syslog_port :
+  ?group:string -> ?docs:string -> int option -> int option runtime_arg
 (** The port to send syslog frames to. *)
 
-val syslog_hostname : string -> string runtime_arg
+val syslog_hostname :
+  ?group:string -> ?docs:string -> string -> string runtime_arg
 (** The hostname to use in syslog frames. *)
 
 (** {3 Logs} *)

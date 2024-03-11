@@ -19,7 +19,6 @@
 let src = Logs.Src.create "functoria" ~doc:"functoria library"
 
 module Log = (val Logs.src_log src : Logs.LOG)
-open Astring
 
 type t = JOB
 
@@ -29,27 +28,23 @@ let t = Type.v JOB
 let noop = Impl.v "Unit" t
 
 module Args = struct
-  let configure ~file i =
-    Log.info (fun m -> m "Generating: %a (keys)" Fpath.pp file);
-    Action.with_output ~path:file ~purpose:"key_gen file" (fun ppf ->
+  let configure ~runtime_modname i =
+    let serialize = Runtime_arg.serialize ~runtime_modname in
+    let file = Info.main i in
+    Action.with_output ~append:true ~path:file ~purpose:"keys" (fun ppf ->
         let keys = Runtime_arg.Set.of_list @@ Info.runtime_args i in
-        Fmt.pf ppf "@[<v>%a@]@."
-          Fmt.(iter Runtime_arg.Set.iter Runtime_arg.serialize)
-          keys)
+        Fmt.pf ppf "@[<v>%a@]@." Fmt.(iter Runtime_arg.Set.iter serialize) keys)
 end
 
 let runtime_args ?(runtime_package = "functoria-runtime")
     ?(runtime_modname = "Functoria_runtime") (argv : Argv.t Impl.t) =
   let packages = [ Package.v runtime_package ] in
   let extra_deps = [ Impl.abstract argv ] in
-  let key_gen = Runtime_arg.module_name in
-  let file = Fpath.(v (String.Ascii.lowercase key_gen) + "ml") in
-  let configure = Args.configure ~file in
-  let files _ = [ file ] in
+  let configure = Args.configure ~runtime_modname in
   let connect info _ = function
     | [ argv ] ->
         Device.code ~pos:__POS__ "return %s.(with_argv (runtime_args ()) %S %s)"
           runtime_modname (Info.name info) argv
     | _ -> failwith "The keys connect should receive exactly one argument."
   in
-  Impl.v ~files ~configure ~packages ~extra_deps ~connect key_gen t
+  Impl.v ~configure ~packages ~extra_deps ~connect "struct end" t

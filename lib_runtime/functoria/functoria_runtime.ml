@@ -26,8 +26,8 @@ module Arg = struct
     match t.value with
     | None ->
         invalid_arg
-          "Functoria_runtime.Arg.get: Called too early. Please delay this call \
-           after cmdliner's evaluation."
+          "Functoria_runtime.Arg..get: Called too early. Please delay this \
+           call after cmdliner's evaluation."
     | Some v -> v
 
   let term (type a) (t : a t) =

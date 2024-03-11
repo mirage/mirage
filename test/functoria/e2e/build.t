@@ -19,7 +19,6 @@ Build an application.
   ..
   context
   dune-workspace.config
-  key_gen.ml
   main.ml
   noop.opam
   vote
@@ -54,7 +53,6 @@ Test `--output`:
   ..
   context
   dune-workspace.config
-  key_gen.ml
   noop.opam
   toto.ml
   vote

@@ -35,14 +35,14 @@ let resolver_dns_conf ~ns =
   let packages = [ Mirage_impl_conduit.pkg ] in
   let runtime_args = Runtime_arg.[ v ns ] in
   let connect _ modname = function
-    | [ _r; _t; _m; _p; stack ] ->
+    | [ _r; _t; _m; _p; stack; ns ] ->
         code ~pos:__POS__
-          "let nameservers = %a in@;\
+          "let nameservers = %s in@;\
            %s.v ?nameservers %s >|= function@;\
            | Ok r -> r@;\
            | Error (`Msg e) -> invalid_arg e@;"
-          pp_key ns modname stack
-    | _ -> connect_err "resolver" 5
+          ns modname stack
+    | _ -> connect_err "resolver" 6
   in
   impl ~packages ~runtime_args ~connect "Resolver_mirage.Make"
     (random @-> time @-> mclock @-> pclock @-> stackv4v6 @-> resolver)

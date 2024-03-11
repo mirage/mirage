@@ -21,6 +21,8 @@ open Cmdliner
 module Arg = struct
   (** {1 Arguments} *)
 
+  let info = Arg.info
+
   type 'a kind =
     | Opt : 'a * 'a Arg.conv -> 'a kind
     | Opt_all : 'a Arg.conv -> 'a list kind

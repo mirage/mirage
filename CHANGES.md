@@ -1,23 +1,27 @@
 ### Unreleased
 
 - This release introduces a significant change in the Mirage tool by
-  splitting the configure-time and runtime keys. Configure-time keys
-  are essential during the setup of module dependencies for the
-  unikernel, allowing for a specialized production of a unikernel for
-  a given target runtime environment. On the other hand, runtime keys
-  are useful for customizing deployments without altering the
-  dependencies of the unikernels. (#1449, #1450, #1451, #1455 @samoht,
-  review by @hannesm)
+  splitting the definition of command-line arguments used at
+  configure-time and runtime. Command-line arguments used in the
+  configure script (also called 'configuration keys' and defined in
+  the `Key` module) are essential during the setup of module
+  dependencies for the unikernel, allowing for a specialized
+  production of a unikernel for a given target runtime environment. On
+  the other hand, command-line arguments that the unikernel can use at
+  runtime (defined in the `Runtime_arg` module) are useful for
+  customizing deployments without altering the dependencies of the
+  unikernels. (#1449, #1450, #1451, #1455 @samoht, review by @hannesm)
 
   * API changes:
     - There is no more `~stage` parameter for `Key.Arg.info`.
-    - `Key` now define configure-time keys only.
-    - There is a new module `Runtime_arg` to define runtime keys.
+    - `Key` now define command-line arguments for the configuration tool.
+    - There is a new module `Runtime_arg` to define command-line arguments
+      for the unikernel.
     - As there are no more keys type `'Both`, users are now expected to create
       two separated keys in that case (one for configure-time, one for runtime)
       or decide if the key is useful at runtime of configure-time.
 
-  * Intended use of configure-time keys (values of type `'a key`):
+  * Intended use of configuration keys (values of type `'a key`):
     - Used to set up module dependencies of the unikernel, such as the
       target (hvt, xen, etc.) and whether to use DHCP or a fixed IP address.
     - Enable the production of specialized unikernels suitable for
@@ -26,16 +30,26 @@
     - Similar keys will produce reproducible binaries to be uploaded to artifact
       repositories like Docker Hub or https://builds.robur.coop/.
 
-  * Intended use of runtime keys (values of type `a runtime_arg`):
+  * Intended use of command-line runtime arguments (values of type
+    `a runtime_arg`):
     - Allow users to customize deployments by changing device
       configuration, like IP addresses, secrets, block device names,
       etc., post downloading of binaries.
     - These keys don’t alter the dependencies of the unikernels.
     - A runtime keys is just a reference to a normal Cmdliner term.
 
-  * Code migration:
+  * `key_gen.ml` is not generated anymore, so users cannot refer to
+    `Key_gen.<key_name>` directy.
+    - Any runtime argument has to be declared (using `runtime_arg` and
+      registered on the device (using `~runtime_args`). The value of that
+      argument will then be passed  as an extra parameter of the `connect`
+      function of that device.
+    - Configuration keys are not available at runtime anymore. For
+      instance, `Key_gen.target` has been removed.
+
+* Code migration:
     ```ocaml
-    (* in `config.ml` *)
+    (* in config.ml *)
     let key =
       let doc = Key.Arg.info ~doc:"A Key." ~stage:`Run [ "key" ] in
       Key.(create "key" Arg.(opt_all ~stage:`Run string doc))
@@ -50,15 +64,29 @@
       Arg.(value & opt_all string [] doc)
     ```
 
-   * Changes in the auto-generated `key_gen.ml` file:
-     - Users are not expected to refer to `Key_gen.<key_name>`
-       directy. Instead, they should use normal Cmdliner
-       terms. `mirage configure` is still generating a `key_gen.ml`
-       file containing (registered) runtime keys that are needed by
-       device-initialisation code.
-     - Configure-time keys are not registerd anymore. This means that
-       they are not available `key_gen.ml` anymore. As a consequence,
-       `Key_gen.target` has been removed.
+    ```ocaml
+    (* in unikernel.ml *)
+    let start _ =
+      let key = Key_gen.hello () in
+      ...
+    ```
+    becomes:
+    ```ocaml
+    (* in config.ml *)
+    let hello = runtime_arg ~pos:__POS__ "Unikernel.hello"
+    let main = main ~runtime_args:[hello] ...
+    ```
+
+    ```
+    (* in unikernel.ml *)
+    let hello =
+      let open Cmdliner in
+      let doc = Arg.info ~doc:"How to say hello." [ "hello" ] in
+      Arg.(value & opt string "Hello World!" doc)
+
+    let start _ hello =
+      ...
+    ```
 
 - BREAKING: `Mirage.keys` is renamed to `Mirage.runtime_args` (#1506, @samoht)
 - BREAKING: remove `Mirage.foreign. Use `Mirage.main` instead (#1505, @samoht)

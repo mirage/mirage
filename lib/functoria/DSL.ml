@@ -48,6 +48,11 @@ let impl ?packages ?packages_v ?install ?install_v ?keys ?runtime_args
   @@ Device.v ?packages ?packages_v ?install ?install_v ?keys ?runtime_args
        ?extra_deps ?connect ?dune ?configure ?files module_name module_type
 
-let main ?pos ?packages ?packages_v module_name ty =
+let main ?pos ?packages ?packages_v ?runtime_args module_name ty =
   let connect _ = Device.start ?pos in
-  impl ?packages ?packages_v ~connect module_name ty
+  impl ?packages ?packages_v ?runtime_args ~connect module_name ty
+
+let runtime_arg ~pos ?name ?packages fmt =
+  Fmt.kstr
+    (fun code -> Runtime_arg.v (Runtime_arg.create ~pos ?name ?packages code))
+    fmt

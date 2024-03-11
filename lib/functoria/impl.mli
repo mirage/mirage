@@ -57,6 +57,7 @@ val of_device : 'a device -> 'a t
 val v :
   ?packages:Package.t list ->
   ?packages_v:Package.t list Key.value ->
+  ?runtime_args:Runtime_arg.t list ->
   ?keys:Key.t list ->
   ?extra_deps:abstract list ->
   ?connect:(Info.t -> string -> string list -> 'a Device.code) ->
@@ -72,6 +73,7 @@ val main :
   ?pos:string * int * int * int ->
   ?packages:Package.t list ->
   ?packages_v:Package.t list Key.value ->
+  ?runtime_args:Runtime_arg.t list ->
   ?keys:Key.t list ->
   ?extra_deps:abstract list ->
   string ->

@@ -16,7 +16,13 @@
 
 open Misc
 
-type 'a arg = { name : string; code : string; packages : Package.t list }
+type 'a arg = {
+  pos : string * int;
+  name : string;
+  code : string;
+  packages : Package.t list;
+}
+
 type t = Any : 'a arg -> t
 
 (* Set of keys, where keys with the same name but with different
@@ -43,20 +49,22 @@ module Set = struct
   let pp = pp_gen pp_elt
 end
 
-let create ?name ?(packages = []) code =
+let create ~pos ?name ?(packages = []) code =
   let name = match name with None -> Name.ocamlify code | Some n -> n in
-  { name; packages; code }
+  let pos = match pos with file, lnum, _, _ -> (file, lnum) in
+  { pos; name; packages; code }
 
 let v k = Any k
 let packages (Any k) = k.packages
 
 (* {2 Code emission} *)
 
-let module_name = "Key_gen"
 let ocaml_name k = String.lowercase_ascii (Name.ocamlify k)
+let pp_pos ppf (file, line) = Fmt.pf ppf "# %d %S@." line file
 
-let serialize fmt (Any k) =
-  Format.fprintf fmt "@[<2>let %s =@ @[Functoria_runtime.register@ %s@]@]@,"
-    (ocaml_name k.name) k.code
+let serialize ~runtime_modname fmt (Any k) =
+  Format.fprintf fmt "let %s__key = %s.register @@@@\n%a  @[<v2>%s@]\n;;\n"
+    (ocaml_name k.name) runtime_modname pp_pos k.pos k.code
 
-let call fmt k = Fmt.pf fmt "(%s.%s ())" module_name (ocaml_name k.name)
+let call fmt (Any k) = Fmt.pf fmt "%s__key ()" (ocaml_name k.name)
+let var_name (Any k) = ocaml_name k.name

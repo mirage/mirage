@@ -14,14 +14,14 @@ not the right ones. First, too many parameters:
 
   $ ./test.exe configure -f errors/in_functor_too_many.ml
   $ dune build 2>&1 | head -n1 | cut -d',' -f'-2'
-  File "errors/test/main.ml", line 6
+  File "errors/test/main.ml", line 7
   $ ./test.exe clean -f errors/in_functor_too_many.ml
 
 Then, not enough:
 
   $ ./test.exe configure -f errors/in_functor_not_enough.ml
   $ dune build
-  File "errors/test/main.ml", line 29, characters 2-25:
+  File "errors/test/main.ml", line 33, characters 2-25:
   Error: The module Unikernel_make__4 is a functor, it cannot have any components
   [1]
   $ ./test.exe clean -f errors/in_functor_not_enough.ml

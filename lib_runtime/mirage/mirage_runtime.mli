@@ -16,7 +16,7 @@
 
 open Cmdliner
 
-(** Mirage run-time utilities.
+(** Mirage runtime utilities.
 
     {e Release %%VERSION%%} *)
 
@@ -32,7 +32,7 @@ val set_level : default:Logs.level option -> log_threshold list -> unit
 val logs : log_threshold list Term.t
 (** [logs] is a command-liner term for setting the log_threshold. *)
 
-(** {2 Mirage command-line converters} *)
+(** {2 Command-line converters} *)
 module Conv : sig
   val log_threshold : log_threshold Cmdliner.Arg.conv
   (** [log_threshold] converts log reporter threshold. *)
@@ -85,8 +85,6 @@ val delay : int Term.t
     Defaults to 0. Useful for tenders and environments that take some time to
     bring devices up. *)
 
-include module type of Functoria_runtime
-
 (** {2 Registering scheduler hooks} *)
 
 val at_exit : (unit -> unit Lwt.t) -> unit
@@ -119,3 +117,17 @@ val run_enter_iter_hooks : unit -> unit
 val run_leave_iter_hooks : unit -> unit
 (** [run_leave_iter_hooks ()] call the sequence of hooks registered with
     {!at_leave_iter} in sequence. *)
+
+(** {2 Exit Codes} *)
+
+val argument_error : int
+(** [argument_error] is the exit code used for argument parsing errors: 64. *)
+
+val help_version : int
+(** [help_version] is the exit code used when help/version is used: 63. *)
+
+(** / *)
+
+val with_argv : unit Cmdliner.Term.t list -> string -> string array -> unit
+val runtime_args : unit -> unit Cmdliner.Term.t list
+val register : 'a Cmdliner.Term.t -> unit -> 'a

@@ -64,10 +64,17 @@ val dep : 'a impl -> abstract_impl
 (** {1:keys Keys} *)
 
 type 'a key = 'a Key.key
-(** The type for command-line parameters. *)
+(** The type for configure-time command-line arguments. *)
 
 type 'a runtime_arg = 'a Runtime_arg.arg
-(** The type for command-line parameters. *)
+(** The type for runtime command-line arguments. *)
+
+val runtime_arg :
+  pos:string * int * int * int ->
+  ?name:string ->
+  ?packages:Package.t list ->
+  ('a, Format.formatter, unit, Runtime_arg.t) format4 ->
+  'a
 
 type abstract_key = Key.t
 (** The type for abstract keys. *)
@@ -131,6 +138,7 @@ val main :
   ?pos:string * int * int * int ->
   ?packages:package list ->
   ?packages_v:package list value ->
+  ?runtime_args:Runtime_arg.t list ->
   string ->
   'a typ ->
   'a impl

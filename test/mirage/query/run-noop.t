@@ -1,7 +1,5 @@
 Query unikernel dune
   $ ./config_noop.exe query dune.build
-  (copy_files# ./mirage/key_gen.ml)
-  
   (copy_files# ./mirage/main.ml)
   
   (rule
@@ -103,8 +101,6 @@ Query dune-project
 
 Query unikernel dune (hvt)
   $ ./config_noop.exe query --target hvt dune.build
-  (copy_files# ./mirage/key_gen.ml)
-  
   (copy_files# ./mirage/main.ml)
   
   (copy_files ./mirage/manifest.json)

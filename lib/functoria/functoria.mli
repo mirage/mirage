@@ -122,23 +122,6 @@
 module type DSL = module type of DSL
 
 include DSL
-
-(** The signature for configure-time command-line keys. *)
-module type KEY =
-  module type of Key
-    with type 'a Arg.t = 'a Key.Arg.t
-     and type 'a value = 'a Key.value
-     and type 'a key = 'a Key.key
-     and type t = Key.t
-     and type Set.t = Key.Set.t
-
-(** The signature for run-time command-line keys. *)
-module type RUNTIME_ARG =
-  module type of Runtime_arg
-    with type 'a arg = 'a Runtime_arg.arg
-     and type t = Runtime_arg.t
-     and type Set.t = Runtime_arg.Set.t
-
 module Package = Package
 module Info = Info
 module Install = Install
@@ -164,7 +147,7 @@ val sys_argv : argv impl
 
 val runtime_args :
   ?runtime_package:string -> ?runtime_modname:string -> argv impl -> job impl
-(** [runtinme_args a] is an implementation of {!type-job} that holds the parsed
+(** [runtime_args a] is an implementation of {!type-job} that holds the parsed
     command-line arguments. By default [runtime_package] is
     ["functoria-runtime"] and [runtime_modname] is ["Functoria_runtime"]. *)
 

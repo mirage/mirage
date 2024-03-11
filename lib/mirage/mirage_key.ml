@@ -143,4 +143,4 @@ let net ?group () : [ `Socket | `Direct ] option Key.key =
   in
   configure_key ~doc ?group ~default:None (Arg.some conv) "net"
 
-include (Key : Functoria.KEY)
+include Key

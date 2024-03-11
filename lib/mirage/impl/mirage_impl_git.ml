@@ -36,13 +36,17 @@ let git_ssh ?authenticator key password =
   let packages =
     [ package "git-mirage" ~sublibs:[ "ssh" ] ~min:"3.13.0" ~max:"3.16.0" ]
   in
+  let err () = connect_err "git_ssh" 4 ~max:7 in
   let connect _ modname = function
-    | [ _mclock; _tcpv4v6; _time; ctx ] ->
+    | _mclock :: _tcpv4v6 :: _time :: ctx :: rest ->
+        let key, rest = pop ~err (Some key) rest in
+        let password, rest = pop ~err (Some password) rest in
+        let authenticator = pop_and_check_empty ~err authenticator rest in
         code ~pos:__POS__
-          {ocaml|%s.connect %s >>= %s.with_optionnal_key%a%a%a|ocaml} modname
+          {ocaml|%s.connect %s >>= %s.with_optionnal_key %a %a %a|ocaml} modname
           ctx modname (pp_opt "authenticator") authenticator (pp_label "key")
-          (Some key) (pp_label "password") (Some password)
-    | _ -> connect_err "git_ssh" 4
+          key (pp_label "password") password
+    | _ -> err ()
   in
   let runtime_args =
     runtime_args_opt [ Some key; Some password; authenticator ]
@@ -55,14 +59,16 @@ let git_http ?authenticator headers =
     [ package "git-mirage" ~sublibs:[ "http" ] ~min:"3.10.0" ~max:"3.16.0" ]
   in
   let runtime_args = runtime_args_opt [ headers; authenticator ] in
+  let err () = connect_err "git_http" 3 ~max:5 in
   let connect _ modname = function
-    | [ _pclock; _tcpv4v6; ctx ] ->
+    | _pclock :: _tcpv4v6 :: ctx :: rest ->
+        let headers, rest = pop ~err headers rest in
+        let authenticator = pop_and_check_empty ~err authenticator rest in
         code ~pos:__POS__
-          {ocaml|%s.connect %s >>= fun ctx ->
-           %s.with_optional_tls_config_and_headers%a%a ctx|ocaml}
+          {ocaml|%s.connect %s >>= fun ctx -> %s.with_optional_tls_config_and_headers%a%a ctx|ocaml}
           modname ctx modname (pp_opt "authenticator") authenticator
           (pp_opt "headers") headers
-    | _ -> connect_err "git_http" 3
+    | _ -> err ()
   in
   impl ~packages ~connect ~runtime_args "Git_mirage_http.Make"
     (pclock @-> tcpv4v6 @-> mimic @-> git_client)

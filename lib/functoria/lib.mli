@@ -57,7 +57,7 @@ module type S = sig
   val context_name : Info.t -> string
 end
 
-module Make (P : S) : sig
+module Make (_ : S) : sig
   open DSL
 
   (** Configuration builder: stage 1 *)

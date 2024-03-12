@@ -1,7 +1,0 @@
-(executable
- (name config)
- (libraries f0))
-
-(cram
- (package functoria)
- (deps config.exe ../../../functoria-runtime.opam))

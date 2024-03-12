@@ -30,7 +30,7 @@ module C = struct
   let prelude _ = "let (>>=) x f = f x\nlet return x = x\nlet run x = x"
   let name = "test"
   let version = "1.0~test"
-  let packages = [ package "functoria"; package "e2e" ]
+  let packages = [ package ~sublibs:[ "functoria" ] "mirage"; package "e2e" ]
   let keys = Key.[ v vote; v warn_error ]
   let connect _ _ _ = code ~pos:__POS__ "()"
   let main i = Fpath.(basename @@ rem_ext @@ Info.main i)
@@ -44,7 +44,7 @@ module C = struct
   (name      %s)
   (modules   (:standard \ %s))
   (promote   (until-clean))
-  (libraries cmdliner fmt functoria-runtime))
+  (libraries cmdliner fmt mirage-runtime.functoria))
 |}
         (main i) (config i)
     in

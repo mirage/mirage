@@ -20,5 +20,5 @@ Test that `describe` works as expected:
   Name       noop
   Keys       vote=cat (default),
              warn_error=false (default)
-  Libraries  fmt, functoria-runtime
-  Packages   fmt { ?monorepo }, functoria-runtime { ?monorepo }
+  Libraries  fmt, mirage-runtime.functoria
+  Packages   fmt { ?monorepo }, mirage-runtime { ?monorepo }

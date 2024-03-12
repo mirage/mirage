@@ -302,7 +302,7 @@ Query dune-project
 
 Query dune-workspace
   $ ./config.exe query --target hvt dune-workspace
-  (lang dune 2.0)
+  (lang dune 2.9)
   
   (context (default))
   

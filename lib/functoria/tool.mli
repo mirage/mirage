@@ -40,7 +40,7 @@ module type S = sig
   val create : job impl list -> job impl
 end
 
-module Make (P : S) : sig
+module Make (_ : S) : sig
   val run : unit -> unit
   (** Run the configuration builder. This should be called exactly once to run
       the configuration builder: command-line arguments will be parsed, and some

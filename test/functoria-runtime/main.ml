@@ -1,1 +1,0 @@
-../functoria/gen-1/main.ml.expected

@@ -1,4 +1,0 @@
-(test
- (name main)
- (package functoria-runtime)
- (libraries functoria-runtime))

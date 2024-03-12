@@ -15,8 +15,9 @@
   (source_tree app)
   (source_tree lib)
   (source_tree errors)
-  (package functoria)
-  (package functoria-runtime))
+  (source_tree context)
+  (package mirage)
+  (package mirage-runtime))
  (enabled_if
   (<> %{architecture} "i386"))
- (package functoria))
+ (package mirage))

@@ -1,4 +1,4 @@
 (library
  (name functoria_runtime)
- (public_name functoria-runtime)
+ (public_name mirage-runtime.functoria)
  (libraries cmdliner))

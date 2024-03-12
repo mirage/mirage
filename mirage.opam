@@ -20,15 +20,22 @@ build: [
 depends: [
   "ocaml" {>= "4.08.0"}
   "dune" {>= "2.9.0"}
-  "dune" {with-test & >= "3.0.0"}
+  "astring"
+  "cmdliner" {>= "1.2.0"}
+  "emile" {>= "1.1"}
+  "fmt" {>= "0.8.7"}
   "ipaddr" {>= "5.0.0"}
-  "functoria" {= version}
   "bos"
+  "fpath"
+  "rresult" {>= "0.7.0"}
+  "uri" {>= "4.2.0"}
   "logs"
   "opam-monorepo" {>= "0.3.2"}
   "alcotest" {with-test}
-  "fmt" {>= "0.8.7" & with-test}
 ]
+
+conflicts: [ "jbuilder" {with-test} ]
+
 synopsis: "The MirageOS library operating system"
 description: """
 MirageOS is a library operating system that constructs unikernels for

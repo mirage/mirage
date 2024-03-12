@@ -29,7 +29,7 @@ val noop : t Impl.t
     nothing and has no dependency. *)
 
 val runtime_args :
-  ?runtime_package:string ->
+  ?runtime_package:Package.t ->
   ?runtime_modname:string ->
   Argv.t Impl.t ->
   t Impl.t

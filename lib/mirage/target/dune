@@ -1,4 +1,0 @@
-(library
- (name mirage_target)
- (public_name mirage.target)
- (libraries mirage.key mirage.impl))

@@ -1,5 +1,0 @@
-(library
- (name mirage_impl)
- (public_name mirage.impl)
- (libraries mirage.key logs)
- (wrapped false))

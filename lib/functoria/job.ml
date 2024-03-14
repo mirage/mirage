@@ -36,9 +36,10 @@ module Args = struct
         Fmt.pf ppf "@[<v>%a@]@." Fmt.(iter Runtime_arg.Set.iter serialize) keys)
 end
 
-let runtime_args ?(runtime_package = "functoria-runtime")
+let runtime_args
+    ?(runtime_package = Package.v "mirage-runtime" ~sublibs:[ "functoria" ])
     ?(runtime_modname = "Functoria_runtime") (argv : Argv.t Impl.t) =
-  let packages = [ Package.v runtime_package ] in
+  let packages = [ runtime_package ] in
   let extra_deps = [ Impl.abstract argv ] in
   let configure = Args.configure ~runtime_modname in
   let connect info _ = function

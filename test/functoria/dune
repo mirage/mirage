@@ -1,4 +1,4 @@
 (test
  (name test)
- (package functoria)
- (libraries f0 alcotest cmdliner rresult astring))
+ (package mirage)
+ (libraries mirage.functoria alcotest cmdliner rresult astring))

@@ -293,6 +293,6 @@ Query dune-project
 
 Query dune-workspace
   $ ./config.exe query dune-workspace
-  (lang dune 2.0)
+  (lang dune 2.9)
   
   (context (default))

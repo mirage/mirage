@@ -1,0 +1,3 @@
+(library
+ (public_name mirage)
+ (libraries ipaddr bos mirage.functoria mirage.devices))

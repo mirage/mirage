@@ -51,7 +51,7 @@ is passed:
   warn_error
   $ ./test.exe clean --file app/config.ml
 
-Check that configure create the correctcontext file:
+Check that configure create the correct context file:
 
   $ ./test.exe configure --file=app/config.ml
   $ cat app/test/context
@@ -77,3 +77,11 @@ Check that `test help configure` works when no config.ml file is present.
   $ ./test.exe configure --help=plain > h0
   $ ./help.exe show h0 SYNOPSIS | xargs
   test configure [OPTION]…
+
+Check that errors are reported correcty:
+
+  $ ./test.exe configure a b c --file=app/config.ml
+  test: too many arguments, don't know what to do with 'a', 'b', 'c'
+  Usage: test configure [OPTION]…
+  Try 'test configure --help' or 'test --help' for more information.
+  [1]

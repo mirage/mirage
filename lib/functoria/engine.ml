@@ -196,7 +196,7 @@ let emit_connect fmt (iname, names, runtime_args, connect_code) =
     Fmt.pf ppf "  let _%s = %a in\n" (Runtime_arg.var_name k) Runtime_arg.call k
   in
   let { Device.pos; code } = connect_code (rnames @ knames) in
-  Fmt.pf fmt "let %s = lazy (\n%a%a%a%a  %s@\n);;\n" iname
+  Fmt.pf fmt "let %s = lazy (\n%a%a%a%a  %s@\n);;" iname
     Fmt.(list ~sep:nop meta_init)
     (List.combine names rnames)
     Fmt.(list ~sep:nop bind)

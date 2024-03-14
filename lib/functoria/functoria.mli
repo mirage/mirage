@@ -146,10 +146,10 @@ val sys_argv : argv impl
 (** [sys_argv] is a device providing command-line arguments by using [Sys.argv]. *)
 
 val runtime_args :
-  ?runtime_package:string -> ?runtime_modname:string -> argv impl -> job impl
+  ?runtime_package:package -> ?runtime_modname:string -> argv impl -> job impl
 (** [runtime_args a] is an implementation of {!type-job} that holds the parsed
     command-line arguments. By default [runtime_package] is
-    ["functoria-runtime"] and [runtime_modname] is ["Functoria_runtime"]. *)
+    ["mirage-runtime.functoria"] and [runtime_modname] is ["Functoria_runtime"]. *)
 
 module Type = Type
 module Impl = Impl

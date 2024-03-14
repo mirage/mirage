@@ -8,15 +8,6 @@ type mimic = Mimic
 
 let mimic = typ Mimic
 
-let mimic_merge =
-  let packages = [ package "mimic" ] in
-  let connect _ _modname = function
-    | [ a; b ] -> code ~pos:__POS__ "Lwt.return (Mimic.merge %s %s)" a b
-    | [ x ] -> code ~pos:__POS__ "%s.ctx" x
-    | _ -> code ~pos:__POS__ "Lwt.return Mimic.empty"
-  in
-  impl ~packages ~connect "Mimic.Merge" (mimic @-> mimic @-> mimic)
-
 let mimic_happy_eyeballs =
   let packages = [ package "mimic-happy-eyeballs" ~min:"0.0.5" ] in
   let connect _ modname = function

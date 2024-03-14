@@ -14,8 +14,7 @@ let git_merge_clients =
   let packages = [ package "mimic" ] in
   let connect _ _modname = function
     | [ a; b ] -> code ~pos:__POS__ "Lwt.return (Mimic.merge %s %s)" a b
-    | [ x ] -> code ~pos:__POS__ "%s.ctx" x
-    | _ -> code ~pos:__POS__ "Lwt.return Mimic.empty"
+    | _ -> connect_err "git_merge_client" 2
   in
   impl ~packages ~connect "Mimic.Merge"
     (git_client @-> git_client @-> git_client)

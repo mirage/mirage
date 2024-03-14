@@ -88,6 +88,9 @@
       ...
     ```
 
+- BREAKING: the packages `functoria` and `functoria-runtime` are removed. The
+  respectives libraries became `mirage.functoria` and `mirage-runtime.functoria`
+  (#1509, @samoht)
 - BREAKING: `Mirage.keys` is renamed to `Mirage.runtime_args` (#1506, @samoht)
 - BREAKING: remove `Mirage.foreign. Use `Mirage.main` instead (#1505, @samoht)
 - BREAKING: `Mirage.main` does not take a `?extra_deps` parameter anymore

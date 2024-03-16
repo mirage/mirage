@@ -62,7 +62,7 @@ module C = struct
       job
 
   let name_of_target i = Info.name i
-  let dune_project = []
+  let dune_project = None
   let dune_workspace = None
   let context_name _ = "default"
 end

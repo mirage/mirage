@@ -343,20 +343,15 @@ let run t = %s.Main.run t ; exit 0|ocaml}
   let configure i = Target.configure i
 
   let dune_project =
-    [ Dune.stanza {|
-    (implicit_transitive_deps true)
-    |} ]
+    let dune =
+      [ Dune.stanza "(lang dune 2.9)\n(implicit_transitive_deps true)\n" ]
+    in
+    Some (Dune.v dune)
 
   let dune_workspace =
     let f ?build_dir i =
       let stanzas = Target.build_context ?build_dir i in
-      let main =
-        Dune.stanza {|
-(lang dune 2.9)
-
-(context (default))
-        |}
-      in
+      let main = Dune.stanza "(lang dune 2.9)\n(context (default))\n" in
       Dune.v (main :: stanzas)
     in
     Some f

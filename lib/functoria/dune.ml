@@ -33,13 +33,6 @@ let pp_list pp = Fmt.(list ~sep:(any "\n\n") pp)
 let pp ppf (t : t) = Fmt.pf ppf "%a" (pp_list Fmt.string) t
 let to_string t = Fmt.to_to_string pp t ^ "\n"
 
-let headers ~name ~version =
-  let module M = Filegen.Make (struct
-    let name = name
-    let version = version
-  end) in
-  M.headers `Sexp
-
 (* emulate the dune compact form for lists *)
 let compact_list ?(indent = 2) field ppf l =
   let all = Buffer.create 1024 in
@@ -65,8 +58,7 @@ let compact_list ?(indent = 2) field ppf l =
   flush ();
   Fmt.pf ppf "%s" (Buffer.contents all)
 
-let config_rule ~config_ml_file ~packages ~name ~version =
-  let headers = headers ~name ~version in
+let config ~config_ml_file ~packages =
   let pkgs =
     match packages with
     | [] -> ""
@@ -91,22 +83,15 @@ let config_rule ~config_ml_file ~packages ~name ~version =
   in
   let contents =
     Fmt.str
-      {|%s
-
-%s
-(executable
+      {|%s(executable
  (name config)
+ (enabled_if (= %%{context_name} "default"))
  (modules config)
  (libraries %s))
 |}
-      headers rename_config_file pkgs
+      rename_config_file pkgs
   in
-  v [ stanza contents ]
+  [ stanza "(data_only_dirs duniverse dist)"; stanza contents ]
 
-let base ~packages ~name ~version ~config_ml_file =
-  let dune_base = config_rule ~config_ml_file ~packages ~name ~version in
-  let disable_conflicting_directories = "(data_only_dirs duniverse dist)" in
-  disable_conflicting_directories :: dune_base
-
-let base_project = [ stanza "(lang dune 2.9)" ]
-let base_workspace = v [ stanza "(lang dune 2.9)\n(context default)" ]
+let project = v [ stanza "(lang dune 2.9)" ]
+let workspace = v [ stanza "(lang dune 2.9)\n(context default)" ]

@@ -92,9 +92,6 @@ Query makefile
 Query dune-project
   $ ./config_noop.exe query dune-project --target unix
   (lang dune 2.9)
-  
-  (name noop-unix)
-  
   (implicit_transitive_deps true)
 
 Query unikernel dune (hvt)

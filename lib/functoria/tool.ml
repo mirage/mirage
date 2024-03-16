@@ -148,8 +148,7 @@ module Make (P : S) = struct
     let dune_config_path = Fpath.(build_dir t / "dune.config") in
     Log.info (fun m -> m "Generating: %a (base)" Fpath.pp dune_config_path);
     let dune_config =
-      Dune.base ~config_ml_file:t.Cli.config_file ~packages:P.packages
-        ~name:P.name ~version:P.version
+      Dune.(v (config ~config_ml_file:t.Cli.config_file ~packages:P.packages))
     in
     let dune_config = Fmt.str "%a\n%!" Dune.pp dune_config in
     let* () = Filegen.write dune_config_path dune_config in
@@ -163,14 +162,14 @@ module Make (P : S) = struct
   let generate_base_dune_workspace t =
     let dune_workspace_path = dune_workspace_path t in
     Log.info (fun m -> m "Generating: %a (base)" Fpath.pp dune_workspace_path);
-    let dune = Dune.base_workspace in
+    let dune = Dune.workspace in
     let dune = Fmt.str "%a\n%!" Dune.pp dune in
     Filegen.write dune_workspace_path dune
 
   let generate_base_dune_project () =
     let dune_project_path = Fpath.(v "dune-project") in
     Log.info (fun m -> m "Generating: %a (base)" Fpath.pp dune_project_path);
-    let dune = Dune.v Dune.base_project in
+    let dune = Dune.project in
     let dune = Fmt.str "%a\n%!" Dune.pp dune in
     Filegen.write dune_project_path dune
 

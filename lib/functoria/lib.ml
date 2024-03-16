@@ -124,7 +124,7 @@ module type S = sig
   val version : string
   val create : job impl list -> job impl
   val name_of_target : Info.t -> string
-  val dune_project : Dune.stanza list
+  val dune_project : Dune.t option
   val dune_workspace : (?build_dir:Fpath.t -> info -> Dune.t) option
   val context_name : Info.t -> string
 end
@@ -256,7 +256,6 @@ module Make (P : S) = struct
 
   let dune_contents alias args =
     let { Config.info; jobs; _ } = args.Cli.context in
-    let name = P.name_of_target info in
     let build_dir = build_dir args in
     match alias with
     | `Build ->
@@ -265,16 +264,12 @@ module Make (P : S) = struct
         let dune = Dune.v (copy_files files @ Engine.dune info jobs) in
         Fmt.str "%a\n" Dune.pp dune
     | `Project ->
-        let dune =
-          Dune.v
-            (Dune.base_project
-            @ (Dune.stanzaf "(name %s)" name :: P.dune_project))
-        in
+        let dune = Option.value ~default:Dune.project P.dune_project in
         Fmt.str "%a\n" Dune.pp dune
     | `Workspace ->
         let dune =
           match P.dune_workspace with
-          | None -> Dune.base_workspace
+          | None -> Dune.workspace
           | Some f -> f ~build_dir info
         in
         Fmt.str "%a\n" Dune.pp dune
@@ -289,10 +284,7 @@ module Make (P : S) = struct
     | `Config ->
         let cwd = Bos.OS.Dir.current () |> Result.get_ok in
         let config_ml_file = Fpath.(cwd // args.Cli.config_file) in
-        let dune =
-          Dune.base ~config_ml_file ~packages:P.packages ~name:P.name
-            ~version:P.version
-        in
+        let dune = Dune.(v (config ~config_ml_file ~packages:P.packages)) in
         Fmt.str "%a\n" Dune.pp dune
 
   let generate_dune alias args =

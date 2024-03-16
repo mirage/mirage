@@ -25,9 +25,7 @@ Query dist dune
    (mode (promote (until-clean)))
    (target noop-functor.v0)
    (enabled_if (= %{context_name} "default"))
-   (action
-    (copy ../noop-functor.v0 %{target}))
-  )
+   (action (copy ../noop-functor.v0 %{target})))
 
 Query makefile
   $ ./config_dash_in_name.exe query Makefile --target unix
@@ -137,6 +135,4 @@ Query dist dune (hvt)
    (mode (promote (until-clean)))
    (target noop-functor.v0.hvt)
    (enabled_if (= %{context_name} "solo5"))
-   (action
-    (copy ../noop-functor.v0.hvt %{target}))
-  )
+   (action (copy ../noop-functor.v0.hvt %{target})))

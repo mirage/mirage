@@ -280,9 +280,12 @@ module Make (P : S) = struct
         Fmt.str "%a\n" Dune.pp dune
     | `Dist ->
         let install = Key.eval (Info.context info) (Engine.install info jobs) in
-        Fmt.str "%a\n" Dune.pp
-          (Install.dune ~context_name_for_bin:(P.context_name info)
-             ~context_name_for_etc:"default" install)
+        let install =
+          Install.dune ~context_name_for_bin:(P.context_name info)
+            ~context_name_for_etc:"default" install
+        in
+        let dune = Dune.v install in
+        Fmt.str "%a\n" Dune.pp dune
     | `Config ->
         let cwd = Bos.OS.Dir.current () |> Result.get_ok in
         let config_ml_file = Fpath.(cwd // args.Cli.config_file) in

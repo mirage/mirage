@@ -25,9 +25,7 @@ Query dist dune
    (mode (promote (until-clean)))
    (target noop)
    (enabled_if (= %{context_name} "default"))
-   (action
-    (copy ../noop %{target}))
-  )
+   (action (copy ../noop %{target})))
 
 Query makefile
   $ ./config_noop.exe query Makefile --target unix
@@ -137,6 +135,4 @@ Query dist dune (hvt)
    (mode (promote (until-clean)))
    (target noop.hvt)
    (enabled_if (= %{context_name} "solo5"))
-   (action
-    (copy ../noop.hvt %{target}))
-  )
+   (action (copy ../noop.hvt %{target})))

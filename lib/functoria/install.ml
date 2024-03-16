@@ -61,34 +61,40 @@ let pp_opam ?subdir () ppf t =
         (Fmt.list ~sep:(Fmt.any "\n") (fun ppf -> Fmt.pf ppf "  [ %a ]" pp_etc))
         t.etc
 
-let promote_artifact ~context_name ~src ~dst =
+let promote_artifact ?subdir ~context_name ~src ~dst () =
+  let prefix ppf () =
+    match subdir with None -> () | Some s -> Fmt.pf ppf "(subdir %s\n" s
+  in
+  let suffix ppf () =
+    match subdir with None -> () | Some _ -> Fmt.pf ppf ")"
+  in
   Dune.stanzaf
     {|
-(rule
+%a(rule
  (mode (promote (until-clean)))
  (target %a)
  (enabled_if (= %%{context_name} "%s"))
- (action
-  (copy %a %%{target}))
-)
+ (action (copy %a %%{target}))%a)
 |}
-    Fpath.pp dst context_name Fpath.pp
+    prefix () Fpath.pp dst context_name Fpath.pp
     Fpath.(v ".." // src)
+    suffix ()
 
-let dune ~context_name_for_bin ~context_name_for_etc t =
+let dune ?subdir ~context_name_for_bin ~context_name_for_etc t =
   let bin_rules =
     List.map
       (fun (src, dst) ->
-        promote_artifact ~context_name:context_name_for_bin ~src ~dst)
+        promote_artifact ?subdir ~context_name:context_name_for_bin ~src ~dst ())
       t.bin
   in
   let etc_rules =
     List.map
       (fun etc ->
-        promote_artifact ~context_name:context_name_for_etc ~src:etc ~dst:etc)
+        promote_artifact ?subdir ~context_name:context_name_for_etc ~src:etc
+          ~dst:etc ())
       t.etc
   in
-  Dune.v (bin_rules @ etc_rules)
+  bin_rules @ etc_rules
 
 let union_etc x y = Fpath.Set.(elements (union (of_list x) (of_list y)))
 let union_bin x y = x @ y

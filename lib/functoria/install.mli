@@ -38,8 +38,12 @@ val pp_opam : ?subdir:Fpath.t -> unit -> t Fmt.t
     use [cp tutorial/hello/dist/hello.hvt %{bin}%/hello.hvt]). *)
 
 val dune :
-  context_name_for_bin:string -> context_name_for_etc:string -> t -> Dune.t
-(** [dune ~context_name_for_bin ~context_name_for_etc ()] is the dune rules to
+  ?subdir:string ->
+  context_name_for_bin:string ->
+  context_name_for_etc:string ->
+  t ->
+  Dune.stanza list
+(** [dune ~context_name_for_bin ~context_name_for_etc t] is the dune rules to
     promote installed files back in the source tree. A context-name is required
     for [bin] and [etc] artifacts. The first one should be the cross-compiler
     context and the second one should be the host's compiler context. *)

@@ -302,38 +302,41 @@ module Make (P : S) = struct
           (`Dune alias :> Cli.query_kind));
     Filegen.write file contents
 
-  let makefile_contents ~build_dir ~depext ~extra_repo opam_name =
-    Fmt.to_to_string Makefile.pp
-      (Makefile.v ~build_dir ~depext ~builder_name:P.name ~extra_repo opam_name)
+  let makefile_contents ~depext ~extra_repo opam_name =
+    let+ m = Makefile.v ~depext ~extra_repo opam_name in
+    Fmt.to_to_string Makefile.pp m
 
-  let generate_makefile ~build_dir ~depext ~extra_repo opam_name =
-    let contents = makefile_contents ~build_dir ~depext ~extra_repo opam_name in
+  let generate_makefile ~depext ~extra_repo opam_name =
+    let* contents = makefile_contents ~depext ~extra_repo opam_name in
     let file = Fpath.(v "Makefile") in
     Filegen.write file contents
 
   let query ({ args; kind; depext; extra_repo } : _ Cli.query_args) =
     let { Config.jobs; info; _ } = args.Cli.context in
     let name = P.name_of_target info in
-    let build_dir = Fpath.parent args.config_file in
     match kind with
-    | `Name -> Fmt.pr "%s\n%!" (Info.name info)
+    | `Name ->
+        Fmt.pr "%s\n%!" (Info.name info);
+        Action.ok ()
     | `Packages ->
         let pkgs = Info.packages info in
-        List.iter (Fmt.pr "%a\n%!" (Package.pp ~surround:"\"")) pkgs
+        List.iter (Fmt.pr "%a\n%!" (Package.pp ~surround:"\"")) pkgs;
+        Action.ok ()
     | `Opam ->
         let opam_name = Misc.Name.opamify name in
         let contents = opam_contents ~opam_name ~extra_repo args in
-        Fmt.pr "%s\n%!" contents
+        Fmt.pr "%s\n%!" contents;
+        Action.ok ()
     | `Files ->
         let files = files info jobs in
-        Fmt.pr "%a\n%!" Fmt.(list ~sep:(any " ") Fpath.pp) files
+        Fmt.pr "%a\n%!" Fmt.(list ~sep:(any " ") Fpath.pp) files;
+        Action.ok ()
     | `Makefile ->
-        let opam_name = Misc.Name.opamify name in
-        let contents =
-          makefile_contents ~build_dir ~depext ~extra_repo opam_name
-        in
+        let+ contents = makefile_contents ~depext ~extra_repo () in
         Fmt.pr "%s\n%!" contents
-    | `Dune alias -> Fmt.pr "%s%!" (dune_contents alias args)
+    | `Dune alias ->
+        Fmt.pr "%s%!" (dune_contents alias args);
+        Action.ok ()
 
   (* Configuration step. *)
 
@@ -347,7 +350,7 @@ module Make (P : S) = struct
     let build_dir = build_dir args in
     let name = P.name_of_target info in
     let opam_name = Misc.Name.opamify name in
-    let* () = generate_makefile ~build_dir ~depext ~extra_repo opam_name in
+    let* () = generate_makefile ~depext ~extra_repo () in
     let* _ = Action.mkdir (mirage_dir args) in
     let* () =
       Action.with_dir (mirage_dir args) (fun () ->
@@ -398,8 +401,7 @@ module Make (P : S) = struct
         | Cli.Query t ->
             let t = { t with args = with_output t.args } in
             Log.info (fun m -> pp_info m (Some Logs.Debug) t.args);
-            query t;
-            ok ()
+            query t
         | Cli.Describe t ->
             let t = { t with args = with_output t.args } in
             pp_info Fmt.(pf stdout) (Some Logs.Info) t.args;

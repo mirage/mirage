@@ -37,12 +37,10 @@ Test that the help command works without config file:
              Display I/O actions instead of executing them.
   
          --extra-repos=NAME1:URL1,NAME2:URL2,...
-         (absent=opam-overlays:https://github.com/dune-universe/opam-overlays.git,mirage-overlays:https://github.com/dune-universe/mirage-opam-overlays.git
+         (absent=opam-overlays:git+https://github.com/dune-universe/opam-overlays.git,mirage-overlays:git+https://github.com/dune-universe/mirage-opam-overlays.git
          or MIRAGE_EXTRA_REPOS env)
              Additional opam-repositories to use when using `opam monorepo
-             lock' to gather local sources. Default:
-             https://github.com/dune-universe/opam-overlays.git &
-             https://github.com/dune-universe/mirage-opam-overlays.git.
+             lock' to gather local sources.
   
          -f FILE, --file=FILE, --config-file=FILE (absent=config.ml)
              The configuration file to use.

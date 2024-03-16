@@ -18,12 +18,5 @@
 
 type t
 
-val v :
-  ?extra_repo:(string * string) list ->
-  build_dir:Fpath.t ->
-  builder_name:string ->
-  depext:bool ->
-  Misc.Name.Opam.t ->
-  t
-
+val v : ?extra_repo:(string * string) list -> depext:bool -> unit -> t Action.t
 val pp : t Fmt.t

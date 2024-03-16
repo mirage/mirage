@@ -38,9 +38,10 @@ let test_configure () =
            extra_repo =
              [
                ( "opam-overlays",
-                 "https://github.com/dune-universe/opam-overlays.git" );
+                 "git+https://github.com/dune-universe/opam-overlays.git" );
                ( "mirage-overlays",
-                 "https://github.com/dune-universe/mirage-opam-overlays.git" );
+                 "git+https://github.com/dune-universe/mirage-opam-overlays.git"
+               );
              ];
            args =
              {

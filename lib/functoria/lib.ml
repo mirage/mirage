@@ -125,7 +125,7 @@ module type S = sig
   val create : job impl list -> job impl
   val name_of_target : Info.t -> string
   val dune_project : Dune.t option
-  val dune_workspace : (?build_dir:Fpath.t -> info -> Dune.t) option
+  val dune_workspace : Dune.t option
   val context_name : Info.t -> string
 end
 
@@ -256,7 +256,6 @@ module Make (P : S) = struct
 
   let dune_contents alias args =
     let { Config.info; jobs; _ } = args.Cli.context in
-    let build_dir = build_dir args in
     match alias with
     | `Build ->
         let files = files info jobs in
@@ -268,9 +267,7 @@ module Make (P : S) = struct
         Fmt.str "%a\n" Dune.pp dune
     | `Workspace ->
         let dune =
-          match P.dune_workspace with
-          | None -> Dune.workspace
-          | Some f -> f ~build_dir info
+          match P.dune_workspace with None -> Dune.workspace | Some f -> f
         in
         Fmt.str "%a\n" Dune.pp dune
     | `Dist ->

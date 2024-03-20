@@ -38,6 +38,11 @@ module type S = sig
   (** The packages to load when compiling the configuration file. *)
 
   val create : job impl list -> job impl
+
+  (** {2 Scaffolding *)
+
+  val dune_project : Dune.t option
+  val dune_workspace : Dune.t option
 end
 
 module Make (_ : S) : sig

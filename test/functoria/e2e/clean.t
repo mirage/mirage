@@ -15,7 +15,6 @@ Make sure that clean remove everything:
   .
   ..
   context
-  dune-workspace.config
   main.ml
   noop.opam
   vote
@@ -26,8 +25,6 @@ Make sure that clean remove everything:
                           "config_file" = app/config.ml;
                           "output" = None;
                           "dry_run" = false }
-  test.exe: [INFO] Generating: app/test/dune-workspace.config (base)
-  test.exe: [INFO] Generating: dune-project (base)
   test.exe: [INFO] Generating: app/dune.config (base)
   config.exe: [INFO] reading cache app/test/context
   config.exe: [INFO] Name       noop
@@ -62,7 +59,6 @@ Check that clean works with `--output`:
   .
   ..
   context
-  dune-workspace.config
   noop.opam
   toto.ml
   vote
@@ -73,8 +69,6 @@ Check that clean works with `--output`:
                           "config_file" = app/config.ml;
                           "output" = None;
                           "dry_run" = false }
-  test.exe: [INFO] Generating: app/test/dune-workspace.config (base)
-  test.exe: [INFO] Generating: dune-project (base)
   test.exe: [INFO] Generating: app/dune.config (base)
   config.exe: [INFO] reading cache app/test/context
   config.exe: [INFO] Name       noop

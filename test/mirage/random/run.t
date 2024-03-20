@@ -16,7 +16,6 @@ Configure the project for Unix:
   
   mirage/:
   context
-  dune-workspace.config
   main.ml
   random-unix.opam
   $ cat mirage/main.ml
@@ -117,14 +116,14 @@ Configure the project for Unix:
   
   let printexc__3 = lazy (
     let _backtrace = backtrace__key () in
-  # 391 "lib/mirage.ml"
+  # 388 "lib/mirage.ml"
     return (Printexc.record_backtrace _backtrace)
   );;
   # 101 "mirage/main.ml"
   
   let hashtbl__4 = lazy (
     let _randomize_hashtables = randomize_hashtables__key () in
-  # 400 "lib/mirage.ml"
+  # 397 "lib/mirage.ml"
     return (if _randomize_hashtables then Hashtbl.randomize ())
   );;
   # 108 "mirage/main.ml"
@@ -140,7 +139,7 @@ Configure the project for Unix:
     let _custom_major_ratio = custom_major_ratio__key () in
     let _custom_minor_ratio = custom_minor_ratio__key () in
     let _custom_minor_max_size = custom_minor_max_size__key () in
-  # 452 "lib/mirage.ml"
+  # 449 "lib/mirage.ml"
     return (
   let open Gc in
     let ctrl = get () in
@@ -225,7 +224,7 @@ Configure the project for Unix:
     __mirage_runtime__6 >>= fun _mirage_runtime__6 ->
     __mirage_logs_make__8 >>= fun _mirage_logs_make__8 ->
     __app_make__12 >>= fun _app_make__12 ->
-  # 379 "lib/mirage.ml"
+  # 376 "lib/mirage.ml"
     return ()
   );;
   # 209 "mirage/main.ml"
@@ -261,7 +260,6 @@ Configure the project for Xen:
   
   mirage/:
   context
-  dune-workspace.config
   main.ml
   manifest.json
   manifest.ml
@@ -367,14 +365,14 @@ Configure the project for Xen:
   
   let printexc__3 = lazy (
     let _backtrace = backtrace__key () in
-  # 391 "lib/mirage.ml"
+  # 388 "lib/mirage.ml"
     return (Printexc.record_backtrace _backtrace)
   );;
   # 101 "mirage/main.ml"
   
   let hashtbl__4 = lazy (
     let _randomize_hashtables = randomize_hashtables__key () in
-  # 400 "lib/mirage.ml"
+  # 397 "lib/mirage.ml"
     return (if _randomize_hashtables then Hashtbl.randomize ())
   );;
   # 108 "mirage/main.ml"
@@ -390,7 +388,7 @@ Configure the project for Xen:
     let _custom_major_ratio = custom_major_ratio__key () in
     let _custom_minor_ratio = custom_minor_ratio__key () in
     let _custom_minor_max_size = custom_minor_max_size__key () in
-  # 452 "lib/mirage.ml"
+  # 449 "lib/mirage.ml"
     return (
   let open Gc in
     let ctrl = get () in
@@ -475,7 +473,7 @@ Configure the project for Xen:
     __mirage_runtime__6 >>= fun _mirage_runtime__6 ->
     __mirage_logs_make__8 >>= fun _mirage_logs_make__8 ->
     __app_make__12 >>= fun _app_make__12 ->
-  # 379 "lib/mirage.ml"
+  # 376 "lib/mirage.ml"
     return ()
   );;
   # 209 "mirage/main.ml"

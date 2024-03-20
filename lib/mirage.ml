@@ -349,12 +349,9 @@ let run t = %s.Main.run t ; exit 0|ocaml}
     Some (Dune.v dune)
 
   let dune_workspace =
-    let f ?build_dir i =
-      let stanzas = Target.build_context ?build_dir i in
-      let main = Dune.stanza "(lang dune 2.9)\n(context (default))\n" in
-      Dune.v (main :: stanzas)
-    in
-    Some f
+    let main = Dune.stanza "(lang dune 2.9)\n(context (default))" in
+    let targets = Target.build_context in
+    Some (Dune.v (main :: targets))
 
   let context_name i = Target.context_name i
 

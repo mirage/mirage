@@ -18,7 +18,6 @@ Build an application.
   .
   ..
   context
-  dune-workspace.config
   main.ml
   noop.opam
   vote
@@ -52,7 +51,6 @@ Test `--output`:
   .
   ..
   context
-  dune-workspace.config
   noop.opam
   toto.ml
   vote

@@ -18,10 +18,7 @@ module type TARGET = sig
   val configure : Info.t -> unit Action.t
   (** Configure-time actions. *)
 
-  val build_context : ?build_dir:Fpath.t -> Info.t -> Dune.stanza list
-  (** Generate build context configuration *)
-
-  val context_name : Info.t -> string
+  val context_name : string
   (** Dune context *)
 
   val packages : t -> package list
@@ -38,8 +35,8 @@ module Unix = struct
   let packages _ = [ Functoria.package ~min:"5.0.0" ~max:"6.0.0" "mirage-unix" ]
 
   (*Mirage unix is built on the host build context.*)
-  let build_context ?build_dir:_ _ = []
-  let context_name _ = "default"
+  let build_context = []
+  let context_name = "default"
   let configure _ = Action.ok ()
   let main i = Fpath.(base (rem_ext (Info.main i)))
 
@@ -62,7 +59,7 @@ module Unix = struct
         {|
 (rule
  (target %s)
- (enabled_if (= %%{context_name} "default"))
+ (enabled_if (= %%{context_name} "%s"))
  (deps %s.exe)
  (action
   (copy %s.exe %%{target})))
@@ -76,7 +73,8 @@ module Unix = struct
  (enabled_if (= %%{context_name} "default"))
 )
 |}
-        public_name main main main (pp_list "libraries") libraries Fpath.pp
+        public_name context_name main main main (pp_list "libraries") libraries
+        Fpath.pp
         (Fpath.rem_ext (Fpath.base (Info.config_file i)))
         (pp_list "flags") flags
     in
@@ -122,8 +120,6 @@ module Xen = struct
       | Memory
       | Block of Block.block_t
       | Network of string
-
-    type t = (v * string) list
 
     let string_of_v = function
       | Name -> "@NAME@"
@@ -229,10 +225,10 @@ module Solo5 = struct
         [ Functoria.package ~min:"8.0.0" ~max:"9.0.0" "mirage-xen" ]
 
   let packages target = build_packages @ runtime_packages target
-  let context_name _i = "solo5"
+  let context_name = "solo5"
 
   (* OCaml solo5 build context. *)
-  let build_context ?build_dir:_ i =
+  let build_context =
     let build_context =
       Dune.stanzaf
         {|
@@ -244,7 +240,7 @@ module Solo5 = struct
   (disable_dynamically_linked_foreign_archives true)
   ))
   |}
-        (context_name i)
+        context_name
     in
     [ build_context ]
 
@@ -325,7 +321,7 @@ module Solo5 = struct
  (action
   (copy %s.exe %%{target})))
 |}
-      out (context_name i) main main
+      out context_name main main
 
   let manifest _i =
     Dune.stanzaf
@@ -369,11 +365,10 @@ module Solo5 = struct
  (foreign_stubs (language c) (names manifest))
 )
 |}
-      (context_name i) main (pp_list "libraries") libraries
-      (pp_list "link_flags") flags (solo5_abi target) Fpath.pp
+      context_name main (pp_list "libraries") libraries (pp_list "link_flags")
+      flags (solo5_abi target) Fpath.pp
       (Fpath.rem_ext (Fpath.base (Info.config_file i)))
 
-  let subdir name s = Dune.stanzaf "(subdir %s\n %a)\n" name Dune.pp (Dune.v s)
   let dune i = [ main i; manifest i; rename i ]
 
   let install i =
@@ -403,15 +398,10 @@ let configure i =
   let (module Target) = choose target in
   Target.configure i
 
-let build_context ?build_dir i =
-  let target = Info.get i Key.target in
-  let (module Target) = choose target in
-  Target.build_context ?build_dir i
-
 let context_name i =
   let target = Info.get i Key.target in
   let (module Target) = choose target in
-  Target.context_name i
+  Target.context_name
 
 let packages target =
   let (module Target) = choose target in
@@ -421,3 +411,5 @@ let install i =
   let target = Info.get i Key.target in
   let (module Target) = choose target in
   Target.install i
+
+let build_context = Solo5.build_context @ Unix.build_context

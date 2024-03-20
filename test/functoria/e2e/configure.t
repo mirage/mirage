@@ -9,7 +9,7 @@ is passed:
                              "output" = None;
                              "dry_run" = false };
                           "depext" = true }
-  test.exe: [INFO] Generating: app/test/dune-workspace.config (base)
+  test.exe: [INFO] Generating: dune-workspace (base)
   test.exe: [INFO] Generating: dune-project (base)
   test.exe: [INFO] Generating: app/dune.config (base)
   test.exe: [INFO] Preserving arguments in app/test/context:
@@ -44,7 +44,6 @@ is passed:
   .
   ..
   context
-  dune-workspace.config
   main.ml
   noop.opam
   vote

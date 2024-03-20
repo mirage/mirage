@@ -244,3 +244,11 @@ Query dune-workspace
   $ ./config.exe query dune-workspace
   (lang dune 2.9)
   (context (default))
+  
+  (context (default
+    (name solo5)
+    (host default)
+    (toolchain solo5)
+    (merlin)
+    (disable_dynamically_linked_foreign_archives true)
+    ))

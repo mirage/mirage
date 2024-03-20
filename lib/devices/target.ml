@@ -232,13 +232,12 @@ module Solo5 = struct
     let build_context =
       Dune.stanzaf
         {|
-  (context (default
+(context (default
   (name %s)
   (host default)
   (toolchain solo5)
   (merlin)
-  (disable_dynamically_linked_foreign_archives true)
-  ))
+  (disable_dynamically_linked_foreign_archives true)))
   |}
         context_name
     in

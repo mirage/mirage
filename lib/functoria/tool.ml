@@ -186,6 +186,12 @@ module Make (P : S) = struct
       Log.info (fun m -> m "Generating: %a (base)" Fpath.pp dune_project_path);
       Filegen.write dune_project_path dune
 
+  let generate_base_makefile ~depext ~extra_repo () =
+    let* m = Makefile.v ~depext ~extra_repo () in
+    let contents = Fmt.to_to_string Makefile.pp m in
+    let file = Fpath.(v "Makefile") in
+    Filegen.write file contents
+
   let build_config_exe t ?ppf ?err_ppf () =
     let command =
       Bos.Cmd.(
@@ -201,8 +207,10 @@ module Make (P : S) = struct
   let remove_context t = Action.rm (context_file t)
 
   (* Generated a project skeleton and try to compile config.exe. *)
-  let generate_project_skeleton ~save_args ~force_dune t ?ppf ?err_ppf argv =
+  let generate_project_skeleton ~save_args ~force_dune ~depext ~extra_repo t
+      ?ppf ?err_ppf argv =
     let* _ = Action.mkdir Fpath.(build_dir t / P.name) in
+    let* () = generate_base_makefile ~depext ~extra_repo () in
     let* () = generate_base_dune_workspace () in
     let* () = generate_base_dune_project () in
     let* () = generate_base_dune ~force:force_dune t in
@@ -234,7 +242,8 @@ module Make (P : S) = struct
     let error = Action.error error in
     match result with `Version | `Help | `Ok (Cli.Help _) -> ok | _ -> error
 
-  let with_project_skeleton ~save_args ~force_dune t ?ppf ?err_ppf argv f =
+  let with_project_skeleton ~save_args ~force_dune ?(extra_repo = [])
+      ?(depext = false) t ?ppf ?err_ppf argv f =
     let file = t.Cli.config_file in
     let* is_file = Action.is_file file in
     if not is_file then
@@ -242,7 +251,8 @@ module Make (P : S) = struct
       handle_parse_args_no_config ?help_ppf:ppf ?err_ppf (`Msg msg) argv
     else
       let* () =
-        generate_project_skeleton ~save_args ~force_dune t ?ppf ?err_ppf argv
+        generate_project_skeleton ~save_args ~force_dune ~extra_repo ~depext t
+          ?ppf ?err_ppf argv
       in
       f ()
 
@@ -292,7 +302,8 @@ module Make (P : S) = struct
     rm_gen_files ()
 
   (* App builder configuration *)
-  let configure ({ args; _ } : _ Cli.configure_args) ?ppf ?err_ppf argv =
+  let configure ({ args; depext; extra_repo; _ } : _ Cli.configure_args) ?ppf
+      ?err_ppf argv =
     let file = args.Cli.config_file in
     let* () =
       let* is_file = Action.is_file file in
@@ -318,7 +329,7 @@ module Make (P : S) = struct
     in
     (* Files to build config.ml *)
     with_project_skeleton ~force_dune:true ~save_args:true args ?ppf ?err_ppf
-      argv
+      ~depext ~extra_repo argv
     @@ fun () ->
     Log.info (fun f -> f "Set-up config skeleton.");
     (* Launch config.exe: additional generated files for the application. *)

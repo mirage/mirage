@@ -303,11 +303,6 @@ module Make (P : S) = struct
     let+ m = Makefile.v ~depext ~extra_repo opam_name in
     Fmt.to_to_string Makefile.pp m
 
-  let generate_makefile ~depext ~extra_repo opam_name =
-    let* contents = makefile_contents ~depext ~extra_repo opam_name in
-    let file = Fpath.(v "Makefile") in
-    Filegen.write file contents
-
   let query ({ args; kind; depext; extra_repo } : _ Cli.query_args) =
     let { Config.jobs; info; _ } = args.Cli.context in
     let name = P.name_of_target info in
@@ -341,13 +336,12 @@ module Make (P : S) = struct
     let* () = Action.rmdir (mirage_dir args) in
     Action.rmdir (artifacts_dir args)
 
-  let configure ({ args; depext; extra_repo; _ } : _ Cli.configure_args) =
+  let configure ({ args; extra_repo; _ } : _ Cli.configure_args) =
     let { Config.init; info; device_graph; _ } = args.Cli.context in
     (* Get application name *)
     let build_dir = build_dir args in
     let name = P.name_of_target info in
     let opam_name = Misc.Name.opamify name in
-    let* () = generate_makefile ~depext ~extra_repo () in
     let* _ = Action.mkdir (mirage_dir args) in
     let* () =
       Action.with_dir (mirage_dir args) (fun () ->

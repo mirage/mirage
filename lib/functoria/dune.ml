@@ -77,21 +77,22 @@ let config ~config_ml_file ~packages =
     let config_ml_file = Fpath.base config_ml_file in
     let ext = Fpath.get_ext config_ml_file in
     let name = Fpath.rem_ext config_ml_file |> Fpath.to_string in
-    if name = "config" then ""
+    if name = "config" then None
     else
-      Fmt.str "(rule (copy %s config%s))" (Fpath.to_string config_ml_file) ext
+      stanzaf "(rule (copy %s config%s))" (Fpath.to_string config_ml_file) ext
   in
   let contents =
-    Fmt.str
-      {|%s(executable
+    stanzaf
+      {|
+(executable
  (name config)
  (enabled_if (= %%{context_name} "default"))
  (modules config)
  (libraries %s))
 |}
-      rename_config_file pkgs
+      pkgs
   in
-  [ stanza "(data_only_dirs duniverse dist)"; stanza contents ]
+  [ stanza "(data_only_dirs dist)"; rename_config_file; contents ]
 
 let project = v [ stanza "(lang dune 2.9)" ]
 let workspace = v [ stanza "(lang dune 2.9)\n(context default)" ]

@@ -34,7 +34,6 @@ module C = struct
   let keys = Key.[ v vote; v warn_error ]
   let connect _ _ _ = code ~pos:__POS__ "()"
   let main i = Fpath.(basename @@ rem_ext @@ Info.main i)
-  let config i = Fpath.(basename @@ rem_ext @@ Info.config_file i)
 
   let dune i =
     let dune =
@@ -42,11 +41,11 @@ module C = struct
         {|
 (executable
   (name      %s)
-  (modules   (:standard \ %s))
+  (modules   (:standard \ config))
   (promote   (until-clean))
   (libraries cmdliner fmt mirage-runtime.functoria))
 |}
-        (main i) (config i)
+        (main i)
     in
     [ dune ]
 

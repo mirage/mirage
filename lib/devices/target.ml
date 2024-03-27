@@ -61,21 +61,17 @@ module Unix = struct
  (target %s)
  (enabled_if (= %%{context_name} "%s"))
  (deps %s.exe)
- (action
-  (copy %s.exe %%{target})))
+ (action (copy %s.exe %%{target})))
 
 (executable
  (name %s)
  (libraries %a)
  (link_flags (-thread))
- (modules (:standard \ %a))
+ (modules (:standard \ config))
  (flags %a)
- (enabled_if (= %%{context_name} "default"))
-)
+ (enabled_if (= %%{context_name} "default")))
 |}
         public_name context_name main main main (pp_list "libraries") libraries
-        Fpath.pp
-        (Fpath.rem_ext (Fpath.base (Info.config_file i)))
         (pp_list "flags") flags
     in
     [ dune ]
@@ -361,8 +357,7 @@ module Solo5 = struct
  (libraries %a)
  (link_flags %a -cclib "-z solo5-abi=%s")
  (modules (:standard \ %a manifest))
- (foreign_stubs (language c) (names manifest))
-)
+ (foreign_stubs (language c) (names manifest)))
 |}
       context_name main (pp_list "libraries") libraries (pp_list "link_flags")
       flags (solo5_abi target) Fpath.pp

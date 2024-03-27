@@ -16,6 +16,24 @@ Query unikernel dune
    (modules (:standard \ config))
    (flags :standard -w -70)
    (enabled_if (= %{context_name} "default")))
+  
+  (subdir mirage
+   (rule
+    (targets dune.build.gen)
+    (deps context ../config.exe)
+    (action (with-stdout-to dune.build.gen
+     (run ../config.exe query --context-file context dune.build))))
+  
+   (rule (alias dist) (action (diff dune.build dune.build.gen))))
+  
+  (subdir mirage
+   (rule
+    (targets dune.dist.gen)
+    (deps context ../config.exe)
+    (action (with-stdout-to dune.dist.gen
+     (run ../config.exe query --context-file context dune.dist))))
+  
+   (rule (alias dist) (action (diff dune.build dune.build.gen))))
 
 Query dist dune
   $ ./config_noop.exe query dune.dist
@@ -108,6 +126,24 @@ Query unikernel dune (hvt)
    (deps main.exe)
    (action
     (copy main.exe %{target})))
+  
+  (subdir mirage
+   (rule
+    (targets dune.build.gen)
+    (deps context ../config.exe)
+    (action (with-stdout-to dune.build.gen
+     (run ../config.exe query --context-file context dune.build))))
+  
+   (rule (alias dist) (action (diff dune.build dune.build.gen))))
+  
+  (subdir mirage
+   (rule
+    (targets dune.dist.gen)
+    (deps context ../config.exe)
+    (action (with-stdout-to dune.dist.gen
+     (run ../config.exe query --context-file context dune.dist))))
+  
+   (rule (alias dist) (action (diff dune.build dune.build.gen))))
 
 Query dist dune (hvt)
   $ ./config_noop.exe query --target hvt dune.dist

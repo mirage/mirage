@@ -25,7 +25,9 @@ Query unikernel dune
     (action (with-stdout-to dune.build.gen
      (run ../config.exe query --context-file context dune.build))))
   
-   (rule (alias dist) (action (diff dune.build dune.build.gen))))
+   (rule (alias dist)
+    (enabled_if (= %{context_name} "default"))
+    (action (diff dune.build dune.build.gen))))
   
   (subdir mirage
    (rule
@@ -35,7 +37,9 @@ Query unikernel dune
     (action (with-stdout-to dune.dist.gen
      (run ../config.exe query --context-file context dune.dist))))
   
-   (rule (alias dist) (action (diff dune.build dune.build.gen))))
+   (rule (alias dist)
+    (enabled_if (= %{context_name} "default"))
+    (action (diff dune.build dune.build.gen))))
 
 Query dist dune
   $ ./config_dash_in_name.exe query dune.dist
@@ -137,7 +141,9 @@ Query unikernel dune (hvt)
     (action (with-stdout-to dune.build.gen
      (run ../config.exe query --context-file context dune.build))))
   
-   (rule (alias dist) (action (diff dune.build dune.build.gen))))
+   (rule (alias dist)
+    (enabled_if (= %{context_name} "default"))
+    (action (diff dune.build dune.build.gen))))
   
   (subdir mirage
    (rule
@@ -147,7 +153,9 @@ Query unikernel dune (hvt)
     (action (with-stdout-to dune.dist.gen
      (run ../config.exe query --context-file context dune.dist))))
   
-   (rule (alias dist) (action (diff dune.build dune.build.gen))))
+   (rule (alias dist)
+    (enabled_if (= %{context_name} "default"))
+    (action (diff dune.build dune.build.gen))))
 
 Query dist dune (hvt)
   $ ./config_dash_in_name.exe query --target hvt dune.dist

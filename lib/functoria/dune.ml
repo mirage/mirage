@@ -102,3 +102,22 @@ let config ~config_ml_file ~packages ~gen_dir =
 
 let project = v [ stanza "(lang dune 2.9)" ]
 let workspace = v [ stanza "(lang dune 2.9)\n(context default)" ]
+
+let gen ~context_file ~gen_dir file =
+  let basename f = Fpath.to_string (snd (Fpath.split_base f)) in
+  let context = Option.fold ~none:"context" ~some:basename context_file in
+  stanzaf
+    {|
+(subdir %a
+ (rule
+  (targets %s.gen)
+  (enabled_if (= %%{context_name} "default"))
+  (deps %s ../config.exe)
+  (action (with-stdout-to %s.gen
+   (run ../config.exe query --context-file %s %s))))
+
+ (rule (alias dist)
+  (enabled_if (= %%{context_name} "default"))
+  (action (diff dune.build dune.build.gen))))
+|}
+    Fpath.pp gen_dir file context file context file

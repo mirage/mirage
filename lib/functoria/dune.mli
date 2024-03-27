@@ -37,6 +37,8 @@ val config :
   stanza list
 (** the minimal [dune] file to compile [config.ml]. *)
 
+val gen : context_file:Fpath.t option -> gen_dir:Fpath.t -> string -> stanza
+
 val project : t
 (** the minimal [dune-project] to compile [config.ml]. *)
 

@@ -225,8 +225,6 @@ Query unikernel dune
 
 Query configuration dune
   $ ./config.exe query dune.config
-  (data_only_dirs dist)
-  
   (executable
    (name config)
    (enabled_if (= %{context_name} "default"))

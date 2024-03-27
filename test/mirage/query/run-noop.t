@@ -20,6 +20,7 @@ Query unikernel dune
 Query dist dune
   $ ./config_noop.exe query dune.dist
   (rule
+   (alias dist)
    (mode (promote (until-clean)))
    (target noop)
    (enabled_if (= %{context_name} "default"))
@@ -111,6 +112,7 @@ Query unikernel dune (hvt)
 Query dist dune (hvt)
   $ ./config_noop.exe query --target hvt dune.dist
   (rule
+   (alias dist)
    (mode (promote (until-clean)))
    (target noop.hvt)
    (enabled_if (= %{context_name} "solo5"))

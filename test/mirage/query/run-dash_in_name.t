@@ -20,6 +20,7 @@ Query unikernel dune
 Query dist dune
   $ ./config_dash_in_name.exe query dune.dist
   (rule
+   (alias dist)
    (mode (promote (until-clean)))
    (target noop-functor.v0)
    (enabled_if (= %{context_name} "default"))
@@ -111,6 +112,7 @@ Query unikernel dune (hvt)
 Query dist dune (hvt)
   $ ./config_dash_in_name.exe query --target hvt dune.dist
   (rule
+   (alias dist)
    (mode (promote (until-clean)))
    (target noop-functor.v0.hvt)
    (enabled_if (= %{context_name} "solo5"))

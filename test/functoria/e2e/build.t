@@ -8,6 +8,7 @@ Build an application.
   ..
   app.ml
   config.ml
+  dist
   dune
   dune.config
   main.exe
@@ -41,6 +42,7 @@ Test `--output`:
   ..
   app.ml
   config.ml
+  dist
   dune
   dune.config
   test

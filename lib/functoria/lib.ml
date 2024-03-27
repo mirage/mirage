@@ -262,6 +262,7 @@ module Make (P : S) = struct
 (subdir %s
  (rule
   (targets %s.gen)
+  (enabled_if (= %%{context_name} "default"))
   (deps %s ../config.exe)
   (action (with-stdout-to %s.gen
    (run ../config.exe query --context-file %s %s))))

@@ -20,6 +20,7 @@ Query unikernel dune
   (subdir mirage
    (rule
     (targets dune.build.gen)
+    (enabled_if (= %{context_name} "default"))
     (deps context ../config.exe)
     (action (with-stdout-to dune.build.gen
      (run ../config.exe query --context-file context dune.build))))
@@ -29,6 +30,7 @@ Query unikernel dune
   (subdir mirage
    (rule
     (targets dune.dist.gen)
+    (enabled_if (= %{context_name} "default"))
     (deps context ../config.exe)
     (action (with-stdout-to dune.dist.gen
      (run ../config.exe query --context-file context dune.dist))))
@@ -130,6 +132,7 @@ Query unikernel dune (hvt)
   (subdir mirage
    (rule
     (targets dune.build.gen)
+    (enabled_if (= %{context_name} "default"))
     (deps context ../config.exe)
     (action (with-stdout-to dune.build.gen
      (run ../config.exe query --context-file context dune.build))))
@@ -139,6 +142,7 @@ Query unikernel dune (hvt)
   (subdir mirage
    (rule
     (targets dune.dist.gen)
+    (enabled_if (= %{context_name} "default"))
     (deps context ../config.exe)
     (action (with-stdout-to dune.dist.gen
      (run ../config.exe query --context-file context dune.dist))))

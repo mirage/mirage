@@ -8,9 +8,7 @@ Build an application.
   ..
   app.ml
   config.ml
-  dist
   dune
-  dune.build
   dune.config
   main.exe
   test
@@ -18,6 +16,8 @@ Build an application.
   .
   ..
   context
+  dune.build
+  dune.dist
   main.ml
   noop.opam
   vote
@@ -41,9 +41,7 @@ Test `--output`:
   ..
   app.ml
   config.ml
-  dist
   dune
-  dune.build
   dune.config
   test
   toto.exe
@@ -51,6 +49,8 @@ Test `--output`:
   .
   ..
   context
+  dune.build
+  dune.dist
   noop.opam
   toto.ml
   vote

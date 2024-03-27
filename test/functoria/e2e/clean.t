@@ -6,15 +6,15 @@ Make sure that clean remove everything:
   ..
   app.ml
   config.ml
-  dist
   dune
-  dune.build
   dune.config
   test
   $ ls -a app/test
   .
   ..
   context
+  dune.build
+  dune.dist
   main.ml
   noop.opam
   vote
@@ -50,15 +50,15 @@ Check that clean works with `--output`:
   ..
   app.ml
   config.ml
-  dist
   dune
-  dune.build
   dune.config
   test
   $ ls -a app/test
   .
   ..
   context
+  dune.build
+  dune.dist
   noop.opam
   toto.ml
   vote

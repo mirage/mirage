@@ -212,8 +212,7 @@ Query unikernel dune
    (target noop)
    (enabled_if (= %{context_name} "default"))
    (deps main.exe)
-   (action
-    (copy main.exe %{target})))
+   (action (copy main.exe %{target})))
   
   (executable
    (name main)
@@ -222,18 +221,21 @@ Query unikernel dune
    (link_flags (-thread))
    (modules (:standard \ config))
    (flags :standard -w -70)
-   (enabled_if (= %{context_name} "default"))
-  )
+   (enabled_if (= %{context_name} "default")))
 
 Query configuration dune
   $ ./config.exe query dune.config
-  (data_only_dirs duniverse dist)
+  (data_only_dirs dist)
   
   (executable
    (name config)
    (enabled_if (= %{context_name} "default"))
    (modules config)
    (libraries mirage))
+  
+  (include mirage/dune.build)
+  
+  (subdir dist (include ../mirage/dune.dist))
 
 Query dune-project
   $ ./config.exe query dune-project --target unix

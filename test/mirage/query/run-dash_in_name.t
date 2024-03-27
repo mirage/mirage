@@ -6,8 +6,7 @@ Query unikernel dune
    (target noop-functor.v0)
    (enabled_if (= %{context_name} "default"))
    (deps main.exe)
-   (action
-    (copy main.exe %{target})))
+   (action (copy main.exe %{target})))
   
   (executable
    (name main)
@@ -16,8 +15,7 @@ Query unikernel dune
    (link_flags (-thread))
    (modules (:standard \ config))
    (flags :standard -w -70)
-   (enabled_if (= %{context_name} "default"))
-  )
+   (enabled_if (= %{context_name} "default")))
 
 Query dist dune
   $ ./config_dash_in_name.exe query dune.dist
@@ -95,8 +93,7 @@ Query unikernel dune (hvt)
      mirage-runtime mirage-solo5)
    (link_flags :standard -w -70 -cclib "-z solo5-abi=hvt")
    (modules (:standard \ config manifest))
-   (foreign_stubs (language c) (names manifest))
-  )
+   (foreign_stubs (language c) (names manifest)))
   
   (rule
    (targets manifest.c)

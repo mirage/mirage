@@ -217,8 +217,7 @@ Query unikernel dune
      mirage-runtime mirage-solo5)
    (link_flags :standard -w -70 -cclib "-z solo5-abi=hvt")
    (modules (:standard \ config manifest))
-   (foreign_stubs (language c) (names manifest))
-  )
+   (foreign_stubs (language c) (names manifest)))
   
   (rule
    (targets manifest.c)
@@ -235,13 +234,17 @@ Query unikernel dune
 
 Query configuration dune
   $ ./config.exe query --target hvt dune.config
-  (data_only_dirs duniverse dist)
+  (data_only_dirs dist)
   
   (executable
    (name config)
    (enabled_if (= %{context_name} "default"))
    (modules config)
    (libraries mirage))
+  
+  (include mirage/dune.build)
+  
+  (subdir dist (include ../mirage/dune.dist))
 
 Query dune-project
   $ ./config.exe query --target hvt dune-project

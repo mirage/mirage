@@ -6,16 +6,16 @@ Configure the project for Unix:
   Makefile
   _build
   config.ml
-  dist
   dune
   dune-project
   dune-workspace
-  dune.build
   dune.config
   mirage
   
   mirage/:
   context
+  dune.build
+  dune.dist
   main.ml
   random-unix.opam
   $ cat mirage/main.ml
@@ -250,16 +250,16 @@ Configure the project for Xen:
   Makefile
   _build
   config.ml
-  dist
   dune
   dune-project
   dune-workspace
-  dune.build
   dune.config
   mirage
   
   mirage/:
   context
+  dune.build
+  dune.dist
   main.ml
   manifest.json
   manifest.ml

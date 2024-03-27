@@ -20,30 +20,27 @@ is passed:
   config.exe: [INFO] Name       noop
                      Keys       vote=cat (default),
                                 warn_error=false (default)
+  config.exe: [INFO] in dir app/test
   config.exe: [INFO] Generating: noop.opam (opam)
-  config.exe: [INFO] in dir { "context" = ;
-                              "config_file" = app/config.ml;
-                              "output" = None;
-                              "dry_run" = false }
-  config.exe: [INFO] Generating: main.ml (main file)
   config.exe: [INFO] Generating: dune.build (dune.build)
-  config.exe: [INFO] Generating: dune-workspace (dune-workspace)
-  config.exe: [INFO] Generating: dune-project (dune-project)
-  config.exe: [INFO] Generating: dune (dune.dist)
+  config.exe: [INFO] Generating: dune.dist (dune.dist)
+  config.exe: [INFO] Generating: main.ml (main file)
+  config.exe: [INFO] in dir app/
+  config.exe: [INFO] Generating: dune (dune.config)
   $ ls -a app/
   .
   ..
   app.ml
   config.ml
-  dist
   dune
-  dune.build
   dune.config
   test
   $ ls -a app/test
   .
   ..
   context
+  dune.build
+  dune.dist
   main.ml
   noop.opam
   vote

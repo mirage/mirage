@@ -254,13 +254,36 @@ module Make (P : S) = struct
         | _ -> Dune.stanzaf "(copy_files %a)" Fpath.pp f)
       files
 
+  let gen_rule ~context_file files =
+    let context =
+      Option.fold ~none:"context" ~some:Fpath.to_string context_file
+    in
+    let files = List.map Fpath.to_string files in
+    let files = String.concat ~sep:" " files in
+    let dune =
+      Dune.stanzaf
+        {|
+ (rule
+   (enabled_if (= %%{context_name} "default"))
+   (targets %s dune.build dune.dist)
+   (deps %s ../config.exe)
+   (mode (promote))
+   (action (run ../config.exe configure --in-place -f %s)))
+|}
+        files context context
+    in
+    [ dune ]
+
   let dune_contents alias args =
     let { Config.info; jobs; _ } = args.Cli.context in
     match alias with
     | `Build ->
         let files = files info jobs in
         let files = List.map (fun p -> Fpath.(v "." / P.name // p)) files in
-        let dune = Dune.v (copy_files files @ Engine.dune info jobs) in
+        let gen_rule = gen_rule ~context_file:args.context_file files in
+        let dune =
+          Dune.v (copy_files files @ Engine.dune info jobs @ gen_rule)
+        in
         Fmt.str "%a\n" Dune.pp dune
     | `Project ->
         let dune = Option.value ~default:Dune.project P.dune_project in

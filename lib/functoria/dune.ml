@@ -92,7 +92,7 @@ let config ~config_ml_file ~packages =
 |}
       pkgs
   in
-  [ stanza "(data_only_dirs dist)"; rename_config_file; contents ]
+  [ rename_config_file; contents ]
 
 let project = v [ stanza "(lang dune 2.9)" ]
 let workspace = v [ stanza "(lang dune 2.9)\n(context default)" ]

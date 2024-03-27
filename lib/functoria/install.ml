@@ -71,6 +71,7 @@ let promote_artifact ?subdir ~context_name ~src ~dst () =
   Dune.stanzaf
     {|
 %a(rule
+ (alias dist)
  (mode (promote (until-clean)))
  (target %a)
  (enabled_if (= %%{context_name} "%s"))

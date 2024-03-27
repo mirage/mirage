@@ -45,6 +45,10 @@ Test that the help command works without config file:
          -f FILE, --file=FILE, --config-file=FILE (absent=config.ml)
              The configuration file to use.
   
+         --in-place
+             Generate files in the current directory instead of using a
+             subdirectory (internal).
+  
          --no-depext
              Disable call to `opam depext' in the project Makefile.
   

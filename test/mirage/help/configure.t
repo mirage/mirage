@@ -35,6 +35,10 @@ Help configure --man-format=plain
          -f FILE, --file=FILE, --config-file=FILE (absent=config.ml)
              The configuration file to use.
   
+         --in-place
+             Generate files in the current directory instead of using a
+             subdirectory (internal).
+  
          --no-depext
              Disable call to `opam depext' in the project Makefile.
   
@@ -125,6 +129,10 @@ Configure help --help=plain
   
          -f FILE, --file=FILE, --config-file=FILE (absent=config.ml)
              The configuration file to use.
+  
+         --in-place
+             Generate files in the current directory instead of using a
+             subdirectory (internal).
   
          --no-depext
              Disable call to `opam depext' in the project Makefile.

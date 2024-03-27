@@ -10,7 +10,6 @@ Build an application.
   config.ml
   dist
   dune
-  dune.config
   main.exe
   test
   $ ls -a app/test
@@ -44,7 +43,6 @@ Test `--output`:
   config.ml
   dist
   dune
-  dune.config
   test
   toto.exe
   $ ls -a app/test

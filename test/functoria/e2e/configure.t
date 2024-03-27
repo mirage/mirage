@@ -11,7 +11,7 @@ is passed:
                           "depext" = true }
   test.exe: [INFO] Generating: dune-workspace (base)
   test.exe: [INFO] Generating: dune-project (base)
-  test.exe: [INFO] Generating: app/dune.config (base)
+  test.exe: [INFO] Generating: app/dune (base)
   test.exe: [INFO] Preserving arguments in app/test/context:
                    [|"./test.exe"; "configure"; "-v"; "--file";
                      "app/config.ml"|]
@@ -20,20 +20,16 @@ is passed:
   config.exe: [INFO] Name       noop
                      Keys       vote=cat (default),
                                 warn_error=false (default)
-  config.exe: [INFO] in dir app/test
   config.exe: [INFO] Generating: noop.opam (opam)
   config.exe: [INFO] Generating: dune.build (dune.build)
   config.exe: [INFO] Generating: dune.dist (dune.dist)
   config.exe: [INFO] Generating: main.ml (main file)
-  config.exe: [INFO] in dir app/
-  config.exe: [INFO] Generating: dune (dune.config)
   $ ls -a app/
   .
   ..
   app.ml
   config.ml
   dune
-  dune.config
   test
   $ ls -a app/test
   .

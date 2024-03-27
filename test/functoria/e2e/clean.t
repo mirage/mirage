@@ -7,7 +7,6 @@ Make sure that clean remove everything:
   app.ml
   config.ml
   dune
-  dune.config
   test
   $ ls -a app/test
   .
@@ -25,7 +24,7 @@ Make sure that clean remove everything:
                           "config_file" = app/config.ml;
                           "output" = None;
                           "dry_run" = false }
-  test.exe: [INFO] Generating: app/dune.config (base)
+  test.exe: [INFO] Generating: app/dune (base)
   config.exe: [INFO] reading cache app/test/context
   config.exe: [INFO] Name       noop
                      Keys       vote=cat (default),
@@ -51,7 +50,6 @@ Check that clean works with `--output`:
   app.ml
   config.ml
   dune
-  dune.config
   test
   $ ls -a app/test
   .
@@ -69,7 +67,7 @@ Check that clean works with `--output`:
                           "config_file" = app/config.ml;
                           "output" = None;
                           "dry_run" = false }
-  test.exe: [INFO] Generating: app/dune.config (base)
+  test.exe: [INFO] Generating: app/dune (base)
   config.exe: [INFO] reading cache app/test/context
   config.exe: [INFO] Name       noop
                      Keys       vote=cat (default),

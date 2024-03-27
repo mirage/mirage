@@ -234,6 +234,10 @@ Query configuration dune
   (include mirage/dune.build)
   
   (subdir dist (include ../mirage/dune.dist))
+  
+  (include mirage/dune.build)
+  
+  (subdir dist (include ../mirage/dune.dist))
 
 Query dune-project
   $ ./config.exe query dune-project --target unix

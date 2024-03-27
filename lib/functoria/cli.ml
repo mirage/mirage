@@ -66,6 +66,16 @@ let config_file =
 
 let map_default ~default f x = if x == default then None else Some (f x)
 
+let in_place =
+  let doc =
+    Arg.info ~docs:configuration_section
+      ~doc:
+        "Generate files in the current directory instead of using a \
+         subdirectory (internal)."
+      [ "in-place" ]
+  in
+  Arg.(value (flag doc))
+
 let context_file mname =
   let doc =
     Arg.info ~docs:configuration_section ~docv:"FILE"
@@ -216,6 +226,7 @@ let default_args =
 type 'a configure_args = {
   args : 'a args;
   depext : bool;
+  in_place : bool;
   extra_repo : (string * string) list;
 }
 
@@ -325,11 +336,12 @@ module Subcommands = struct
   (** The 'configure' subcommand *)
   let configure t =
     ( Term.(
-        const (fun args depext extra_repo ->
-            Configure { args; depext; extra_repo })
+        const (fun args depext extra_repo in_place ->
+            Configure { args; depext; extra_repo; in_place })
         $ T.args t
         $ depext configuration_section
-        $ extra_repos configuration_section),
+        $ extra_repos configuration_section
+        $ in_place),
       Cmd.info "configure" ~doc:"Configure a $(mname) application."
         ~man:
           [
@@ -418,11 +430,12 @@ module Subcommands = struct
           | `Ok t -> `Help (man_format, Some t))
     in
     ( Term.(
-        const (fun args _ _ _ () -> Help args)
+        const (fun args _ _ _ _ () -> Help args)
         $ T.args t
         $ depext configuration_section
         $ extra_repos configuration_section
         $ full_eval
+        $ in_place
         $ ret (const help $ Arg.man_format $ Term.choice_names $ topic)),
       Cmd.info "help" ~doc:"Display help about $(mname) commands."
         ~man:

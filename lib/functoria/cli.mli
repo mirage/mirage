@@ -50,6 +50,7 @@ val pp_args : 'a Fmt.t -> 'a args Fmt.t
 type 'a configure_args = {
   args : 'a args;
   depext : bool;
+  in_place : bool;
   extra_repo : (string * string) list;
 }
 (** The type for arguments of the [configure] sub-command. *)

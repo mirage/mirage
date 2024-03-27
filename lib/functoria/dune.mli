@@ -30,7 +30,11 @@ val pp : t Fmt.t
 val to_string : t -> string
 val compact_list : ?indent:int -> string -> string list Fmt.t
 
-val config : config_ml_file:Fpath.t -> packages:Package.t list -> stanza list
+val config :
+  config_ml_file:Fpath.t ->
+  packages:Package.t list ->
+  gen_dir:Fpath.t ->
+  stanza list
 (** the minimal [dune] file to compile [config.ml]. *)
 
 val project : t

@@ -58,7 +58,7 @@ let compact_list ?(indent = 2) field ppf l =
   flush ();
   Fmt.pf ppf "%s" (Buffer.contents all)
 
-let config ~config_ml_file ~packages =
+let config ~config_ml_file ~packages ~gen_dir =
   let pkgs =
     match packages with
     | [] -> ""
@@ -73,7 +73,7 @@ let config ~config_ml_file ~packages =
         in
         String.concat ~sep:" " pkgs
   in
-  let rename_config_file =
+  let rename_config =
     let config_ml_file = Fpath.base config_ml_file in
     let ext = Fpath.get_ext config_ml_file in
     let name = Fpath.rem_ext config_ml_file |> Fpath.to_string in
@@ -81,7 +81,13 @@ let config ~config_ml_file ~packages =
     else
       stanzaf "(rule (copy %s config%s))" (Fpath.to_string config_ml_file) ext
   in
-  let contents =
+  let includes =
+    [
+      stanzaf "(include %a/dune.build)" Fpath.pp gen_dir;
+      stanzaf "(subdir dist (include ../%a/dune.dist))" Fpath.pp gen_dir;
+    ]
+  in
+  let config_exe =
     stanzaf
       {|
 (executable
@@ -92,7 +98,7 @@ let config ~config_ml_file ~packages =
 |}
       pkgs
   in
-  [ rename_config_file; contents ]
+  [ rename_config; config_exe ] @ includes
 
 let project = v [ stanza "(lang dune 2.9)" ]
 let workspace = v [ stanza "(lang dune 2.9)\n(context default)" ]

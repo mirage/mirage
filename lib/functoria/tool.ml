@@ -120,6 +120,7 @@ module Make (P : S) = struct
 
   let build_dir t = Fpath.parent t.Cli.config_file
   let context_file t = Context_cache.file ~name:P.name t
+  let gen_dir t = Fpath.(build_dir t / P.name)
 
   let add_context_file t argv =
     match t.Cli.context_file with
@@ -145,25 +146,28 @@ module Make (P : S) = struct
     let command = Bos.Cmd.(v (p config_exe) %% args) in
     Action.run_cmd_cli command
 
-  (* Generate the base dune and dune-project files *)
-  let generate_base_dune_config ~force t =
-    let dune_path = Fpath.(build_dir t / "dune.config") in
-    let* exists = Action.is_file dune_path in
-    if (not force) && exists then Action.ok ()
-    else
-      let dune =
-        Dune.(v (config ~config_ml_file:t.Cli.config_file ~packages:P.packages))
-      in
-      let dune = Fmt.str "%a\n%!" Dune.pp dune in
-      Log.info (fun m -> m "Generating: %a (base)" Fpath.pp dune_path);
-      Filegen.write dune_path dune
+  let touch file =
+    let* exists = Action.is_file file in
+    if exists then Action.ok () else Filegen.write file ""
+
+  let generate_gen_dune t =
+    let dune_build = Fpath.(gen_dir t / "dune.build") in
+    let dune_dist = Fpath.(gen_dir t / "dune.dist") in
+    let* () = touch dune_build in
+    let* () = touch dune_dist in
+    Action.ok ()
 
   let generate_base_dune ~force t =
     let dune_path = Fpath.(build_dir t / "dune") in
     let* exists = Action.is_file dune_path in
     if (not force) && exists then Action.ok ()
     else
-      let dune = Fmt.str "(include dune.config)" in
+      let config_ml_file = t.Cli.config_file in
+      let packages = P.packages in
+      let gen_dir = Fpath.v P.name in
+      let dune = Dune.(v (config ~config_ml_file ~packages ~gen_dir)) in
+      let dune = Fmt.str "%a\n%!" Dune.pp dune in
+      Log.info (fun m -> m "Generating: %a (base)" Fpath.pp dune_path);
       Filegen.write dune_path dune
 
   let generate_base_dune_workspace () =
@@ -209,12 +213,12 @@ module Make (P : S) = struct
   (* Generated a project skeleton and try to compile config.exe. *)
   let generate_project_skeleton ~save_args ~force_dune ~depext ~extra_repo t
       ?ppf ?err_ppf argv =
-    let* _ = Action.mkdir Fpath.(build_dir t / P.name) in
+    let* _ = Action.mkdir (gen_dir t) in
     let* () = generate_base_makefile ~depext ~extra_repo () in
     let* () = generate_base_dune_workspace () in
     let* () = generate_base_dune_project () in
     let* () = generate_base_dune ~force:force_dune t in
-    let* () = generate_base_dune_config ~force:force_dune t in
+    let* () = generate_gen_dune t in
     let* () = if save_args then write_context t argv else Action.ok () in
     (* try to compile config.exe to detect early compilation errors. *)
     build_config_exe t ?ppf ?err_ppf ()

@@ -58,7 +58,7 @@ let compact_list ?(indent = 2) field ppf l =
   flush ();
   Fmt.pf ppf "%s" (Buffer.contents all)
 
-let config ~config_ml_file ~packages ~gen_dir =
+let config ~config_ml_file ~packages ~gen_dir:_ =
   let pkgs =
     match packages with
     | [] -> ""
@@ -82,10 +82,7 @@ let config ~config_ml_file ~packages ~gen_dir =
       stanzaf "(rule (copy %s config%s))" (Fpath.to_string config_ml_file) ext
   in
   let includes =
-    [
-      stanzaf "(include %a/dune.build)" Fpath.pp gen_dir;
-      stanzaf "(subdir dist (include ../%a/dune.dist))" Fpath.pp gen_dir;
-    ]
+    [ (* stanzaf "(subdir dist (include ../%a/dune.dist))" Fpath.pp gen_dir *) ]
   in
   let config_exe =
     stanzaf
@@ -103,21 +100,43 @@ let config ~config_ml_file ~packages ~gen_dir =
 let project = v [ stanza "(lang dune 2.9)" ]
 let workspace = v [ stanza "(lang dune 2.9)\n(context default)" ]
 
-let gen ~context_file ~gen_dir file =
-  let basename f = Fpath.to_string (snd (Fpath.split_base f)) in
-  let context = Option.fold ~none:"context" ~some:basename context_file in
-  stanzaf
-    {|
-(subdir %a
- (rule
-  (targets %s.gen)
-  (enabled_if (= %%{context_name} "default"))
-  (deps %s ../config.exe)
-  (action (with-stdout-to %s.gen
-   (run ../config.exe query --context-file %s %s))))
-
- (rule (alias dist)
-  (enabled_if (= %%{context_name} "default"))
-  (action (diff dune.build dune.build.gen))))
+let lib ~packages name =
+  let pkgs =
+    match packages with
+    | [] -> ""
+    | pkgs ->
+        let pkgs =
+          List.fold_left
+            (fun acc pkg ->
+              let pkgs = String.Set.of_list (Package.libraries pkg) in
+              String.Set.union pkgs acc)
+            String.Set.empty pkgs
+          |> String.Set.elements
+        in
+        String.concat ~sep:" " pkgs
+  in
+  let dune =
+    stanzaf
+      {|
+(library
+  (name %s)
+  (libraries %s)
+  (modules (:standard \ config)))
 |}
-    Fpath.pp gen_dir file context file context file
+      name pkgs
+  in
+  [ dune ]
+
+let directory_target ~context_file gen_dir =
+  let dune =
+    stanzaf
+      {|
+ (rule
+  (targets (dir %a)
+  (enabled_if (= %%{context_name} "default"))
+  (deps config.exe %a)
+  (action (run config.exe configure --init-app --context-file %a))))
+|}
+      Fpath.pp gen_dir Fpath.pp context_file Fpath.pp context_file
+  in
+  [ dune ]

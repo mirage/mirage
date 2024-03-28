@@ -35,7 +35,7 @@ let test_configure () =
       (Cli.Configure
          {
            depext = true;
-           in_place = false;
+           stage = None;
            extra_repo =
              [
                ( "opam-overlays",

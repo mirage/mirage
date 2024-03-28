@@ -246,31 +246,29 @@ module Make (P : S) = struct
         m "Generating: %a (%a)" Fpath.pp file Cli.pp_query_kind `Opam);
     Filegen.write file contents
 
-  let copy_files files =
-    List.map
-      (fun f ->
-        match Fpath.split_ext f with
-        | _, (".ml" | ".mli") -> Dune.stanzaf "(copy_files# %a)" Fpath.pp f
-        | _ -> Dune.stanzaf "(copy_files %a)" Fpath.pp f)
-      files
-
-  let dune_contents alias args =
+  let dune_contents (alias : Cli.dune_query_kind) args =
     let { Config.info; jobs; _ } = args.Cli.context in
     match alias with
-    | `Build ->
-        let gen_dir = Fpath.v P.name in
-        let files = files info jobs in
-        let files = List.map (fun p -> Fpath.(v "." / P.name // p)) files in
+    | `Lib ->
+        let includes = [ Dune.stanza "(include dune.config)" ] in
+        let lib =
+          let packages = Engine.packages_of_sig jobs in
+          Dune.lib ~packages (Info.name info)
+        in
         let gen_rules =
-          let context_file = args.context_file in
-          [
-            Dune.gen ~context_file ~gen_dir "dune.build";
-            Dune.gen ~context_file ~gen_dir "dune.dist";
-          ]
+          let gen_dir = Fpath.v P.name in
+          let context_file =
+            match args.context_file with
+            | None -> Fpath.v ("." ^ P.name)
+            | Some f -> f
+          in
+
+          Dune.directory_target ~context_file gen_dir
         in
-        let dune =
-          Dune.v (copy_files files @ Engine.dune info jobs @ gen_rules)
-        in
+        let dune = Dune.v (includes @ lib @ gen_rules) in
+        Fmt.str "%a\n" Dune.pp dune
+    | `App ->
+        let dune = Dune.v (Engine.dune info jobs) in
         Fmt.str "%a\n" Dune.pp dune
     | `Project ->
         let dune = Option.value ~default:Dune.project P.dune_project in
@@ -292,23 +290,18 @@ module Make (P : S) = struct
         let cwd = Bos.OS.Dir.current () |> Result.get_ok in
         let config_ml_file = Fpath.(cwd // args.Cli.config_file) in
         let gen_dir = Fpath.v P.name in
-        let dune = Dune.config ~config_ml_file ~packages:P.packages ~gen_dir in
-        let includes =
-          [
-            Dune.stanzaf "(include %s/dune.build)" P.name;
-            Dune.stanzaf "(subdir dist (include ../%s/dune.dist))" P.name;
-          ]
-        in
-        let dune = Dune.v (dune @ includes) in
+        let packages = P.packages in
+        let dune = Dune.(v (config ~config_ml_file ~packages ~gen_dir)) in
         Fmt.str "%a\n" Dune.pp dune
 
   let generate_dune alias args =
     let contents = dune_contents alias args in
     let file =
       match alias with
-      | `Dist -> Fpath.(v "dune.dist")
-      | `Build -> Fpath.(v "dune.build")
       | `Config -> Fpath.(v "dune")
+      | `Lib -> Fpath.(v "dune")
+      | `App -> Fpath.(v "dune")
+      | `Dist -> Fpath.(v "dune.dist")
       | `Workspace -> Fpath.(v "dune-workspace")
       | `Project -> Fpath.(v "dune-project")
     in
@@ -354,19 +347,28 @@ module Make (P : S) = struct
     let* () = Action.rmdir (gen_dir args) in
     Action.rmdir (artifacts_dir args)
 
-  let configure ({ args; extra_repo; in_place; _ } : _ Cli.configure_args) =
+  let configure ({ args; extra_repo; stage; _ } : _ Cli.configure_args) =
     let { Config.init; info; device_graph; _ } = args.Cli.context in
-    let aux () =
-      (* Get application name *)
-      let opam_name = Misc.Name.opamify (P.name_of_target info) in
-      (* OPAM file *)
-      let* () = generate_opam ~opam_name ~extra_repo args in
-      let* () = generate_dune `Build args in
-      let* () = generate_dune `Dist args in
-      (* Generate application specific-files *)
-      configure_main info init device_graph
+    (* Get application name *)
+    let opam_name = Misc.Name.opamify (P.name_of_target info) in
+    (* OPAM file *)
+    let* () =
+      match stage with
+      | None | Some `Init_config -> generate_dune `Config args
+      | _ -> Action.ok ()
     in
-    if in_place then aux () else Action.with_dir (gen_dir args) aux
+    let* () =
+      match stage with
+      | None | Some `Init_library -> generate_dune `Lib args
+      | _ -> Action.ok ()
+    in
+    match stage with
+    | None | Some `Init_application ->
+        Action.with_dir (gen_dir args) (fun () ->
+            let* () = generate_dune `Dist args in
+            let* () = generate_opam ~opam_name ~extra_repo args in
+            configure_main info init device_graph)
+    | _ -> Action.ok ()
 
   let ok () = Action.ok ()
   let exit () = Action.error ""

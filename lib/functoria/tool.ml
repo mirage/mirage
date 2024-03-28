@@ -146,19 +146,18 @@ module Make (P : S) = struct
     let command = Bos.Cmd.(v (p config_exe) %% args) in
     Action.run_cmd_cli command
 
-  let touch file =
-    let* exists = Action.is_file file in
-    if exists then Action.ok () else Filegen.write file ""
-
-  let generate_gen_dune t =
-    let dune_build = Fpath.(gen_dir t / "dune.build") in
-    let dune_dist = Fpath.(gen_dir t / "dune.dist") in
-    let* () = touch dune_build in
-    let* () = touch dune_dist in
-    Action.ok ()
-
   let generate_base_dune ~force t =
     let dune_path = Fpath.(build_dir t / "dune") in
+    let* exists = Action.is_file dune_path in
+    if (not force) && exists then Action.ok ()
+    else
+      let dune = Dune.(v [ stanza "(include dune.config)" ]) in
+      let dune = Fmt.str "%a\n%!" Dune.pp dune in
+      Log.info (fun m -> m "Generating: %a (base)" Fpath.pp dune_path);
+      Filegen.write dune_path dune
+
+  let generate_base_dune_config ~force t =
+    let dune_path = Fpath.(build_dir t / "dune.config") in
     let* exists = Action.is_file dune_path in
     if (not force) && exists then Action.ok ()
     else
@@ -218,7 +217,7 @@ module Make (P : S) = struct
     let* () = generate_base_dune_workspace () in
     let* () = generate_base_dune_project () in
     let* () = generate_base_dune ~force:force_dune t in
-    let* () = generate_gen_dune t in
+    let* () = generate_base_dune_config ~force:force_dune t in
     let* () = if save_args then write_context t argv else Action.ok () in
     (* try to compile config.exe to detect early compilation errors. *)
     build_config_exe t ?ppf ?err_ppf ()

@@ -9,18 +9,22 @@ open Functoria.Action
 type 'a tcp = TCP
 type tcpv4v6 = v4v6 tcp
 
-let tcp = Functoria.Type.Type TCP
-let tcpv4v6 : tcpv4v6 typ = tcp
+let packages = right_tcpip_library ~sublibs:[ "tcp" ] "tcpip"
+let tcp = { Functoria.Type.packages; typ = Type TCP }
+
+let tcpv4v6 : tcpv4v6 typ =
+  let packages = right_tcpip_library ~sublibs:[ "tcpv4v6-socket" ] "tcpip" in
+  typ ~packages TCP
 
 (* this needs to be a function due to the value restriction. *)
 let tcp_direct_func () =
-  let packages_v = right_tcpip_library ~sublibs:[ "tcp" ] "tcpip" in
+  let packages = right_tcpip_library ~sublibs:[ "tcp" ] "tcpip" in
   let connect _ modname = function
     | [ ip; _time; _clock; _random ] ->
         code ~pos:__POS__ "%s.connect %s" modname ip
     | _ -> connect_err "tcp" 4
   in
-  impl ~packages_v ~connect "Tcp.Flow.Make"
+  impl ~packages ~connect "Tcp.Flow.Make"
     (ip @-> time @-> mclock @-> random @-> tcp)
 
 let direct_tcp ?(mclock = default_monotonic_clock) ?(time = default_time)
@@ -30,7 +34,7 @@ let direct_tcp ?(mclock = default_monotonic_clock) ?(time = default_time)
 let tcpv4v6_socket_conf ~ipv4_only ~ipv6_only ipv4_key ipv6_key =
   let v = Runtime_arg.v in
   let runtime_args = [ v ipv4_only; v ipv6_only; v ipv4_key; v ipv6_key ] in
-  let packages_v = right_tcpip_library ~sublibs:[ "tcpv4v6-socket" ] "tcpip" in
+  let packages = right_tcpip_library ~sublibs:[ "tcpv4v6-socket" ] "tcpip" in
   let configure i =
     match get_target i with
     | `Unix | `MacOSX -> ok ()
@@ -42,7 +46,7 @@ let tcpv4v6_socket_conf ~ipv4_only ~ipv6_only ipv4_key ipv6_key =
           ipv4_only ipv6_only ipv4_key ipv6_key
     | _ -> connect_err "tcpv4v6_socket_conf" 4
   in
-  impl ~packages_v ~configure ~runtime_args ~connect "Tcpv4v6_socket" tcpv4v6
+  impl ~packages ~configure ~runtime_args ~connect "Tcpv4v6_socket" tcpv4v6
 
 let socket_tcpv4v6 ?group ipv4 ipv6 =
   let ipv4 =

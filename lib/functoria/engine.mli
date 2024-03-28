@@ -30,6 +30,9 @@ val runtime_args : Impl.abstract -> Runtime_arg.Set.t
 val packages : Impl.abstract -> Package.t list Key.value
 (** [packages t] is the set of packages in the graph [t]. *)
 
+val packages_of_sig : Impl.abstract -> Package.t list
+(** [packages t] is the set of packages in the graph [t]. *)
+
 val install : Info.t -> Impl.abstract -> Install.t Key.value
 (** [install i t] is the set of files installed by the graph [t]. *)
 

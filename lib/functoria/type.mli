@@ -18,10 +18,14 @@
 
 (** Representation of module signatures. *)
 
-(** The type for values representing module types. *)
-type 'a t = Type : 'a -> 'a t | Function : 'a t * 'b t -> ('a -> 'b) t
+type _ typ = Type : 'a -> 'a typ | Function : 'a t * 'b t -> ('a -> 'b) typ
 
-val v : 'a -> 'a t
+and 'a t = { typ : 'a typ; packages : Package.t list }
+(** The type for values representing module types. We do not make those abstract
+    as sometimes we want to manipulate polymorphic type witness and that only
+    works with concrete values. *)
+
+val v : ?packages:Package.t list -> 'a -> 'a t
 (** [type t] is a value representing the module type [t]. *)
 
 val ( @-> ) : 'a t -> 'b t -> ('a -> 'b) t
@@ -41,6 +45,8 @@ val is_functor : _ t -> bool
 
 val pp : 'a t Fmt.t
 (** [pp] is the pretty printer for module types. *)
+
+val packages : 'a t -> Package.t list
 
 (** {1 Useful module types} *)
 

@@ -16,34 +16,46 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-type _ t =
-  | Type : 'a -> 'a t (* module type *)
-  | Function : 'a t * 'b t -> ('a -> 'b) t
+type _ typ =
+  | Type : 'a -> 'a typ (* module type *)
+  | Function : 'a t * 'b t -> ('a -> 'b) typ
 
-let v x = Type x
-let ( @-> ) f x = Function (f, x)
+and 'a t = { typ : 'a typ; packages : Package.t list }
+
+let v ?(packages = []) x = { packages; typ = Type x }
+let ( @-> ) f x = { packages = []; typ = Function (f, x) }
+
+let packages t =
+  let rec aux : type a. _ -> a t -> _ =
+   fun acc t ->
+    match t.typ with
+    | Type _ -> Package.Set.(union acc (of_list t.packages))
+    | Function (a, b) -> aux (aux acc a) b
+  in
+  Package.Set.to_list (aux Package.Set.empty t)
 
 let rec pp : type a. a t Fmt.t =
- fun ppf -> function
+ fun ppf t ->
+  match t.typ with
   | Type _ -> Fmt.string ppf "_"
   | Function (a, b) -> Fmt.pf ppf "(%a -> %a)" pp a pp b
 
 type job = JOB
 
-let job = Type JOB
+let job = v JOB
 
 (* Default argv *)
 
 type argv = ARGV
 
-let argv = Type ARGV
+let argv = v ARGV
 
 (* Keys *)
 
 type info = INFO
 
-let info = Type INFO
+let info = v INFO
 
 let is_functor : type a. a t -> bool = function
-  | Type _ -> false
-  | Function _ -> true
+  | { typ = Type _; _ } -> false
+  | { typ = Function _; _ } -> true

@@ -28,13 +28,10 @@ let configuration_section = "CONFIGURE OPTIONS"
 let query_section = "QUERY OPTIONS"
 let description_section = "DESCRIBE OPTIONS"
 
+type dune_query_kind = [ `Config | `Lib | `App | `Dist | `Workspace | `Project ]
+
 type query_kind =
-  [ `Name
-  | `Packages
-  | `Opam
-  | `Files
-  | `Dune of [ `Config | `Build | `Project | `Workspace | `Dist ]
-  | `Makefile ]
+  [ `Name | `Packages | `Opam | `Files | `Dune of dune_query_kind | `Makefile ]
 
 let query_kinds : (string * query_kind) list =
   [
@@ -44,10 +41,11 @@ let query_kinds : (string * query_kind) list =
     ("files", `Files);
     ("Makefile", `Makefile);
     ("dune.config", `Dune `Config);
-    ("dune.build", `Dune `Build);
+    ("dune.lib", `Dune `Lib);
+    ("dune.app", `Dune `App);
+    ("dune.dist", `Dune `Dist);
     ("dune-project", `Dune `Project);
     ("dune-workspace", `Dune `Workspace);
-    ("dune.dist", `Dune `Dist);
   ]
 
 let setup ~with_setup =
@@ -66,15 +64,32 @@ let config_file =
 
 let map_default ~default f x = if x == default then None else Some (f x)
 
-let in_place =
-  let doc =
+let init_stage =
+  let init_config =
+    Arg.info ~docs:configuration_section
+      ~doc:"Generate scaffolding for building config.ml and stops."
+      [ "init-config" ]
+  in
+  let init_library =
     Arg.info ~docs:configuration_section
       ~doc:
-        "Generate files in the current directory instead of using a \
-         subdirectory (internal)."
-      [ "in-place" ]
+        "Generate scaffolding for building the main functor as a library and \
+         stops."
+      [ "init-library" ]
   in
-  Arg.(value (flag doc))
+  let init_application =
+    Arg.info ~docs:configuration_section
+      ~doc:"Generate scaffolding for building the main application and stops."
+      [ "init-application" ]
+  in
+  Arg.(
+    value
+      (vflag None
+         [
+           (Some `Init_config, init_config);
+           (Some `Init_library, init_library);
+           (Some `Init_application, init_application);
+         ]))
 
 let context_file mname =
   let doc =
@@ -223,10 +238,12 @@ let default_args =
     dry_run = false;
   }
 
+type init_stage = [ `Init_config | `Init_library | `Init_application ]
+
 type 'a configure_args = {
   args : 'a args;
   depext : bool;
-  in_place : bool;
+  stage : init_stage option;
   extra_repo : (string * string) list;
 }
 
@@ -336,12 +353,12 @@ module Subcommands = struct
   (** The 'configure' subcommand *)
   let configure t =
     ( Term.(
-        const (fun args depext extra_repo in_place ->
-            Configure { args; depext; extra_repo; in_place })
+        const (fun args depext extra_repo stage ->
+            Configure { args; depext; extra_repo; stage })
         $ T.args t
         $ depext configuration_section
         $ extra_repos configuration_section
-        $ in_place),
+        $ init_stage),
       Cmd.info "configure" ~doc:"Configure a $(mname) application."
         ~man:
           [
@@ -435,7 +452,7 @@ module Subcommands = struct
         $ depext configuration_section
         $ extra_repos configuration_section
         $ full_eval
-        $ in_place
+        $ init_stage
         $ ret (const help $ Arg.man_format $ Term.choice_names $ topic)),
       Cmd.info "help" ~doc:"Display help about $(mname) commands."
         ~man:

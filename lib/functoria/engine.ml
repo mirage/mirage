@@ -93,14 +93,7 @@ let packages t =
 let packages_of_sig t =
   let open Impl in
   let aux = function
-    | Dev c ->
-        let pkgs = packages_of_sig c in
-        let runtime_args = Device.runtime_args c in
-        List.fold_left
-          (fun acc k ->
-            let pkgs = Runtime_arg.packages k in
-            Package.Set.(union acc (of_list pkgs)))
-          pkgs runtime_args
+    | Dev c -> packages_of_sig c
     | If _ | App -> Package.Set.empty
   in
   let set = Impl.collect (module Package.Set) aux t in

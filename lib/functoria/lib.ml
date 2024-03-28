@@ -138,6 +138,13 @@ module Make (P : S) = struct
   let gen_dir args = Fpath.(build_dir args / P.name)
   let artifacts_dir args = Fpath.(build_dir args / "dist")
 
+  let relativize args f =
+    match Fpath.relativize ~root:(build_dir args) f with
+    | None ->
+        Fmt.failwith "relativize: root=%a file=%a" Fpath.pp (build_dir args)
+          Fpath.pp f
+    | Some f -> f
+
   let exit_err args = function
     | Ok v -> v
     | Error (`Msg m) ->
@@ -256,14 +263,14 @@ module Make (P : S) = struct
           Dune.lib ~packages (Info.name info)
         in
         let gen_rules =
+          let config_file = relativize args args.Cli.config_file in
           let gen_dir = Fpath.v P.name in
           let context_file =
             match args.context_file with
             | None -> Fpath.v ("." ^ P.name)
-            | Some f -> f
+            | Some f -> relativize args f
           in
-
-          Dune.directory_target ~context_file gen_dir
+          Dune.directory_target ~config_file ~context_file gen_dir
         in
         let dune = Dune.v (includes @ lib @ gen_rules) in
         Fmt.str "%a\n" Dune.pp dune
@@ -287,11 +294,8 @@ module Make (P : S) = struct
         let dune = Dune.v install in
         Fmt.str "%a\n" Dune.pp dune
     | `Config ->
-        let cwd = Bos.OS.Dir.current () |> Result.get_ok in
-        let config_ml_file = Fpath.(cwd // args.Cli.config_file) in
-        let gen_dir = Fpath.v P.name in
-        let packages = P.packages in
-        let dune = Dune.(v (config ~config_ml_file ~packages ~gen_dir)) in
+        let config_file = args.Cli.config_file in
+        let dune = Dune.(v (config ~config_file ~packages:P.packages)) in
         Fmt.str "%a\n" Dune.pp dune
 
   let generate_dune alias args =
@@ -349,23 +353,27 @@ module Make (P : S) = struct
 
   let configure ({ args; extra_repo; stage; _ } : _ Cli.configure_args) =
     let { Config.init; info; device_graph; _ } = args.Cli.context in
-    (* Get application name *)
-    let opam_name = Misc.Name.opamify (P.name_of_target info) in
-    (* OPAM file *)
+    let build_dir = build_dir args in
     let* () =
       match stage with
-      | None | Some `Init_config -> generate_dune `Config args
+      | None | Some `Init_config ->
+          Action.with_dir build_dir (fun () -> generate_dune `Config args)
       | _ -> Action.ok ()
     in
     let* () =
       match stage with
-      | None | Some `Init_library -> generate_dune `Lib args
+      | None | Some `Init_library ->
+          Action.with_dir build_dir (fun () -> generate_dune `Lib args)
       | _ -> Action.ok ()
     in
     match stage with
     | None | Some `Init_application ->
-        Action.with_dir (gen_dir args) (fun () ->
+        let opam_name = Misc.Name.opamify (P.name_of_target info) in
+        let gen_dir = gen_dir args in
+        let* _ = Action.mkdir gen_dir in
+        Action.with_dir gen_dir (fun () ->
             let* () = generate_dune `Dist args in
+            let* () = generate_dune `App args in
             let* () = generate_opam ~opam_name ~extra_repo args in
             configure_main info init device_graph)
     | _ -> Action.ok ()

@@ -161,10 +161,8 @@ module Make (P : S) = struct
     let* exists = Action.is_file dune_path in
     if (not force) && exists then Action.ok ()
     else
-      let config_ml_file = t.Cli.config_file in
-      let packages = P.packages in
-      let gen_dir = Fpath.v P.name in
-      let dune = Dune.(v (config ~config_ml_file ~packages ~gen_dir)) in
+      let config_file = t.Cli.config_file in
+      let dune = Dune.(v (config ~config_file ~packages:P.packages)) in
       let dune = Fmt.str "%a\n%!" Dune.pp dune in
       Log.info (fun m -> m "Generating: %a (base)" Fpath.pp dune_path);
       Filegen.write dune_path dune

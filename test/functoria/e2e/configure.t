@@ -41,7 +41,7 @@ is passed:
   noop.opam
   vote
   warn_error
-  $ ./test.exe clean --file app/config.ml
+  $ ./test.exe clean --file app/config.ml -vv
 
 Check that configure create the correct context file:
 

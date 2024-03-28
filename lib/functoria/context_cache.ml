@@ -79,4 +79,4 @@ let file ~name args =
   let build_dir = Fpath.parent args.Cli.config_file in
   match args.Cli.context_file with
   | Some f -> f
-  | None -> Fpath.(build_dir / name / "context")
+  | None -> Fpath.(normalize (build_dir / ("." ^ name)))

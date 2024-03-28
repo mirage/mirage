@@ -41,8 +41,6 @@ module C = struct
         {|
 (executable
   (name      %s)
-  (modules   (:standard \ config))
-  (promote   (until-clean))
   (libraries cmdliner fmt mirage-runtime.functoria))
 |}
         (main i)

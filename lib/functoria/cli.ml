@@ -96,7 +96,7 @@ let context_file mname =
     Arg.info ~docs:configuration_section ~docv:"FILE"
       ~doc:"The context file to use." [ "context-file" ]
   in
-  let default = mname ^ ".context" in
+  let default = "." ^ mname in
   Term.(
     const (map_default ~default Fpath.v)
     $ Arg.(value & opt string default & doc))

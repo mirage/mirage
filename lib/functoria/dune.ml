@@ -58,7 +58,7 @@ let compact_list ?(indent = 2) field ppf l =
   flush ();
   Fmt.pf ppf "%s" (Buffer.contents all)
 
-let config ~config_ml_file ~packages ~gen_dir:_ =
+let config ~config_file ~packages =
   let pkgs =
     match packages with
     | [] -> ""
@@ -71,15 +71,14 @@ let config ~config_ml_file ~packages ~gen_dir:_ =
             String.Set.empty pkgs
           |> String.Set.elements
         in
-        String.concat ~sep:" " pkgs
+        Fmt.str "\n  (libraries %s)" (String.concat ~sep:" " pkgs)
   in
   let rename_config =
-    let config_ml_file = Fpath.base config_ml_file in
-    let ext = Fpath.get_ext config_ml_file in
-    let name = Fpath.rem_ext config_ml_file |> Fpath.to_string in
+    let config_file = Fpath.base config_file in
+    let ext = Fpath.get_ext config_file in
+    let name = Fpath.rem_ext config_file |> Fpath.to_string in
     if name = "config" then None
-    else
-      stanzaf "(rule (copy %s config%s))" (Fpath.to_string config_ml_file) ext
+    else stanzaf "(rule (copy %s config%s))" (Fpath.to_string config_file) ext
   in
   let includes =
     [ (* stanzaf "(subdir dist (include ../%a/dune.dist))" Fpath.pp gen_dir *) ]
@@ -90,15 +89,14 @@ let config ~config_ml_file ~packages ~gen_dir:_ =
 (executable
  (name config)
  (enabled_if (= %%{context_name} "default"))
- (modules config)
- (libraries %s))
+ (modules config)%s)
 |}
       pkgs
   in
   [ rename_config; config_exe ] @ includes
 
-let project = v [ stanza "(lang dune 2.9)" ]
-let workspace = v [ stanza "(lang dune 2.9)\n(context default)" ]
+let project = v [ stanza "(lang dune 3.0)\n(using directory-targets 0.1)" ]
+let workspace = v [ stanza "(lang dune 3.0)\n(context default)" ]
 
 let lib ~packages name =
   let pkgs =
@@ -127,16 +125,21 @@ let lib ~packages name =
   in
   [ dune ]
 
-let directory_target ~context_file gen_dir =
+let directory_target ~config_file ~context_file gen_dir =
+  let context_file = Fpath.normalize context_file in
   let dune =
     stanzaf
       {|
  (rule
-  (targets (dir %a)
+  (targets (dir %a))
+  (mode promote)
   (enabled_if (= %%{context_name} "default"))
-  (deps config.exe %a)
-  (action (run config.exe configure --init-app --context-file %a))))
+  (deps ./config.exe %a)
+  (action (run ./config.exe configure -f %a --init-app --context-file %a)))
+
+(rule (copy %a/main.exe main.exe))
 |}
-      Fpath.pp gen_dir Fpath.pp context_file Fpath.pp context_file
+      Fpath.pp gen_dir Fpath.pp context_file Fpath.pp context_file Fpath.pp
+      config_file Fpath.pp gen_dir
   in
   [ dune ]

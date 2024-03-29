@@ -482,14 +482,19 @@ module Make (P : S) = struct
       (Cli.eval ~name:P.name ~version:P.version ~configure ~query ~describe
          ~clean ~help ~mname:P.name argv)
 
-  let register ?(init = default_init) ?(src = `Auto) name jobs =
+  let register ?(init = default_init) ?(src = `Auto) ?packages name jobs =
     (* 1. Pre-parse the arguments set the log level, config file
        and root directory. *)
     let argv = Sys.argv in
+    let init =
+      match packages with
+      | None | Some [] -> init
+      | Some packages -> impl "sig" (typ ~packages Job.JOB) :: init
+    in
     (* TODO: do not are parse the command-line twice *)
     let args =
       (* tool.ml made sure that global arguments are correctly parsed before
-         running config.exe*)
+         running config.exe *)
       Cli.peek_args ~with_setup:true ~mname:P.name argv |> Option.get
     in
     let config_file = config_file args in

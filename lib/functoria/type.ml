@@ -40,10 +40,6 @@ let rec pp : type a. a t Fmt.t =
   | Type _ -> Fmt.string ppf "_"
   | Function (a, b) -> Fmt.pf ppf "(%a -> %a)" pp a pp b
 
-type job = JOB
-
-let job = v JOB
-
 (* Default argv *)
 
 type argv = ARGV

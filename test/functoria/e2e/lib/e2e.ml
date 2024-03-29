@@ -68,5 +68,6 @@ include Lib.Make (C)
 include Tool.Make (C)
 
 let register ?(init = []) ?src name typ =
+  let packages = [ package "cmdliner"; package "fmt" ] in
   let init = runtime_args sys_argv :: init in
-  register ~init ?src name typ
+  register ~packages ~init ?src name typ

@@ -50,12 +50,6 @@ val packages : 'a t -> Package.t list
 
 (** {1 Useful module types} *)
 
-type job
-(** Type for job values. *)
-
-val job : job t
-(** [job] is the signature for user's application main module. *)
-
 type argv
 (** The type for command-line arguments, similar to the usual [Sys.argv]. *)
 

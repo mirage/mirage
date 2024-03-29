@@ -477,8 +477,10 @@ let ( ++ ) acc x =
   | None, Some x -> Some [ x ]
   | Some acc, Some x -> Some (acc @ [ x ])
 
-let register ?(argv = default_argv) ?(reporter = default_reporter ()) ?src name
-    jobs =
+let default_packages = [ package "lwt" ]
+
+let register ?(argv = default_argv) ?(reporter = default_reporter ())
+    ?(packages = default_packages) ?src name jobs =
   if List.exists Functoria.Impl.app_has_no_arguments jobs then
     invalid_arg
       "Your configuration includes a job without arguments. Please add a \
@@ -490,7 +492,7 @@ let register ?(argv = default_argv) ?(reporter = default_reporter ()) ?src name
   in
   let reporter = if reporter == no_reporter then None else Some reporter in
   let init = Some first ++ Some delay_startup ++ reporter in
-  register ?init ?src name jobs
+  register ?init ?src ~packages name jobs
 
 let connect_err = Devices.Misc.connect_err
 

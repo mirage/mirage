@@ -341,15 +341,10 @@ let run t = %s.Main.run t ; exit 0|ocaml}
 
   let dune i = Target.dune i
   let configure i = Target.configure i
-
-  let dune_project =
-    let dune =
-      [ Dune.stanza "(lang dune 2.9)\n(implicit_transitive_deps true)\n" ]
-    in
-    Some (Dune.v dune)
+  let dune_project = Some Functoria.Dune.project
 
   let dune_workspace =
-    let main = Dune.stanza "(lang dune 2.9)\n(context (default))" in
+    let main = Dune.stanza "(lang dune 3.0)\n(context (default))" in
     let targets = Target.build_context in
     Some (Dune.v (main :: targets))
 

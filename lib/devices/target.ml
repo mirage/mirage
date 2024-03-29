@@ -65,14 +65,13 @@ module Unix = struct
 
 (executable
  (name %s)
- (libraries %a)
+ (libraries %a %s)
  (link_flags (-thread))
- (modules (:standard \ config))
  (flags %a)
  (enabled_if (= %%{context_name} "default")))
 |}
         public_name context_name main main main (pp_list "libraries") libraries
-        (pp_list "flags") flags
+        public_name (pp_list "flags") flags
     in
     [ dune ]
 

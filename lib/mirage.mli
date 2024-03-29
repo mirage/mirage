@@ -1049,7 +1049,6 @@ val runtime_args : argv impl -> job impl
 val register :
   ?argv:argv impl ->
   ?reporter:reporter impl ->
-  ?packages:package list ->
   ?src:[ `Auto | `None | `Some of string ] ->
   string ->
   job impl list ->

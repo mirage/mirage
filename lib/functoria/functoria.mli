@@ -126,6 +126,7 @@ module Package = Package
 module Info = Info
 module Install = Install
 module Device = Device
+module Job = Job
 
 (** {1 Useful module implementations} *)
 

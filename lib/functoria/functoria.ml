@@ -33,6 +33,7 @@ module DSL = DSL
 module Cli = Cli
 module Action = Action
 module Dune = Dune
+module Job = Job
 
 module type DSL = module type of DSL
 

@@ -482,17 +482,31 @@ module Make (P : S) = struct
       (Cli.eval ~name:P.name ~version:P.version ~configure ~query ~describe
          ~clean ~help ~mname:P.name argv)
 
-  let register ?(init = default_init) ?(src = `Auto) ?packages name jobs =
+  let packages_of_left_most_device job =
+    let pkgs =
+      Impl.with_left_most_device Context.empty job { Impl.f = Device.packages }
+    in
+    Package.Set.of_list (Key.eval Context.empty pkgs)
+
+  let packages_of_jobs jobs =
+    List.fold_left
+      (fun acc job ->
+        let packages = packages_of_left_most_device job in
+        Package.Set.(union packages acc))
+      Package.Set.empty jobs
+    |> Package.Set.to_list
+
+  let register ?(init = default_init) ?(src = `Auto) name jobs =
     (* 1. Pre-parse the arguments set the log level, config file
        and root directory. *)
     let argv = Sys.argv in
     let init =
-      match packages with
-      | None | Some [] -> init
-      | Some packages -> impl "sig" (typ ~packages Job.JOB) :: init
+      match packages_of_jobs jobs with
+      | [] -> init
+      | packages -> impl "sig" (typ ~packages Job.JOB) :: init
     in
-    (* TODO: do not are parse the command-line twice *)
     let args =
+      (* TODO: do not are parse the command-line twice *)
       (* tool.ml made sure that global arguments are correctly parsed before
          running config.exe *)
       Cli.peek_args ~with_setup:true ~mname:P.name argv |> Option.get

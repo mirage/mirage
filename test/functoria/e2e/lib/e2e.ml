@@ -52,7 +52,8 @@ module C = struct
     write_key i warn_error string_of_bool
 
   let create jobs =
-    let packages = [ package "fmt" ] in
+    let packages = [ package "cmdliner"; package "fmt" ] in
+    let jobs = impl "sig" (typ ~packages Job.JOB) :: jobs in
     let extra_deps = List.map dep jobs in
     let install i = Install.v ~bin:[ Fpath.(v (main i) + "exe", v "e2e") ] () in
     impl ~keys ~packages ~connect ~dune ~configure ~extra_deps ~install "E2e"
@@ -68,6 +69,5 @@ include Lib.Make (C)
 include Tool.Make (C)
 
 let register ?(init = []) ?src name typ =
-  let packages = [ package "cmdliner"; package "fmt" ] in
   let init = runtime_args sys_argv :: init in
-  register ~packages ~init ?src name typ
+  register ~init ?src name typ

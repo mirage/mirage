@@ -65,7 +65,6 @@ module Make (_ : S) : sig
   val register :
     ?init:job impl list ->
     ?src:[ `Auto | `None | `Some of string ] ->
-    ?packages:package list ->
     string ->
     job impl list ->
     unit

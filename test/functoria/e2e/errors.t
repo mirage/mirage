@@ -3,8 +3,8 @@ of a device's connect function:
 
   $ ./test.exe configure -f errors/in_device/config.ml
   $ dune build errors/in_device/
-  File "errors/config.ml", line 6, characters 2-26:
-  Error: Unbound value Unikernel_make__4.start'
+  File "errors/in_device/config.ml", line 6, characters 2-26:
+  Error: Unbound value Unikernel_make__5.start'
   Hint: Did you mean start?
   [1]
   $ ./test.exe clean -f errors/in_device.ml
@@ -14,15 +14,17 @@ not the right ones. First, too many parameters:
 
   $ ./test.exe configure -f errors/in_functor_too_many/config.ml
   $ dune build errors/in_functor_too_many 2>&1 | head -n1 | cut -d',' -f'-2'
-  File "errors/test/main.ml", line 7
+  File "errors/in_functor_too_many/test/main.ml", line 7
   $ ./test.exe clean -f errors/in_functor_too_many.ml
 
 Then, not enough:
 
   $ ./test.exe configure -f errors/in_functor_not_enough/config.ml
   $ dune build errors/in_functor_not_enough
-  File "errors/test/main.ml", line 30, characters 2-25:
-  Error: The module Unikernel_make__4 is a functor, it cannot have any components
+  File "errors/in_functor_not_enough/test/main.ml", line 35, characters 2-25:
+  35 |   Unikernel_make__5.start _unit__4
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  Error: The module Unikernel_make__5 is a functor, it cannot have any components
   [1]
   $ ./test.exe clean -f errors/in_functor_not_enough.ml
 

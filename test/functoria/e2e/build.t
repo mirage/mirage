@@ -6,17 +6,17 @@ Build an application.
   $ ls -a app/
   .
   ..
+  .test
   app.ml
   config.ml
   dist
   dune
-  main.exe
+  dune.config
   test
   $ ls -a app/test
   .
   ..
-  context
-  dune.build
+  dune
   dune.dist
   main.ml
   noop.opam
@@ -39,17 +39,17 @@ Test `--output`:
   $ ls -a app/
   .
   ..
+  .test
   app.ml
   config.ml
   dist
   dune
+  dune.config
   test
-  toto.exe
   $ ls -a app/test
   .
   ..
-  context
-  dune.build
+  dune
   dune.dist
   noop.opam
   toto.ml

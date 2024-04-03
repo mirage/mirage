@@ -4,15 +4,16 @@ Make sure that clean remove everything:
   $ ls -a app
   .
   ..
+  .test
   app.ml
   config.ml
   dune
+  dune.config
   test
   $ ls -a app/test
   .
   ..
-  context
-  dune.build
+  dune
   dune.dist
   main.ml
   noop.opam
@@ -25,7 +26,8 @@ Make sure that clean remove everything:
                           "output" = None;
                           "dry_run" = false }
   test.exe: [INFO] Generating: app/dune (base)
-  config.exe: [INFO] reading cache app/test/context
+  test.exe: [INFO] Generating: app/dune.config (base)
+  config.exe: [INFO] reading cache app/.test
   config.exe: [INFO] Name       noop
                      Keys       vote=cat (default),
                                 warn_error=false (default)
@@ -47,15 +49,16 @@ Check that clean works with `--output`:
   $ ls -a app
   .
   ..
+  .test
   app.ml
   config.ml
   dune
+  dune.config
   test
   $ ls -a app/test
   .
   ..
-  context
-  dune.build
+  dune
   dune.dist
   noop.opam
   toto.ml
@@ -68,7 +71,8 @@ Check that clean works with `--output`:
                           "output" = None;
                           "dry_run" = false }
   test.exe: [INFO] Generating: app/dune (base)
-  config.exe: [INFO] reading cache app/test/context
+  test.exe: [INFO] Generating: app/dune.config (base)
+  config.exe: [INFO] reading cache app/.test
   config.exe: [INFO] Name       noop
                      Keys       vote=cat (default),
                                 warn_error=false (default)

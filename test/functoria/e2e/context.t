@@ -1,25 +1,31 @@
 Query package - no target - x.context
   $ ./test.exe query package --context-file=context/x.context -f context/config.ml
+  "cmdliner" { ?monorepo }
   "fmt" { ?monorepo }
   "mirage-runtime" { ?monorepo }
   "x" { ?monorepo }
 
 Query package - no target - y.context
   $ ./test.exe query package --context-file=context/y.context -f context/config.ml
+  "cmdliner" { ?monorepo }
   "fmt" { ?monorepo }
   "mirage-runtime" { ?monorepo }
+  "x" { ?monorepo }
   "y" { ?monorepo }
 
 Query package - x target  - y.context
   $ ./test.exe query package -t x --context-file=context/y.context -f context/config.ml
+  "cmdliner" { ?monorepo }
   "fmt" { ?monorepo }
   "mirage-runtime" { ?monorepo }
   "x" { ?monorepo }
 
 Query package - y target  - x.context
   $ ./test.exe query package -t y --context-file=context/x.context -f context/config.ml
+  "cmdliner" { ?monorepo }
   "fmt" { ?monorepo }
   "mirage-runtime" { ?monorepo }
+  "x" { ?monorepo }
   "y" { ?monorepo }
 
 Describe - no target - x.context

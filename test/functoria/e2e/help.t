@@ -27,7 +27,7 @@ Test that the help command works without config file:
              default when the unikernel has not been configured.
   
   CONFIGURE OPTIONS
-         --context-file=FILE (absent=test.context)
+         --context-file=FILE (absent=.test)
              The context file to use.
   
          --depext
@@ -45,9 +45,15 @@ Test that the help command works without config file:
          -f FILE, --file=FILE, --config-file=FILE (absent=config.ml)
              The configuration file to use.
   
-         --in-place
-             Generate files in the current directory instead of using a
-             subdirectory (internal).
+         --init-application
+             Generate scaffolding for building the main application and stops.
+  
+         --init-config
+             Generate scaffolding for building config.ml and stops.
+  
+         --init-library
+             Generate scaffolding for building the main functor as a library
+             and stops.
   
          --no-depext
              Disable call to `opam depext' in the project Makefile.

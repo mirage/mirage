@@ -12,30 +12,34 @@ is passed:
   test.exe: [INFO] Generating: dune-workspace (base)
   test.exe: [INFO] Generating: dune-project (base)
   test.exe: [INFO] Generating: app/dune (base)
-  test.exe: [INFO] Preserving arguments in app/test/context:
+  test.exe: [INFO] Generating: app/dune.config (base)
+  test.exe: [INFO] Preserving arguments in app/.test:
                    [|"./test.exe"; "configure"; "-v"; "--file";
                      "app/config.ml"|]
   test.exe: [INFO] Set-up config skeleton.
-  config.exe: [INFO] reading cache app/test/context
+  config.exe: [INFO] reading cache app/.test
   config.exe: [INFO] Name       noop
                      Keys       vote=cat (default),
                                 warn_error=false (default)
-  config.exe: [INFO] Generating: noop.opam (opam)
-  config.exe: [INFO] Generating: dune.build (dune.build)
+  config.exe: [INFO] Generating: dune (dune.config)
+  config.exe: [INFO] Generating: dune (dune.lib)
   config.exe: [INFO] Generating: dune.dist (dune.dist)
+  config.exe: [INFO] Generating: dune (dune.app)
+  config.exe: [INFO] Generating: noop.opam (opam)
   config.exe: [INFO] Generating: main.ml (main file)
   $ ls -a app/
   .
   ..
+  .test
   app.ml
   config.ml
   dune
+  dune.config
   test
   $ ls -a app/test
   .
   ..
-  context
-  dune.build
+  dune
   dune.dist
   main.ml
   noop.opam

@@ -253,10 +253,11 @@ module Make (P : S) = struct
         let includes = [ Dune.stanza "(include dune.config)" ] in
         let lib =
           let packages = Engine.packages_of_sig jobs in
-          Dune.lib ~packages (Info.name info)
+          let config_file = Info.config_file info in
+          Dune.lib ~config_file ~packages (Info.name info)
         in
         let gen_dir = Fpath.v P.name in
-        let promote = Dune.promote_files ~gen_dir () in
+        let promote = Dune.promote_files ~gen_dir ~main:(Info.main info) () in
         let dune = Dune.v (includes @ lib @ promote) in
         Fmt.str "%a\n" Dune.pp dune
     | `App ->

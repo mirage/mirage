@@ -58,6 +58,9 @@ let compact_list ?(indent = 2) field ppf l =
   flush ();
   Fmt.pf ppf "%s" (Buffer.contents all)
 
+let config_name config_file =
+  config_file |> Fpath.base |> Fpath.rem_ext |> Fpath.to_string
+
 let config ~config_file ~packages =
   let pkgs =
     match packages with
@@ -71,17 +74,20 @@ let config ~config_file ~packages =
             String.Set.empty pkgs
           |> String.Set.elements
         in
-        Fmt.str "\n  (libraries %s)" (String.concat ~sep:" " pkgs)
+        Fmt.str "\n (libraries %s)" (String.concat ~sep:" " pkgs)
   in
   let rename_config =
-    let config_file = Fpath.base config_file in
-    let ext = Fpath.get_ext config_file in
-    let name = Fpath.rem_ext config_file |> Fpath.to_string in
-    if name = "config" then None
-    else stanzaf "(rule (copy %s config%s))" (Fpath.to_string config_file) ext
-  in
-  let includes =
-    [ (* stanzaf "(subdir dist (include ../%a/dune.dist))" Fpath.pp gen_dir *) ]
+    match config_name config_file with
+    | "config" -> None
+    | name ->
+        stanzaf
+          {|
+(rule
+  (target config.ml)
+  (deps %s.ml)
+  (action (run mv %%{deps} %%{target})))
+           |}
+          name
   in
   let config_exe =
     stanzaf
@@ -93,12 +99,12 @@ let config ~config_file ~packages =
 |}
       pkgs
   in
-  [ rename_config; config_exe ] @ includes
+  [ rename_config; config_exe ]
 
 let project = v [ stanza "(lang dune 3.0)\n(using directory-targets 0.1)" ]
 let workspace = v [ stanza "(lang dune 3.0)\n(context default)" ]
 
-let lib ~packages name =
+let lib ~config_file ~packages name =
   let pkgs =
     match packages with
     | [] -> ""
@@ -113,6 +119,10 @@ let lib ~packages name =
         in
         String.concat ~sep:" " pkgs
   in
+  let modules =
+    match config_name config_file with _ -> ":standard \\ config"
+    (*    | name -> Fmt.str ":standard \\ config %s" name *)
+  in
   let dune =
     stanzaf
       {|
@@ -120,9 +130,9 @@ let lib ~packages name =
   (name %s)
   (libraries %s)
   (wrapped false)
-  (modules (:standard \ config)))
+  (modules (%s)))
 |}
-      (Misc.Name.ocamlify name) pkgs
+      (Misc.Name.ocamlify name) pkgs modules
   in
   [ dune ]
 
@@ -146,15 +156,16 @@ let lib ~packages name =
      in
      [ dune ] *)
 
-let promote_files ~gen_dir () =
+let promote_files ~gen_dir ~main () =
+  let main = Fpath.rem_ext main in
   let promote_main =
     stanzaf
       {|
-       (rule (copy %a/main.exe main.exe))
+       (rule (copy %a/%a.exe %a.exe))
        |}
-      Fpath.pp gen_dir
+      Fpath.pp gen_dir Fpath.pp main Fpath.pp main
   in
   let promote_dist =
-    stanzaf "(subdir dir (include ../%a/dune.dist))" Fpath.pp gen_dir
+    stanzaf "(subdir dist (include ../%a/dune.dist))" Fpath.pp gen_dir
   in
   [ promote_main; promote_dist ]

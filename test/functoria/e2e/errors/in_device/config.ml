@@ -8,4 +8,4 @@ let device =
   in
   impl ~connect "Unikernel.Make" (job @-> job @-> job)
 
-let () = register "my-app" [ device $ noop $ noop ]
+let () = register "in-device" [ device $ noop $ noop ]

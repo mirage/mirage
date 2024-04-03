@@ -41,7 +41,7 @@ is passed:
   noop.opam
   vote
   warn_error
-  $ ./test.exe clean --file app/config.ml -vv
+  $ ./test.exe clean --file app/config.ml
 
 Check that configure create the correct history file:
 

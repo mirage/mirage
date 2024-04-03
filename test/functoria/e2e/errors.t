@@ -2,6 +2,8 @@ Check the locations of error messages when something is wrong in the body
 of a device's connect function:
 
   $ ./test.exe configure -f errors/in_device.ml
+  $ tree errors
+  $ cat errors/dune.config
   $ dune build
   File "errors/config.ml", line 6, characters 2-26:
   Error: Unbound value Unikernel_make__4.start'

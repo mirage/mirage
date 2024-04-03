@@ -43,16 +43,16 @@ is passed:
   warn_error
   $ ./test.exe clean --file app/config.ml -vv
 
-Check that configure create the correct context file:
+Check that configure create the correct history file:
 
   $ ./test.exe configure --file=app/config.ml
-  $ cat app/test/context
+  $ cat app/.test
   configure
   --file=app/config.ml
   $ rm -rf custom_build_
 
   $ ./test.exe configure --file=app/config.ml
-  $ cat app/test/context
+  $ cat app/.test
   configure
   --file=app/config.ml
   $ ./test.exe clean --file=app/config.ml

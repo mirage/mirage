@@ -34,6 +34,7 @@ module Cli = Cli
 module Action = Action
 module Dune = Dune
 module Job = Job
+module Name = Misc.Name
 
 module type DSL = module type of DSL
 

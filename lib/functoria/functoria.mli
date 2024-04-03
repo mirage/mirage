@@ -128,6 +128,10 @@ module Install = Install
 module Device = Device
 module Job = Job
 
+module Name : sig
+  val ocamlify : string -> string
+end
+
 (** {1 Useful module implementations} *)
 
 val job : job typ

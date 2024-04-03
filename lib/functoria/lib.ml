@@ -138,13 +138,6 @@ module Make (P : S) = struct
   let gen_dir args = Fpath.(build_dir args / P.name)
   let artifacts_dir args = Fpath.(build_dir args / "dist")
 
-  let relativize args f =
-    match Fpath.relativize ~root:(build_dir args) f with
-    | None ->
-        Fmt.failwith "relativize: root=%a file=%a" Fpath.pp (build_dir args)
-          Fpath.pp f
-    | Some f -> f
-
   let exit_err args = function
     | Ok v -> v
     | Error (`Msg m) ->
@@ -262,17 +255,9 @@ module Make (P : S) = struct
           let packages = Engine.packages_of_sig jobs in
           Dune.lib ~packages (Info.name info)
         in
-        let gen_rules =
-          let config_file = relativize args args.Cli.config_file in
-          let gen_dir = Fpath.v P.name in
-          let context_file =
-            match args.context_file with
-            | None -> Fpath.v ("." ^ P.name)
-            | Some f -> relativize args f
-          in
-          Dune.directory_target ~config_file ~context_file gen_dir
-        in
-        let dune = Dune.v (includes @ lib @ gen_rules) in
+        let gen_dir = Fpath.v P.name in
+        let promote = Dune.promote_files ~gen_dir () in
+        let dune = Dune.v (includes @ lib @ promote) in
         Fmt.str "%a\n" Dune.pp dune
     | `App ->
         let dune = Dune.v (Engine.dune info jobs) in

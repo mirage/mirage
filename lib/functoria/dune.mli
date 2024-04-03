@@ -36,8 +36,7 @@ val config : config_file:Fpath.t -> packages:Package.t list -> stanza list
 val lib : packages:Package.t list -> string -> stanza list
 (** the minimal [dune] file to compile the application functor as a library. *)
 
-val directory_target :
-  config_file:Fpath.t -> context_file:Fpath.t -> Fpath.t -> stanza list
+val promote_files : gen_dir:Fpath.t -> unit -> stanza list
 
 val project : t
 (** the minimal [dune-project] to compile [config.ml]. *)

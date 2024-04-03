@@ -41,9 +41,10 @@ module C = struct
         {|
 (executable
   (name      %s)
-  (libraries cmdliner fmt mirage-runtime.functoria))
+  (libraries %s cmdliner fmt mirage-runtime.functoria))
 |}
         (main i)
+        (Name.ocamlify (Info.name i))
     in
     [ dune ]
 

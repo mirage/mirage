@@ -119,27 +119,42 @@ let lib ~packages name =
 (library
   (name %s)
   (libraries %s)
+  (wrapped false)
   (modules (:standard \ config)))
 |}
-      name pkgs
+      (Misc.Name.ocamlify name) pkgs
   in
   [ dune ]
 
-let directory_target ~config_file ~context_file gen_dir =
-  let context_file = Fpath.normalize context_file in
-  let dune =
+(* XXX: this is currently broken: https://github.com/ocaml/dune/issues/10335 *)
+(* let directory_target ~config_file ~context_file gen_dir =
+     let context_file = Fpath.normalize context_file in
+     let dune =
+       stanzaf
+         {|
+    (rule
+     (targets (dir %a))
+     (mode promote)
+     (enabled_if (= %%{context_name} "default"))
+     (deps ./config.exe %a)
+     (action (run ./config.exe configure -f %a --init-app --context-file %a)))
+
+   (rule (copy %a/main.exe main.exe))
+   |}
+         Fpath.pp gen_dir Fpath.pp context_file Fpath.pp context_file Fpath.pp
+         config_file Fpath.pp gen_dir
+     in
+     [ dune ] *)
+
+let promote_files ~gen_dir () =
+  let promote_main =
     stanzaf
       {|
- (rule
-  (targets (dir %a))
-  (mode promote)
-  (enabled_if (= %%{context_name} "default"))
-  (deps ./config.exe %a)
-  (action (run ./config.exe configure -f %a --init-app --context-file %a)))
-
-(rule (copy %a/main.exe main.exe))
-|}
-      Fpath.pp gen_dir Fpath.pp context_file Fpath.pp context_file Fpath.pp
-      config_file Fpath.pp gen_dir
+       (rule (copy %a/main.exe main.exe))
+       |}
+      Fpath.pp gen_dir
   in
-  [ dune ]
+  let promote_dist =
+    stanzaf "(subdir dir (include ../%a/dune.dist))" Fpath.pp gen_dir
+  in
+  [ promote_main; promote_dist ]

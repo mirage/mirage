@@ -1,10 +1,7 @@
 Run an application
 
   $ ./test.exe configure --file app/config.ml
-  $ cat app/test/dune
-  $ dune exec -- ./app/test/main.exe --arg=yo --require=bar
-  $ dune build
-  $ dune exec -- ./app/test/main.exe --arg=yo --require=bar
+  $ dune exec -- ./app/main.exe --arg=yo --require=bar
   Success: hello=Hello World! arg=yo
   $ dune exec -- ./app/main.exe --help=plain
   NAME

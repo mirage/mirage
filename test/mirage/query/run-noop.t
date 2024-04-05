@@ -1,45 +1,11 @@
 Query unikernel dune
   $ ./config_noop.exe query dune.build
-  (copy_files# ./mirage/main.ml)
-  
-  (rule
-   (target noop)
-   (enabled_if (= %{context_name} "default"))
-   (deps main.exe)
-   (action (copy main.exe %{target})))
-  
-  (executable
-   (name main)
-   (libraries duration lwt mirage-bootvar-unix mirage-clock-unix mirage-logs
-     mirage-runtime mirage-unix)
-   (link_flags (-thread))
-   (modules (:standard \ config))
-   (flags :standard -w -70)
-   (enabled_if (= %{context_name} "default")))
-  
-  (subdir mirage
-   (rule
-    (targets dune.build.gen)
-    (enabled_if (= %{context_name} "default"))
-    (deps context ../config.exe)
-    (action (with-stdout-to dune.build.gen
-     (run ../config.exe query --context-file context dune.build))))
-  
-   (rule (alias dist)
-    (enabled_if (= %{context_name} "default"))
-    (action (diff dune.build dune.build.gen))))
-  
-  (subdir mirage
-   (rule
-    (targets dune.dist.gen)
-    (enabled_if (= %{context_name} "default"))
-    (deps context ../config.exe)
-    (action (with-stdout-to dune.dist.gen
-     (run ../config.exe query --context-file context dune.dist))))
-  
-   (rule (alias dist)
-    (enabled_if (= %{context_name} "default"))
-    (action (diff dune.build dune.build.gen))))
+  mirage: INFO argument: invalid value 'dune.build', expected one of 'name',
+          'packages', 'opam', 'files', 'Makefile', 'dune.config', 'dune.lib',
+          'dune.app', 'dune.dist', 'dune-project' or 'dune-workspace'
+  Usage: mirage query [OPTION]… [INFO]
+  Try 'mirage query --help' or 'mirage --help' for more information.
+  [1]
 
 Query dist dune
   $ ./config_noop.exe query dune.dist
@@ -99,63 +65,17 @@ Query makefile
 
 Query dune-project
   $ ./config_noop.exe query dune-project --target unix
-  (lang dune 2.9)
-  (implicit_transitive_deps true)
+  (lang dune 3.0)
+  (using directory-targets 0.1)
 
 Query unikernel dune (hvt)
   $ ./config_noop.exe query --target hvt dune.build
-  (copy_files# ./mirage/main.ml)
-  
-  (copy_files ./mirage/manifest.json)
-  
-  (copy_files# ./mirage/manifest.ml)
-  
-  (executable
-   (enabled_if (= %{context_name} "solo5"))
-   (name main)
-   (modes (native exe))
-   (libraries duration lwt mirage-bootvar-solo5 mirage-clock-solo5 mirage-logs
-     mirage-runtime mirage-solo5)
-   (link_flags :standard -w -70 -cclib "-z solo5-abi=hvt")
-   (modules (:standard \ config manifest))
-   (foreign_stubs (language c) (names manifest)))
-  
-  (rule
-   (targets manifest.c)
-   (deps manifest.json)
-   (action
-    (run solo5-elftool gen-manifest manifest.json manifest.c)))
-  
-  (rule
-   (target noop.hvt)
-   (enabled_if (= %{context_name} "solo5"))
-   (deps main.exe)
-   (action
-    (copy main.exe %{target})))
-  
-  (subdir mirage
-   (rule
-    (targets dune.build.gen)
-    (enabled_if (= %{context_name} "default"))
-    (deps context ../config.exe)
-    (action (with-stdout-to dune.build.gen
-     (run ../config.exe query --context-file context dune.build))))
-  
-   (rule (alias dist)
-    (enabled_if (= %{context_name} "default"))
-    (action (diff dune.build dune.build.gen))))
-  
-  (subdir mirage
-   (rule
-    (targets dune.dist.gen)
-    (enabled_if (= %{context_name} "default"))
-    (deps context ../config.exe)
-    (action (with-stdout-to dune.dist.gen
-     (run ../config.exe query --context-file context dune.dist))))
-  
-   (rule (alias dist)
-    (enabled_if (= %{context_name} "default"))
-    (action (diff dune.build dune.build.gen))))
+  mirage: INFO argument: invalid value 'dune.build', expected one of 'name',
+          'packages', 'opam', 'files', 'Makefile', 'dune.config', 'dune.lib',
+          'dune.app', 'dune.dist', 'dune-project' or 'dune-workspace'
+  Usage: mirage query [OPTION]… [INFO]
+  Try 'mirage query --help' or 'mirage --help' for more information.
+  [1]
 
 Query dist dune (hvt)
   $ ./config_noop.exe query --target hvt dune.dist

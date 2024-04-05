@@ -18,7 +18,7 @@ Help clean --man-format=plain
              one of unix, macosx, xen, virtio, hvt, muen, qubes, genode or spt
   
   CONFIGURE OPTIONS
-         --context-file=FILE (absent=mirage.context)
+         --context-file=FILE (absent=.mirage)
              The context file to use.
   
          --dry-run
@@ -92,7 +92,7 @@ Help clean --help=plain
              one of unix, macosx, xen, virtio, hvt, muen, qubes, genode or spt
   
   CONFIGURE OPTIONS
-         --context-file=FILE (absent=mirage.context)
+         --context-file=FILE (absent=.mirage)
              The context file to use.
   
          --dry-run

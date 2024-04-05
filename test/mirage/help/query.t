@@ -33,7 +33,7 @@ Help query --man-format=plain
              one of unix, macosx, xen, virtio, hvt, muen, qubes, genode or spt
   
   CONFIGURE OPTIONS
-         --context-file=FILE (absent=mirage.context)
+         --context-file=FILE (absent=.mirage)
              The context file to use.
   
          --dry-run
@@ -47,8 +47,8 @@ Help query --man-format=plain
   
          INFO (absent=packages)
              The information to query. INFO must be one of 'name', 'packages',
-             'opam', 'files', 'Makefile', 'dune.config', 'dune.build',
-             'dune-project', 'dune-workspace' or 'dune.dist'
+             'opam', 'files', 'Makefile', 'dune.config', 'dune.lib',
+             'dune.app', 'dune.dist', 'dune-project' or 'dune-workspace'
   
   COMMON OPTIONS
          --color=WHEN (absent=auto)
@@ -130,7 +130,7 @@ Help query --help=plain
              one of unix, macosx, xen, virtio, hvt, muen, qubes, genode or spt
   
   CONFIGURE OPTIONS
-         --context-file=FILE (absent=mirage.context)
+         --context-file=FILE (absent=.mirage)
              The context file to use.
   
          --dry-run
@@ -144,8 +144,8 @@ Help query --help=plain
   
          INFO (absent=packages)
              The information to query. INFO must be one of 'name', 'packages',
-             'opam', 'files', 'Makefile', 'dune.config', 'dune.build',
-             'dune-project', 'dune-workspace' or 'dune.dist'
+             'opam', 'files', 'Makefile', 'dune.config', 'dune.lib',
+             'dune.app', 'dune.dist', 'dune-project' or 'dune-workspace'
   
   COMMON OPTIONS
          --color=WHEN (absent=auto)

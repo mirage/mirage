@@ -60,7 +60,11 @@ let pp : type a b. b Fmt.t -> (a, b) t Fmt.t =
 
 let equal x y = Typeid.equal x.id y.id
 let witness x y = Typeid.witness x.id y.id
-let hash x = Typeid.id x.id
+
+let hash x =
+  let name, id = Typeid.id x.id in
+  Hashtbl.hash (name, id)
+
 let default_connect _ _ l = code_opt "return (%s)" (String.concat ~sep:", " l)
 let niet _ = Action.ok ()
 let nil _ = []
@@ -78,7 +82,7 @@ let merge_install = merge Install.empty Install.union
 let v ?packages ?packages_v ?install ?install_v ?(keys = [])
     ?(runtime_args = []) ?(extra_deps = []) ?(connect = default_connect)
     ?(dune = nil) ?(configure = niet) ?files module_name module_type =
-  let id = Typeid.gen () in
+  let id = Typeid.gen module_name in
   let packages = merge_packages packages packages_v in
   let install i =
     let aux = function None -> None | Some f -> Some (f i) in

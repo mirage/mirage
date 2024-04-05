@@ -49,7 +49,7 @@ Help describe --man-format=plain
              default when the unikernel has not been configured.
   
   CONFIGURE OPTIONS
-         --context-file=FILE (absent=mirage.context)
+         --context-file=FILE (absent=.mirage)
              The context file to use.
   
          --dry-run
@@ -154,7 +154,7 @@ Help describe --help=plain
              default when the unikernel has not been configured.
   
   CONFIGURE OPTIONS
-         --context-file=FILE (absent=mirage.context)
+         --context-file=FILE (absent=.mirage)
              The context file to use.
   
          --dry-run

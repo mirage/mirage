@@ -33,13 +33,6 @@ let pp_list pp = Fmt.(list ~sep:(any "\n\n") pp)
 let pp ppf (t : t) = Fmt.pf ppf "%a" (pp_list Fmt.string) t
 let to_string t = Fmt.to_to_string pp t ^ "\n"
 
-let headers ~name ~version =
-  let module M = Filegen.Make (struct
-    let name = name
-    let version = version
-  end) in
-  M.headers `Sexp
-
 (* emulate the dune compact form for lists *)
 let compact_list ?(indent = 2) field ppf l =
   let all = Buffer.create 1024 in
@@ -65,8 +58,53 @@ let compact_list ?(indent = 2) field ppf l =
   flush ();
   Fmt.pf ppf "%s" (Buffer.contents all)
 
-let config_rule ~config_ml_file ~packages ~name ~version =
-  let headers = headers ~name ~version in
+let config_name config_file =
+  config_file |> Fpath.base |> Fpath.rem_ext |> Fpath.to_string
+
+let config ~config_file ~packages =
+  let pkgs =
+    match packages with
+    | [] -> ""
+    | pkgs ->
+        let pkgs =
+          List.fold_left
+            (fun acc pkg ->
+              let pkgs = String.Set.of_list (Package.libraries pkg) in
+              String.Set.union pkgs acc)
+            String.Set.empty pkgs
+          |> String.Set.elements
+        in
+        Fmt.str "\n (libraries %s)" (String.concat ~sep:" " pkgs)
+  in
+  let rename_config =
+    match config_name config_file with
+    | "config" -> None
+    | name ->
+        stanzaf
+          {|
+(rule
+  (target config.ml)
+  (deps %s.ml)
+  (action (run mv %%{deps} %%{target})))
+           |}
+          name
+  in
+  let config_exe =
+    stanzaf
+      {|
+(executable
+ (name config)
+ (enabled_if (= %%{context_name} "default"))
+ (modules config)%s)
+|}
+      pkgs
+  in
+  [ rename_config; config_exe ]
+
+let project = v [ stanza "(lang dune 3.0)\n(using directory-targets 0.1)" ]
+let workspace = v [ stanza "(lang dune 3.0)\n(context default)" ]
+
+let lib ~config_file ~packages name =
   let pkgs =
     match packages with
     | [] -> ""
@@ -81,32 +119,53 @@ let config_rule ~config_ml_file ~packages ~name ~version =
         in
         String.concat ~sep:" " pkgs
   in
-  let rename_config_file =
-    let config_ml_file = Fpath.base config_ml_file in
-    let ext = Fpath.get_ext config_ml_file in
-    let name = Fpath.rem_ext config_ml_file |> Fpath.to_string in
-    if name = "config" then ""
-    else
-      Fmt.str "(rule (copy %s config%s))" (Fpath.to_string config_ml_file) ext
+  let modules =
+    match config_name config_file with _ -> ":standard \\ config"
+    (*    | name -> Fmt.str ":standard \\ config %s" name *)
   in
-  let contents =
-    Fmt.str
-      {|%s
-
-%s
-(executable
- (name config)
- (modules config)
- (libraries %s))
+  let dune =
+    stanzaf
+      {|
+(library
+  (name %s)
+  (libraries %s)
+  (wrapped false)
+  (modules (%s)))
 |}
-      headers rename_config_file pkgs
+      (Misc.Name.ocamlify name) pkgs modules
   in
-  v [ stanza contents ]
+  [ dune ]
 
-let base ~packages ~name ~version ~config_ml_file =
-  let dune_base = config_rule ~config_ml_file ~packages ~name ~version in
-  let disable_conflicting_directories = "(data_only_dirs duniverse dist)" in
-  disable_conflicting_directories :: dune_base
+(* XXX: this is currently broken: https://github.com/ocaml/dune/issues/10335 *)
+(* let directory_target ~config_file ~context_file gen_dir =
+     let context_file = Fpath.normalize context_file in
+     let dune =
+       stanzaf
+         {|
+    (rule
+     (targets (dir %a))
+     (mode promote)
+     (enabled_if (= %%{context_name} "default"))
+     (deps ./config.exe %a)
+     (action (run ./config.exe configure -f %a --init-app --context-file %a)))
 
-let base_project = [ stanza "(lang dune 2.9)" ]
-let base_workspace = v [ stanza "(lang dune 2.9)\n(context default)" ]
+   (rule (copy %a/main.exe main.exe))
+   |}
+         Fpath.pp gen_dir Fpath.pp context_file Fpath.pp context_file Fpath.pp
+         config_file Fpath.pp gen_dir
+     in
+     [ dune ] *)
+
+let promote_files ~gen_dir ~main () =
+  let main = Fpath.rem_ext main in
+  let promote_main =
+    stanzaf
+      {|
+       (rule (copy %a/%a.exe %a.exe))
+       |}
+      Fpath.pp gen_dir Fpath.pp main Fpath.pp main
+  in
+  let promote_dist =
+    stanzaf "(subdir dist (include ../%a/dune.dist))" Fpath.pp gen_dir
+  in
+  [ promote_main; promote_dist ]

@@ -22,8 +22,9 @@ Query opam file
   
   depends: [
     "duration" { ?monorepo & < "1.0.0" }
+    "logs" { ?monorepo }
     "lwt" { ?monorepo }
-    "mirage" { build & >= "4.4.0" & < "4.5.0" }
+    "mirage" { ?monorepo & build & >= "4.4.0" & < "4.5.0" }
     "mirage-bootvar-solo5" { ?monorepo & >= "0.6.0" & < "0.7.0" }
     "mirage-clock-solo5" { ?monorepo & >= "4.2.0" & < "5.0.0" }
     "mirage-logs" { ?monorepo & >= "2.0.0" & < "3.0.0" }
@@ -41,21 +42,21 @@ Query opam file
   x-mirage-pre-build: [make "lock" "depext-lockfile" "pull"]
   
   x-mirage-extra-repo: [
-  ["opam-overlays" "https://github.com/dune-universe/opam-overlays.git"]
+  ["opam-overlays" "git+https://github.com/dune-universe/opam-overlays.git"]
   
-  ["mirage-overlays" "https://github.com/dune-universe/mirage-opam-overlays.git"]]
+  ["mirage-overlays" "git+https://github.com/dune-universe/mirage-opam-overlays.git"]]
   
-  x-opam-monorepo-opam-provided: ["mirage"
-  "ocaml-solo5""opam-monorepo"
-  "solo5"]
+  x-opam-monorepo-opam-provided: ["ocaml-solo5" "opam-monorepo" "solo5"]
   
+
 
 
 Query packages
   $ ./config.exe query --target hvt packages
   "duration" { ?monorepo & < "1.0.0" }
+  "logs" { ?monorepo }
   "lwt" { ?monorepo }
-  "mirage" { build & >= "4.4.0" & < "4.5.0" }
+  "mirage" { ?monorepo & build & >= "4.4.0" & < "4.5.0" }
   "mirage-bootvar-solo5" { ?monorepo & >= "0.6.0" & < "0.7.0" }
   "mirage-clock-solo5" { ?monorepo & >= "4.2.0" & < "5.0.0" }
   "mirage-logs" { ?monorepo & >= "2.0.0" & < "3.0.0" }
@@ -72,200 +73,151 @@ Query files
 Query Makefile
   $ ./config.exe query --target hvt Makefile
   -include Makefile.user
-  BUILD_DIR = ./
-  MIRAGE_DIR = ./mirage
-  UNIKERNEL_NAME = noop-hvt
   OPAM = opam
+  OPAMS = $(shell find . -type f -name '*.opam' | grep -vE '(_build|_opam|duniverse)/')
+  PROJECT = pkg
+  LOCK_FILE = $(PROJECT).opam.locked
   
-  all::
-  	@$(MAKE) --no-print-directory depends
-  	@$(MAKE) --no-print-directory build
+  REPOSITORIES = "[git+https://github.com/dune-universe/opam-overlays.git,git+https://github.com/dune-universe/mirage-opam-overlays.git,git+https://github.com/ocaml/opam-repository.git]"
+  GLOBAL_VARS  = "[[opam-version,2.1.5],[monorepo,true]]"
   
-  .PHONY: all lock install-switch pull clean depend depends build repo-add repo-rm depext-lockfile
+  all:: depends build
   
-  repo-add:
-  	@printf "\033[2musing overlay repository mirage: [opam-overlays, mirage-overlays] \033[0m\n"
-  	$(OPAM) repo add opam-overlays https://github.com/dune-universe/opam-overlays.git || $(OPAM) repo set-url opam-overlays https://github.com/dune-universe/opam-overlays.git
-  	$(OPAM) repo add mirage-overlays https://github.com/dune-universe/mirage-opam-overlays.git || $(OPAM) repo set-url mirage-overlays https://github.com/dune-universe/mirage-opam-overlays.git
-  
-  
-  repo-rm:
-  	@printf "\033[2mremoving overlay repository [opam-overlays, mirage-overlays]\033[0m\n"
-  	$(OPAM) repo remove opam-overlays https://github.com/dune-universe/opam-overlays.git
-  	$(OPAM) repo remove mirage-overlays https://github.com/dune-universe/mirage-opam-overlays.git
+  .PHONY: all lock install-switch pull clean depend depends build depext-lockfile
   
   
-  
-  depext-lockfile: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked
+  depext-lockfile: install-switch
   	echo " ↳ install external dependencies for monorepo"
-  	env OPAMVAR_monorepo="opam-monorepo" $(OPAM) monorepo depext -y -l $<
+  	env OPAMVAR_monorepo="opam-monorepo" $(OPAM) monorepo depext -y -l $(LOCK_FILE)
   
   
-  $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam
-  	@$(MAKE) -s repo-add
+  $(LOCK_FILE): $(OPAMS)
   	@echo " ↳ generate lockfile for monorepo dependencies"
-  	@env OPAMVAR_monorepo="opam-monorepo" $(OPAM) monorepo lock --require-cross-compile --build-only $(UNIKERNEL_NAME) -l $@ --ocaml-version $(shell ocamlc --version); (ret=$$?; $(MAKE) -s repo-rm && exit $$ret)
+  	@$(OPAM) monorepo lock --require-cross-compile --build-only -l $@ --opam-repositories $(REPOSITORIES) -vv --recurse-opam --add-global-opam-vars $(GLOBAL_VARS) --ocaml-version $(shell ocamlc --version)
   
-  lock::
-  	@$(MAKE) -B $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked
+  lock:: $(LOCK_FILE)
+  	@
   
-  pull:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked
+  pull:: $(LOCK_FILE)
   	@echo " ↳ fetch monorepo dependencies in the duniverse folder"
-  	@env OPAMVAR_monorepo="opam-monorepo" $(OPAM) monorepo pull -l $< -r $(abspath $(BUILD_DIR))
+  	@env OPAMVAR_monorepo="opam-monorepo" $(OPAM) monorepo pull -l $<
   
-  install-switch:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam
+  install-switch:: $(OPAMS)
   	@echo " ↳ opam install switch dependencies"
   	@$(OPAM) install $< --deps-only --yes
   	@$(MAKE) -s depext-lockfile
   
-  depends depend::
-  	@$(MAKE) --no-print-directory lock
-  	@$(MAKE) --no-print-directory install-switch
-  	@$(MAKE) --no-print-directory pull
+  depends depend:: lock install-switch depext-lockfile pull
   
   build::
-  	dune build --profile release --root . $(BUILD_DIR)dist
+  	dune build --profile release --root .
   
   clean::
   	mirage clean
   
+
 
 Query Makefile without depexts
   $ ./config.exe query --target hvt Makefile --no-depext
   -include Makefile.user
-  BUILD_DIR = ./
-  MIRAGE_DIR = ./mirage
-  UNIKERNEL_NAME = noop-hvt
   OPAM = opam
+  OPAMS = $(shell find . -type f -name '*.opam' | grep -vE '(_build|_opam|duniverse)/')
+  PROJECT = pkg
+  LOCK_FILE = $(PROJECT).opam.locked
   
-  all::
-  	@$(MAKE) --no-print-directory depends
-  	@$(MAKE) --no-print-directory build
+  REPOSITORIES = "[git+https://github.com/dune-universe/opam-overlays.git,git+https://github.com/dune-universe/mirage-opam-overlays.git,git+https://github.com/ocaml/opam-repository.git]"
+  GLOBAL_VARS  = "[[opam-version,2.1.5],[monorepo,true]]"
   
-  .PHONY: all lock install-switch pull clean depend depends build repo-add repo-rm
+  all:: depends build
   
-  repo-add:
-  	@printf "\033[2musing overlay repository mirage: [opam-overlays, mirage-overlays] \033[0m\n"
-  	$(OPAM) repo add opam-overlays https://github.com/dune-universe/opam-overlays.git || $(OPAM) repo set-url opam-overlays https://github.com/dune-universe/opam-overlays.git
-  	$(OPAM) repo add mirage-overlays https://github.com/dune-universe/mirage-opam-overlays.git || $(OPAM) repo set-url mirage-overlays https://github.com/dune-universe/mirage-opam-overlays.git
+  .PHONY: all lock install-switch pull clean depend depends build
   
-  
-  repo-rm:
-  	@printf "\033[2mremoving overlay repository [opam-overlays, mirage-overlays]\033[0m\n"
-  	$(OPAM) repo remove opam-overlays https://github.com/dune-universe/opam-overlays.git
-  	$(OPAM) repo remove mirage-overlays https://github.com/dune-universe/mirage-opam-overlays.git
-  
-  
-  $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam
-  	@$(MAKE) -s repo-add
+  $(LOCK_FILE): $(OPAMS)
   	@echo " ↳ generate lockfile for monorepo dependencies"
-  	@env OPAMVAR_monorepo="opam-monorepo" $(OPAM) monorepo lock --require-cross-compile --build-only $(UNIKERNEL_NAME) -l $@ --ocaml-version $(shell ocamlc --version); (ret=$$?; $(MAKE) -s repo-rm && exit $$ret)
+  	@$(OPAM) monorepo lock --require-cross-compile --build-only -l $@ --opam-repositories $(REPOSITORIES) -vv --recurse-opam --add-global-opam-vars $(GLOBAL_VARS) --ocaml-version $(shell ocamlc --version)
   
-  lock::
-  	@$(MAKE) -B $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked
+  lock:: $(LOCK_FILE)
+  	@
   
-  pull:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked
+  pull:: $(LOCK_FILE)
   	@echo " ↳ fetch monorepo dependencies in the duniverse folder"
-  	@env OPAMVAR_monorepo="opam-monorepo" $(OPAM) monorepo pull -l $< -r $(abspath $(BUILD_DIR))
+  	@env OPAMVAR_monorepo="opam-monorepo" $(OPAM) monorepo pull -l $<
   
-  install-switch:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam
+  install-switch:: $(OPAMS)
   	@echo " ↳ opam install switch dependencies"
   	@$(OPAM) install $< --deps-only --yes --no-depexts
   
-  depends depend::
-  	@$(MAKE) --no-print-directory lock
-  	@$(MAKE) --no-print-directory install-switch
-  	@$(MAKE) --no-print-directory pull
+  depends depend:: lock install-switch depext-lockfile pull
   
   build::
-  	dune build --profile release --root . $(BUILD_DIR)dist
+  	dune build --profile release --root .
   
   clean::
   	mirage clean
   
+
 
 Query Makefile with depext
   $ ./config.exe query --target hvt Makefile --depext
   -include Makefile.user
-  BUILD_DIR = ./
-  MIRAGE_DIR = ./mirage
-  UNIKERNEL_NAME = noop-hvt
   OPAM = opam
+  OPAMS = $(shell find . -type f -name '*.opam' | grep -vE '(_build|_opam|duniverse)/')
+  PROJECT = pkg
+  LOCK_FILE = $(PROJECT).opam.locked
   
-  all::
-  	@$(MAKE) --no-print-directory depends
-  	@$(MAKE) --no-print-directory build
+  REPOSITORIES = "[git+https://github.com/dune-universe/opam-overlays.git,git+https://github.com/dune-universe/mirage-opam-overlays.git,git+https://github.com/ocaml/opam-repository.git]"
+  GLOBAL_VARS  = "[[opam-version,2.1.5],[monorepo,true]]"
   
-  .PHONY: all lock install-switch pull clean depend depends build repo-add repo-rm depext-lockfile
+  all:: depends build
   
-  repo-add:
-  	@printf "\033[2musing overlay repository mirage: [opam-overlays, mirage-overlays] \033[0m\n"
-  	$(OPAM) repo add opam-overlays https://github.com/dune-universe/opam-overlays.git || $(OPAM) repo set-url opam-overlays https://github.com/dune-universe/opam-overlays.git
-  	$(OPAM) repo add mirage-overlays https://github.com/dune-universe/mirage-opam-overlays.git || $(OPAM) repo set-url mirage-overlays https://github.com/dune-universe/mirage-opam-overlays.git
-  
-  
-  repo-rm:
-  	@printf "\033[2mremoving overlay repository [opam-overlays, mirage-overlays]\033[0m\n"
-  	$(OPAM) repo remove opam-overlays https://github.com/dune-universe/opam-overlays.git
-  	$(OPAM) repo remove mirage-overlays https://github.com/dune-universe/mirage-opam-overlays.git
+  .PHONY: all lock install-switch pull clean depend depends build depext-lockfile
   
   
-  
-  depext-lockfile: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked
+  depext-lockfile: install-switch
   	echo " ↳ install external dependencies for monorepo"
-  	env OPAMVAR_monorepo="opam-monorepo" $(OPAM) monorepo depext -y -l $<
+  	env OPAMVAR_monorepo="opam-monorepo" $(OPAM) monorepo depext -y -l $(LOCK_FILE)
   
   
-  $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam
-  	@$(MAKE) -s repo-add
+  $(LOCK_FILE): $(OPAMS)
   	@echo " ↳ generate lockfile for monorepo dependencies"
-  	@env OPAMVAR_monorepo="opam-monorepo" $(OPAM) monorepo lock --require-cross-compile --build-only $(UNIKERNEL_NAME) -l $@ --ocaml-version $(shell ocamlc --version); (ret=$$?; $(MAKE) -s repo-rm && exit $$ret)
+  	@$(OPAM) monorepo lock --require-cross-compile --build-only -l $@ --opam-repositories $(REPOSITORIES) -vv --recurse-opam --add-global-opam-vars $(GLOBAL_VARS) --ocaml-version $(shell ocamlc --version)
   
-  lock::
-  	@$(MAKE) -B $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked
+  lock:: $(LOCK_FILE)
+  	@
   
-  pull:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked
+  pull:: $(LOCK_FILE)
   	@echo " ↳ fetch monorepo dependencies in the duniverse folder"
-  	@env OPAMVAR_monorepo="opam-monorepo" $(OPAM) monorepo pull -l $< -r $(abspath $(BUILD_DIR))
+  	@env OPAMVAR_monorepo="opam-monorepo" $(OPAM) monorepo pull -l $<
   
-  install-switch:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam
+  install-switch:: $(OPAMS)
   	@echo " ↳ opam install switch dependencies"
   	@$(OPAM) install $< --deps-only --yes
   	@$(MAKE) -s depext-lockfile
   
-  depends depend::
-  	@$(MAKE) --no-print-directory lock
-  	@$(MAKE) --no-print-directory install-switch
-  	@$(MAKE) --no-print-directory pull
+  depends depend:: lock install-switch depext-lockfile pull
   
   build::
-  	dune build --profile release --root . $(BUILD_DIR)dist
+  	dune build --profile release --root .
   
   clean::
   	mirage clean
   
+
 Query version
   $ ./config.exe query --target hvt --version
   %%VERSION%%
 
-Query unikernel dune
-  $ ./config.exe query --target hvt dune.build
-  (copy_files# ./mirage/main.ml)
-  
-  (copy_files ./mirage/manifest.json)
-  
-  (copy_files# ./mirage/manifest.ml)
-  
+Query dune to build the application
+  $ ./config.exe query --target hvt dune.app
   (executable
    (enabled_if (= %{context_name} "solo5"))
    (name main)
    (modes (native exe))
-   (libraries duration lwt mirage-bootvar-solo5 mirage-clock-solo5 mirage-logs
-     mirage-runtime mirage-solo5)
+   (libraries duration logs lwt mirage-bootvar-solo5 mirage-clock-solo5
+     mirage-logs mirage-runtime mirage-solo5)
    (link_flags :standard -w -70 -cclib "-z solo5-abi=hvt")
    (modules (:standard \ config manifest))
-   (foreign_stubs (language c) (names manifest))
-  )
+   (foreign_stubs (language c) (names manifest)))
   
   (rule
    (targets manifest.c)
@@ -282,28 +234,20 @@ Query unikernel dune
 
 Query configuration dune
   $ ./config.exe query --target hvt dune.config
-  (data_only_dirs duniverse dist)
-  
-  ;; Generated by mirage.%%VERSION%%
-  
-  
   (executable
    (name config)
+   (enabled_if (= %{context_name} "default"))
    (modules config)
    (libraries mirage))
 
 Query dune-project
   $ ./config.exe query --target hvt dune-project
-  (lang dune 2.9)
-  
-  (name noop-hvt)
-  
-  (implicit_transitive_deps true)
+  (lang dune 3.0)
+  (using directory-targets 0.1)
 
 Query dune-workspace
   $ ./config.exe query --target hvt dune-workspace
-  (lang dune 2.9)
-  
+  (lang dune 3.0)
   (context (default))
   
   (context (default
@@ -311,5 +255,4 @@ Query dune-workspace
     (host default)
     (toolchain solo5)
     (merlin)
-    (disable_dynamically_linked_foreign_archives true)
-    ))
+    (disable_dynamically_linked_foreign_archives true)))

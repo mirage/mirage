@@ -34,7 +34,6 @@ module C = struct
   let keys = Key.[ v vote; v warn_error ]
   let connect _ _ _ = code ~pos:__POS__ "()"
   let main i = Fpath.(basename @@ rem_ext @@ Info.main i)
-  let config i = Fpath.(basename @@ rem_ext @@ Info.config_file i)
 
   let dune i =
     let dune =
@@ -42,11 +41,10 @@ module C = struct
         {|
 (executable
   (name      %s)
-  (modules   (:standard \ %s))
-  (promote   (until-clean))
-  (libraries cmdliner fmt mirage-runtime.functoria))
+  (libraries %s cmdliner fmt mirage-runtime.functoria))
 |}
-        (main i) (config i)
+        (main i)
+        (Name.ocamlify (Info.name i))
     in
     [ dune ]
 
@@ -55,14 +53,15 @@ module C = struct
     write_key i warn_error string_of_bool
 
   let create jobs =
-    let packages = [ package "fmt" ] in
+    let packages = [ package "cmdliner"; package "fmt" ] in
+    let jobs = impl "sig" (typ ~packages Job.JOB) :: jobs in
     let extra_deps = List.map dep jobs in
     let install i = Install.v ~bin:[ Fpath.(v (main i) + "exe", v "e2e") ] () in
     impl ~keys ~packages ~connect ~dune ~configure ~extra_deps ~install "E2e"
       job
 
   let name_of_target i = Info.name i
-  let dune_project = []
+  let dune_project = None
   let dune_workspace = None
   let context_name _ = "default"
 end

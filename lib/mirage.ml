@@ -341,30 +341,21 @@ let run t = %s.Main.run t ; exit 0|ocaml}
 
   let dune i = Target.dune i
   let configure i = Target.configure i
-
-  let dune_project =
-    [ Dune.stanza {|
-    (implicit_transitive_deps true)
-    |} ]
+  let dune_project = Some Functoria.Dune.project
 
   let dune_workspace =
-    let f ?build_dir i =
-      let stanzas = Target.build_context ?build_dir i in
-      let main =
-        Dune.stanza {|
-(lang dune 2.9)
-
-(context (default))
-        |}
-      in
-      Dune.v (main :: stanzas)
-    in
-    Some f
+    let main = Dune.stanza "(lang dune 3.0)\n(context (default))" in
+    let targets = Target.build_context in
+    Some (Dune.v (main :: targets))
 
   let context_name i = Target.context_name i
+  let default_packages = [ package "lwt"; package "logs" ]
 
   let create jobs =
     let keys = Key.[ v target ] in
+    let jobs =
+      impl "sig" (typ ~packages:default_packages Functoria.Job.JOB) :: jobs
+    in
     let packages_v =
       (* XXX: use %%VERSION_NUM%% here instead of hardcoding a version? *)
       let min = "4.4.0" and max = "4.5.0" in
@@ -372,7 +363,7 @@ let run t = %s.Main.run t ; exit 0|ocaml}
         [
           package ~scope:`Monorepo "lwt";
           package ~scope:`Monorepo ~min ~max "mirage-runtime";
-          package ~scope:`Switch ~build:true ~min ~max "mirage";
+          package ~scope:`Monorepo ~build:true ~min ~max "mirage";
           package ~scope:`Switch ~build:true ~min:"0.3.2" "opam-monorepo";
         ]
       in

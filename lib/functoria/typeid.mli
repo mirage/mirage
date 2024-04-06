@@ -21,13 +21,13 @@
 type 'a t
 (** A typed unique identifiers *)
 
-val gen : unit -> 'a t
-(** [gen ()] creates a new unique identifier. *)
+val gen : string -> 'a t
+(** [gen name] creates a new unique identifier. *)
 
 val equal : 'r t -> 's t -> bool
 (** [equal tid1 tid2] tests if [tid1] and [tid2] are equal. *)
 
-val id : 'a t -> int
+val id : 'a t -> string * int
 (** [id tid] returns a integer that uniquely identify [tid]. *)
 
 val pp : Format.formatter -> 'a t -> unit

@@ -47,9 +47,12 @@ val pp_args : 'a Fmt.t -> 'a args Fmt.t
 
 (** {1 Sub-commands} *)
 
+type init_stage = [ `Init_config | `Init_library | `Init_application ]
+
 type 'a configure_args = {
   args : 'a args;
   depext : bool;
+  stage : init_stage option;
   extra_repo : (string * string) list;
 }
 (** The type for arguments of the [configure] sub-command. *)
@@ -63,13 +66,10 @@ type 'a clean_args = 'a args
 type 'a help_args = 'a args
 (** The type for arguments of the [help] sub-command. *)
 
+type dune_query_kind = [ `Config | `Lib | `App | `Dist | `Workspace | `Project ]
+
 type query_kind =
-  [ `Name
-  | `Packages
-  | `Opam
-  | `Files
-  | `Dune of [ `Config | `Build | `Project | `Workspace | `Dist ]
-  | `Makefile ]
+  [ `Name | `Packages | `Opam | `Files | `Dune of dune_query_kind | `Makefile ]
 
 val pp_query_kind : query_kind Fmt.t
 (** [pp_query_kind] is the pretty-printer for query kinds. *)

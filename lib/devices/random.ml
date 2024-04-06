@@ -4,7 +4,7 @@ open Time
 
 type random = RANDOM
 
-let random = typ RANDOM
+let random = typ ~packages:[ package "mirage-random" ] RANDOM
 
 let rng ?(time = default_time) ?(mclock = default_monotonic_clock) () =
   let packages =

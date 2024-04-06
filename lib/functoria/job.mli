@@ -18,8 +18,8 @@
 
 (** The representation of main tasks. *)
 
-type t
 (** Type for job values. *)
+type t = JOB
 
 val t : t Type.t
 (** [job] is the signature for user's application main module. *)

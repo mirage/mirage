@@ -77,7 +77,7 @@ module Make (P : PROJECT) = struct
     if has_headers file contents then contents
     else
       match Fpath.basename file with
-      | "dune-project" | "dune-workspace" | "dune-workspace.config" ->
+      | "dune-project" | "dune-workspace" ->
           Fmt.str "%s\n%s\n" contents (headers `Sexp)
       | _ -> (
           match lang file with

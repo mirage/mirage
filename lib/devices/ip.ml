@@ -16,10 +16,16 @@ type ipv4 = v4 ip
 type ipv6 = v6 ip
 type ipv4v6 = v4v6 ip
 
-let ip = Functoria.Type.Type IP
-let ipv4 : ipv4 typ = ip
-let ipv6 : ipv6 typ = ip
-let ipv4v6 : ipv4v6 typ = ip
+(* convenience function for linking tcpip.unix for checksums *)
+let right_tcpip_library ?libs ~sublibs pkg =
+  let min = "7.0.0" and max = "9.0.0" in
+  [ package ~min ~max ?libs ~sublibs pkg ]
+
+let packages = [ package "tcpip" ]
+let ip = { Functoria.Type.packages; typ = Type IP }
+let ipv4 : ipv4 typ = Functoria.Type.v IP
+let ipv6 : ipv6 typ = Functoria.Type.v IP
+let ipv4v6 : ipv4v6 typ = Functoria.Type.v IP
 
 type ipv4_config = {
   network : Ipaddr.V4.Prefix.t;
@@ -27,13 +33,8 @@ type ipv4_config = {
 }
 (** Types for IPv4 manual configuration. *)
 
-(* convenience function for linking tcpip.unix for checksums *)
-let right_tcpip_library ?libs ~sublibs pkg =
-  let min = "7.0.0" and max = "9.0.0" in
-  Key.pure [ package ~min ~max ?libs ~sublibs pkg ]
-
 let ipv4_keyed_conf ~ip ?gateway ?no_init () =
-  let packages_v = right_tcpip_library ~sublibs:[ "ipv4" ] "tcpip" in
+  let packages = right_tcpip_library ~sublibs:[ "ipv4" ] "tcpip" in
   let runtime_args = runtime_args_opt [ no_init; gateway; Some ip ] in
   let err () = connect_err "ipv4 keyed" 5 ~max:7 in
   let connect _ modname = function
@@ -47,7 +48,7 @@ let ipv4_keyed_conf ~ip ?gateway ?no_init () =
           gateway etif arp
     | _ -> err ()
   in
-  impl ~packages_v ~runtime_args ~connect "Static_ipv4.Make"
+  impl ~packages ~runtime_args ~connect "Static_ipv4.Make"
     (random @-> mclock @-> ethernet @-> arpv4 @-> ipv4)
 
 let ipv4_dhcp_conf =
@@ -99,7 +100,7 @@ let ipv4_qubes ?(random = default_random) ?(clock = default_monotonic_clock) db
   ipv4_qubes_conf $ db $ random $ clock $ ethernet $ arp
 
 let ipv6_conf ?ip ?gateway ?handle_ra ?no_init () =
-  let packages_v = right_tcpip_library ~sublibs:[ "ipv6" ] "tcpip" in
+  let packages = right_tcpip_library ~sublibs:[ "ipv6" ] "tcpip" in
   let runtime_args = runtime_args_opt [ ip; gateway; handle_ra; no_init ] in
   let err () = connect_err "ipv6" 5 ~max:9 in
   let connect _ modname = function
@@ -114,7 +115,7 @@ let ipv6_conf ?ip ?gateway ?handle_ra ?no_init () =
           (pp_opt "cidr") ip (pp_opt "gateway") gateway netif etif
     | _ -> err ()
   in
-  impl ~packages_v ~runtime_args ~connect "Ipv6.Make"
+  impl ~packages ~runtime_args ~connect "Ipv6.Make"
     (network @-> ethernet @-> random @-> time @-> mclock @-> ipv6)
 
 let create_ipv6 ?(random = default_random) ?(time = default_time)
@@ -135,7 +136,7 @@ let create_ipv6 ?(random = default_random) ?(time = default_time)
   $ clock
 
 let ipv4v6_conf ?ipv4_only ?ipv6_only () =
-  let packages_v = right_tcpip_library ~sublibs:[ "stack-direct" ] "tcpip" in
+  let packages = right_tcpip_library ~sublibs:[ "stack-direct" ] "tcpip" in
   let runtime_args = runtime_args_opt [ ipv4_only; ipv6_only ] in
   let err () = connect_err "ipv4v6" 2 ~max:4 in
   let connect _ modname = function
@@ -148,7 +149,7 @@ let ipv4v6_conf ?ipv4_only ?ipv6_only () =
           ipv6
     | _ -> err ()
   in
-  impl ~packages_v ~runtime_args ~connect "Tcpip_stack_direct.IPV4V6"
+  impl ~packages ~runtime_args ~connect "Tcpip_stack_direct.IPV4V6"
     (ipv4 @-> ipv6 @-> ipv4v6)
 
 let keyed_ipv4v6 ~ipv4_only ~ipv6_only ipv4 ipv6 =

@@ -2,7 +2,7 @@ open Functoria.DSL
 
 type time = TIME
 
-let time = typ TIME
+let time = typ ~packages:[ package "mirage-time" ] TIME
 
 let default_time =
   let unix_time =

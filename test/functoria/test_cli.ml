@@ -35,12 +35,14 @@ let test_configure () =
       (Cli.Configure
          {
            depext = true;
+           stage = None;
            extra_repo =
              [
                ( "opam-overlays",
-                 "https://github.com/dune-universe/opam-overlays.git" );
+                 "git+https://github.com/dune-universe/opam-overlays.git" );
                ( "mirage-overlays",
-                 "https://github.com/dune-universe/mirage-opam-overlays.git" );
+                 "git+https://github.com/dune-universe/mirage-opam-overlays.git"
+               );
              ];
            args =
              {

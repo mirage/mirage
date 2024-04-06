@@ -9,58 +9,54 @@ is passed:
                              "output" = None;
                              "dry_run" = false };
                           "depext" = true }
-  test.exe: [INFO] Generating: app/test/dune-workspace.config (base)
+  test.exe: [INFO] Generating: dune-workspace (base)
   test.exe: [INFO] Generating: dune-project (base)
+  test.exe: [INFO] Generating: app/dune (base)
   test.exe: [INFO] Generating: app/dune.config (base)
-  test.exe: [INFO] Preserving arguments in app/test/context:
+  test.exe: [INFO] Preserving arguments in app/.test:
                    [|"./test.exe"; "configure"; "-v"; "--file";
                      "app/config.ml"|]
   test.exe: [INFO] Set-up config skeleton.
-  config.exe: [INFO] reading cache app/test/context
+  config.exe: [INFO] reading cache app/.test
   config.exe: [INFO] Name       noop
                      Keys       vote=cat (default),
                                 warn_error=false (default)
+  config.exe: [INFO] Generating: dune (dune.config)
+  config.exe: [INFO] Generating: dune (dune.lib)
+  config.exe: [INFO] Generating: dune.dist (dune.dist)
+  config.exe: [INFO] Generating: dune (dune.app)
   config.exe: [INFO] Generating: noop.opam (opam)
-  config.exe: [INFO] in dir { "context" = ;
-                              "config_file" = app/config.ml;
-                              "output" = None;
-                              "dry_run" = false }
   config.exe: [INFO] Generating: main.ml (main file)
-  config.exe: [INFO] Generating: dune.build (dune.build)
-  config.exe: [INFO] Generating: dune-workspace (dune-workspace)
-  config.exe: [INFO] Generating: dune-project (dune-project)
-  config.exe: [INFO] Generating: dune (dune.dist)
   $ ls -a app/
   .
   ..
+  .test
   app.ml
   config.ml
-  dist
   dune
-  dune.build
   dune.config
   test
   $ ls -a app/test
   .
   ..
-  context
-  dune-workspace.config
+  dune
+  dune.dist
   main.ml
   noop.opam
   vote
   warn_error
   $ ./test.exe clean --file app/config.ml
 
-Check that configure create the correct context file:
+Check that configure create the correct history file:
 
   $ ./test.exe configure --file=app/config.ml
-  $ cat app/test/context
+  $ cat app/.test
   configure
   --file=app/config.ml
   $ rm -rf custom_build_
 
   $ ./test.exe configure --file=app/config.ml
-  $ cat app/test/context
+  $ cat app/.test
   configure
   --file=app/config.ml
   $ ./test.exe clean --file=app/config.ml

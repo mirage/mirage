@@ -30,23 +30,29 @@ module type ID = sig
   type t
   type _ Id.t += Tid : t Id.t
 
-  val id : int
+  val id : string * int
 end
 
 type 'a t = (module ID with type t = 'a)
 
 let gen_id =
-  let r = ref 0 in
-  fun () ->
-    incr r;
-    !r
+  let tbl = Hashtbl.create 13 in
+  fun name ->
+    match Hashtbl.find tbl name with
+    | r ->
+        incr r;
+        !r
+    | exception Not_found ->
+        let r = ref 0 in
+        Hashtbl.add tbl name r;
+        !r
 
-let gen () (type s) =
+let gen name (type s) =
   let module M = struct
     type t = s
     type _ Id.t += Tid : t Id.t
 
-    let id = gen_id ()
+    let id = (name, gen_id name)
   end in
   (module M : ID with type t = s)
 
@@ -57,5 +63,5 @@ let witness : type r s. r t -> s t -> (r, s) witness =
   match R.Tid with S.Tid -> Eq | _ -> NotEq
 
 let equal a b = to_bool @@ witness a b
-let pp (type a) ppf ((module M) : a t) = Fmt.int ppf M.id
+let pp (type a) ppf ((module M) : a t) = Fmt.pf ppf "%s%d" (fst M.id) (snd M.id)
 let id (type a) ((module M) : a t) = M.id

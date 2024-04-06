@@ -4,18 +4,17 @@ Make sure that clean remove everything:
   $ ls -a app
   .
   ..
+  .test
   app.ml
   config.ml
-  dist
   dune
-  dune.build
   dune.config
   test
   $ ls -a app/test
   .
   ..
-  context
-  dune-workspace.config
+  dune
+  dune.dist
   main.ml
   noop.opam
   vote
@@ -26,10 +25,9 @@ Make sure that clean remove everything:
                           "config_file" = app/config.ml;
                           "output" = None;
                           "dry_run" = false }
-  test.exe: [INFO] Generating: app/test/dune-workspace.config (base)
-  test.exe: [INFO] Generating: dune-project (base)
+  test.exe: [INFO] Generating: app/dune (base)
   test.exe: [INFO] Generating: app/dune.config (base)
-  config.exe: [INFO] reading cache app/test/context
+  config.exe: [INFO] reading cache app/.test
   config.exe: [INFO] Name       noop
                      Keys       vote=cat (default),
                                 warn_error=false (default)
@@ -51,18 +49,17 @@ Check that clean works with `--output`:
   $ ls -a app
   .
   ..
+  .test
   app.ml
   config.ml
-  dist
   dune
-  dune.build
   dune.config
   test
   $ ls -a app/test
   .
   ..
-  context
-  dune-workspace.config
+  dune
+  dune.dist
   noop.opam
   toto.ml
   vote
@@ -73,10 +70,9 @@ Check that clean works with `--output`:
                           "config_file" = app/config.ml;
                           "output" = None;
                           "dry_run" = false }
-  test.exe: [INFO] Generating: app/test/dune-workspace.config (base)
-  test.exe: [INFO] Generating: dune-project (base)
+  test.exe: [INFO] Generating: app/dune (base)
   test.exe: [INFO] Generating: app/dune.config (base)
-  config.exe: [INFO] reading cache app/test/context
+  config.exe: [INFO] reading cache app/.test
   config.exe: [INFO] Name       noop
                      Keys       vote=cat (default),
                                 warn_error=false (default)

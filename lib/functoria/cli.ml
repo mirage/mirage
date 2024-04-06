@@ -28,13 +28,10 @@ let configuration_section = "CONFIGURE OPTIONS"
 let query_section = "QUERY OPTIONS"
 let description_section = "DESCRIBE OPTIONS"
 
+type dune_query_kind = [ `Config | `Lib | `App | `Dist | `Workspace | `Project ]
+
 type query_kind =
-  [ `Name
-  | `Packages
-  | `Opam
-  | `Files
-  | `Dune of [ `Config | `Build | `Project | `Workspace | `Dist ]
-  | `Makefile ]
+  [ `Name | `Packages | `Opam | `Files | `Dune of dune_query_kind | `Makefile ]
 
 let query_kinds : (string * query_kind) list =
   [
@@ -44,10 +41,11 @@ let query_kinds : (string * query_kind) list =
     ("files", `Files);
     ("Makefile", `Makefile);
     ("dune.config", `Dune `Config);
-    ("dune.build", `Dune `Build);
+    ("dune.lib", `Dune `Lib);
+    ("dune.app", `Dune `App);
+    ("dune.dist", `Dune `Dist);
     ("dune-project", `Dune `Project);
     ("dune-workspace", `Dune `Workspace);
-    ("dune.dist", `Dune `Dist);
   ]
 
 let setup ~with_setup =
@@ -66,12 +64,39 @@ let config_file =
 
 let map_default ~default f x = if x == default then None else Some (f x)
 
+let init_stage =
+  let init_config =
+    Arg.info ~docs:configuration_section
+      ~doc:"Generate scaffolding for building config.ml and stops."
+      [ "init-config" ]
+  in
+  let init_library =
+    Arg.info ~docs:configuration_section
+      ~doc:
+        "Generate scaffolding for building the main functor as a library and \
+         stops."
+      [ "init-library" ]
+  in
+  let init_application =
+    Arg.info ~docs:configuration_section
+      ~doc:"Generate scaffolding for building the main application and stops."
+      [ "init-application" ]
+  in
+  Arg.(
+    value
+      (vflag None
+         [
+           (Some `Init_config, init_config);
+           (Some `Init_library, init_library);
+           (Some `Init_application, init_application);
+         ]))
+
 let context_file mname =
   let doc =
     Arg.info ~docs:configuration_section ~docv:"FILE"
       ~doc:"The context file to use." [ "context-file" ]
   in
-  let default = mname ^ ".context" in
+  let default = "." ^ mname in
   Term.(
     const (map_default ~default Fpath.v)
     $ Arg.(value & opt string default & doc))
@@ -93,18 +118,17 @@ let extra_repos doc_section =
     Arg.info ~docs:doc_section ~docv:"NAME1:URL1,NAME2:URL2,..." ~env
       ~doc:
         "Additional opam-repositories to use when using `opam monorepo lock' \
-         to gather local sources. Default: \
-         https://github.com/dune-universe/opam-overlays.git & \
-         https://github.com/dune-universe/mirage-opam-overlays.git."
+         to gather local sources."
       [ "extra-repos" ]
   in
   Arg.(
     value
     & opt (list key)
         [
-          ("opam-overlays", "https://github.com/dune-universe/opam-overlays.git");
+          ( "opam-overlays",
+            "git+https://github.com/dune-universe/opam-overlays.git" );
           ( "mirage-overlays",
-            "https://github.com/dune-universe/mirage-opam-overlays.git" );
+            "git+https://github.com/dune-universe/mirage-opam-overlays.git" );
         ]
     & doc)
 
@@ -214,9 +238,12 @@ let default_args =
     dry_run = false;
   }
 
+type init_stage = [ `Init_config | `Init_library | `Init_application ]
+
 type 'a configure_args = {
   args : 'a args;
   depext : bool;
+  stage : init_stage option;
   extra_repo : (string * string) list;
 }
 
@@ -326,11 +353,12 @@ module Subcommands = struct
   (** The 'configure' subcommand *)
   let configure t =
     ( Term.(
-        const (fun args depext extra_repo ->
-            Configure { args; depext; extra_repo })
+        const (fun args depext extra_repo stage ->
+            Configure { args; depext; extra_repo; stage })
         $ T.args t
         $ depext configuration_section
-        $ extra_repos configuration_section),
+        $ extra_repos configuration_section
+        $ init_stage),
       Cmd.info "configure" ~doc:"Configure a $(mname) application."
         ~man:
           [
@@ -419,11 +447,12 @@ module Subcommands = struct
           | `Ok t -> `Help (man_format, Some t))
     in
     ( Term.(
-        const (fun args _ _ _ () -> Help args)
+        const (fun args _ _ _ _ () -> Help args)
         $ T.args t
         $ depext configuration_section
         $ extra_repos configuration_section
         $ full_eval
+        $ init_stage
         $ ret (const help $ Arg.man_format $ Term.choice_names $ topic)),
       Cmd.info "help" ~doc:"Display help about $(mname) commands."
         ~man:

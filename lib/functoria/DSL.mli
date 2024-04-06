@@ -29,12 +29,38 @@
     builder}, which will, once evaluated, produced the final portable and
     flexible application. *)
 
+(** {1:pkg Package dependencies}
+
+    For specifying opam package dependencies, the type {!type-package} is used.
+    It consists of the opam package name, the ocamlfind names, and optional
+    lower and upper bounds. The version constraints are merged with other
+    modules. *)
+
+type package = Package.t
+(** The type for opam packages. *)
+
+type scope = Package.scope
+(** Installation scope of a package. *)
+
+val package :
+  ?scope:scope ->
+  ?build:bool ->
+  ?sublibs:string list ->
+  ?libs:string list ->
+  ?min:string ->
+  ?max:string ->
+  ?pin:string ->
+  ?pin_version:string ->
+  string ->
+  package
+(** Same as {!Functoria.Package.val-v} *)
+
 (** {1:combinators Combinators} *)
 
 type 'a typ = 'a Type.t
 (** The type for values representing module types. *)
 
-val typ : 'a -> 'a typ
+val typ : ?packages:package list -> 'a -> 'a typ
 (** [type t] is a value representing the module type [t]. *)
 
 val ( @-> ) : 'a typ -> 'b typ -> ('a -> 'b) typ
@@ -95,32 +121,6 @@ val if_impl : bool value -> 'a impl -> 'a impl -> 'a impl
 val match_impl : 'b value -> default:'a impl -> ('b * 'a impl) list -> 'a impl
 (** [match_impl v cases ~default] chooses the implementation amongst [cases] by
     matching the [v]'s value. [default] is chosen if no value matches. *)
-
-(** {1:pkg Package dependencies}
-
-    For specifying opam package dependencies, the type {!type-package} is used.
-    It consists of the opam package name, the ocamlfind names, and optional
-    lower and upper bounds. The version constraints are merged with other
-    modules. *)
-
-type package = Package.t
-(** The type for opam packages. *)
-
-type scope = Package.scope
-(** Installation scope of a package. *)
-
-val package :
-  ?scope:scope ->
-  ?build:bool ->
-  ?sublibs:string list ->
-  ?libs:string list ->
-  ?min:string ->
-  ?max:string ->
-  ?pin:string ->
-  ?pin_version:string ->
-  string ->
-  package
-(** Same as {!Functoria.Package.val-v} *)
 
 (** {1:app Application Builder}
 

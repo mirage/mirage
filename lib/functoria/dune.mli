@@ -30,16 +30,17 @@ val pp : t Fmt.t
 val to_string : t -> string
 val compact_list : ?indent:int -> string -> string list Fmt.t
 
-val base :
-  packages:Package.t list ->
-  name:string ->
-  version:string ->
-  config_ml_file:Fpath.t ->
-  t
-(** [base] is a minimal [dune] file able to build [config.ml] *)
+val config : config_file:Fpath.t -> packages:Package.t list -> stanza list
+(** the minimal [dune] file to compile [config.ml]. *)
 
-val base_project : stanza list
+val lib :
+  config_file:Fpath.t -> packages:Package.t list -> string -> stanza list
+(** the minimal [dune] file to compile the application functor as a library. *)
+
+val promote_files : gen_dir:Fpath.t -> main:Fpath.t -> unit -> stanza list
+
+val project : t
 (** the minimal [dune-project] to compile [config.ml]. *)
 
-val base_workspace : t
+val workspace : t
 (** the minimal [dune-workspace] to compile [config.ml]. *)

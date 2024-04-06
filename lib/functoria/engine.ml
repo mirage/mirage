@@ -66,6 +66,10 @@ module Packages = struct
   let empty = Key.pure Package.Set.empty
 end
 
+let packages_of_sig dev =
+  let pkgs = Type.packages (Device.module_type dev) in
+  Package.Set.of_list pkgs
+
 let packages t =
   let open Impl in
   let aux = function
@@ -77,7 +81,7 @@ let packages t =
             (fun acc k ->
               let pkgs = Runtime_arg.packages k in
               Package.Set.(union acc (of_list pkgs)))
-            Package.Set.empty runtime_args
+            (packages_of_sig c) runtime_args
         in
         let aux x = Package.Set.(union (of_list x) extra_pkgs) in
         Key.(pure aux $ pkgs)
@@ -85,6 +89,15 @@ let packages t =
   in
   let return x = Package.Set.to_list x in
   Key.(pure return $ Impl.collect (module Packages) aux t)
+
+let packages_of_sig t =
+  let open Impl in
+  let aux = function
+    | Dev c -> packages_of_sig c
+    | If _ | App -> Package.Set.empty
+  in
+  let set = Impl.collect (module Package.Set) aux t in
+  Package.Set.to_list set
 
 module Installs = struct
   type t = Install.t Key.value

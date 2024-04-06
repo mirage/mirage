@@ -16,12 +16,10 @@ Help query --man-format=plain
              Enable call to `opam depext' in the project Makefile.
   
          --extra-repos=NAME1:URL1,NAME2:URL2,...
-         (absent=opam-overlays:https://github.com/dune-universe/opam-overlays.git,mirage-overlays:https://github.com/dune-universe/mirage-opam-overlays.git
+         (absent=opam-overlays:git+https://github.com/dune-universe/opam-overlays.git,mirage-overlays:git+https://github.com/dune-universe/mirage-opam-overlays.git
          or MIRAGE_EXTRA_REPOS env)
              Additional opam-repositories to use when using `opam monorepo
-             lock' to gather local sources. Default:
-             https://github.com/dune-universe/opam-overlays.git &
-             https://github.com/dune-universe/mirage-opam-overlays.git.
+             lock' to gather local sources.
   
          --no-depext
              Disable call to `opam depext' in the project Makefile.
@@ -35,7 +33,7 @@ Help query --man-format=plain
              one of unix, macosx, xen, virtio, hvt, muen, qubes, genode or spt
   
   CONFIGURE OPTIONS
-         --context-file=FILE (absent=mirage.context)
+         --context-file=FILE (absent=.mirage)
              The context file to use.
   
          --dry-run
@@ -49,8 +47,8 @@ Help query --man-format=plain
   
          INFO (absent=packages)
              The information to query. INFO must be one of 'name', 'packages',
-             'opam', 'files', 'Makefile', 'dune.config', 'dune.build',
-             'dune-project', 'dune-workspace' or 'dune.dist'
+             'opam', 'files', 'Makefile', 'dune.config', 'dune.lib',
+             'dune.app', 'dune.dist', 'dune-project' or 'dune-workspace'
   
   COMMON OPTIONS
          --color=WHEN (absent=auto)
@@ -115,12 +113,10 @@ Help query --help=plain
              Enable call to `opam depext' in the project Makefile.
   
          --extra-repos=NAME1:URL1,NAME2:URL2,...
-         (absent=opam-overlays:https://github.com/dune-universe/opam-overlays.git,mirage-overlays:https://github.com/dune-universe/mirage-opam-overlays.git
+         (absent=opam-overlays:git+https://github.com/dune-universe/opam-overlays.git,mirage-overlays:git+https://github.com/dune-universe/mirage-opam-overlays.git
          or MIRAGE_EXTRA_REPOS env)
              Additional opam-repositories to use when using `opam monorepo
-             lock' to gather local sources. Default:
-             https://github.com/dune-universe/opam-overlays.git &
-             https://github.com/dune-universe/mirage-opam-overlays.git.
+             lock' to gather local sources.
   
          --no-depext
              Disable call to `opam depext' in the project Makefile.
@@ -134,7 +130,7 @@ Help query --help=plain
              one of unix, macosx, xen, virtio, hvt, muen, qubes, genode or spt
   
   CONFIGURE OPTIONS
-         --context-file=FILE (absent=mirage.context)
+         --context-file=FILE (absent=.mirage)
              The context file to use.
   
          --dry-run
@@ -148,8 +144,8 @@ Help query --help=plain
   
          INFO (absent=packages)
              The information to query. INFO must be one of 'name', 'packages',
-             'opam', 'files', 'Makefile', 'dune.config', 'dune.build',
-             'dune-project', 'dune-workspace' or 'dune.dist'
+             'opam', 'files', 'Makefile', 'dune.config', 'dune.lib',
+             'dune.app', 'dune.dist', 'dune-project' or 'dune-workspace'
   
   COMMON OPTIONS
          --color=WHEN (absent=auto)

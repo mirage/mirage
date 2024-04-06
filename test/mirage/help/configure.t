@@ -17,7 +17,7 @@ Help configure --man-format=plain
              one of unix, macosx, xen, virtio, hvt, muen, qubes, genode or spt
   
   CONFIGURE OPTIONS
-         --context-file=FILE (absent=mirage.context)
+         --context-file=FILE (absent=.mirage)
              The context file to use.
   
          --depext
@@ -27,15 +27,23 @@ Help configure --man-format=plain
              Display I/O actions instead of executing them.
   
          --extra-repos=NAME1:URL1,NAME2:URL2,...
-         (absent=opam-overlays:https://github.com/dune-universe/opam-overlays.git,mirage-overlays:https://github.com/dune-universe/mirage-opam-overlays.git
+         (absent=opam-overlays:git+https://github.com/dune-universe/opam-overlays.git,mirage-overlays:git+https://github.com/dune-universe/mirage-opam-overlays.git
          or MIRAGE_EXTRA_REPOS env)
              Additional opam-repositories to use when using `opam monorepo
-             lock' to gather local sources. Default:
-             https://github.com/dune-universe/opam-overlays.git &
-             https://github.com/dune-universe/mirage-opam-overlays.git.
+             lock' to gather local sources.
   
          -f FILE, --file=FILE, --config-file=FILE (absent=config.ml)
              The configuration file to use.
+  
+         --init-application
+             Generate scaffolding for building the main application and stops.
+  
+         --init-config
+             Generate scaffolding for building config.ml and stops.
+  
+         --init-library
+             Generate scaffolding for building the main functor as a library
+             and stops.
   
          --no-depext
              Disable call to `opam depext' in the project Makefile.
@@ -110,7 +118,7 @@ Configure help --help=plain
              one of unix, macosx, xen, virtio, hvt, muen, qubes, genode or spt
   
   CONFIGURE OPTIONS
-         --context-file=FILE (absent=mirage.context)
+         --context-file=FILE (absent=.mirage)
              The context file to use.
   
          --depext
@@ -120,15 +128,23 @@ Configure help --help=plain
              Display I/O actions instead of executing them.
   
          --extra-repos=NAME1:URL1,NAME2:URL2,...
-         (absent=opam-overlays:https://github.com/dune-universe/opam-overlays.git,mirage-overlays:https://github.com/dune-universe/mirage-opam-overlays.git
+         (absent=opam-overlays:git+https://github.com/dune-universe/opam-overlays.git,mirage-overlays:git+https://github.com/dune-universe/mirage-opam-overlays.git
          or MIRAGE_EXTRA_REPOS env)
              Additional opam-repositories to use when using `opam monorepo
-             lock' to gather local sources. Default:
-             https://github.com/dune-universe/opam-overlays.git &
-             https://github.com/dune-universe/mirage-opam-overlays.git.
+             lock' to gather local sources.
   
          -f FILE, --file=FILE, --config-file=FILE (absent=config.ml)
              The configuration file to use.
+  
+         --init-application
+             Generate scaffolding for building the main application and stops.
+  
+         --init-config
+             Generate scaffolding for building config.ml and stops.
+  
+         --init-library
+             Generate scaffolding for building the main functor as a library
+             and stops.
   
          --no-depext
              Disable call to `opam depext' in the project Makefile.

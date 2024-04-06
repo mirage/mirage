@@ -2,28 +2,27 @@ Build an application.
 
   $ ./test.exe configure --file app/config.ml
   $ make build
-  dune build --profile release --root . app/dist
+  dune build --profile release --root .
   $ ls -a app/
   .
   ..
+  .test
   app.ml
   config.ml
   dist
   dune
-  dune.build
   dune.config
-  main.exe
   test
   $ ls -a app/test
   .
   ..
-  context
-  dune-workspace.config
+  dune
+  dune.dist
   main.ml
   noop.opam
   vote
   warn_error
-  $ ./app/main.exe --required=foo
+  $ dune exec -- ./app/main.exe --required=foo
   Success: hello=Hello World! arg=-
   $ ./test.exe clean --file app/config.ml
   $ ls -a app/
@@ -36,28 +35,27 @@ Test `--output`:
 
   $ ./test.exe configure --file app/config.ml -o toto
   $ make build
-  dune build --profile release --root . app/dist
+  dune build --profile release --root .
   $ ls -a app/
   .
   ..
+  .test
   app.ml
   config.ml
   dist
   dune
-  dune.build
   dune.config
   test
-  toto.exe
   $ ls -a app/test
   .
   ..
-  context
-  dune-workspace.config
+  dune
+  dune.dist
   noop.opam
   toto.ml
   vote
   warn_error
-  $ ./app/toto.exe --required=foo
+  $ dune exec -- ./app/toto.exe --required=foo
   Success: hello=Hello World! arg=-
   $ ./test.exe clean --file app/config.ml
   $ ls -a app/

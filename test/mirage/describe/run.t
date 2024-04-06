@@ -75,7 +75,8 @@ Describe before configure (no eval)
                 58 [label="bootvar__58\nBootvar\n", shape="box"];
                 59 [label="If\ntarget"];
                 60 [label="struct_end__60\nstruct end\n", shape="box"];
-                61 [label="mirage_runtime__61\nMirage_runtime\ntarget", shape="box"];
+                61 [label="sig__61\nsig\n", shape="box"];
+                62 [label="mirage_runtime__62\nMirage_runtime\ntarget", shape="box"];
                 
                 3 -> 2 [style="dashed"];
                 3 -> 1 [style="dashed"];
@@ -180,13 +181,14 @@ Describe before configure (no eval)
                 59 -> 57 [style="dotted", headport="n"];
                 59 -> 58 [style="bold", style="dotted", headport="n"];
                 60 -> 59 [style="dashed"];
-                61 -> 60 [style="dashed"];
-                61 -> 55 [style="dashed"];
-                61 -> 54 [style="dashed"];
-                61 -> 53 [style="dashed"];
-                61 -> 52 [style="dashed"];
-                61 -> 51 [style="dashed"];
-                61 -> 49 [style="dashed"];
+                62 -> 61 [style="dashed"];
+                62 -> 60 [style="dashed"];
+                62 -> 55 [style="dashed"];
+                62 -> 54 [style="dashed"];
+                62 -> 53 [style="dashed"];
+                62 -> 52 [style="dashed"];
+                62 -> 51 [style="dashed"];
+                62 -> 49 [style="dashed"];
                 }
 
 Describe after configure

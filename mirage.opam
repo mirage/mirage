@@ -19,7 +19,7 @@ build: [
 
 depends: [
   "ocaml" {>= "4.08.0"}
-  "dune" {>= "2.9.0"}
+  "dune" {>= "3.8.0"}
   "astring"
   "cmdliner" {>= "1.2.0"}
   "emile" {>= "1.1"}

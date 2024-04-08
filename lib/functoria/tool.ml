@@ -149,7 +149,6 @@ module Make (P : S) = struct
     Log.info (fun m -> m "Generating: %a (base)" Fpath.pp dune_config_path);
     let dune_config =
       Dune.base ~config_ml_file:t.Cli.config_file ~packages:P.packages
-        ~name:P.name ~version:P.version
     in
     let dune_config = Fmt.str "%a\n%!" Dune.pp dune_config in
     let* () = Filegen.write dune_config_path dune_config in

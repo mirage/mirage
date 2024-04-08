@@ -33,13 +33,6 @@ let pp_list pp = Fmt.(list ~sep:(any "\n\n") pp)
 let pp ppf (t : t) = Fmt.pf ppf "%a" (pp_list Fmt.string) t
 let to_string t = Fmt.to_to_string pp t ^ "\n"
 
-let headers ~name ~version =
-  let module M = Filegen.Make (struct
-    let name = name
-    let version = version
-  end) in
-  M.headers `Sexp
-
 (* emulate the dune compact form for lists *)
 let compact_list ?(indent = 2) field ppf l =
   let all = Buffer.create 1024 in
@@ -65,8 +58,7 @@ let compact_list ?(indent = 2) field ppf l =
   flush ();
   Fmt.pf ppf "%s" (Buffer.contents all)
 
-let config_rule ~config_ml_file ~packages ~name ~version =
-  let headers = headers ~name ~version in
+let config_rule ~config_ml_file ~packages =
   let pkgs =
     match packages with
     | [] -> ""
@@ -85,27 +77,26 @@ let config_rule ~config_ml_file ~packages ~name ~version =
     let config_ml_file = Fpath.base config_ml_file in
     let ext = Fpath.get_ext config_ml_file in
     let name = Fpath.rem_ext config_ml_file |> Fpath.to_string in
-    if name = "config" then ""
+    if name = "config" then []
     else
-      Fmt.str "(rule (copy %s config%s))" (Fpath.to_string config_ml_file) ext
+      [
+        stanzaf "(rule (copy %s config%s))" (Fpath.to_string config_ml_file) ext;
+      ]
   in
   let contents =
-    Fmt.str
-      {|%s
-
-%s
+    stanzaf {|
 (executable
  (name config)
  (modules config)
  (libraries %s))
 |}
-      headers rename_config_file pkgs
+      pkgs
   in
-  v [ stanza contents ]
+  v (rename_config_file @ [ contents ])
 
-let base ~packages ~name ~version ~config_ml_file =
-  let dune_base = config_rule ~config_ml_file ~packages ~name ~version in
-  let disable_conflicting_directories = "(data_only_dirs duniverse dist)" in
+let base ~packages ~config_ml_file =
+  let dune_base = config_rule ~config_ml_file ~packages in
+  let disable_conflicting_directories = "(data_only_dirs dist)" in
   disable_conflicting_directories :: dune_base
 
 let base_project = [ stanza "(lang dune 2.9)" ]

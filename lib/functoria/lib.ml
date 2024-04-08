@@ -286,10 +286,7 @@ module Make (P : S) = struct
     | `Config ->
         let cwd = Bos.OS.Dir.current () |> Result.get_ok in
         let config_ml_file = Fpath.(cwd // args.Cli.config_file) in
-        let dune =
-          Dune.base ~config_ml_file ~packages:P.packages ~name:P.name
-            ~version:P.version
-        in
+        let dune = Dune.base ~config_ml_file ~packages:P.packages in
         Fmt.str "%a\n" Dune.pp dune
 
   let generate_dune alias args =
@@ -365,7 +362,7 @@ module Make (P : S) = struct
     let* () =
       Action.with_dir build_dir (fun () ->
           let* () = generate_dune `Build args in
-          Filegen.write Fpath.(v "dune") "(include dune.build)")
+          Filegen.write Fpath.(v "dune") "(include dune.build)\n")
     in
     (* dune-workspace: defines compilation contexts *)
     let* () = generate_dune `Workspace args in

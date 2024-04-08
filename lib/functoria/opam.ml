@@ -251,5 +251,5 @@ x-opam-monorepo-opam-provided: [%a]
        ~some:(fun l -> l t.subdir t.opam_name)
        t.lock_location)
     (pp_build t.configure) pp_pre_build t.pre_build pp_repo t.extra_repo
-    (Fmt.list pp_switch_package)
+    (Fmt.list ~sep:(Fmt.any " ") pp_switch_package)
     switch_packages pp_src t.src pp_pins t.pins

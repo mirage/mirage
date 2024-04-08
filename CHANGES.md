@@ -88,6 +88,9 @@
       ...
     ```
 
+- FEATURE: install `mirage` in the local duniverse. This allows `config.ml`
+  and `unikernel.ml` to be built simultaneously so that tools like merlin can
+  work on both seamlessly. This is a follow-up of #1475 (#1515, @samoht)
 - BREAKING: the packages `functoria` and `functoria-runtime` are removed. The
   respectives libraries became `mirage.functoria` and `mirage-runtime.functoria`
   (#1509, @samoht)

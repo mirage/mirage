@@ -380,7 +380,7 @@ let run t = %s.Main.run t ; exit 0|ocaml}
         [
           package ~scope:`Monorepo "lwt";
           package ~scope:`Monorepo ~min ~max "mirage-runtime";
-          package ~scope:`Switch ~build:true ~min ~max "mirage";
+          package ~scope:`Monorepo ~build:true ~min ~max "mirage";
           package ~scope:`Switch ~build:true ~min:"0.3.2" "opam-monorepo";
         ]
       in

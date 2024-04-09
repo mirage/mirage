@@ -1,4 +1,4 @@
-### Unreleased
+### v4.5.0 (2024-04-09)
 
 - This release introduces a significant change in the Mirage tool by
   splitting the definition of command-line arguments used at

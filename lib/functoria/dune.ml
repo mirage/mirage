@@ -96,7 +96,7 @@ let config_rule ~config_ml_file ~packages =
 
 let base ~packages ~config_ml_file =
   let dune_base = config_rule ~config_ml_file ~packages in
-  let disable_conflicting_directories = "(data_only_dirs dist)" in
+  let disable_conflicting_directories = "(data_only_dirs duniverse dist)" in
   disable_conflicting_directories :: dune_base
 
 let base_project = [ stanza "(lang dune 2.9)" ]

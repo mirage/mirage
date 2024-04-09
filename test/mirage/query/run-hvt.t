@@ -23,7 +23,7 @@ Query opam file
   depends: [
     "duration" { ?monorepo & < "1.0.0" }
     "lwt" { ?monorepo }
-    "mirage" { ?monorepo & build & >= "4.4.0" & < "4.5.0" }
+    "mirage" { build & >= "4.4.0" & < "4.5.0" }
     "mirage-bootvar-solo5" { ?monorepo & >= "0.6.0" & < "0.7.0" }
     "mirage-clock-solo5" { ?monorepo & >= "4.2.0" & < "5.0.0" }
     "mirage-logs" { ?monorepo & >= "2.0.0" & < "3.0.0" }
@@ -45,7 +45,7 @@ Query opam file
   
   ["mirage-overlays" "https://github.com/dune-universe/mirage-opam-overlays.git"]]
   
-  x-opam-monorepo-opam-provided: ["ocaml-solo5" "opam-monorepo" "solo5"]
+  x-opam-monorepo-opam-provided: ["mirage" "ocaml-solo5" "opam-monorepo" "solo5"]
   
 
 
@@ -53,7 +53,7 @@ Query packages
   $ ./config.exe query --target hvt packages
   "duration" { ?monorepo & < "1.0.0" }
   "lwt" { ?monorepo }
-  "mirage" { ?monorepo & build & >= "4.4.0" & < "4.5.0" }
+  "mirage" { build & >= "4.4.0" & < "4.5.0" }
   "mirage-bootvar-solo5" { ?monorepo & >= "0.6.0" & < "0.7.0" }
   "mirage-clock-solo5" { ?monorepo & >= "4.2.0" & < "5.0.0" }
   "mirage-logs" { ?monorepo & >= "2.0.0" & < "3.0.0" }
@@ -280,7 +280,7 @@ Query unikernel dune
 
 Query configuration dune
   $ ./config.exe query --target hvt dune.config
-  (data_only_dirs dist)
+  (data_only_dirs duniverse dist)
   
   (executable
    (name config)

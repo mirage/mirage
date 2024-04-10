@@ -27,11 +27,11 @@ Query opam file
   depends: [
     "duration" { ?monorepo & < "1.0.0" }
     "lwt" { ?monorepo }
-    "mirage" { build & >= "4.4.0" & < "4.5.0" }
+    "mirage" { build & >= "4.5.0" & < "4.6.0" }
     "mirage-bootvar-unix" { ?monorepo & >= "0.1.0" & < "0.2.0" }
     "mirage-clock-unix" { ?monorepo & >= "3.0.0" & < "5.0.0" }
     "mirage-logs" { ?monorepo & >= "2.0.0" & < "3.0.0" }
-    "mirage-runtime" { ?monorepo & >= "4.4.0" & < "4.5.0" }
+    "mirage-runtime" { ?monorepo & >= "4.5.0" & < "4.6.0" }
     "mirage-unix" { ?monorepo & >= "5.0.0" & < "6.0.0" }
     "opam-monorepo" { build & >= "0.3.2" }
   ]
@@ -55,11 +55,11 @@ Query packages
   $ ./config.exe query packages
   "duration" { ?monorepo & < "1.0.0" }
   "lwt" { ?monorepo }
-  "mirage" { build & >= "4.4.0" & < "4.5.0" }
+  "mirage" { build & >= "4.5.0" & < "4.6.0" }
   "mirage-bootvar-unix" { ?monorepo & >= "0.1.0" & < "0.2.0" }
   "mirage-clock-unix" { ?monorepo & >= "3.0.0" & < "5.0.0" }
   "mirage-logs" { ?monorepo & >= "2.0.0" & < "3.0.0" }
-  "mirage-runtime" { ?monorepo & >= "4.4.0" & < "4.5.0" }
+  "mirage-runtime" { ?monorepo & >= "4.5.0" & < "4.6.0" }
   "mirage-unix" { ?monorepo & >= "5.0.0" & < "6.0.0" }
   "opam-monorepo" { build & >= "0.3.2" }
 

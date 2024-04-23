@@ -183,12 +183,10 @@ type reporter
 val reporter : reporter typ
 (** Implementation of the log {!type:reporter} type. *)
 
-val default_reporter :
-  ?clock:pclock impl -> ?level:Logs.level option -> unit -> reporter impl
-(** [default_reporter ?clock ?level ()] is the log reporter that prints log
-    messages to the console, timestampted with [clock]. If not provided, the
-    default clock is {!default_posix_clock}. [level] is the default log
-    threshold. It is [Some Logs.Info] if not specified. *)
+val default_reporter : ?level:Logs.level option -> unit -> reporter impl
+(** [default_reporter ?level ()] is the log reporter that prints log messages to
+    the console. [level] is the default log threshold. It is [Some Logs.Info] if
+    not specified. *)
 
 val no_reporter : reporter impl
 (** [no_reporter] disable log reporting. *)

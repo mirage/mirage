@@ -64,18 +64,17 @@ Describe before configure (no eval)
                 47 [label="tcpip_stack_direct_makev4v6__47\nTcpip_stack_direct.MakeV4V6\n", shape="box"];
                 48 [label="If\ndhcp, net,\ntarget"];
                 49 [label="app__49\nApp\n", shape="box"];
-                50 [label="pclock__50\nPclock\n", shape="box"];
-                51 [label="mirage_logs_make__51\nMirage_logs.Make\n", shape="box"];
-                52 [label="mirage_runtime__52\nMirage_runtime\n", shape="box"];
-                53 [label="gc__53\nGc\n", shape="box"];
-                54 [label="hashtbl__54\nHashtbl\n", shape="box"];
-                55 [label="printexc__55\nPrintexc\n", shape="box"];
+                50 [label="mirage_logs__50\nMirage_logs\n", shape="box"];
+                51 [label="mirage_runtime__51\nMirage_runtime\n", shape="box"];
+                52 [label="gc__52\nGc\n", shape="box"];
+                53 [label="hashtbl__53\nHashtbl\n", shape="box"];
+                54 [label="printexc__54\nPrintexc\n", shape="box"];
+                55 [label="bootvar__55\nBootvar\n", shape="box"];
                 56 [label="bootvar__56\nBootvar\n", shape="box"];
                 57 [label="bootvar__57\nBootvar\n", shape="box"];
-                58 [label="bootvar__58\nBootvar\n", shape="box"];
-                59 [label="If\ntarget"];
-                60 [label="struct_end__60\nstruct end\n", shape="box"];
-                61 [label="mirage_runtime__61\nMirage_runtime\ntarget", shape="box"];
+                58 [label="If\ntarget"];
+                59 [label="struct_end__59\nstruct end\n", shape="box"];
+                60 [label="mirage_runtime__60\nMirage_runtime\ntarget", shape="box"];
                 
                 3 -> 2 [style="dashed"];
                 3 -> 1 [style="dashed"];
@@ -170,23 +169,22 @@ Describe before configure (no eval)
                 48 -> 3 [style="dotted", headport="n"];
                 48 -> 47 [style="bold", style="dotted", headport="n"];
                 49 -> 48 [];
-                51 -> 50 [];
-                59 -> 56 [style="dotted", headport="n"];
-                59 -> 56 [style="dotted", headport="n"];
-                59 -> 57 [style="dotted", headport="n"];
-                59 -> 57 [style="dotted", headport="n"];
-                59 -> 57 [style="dotted", headport="n"];
-                59 -> 57 [style="dotted", headport="n"];
-                59 -> 57 [style="dotted", headport="n"];
-                59 -> 58 [style="bold", style="dotted", headport="n"];
+                58 -> 55 [style="dotted", headport="n"];
+                58 -> 55 [style="dotted", headport="n"];
+                58 -> 56 [style="dotted", headport="n"];
+                58 -> 56 [style="dotted", headport="n"];
+                58 -> 56 [style="dotted", headport="n"];
+                58 -> 56 [style="dotted", headport="n"];
+                58 -> 56 [style="dotted", headport="n"];
+                58 -> 57 [style="bold", style="dotted", headport="n"];
+                59 -> 58 [style="dashed"];
                 60 -> 59 [style="dashed"];
-                61 -> 60 [style="dashed"];
-                61 -> 55 [style="dashed"];
-                61 -> 54 [style="dashed"];
-                61 -> 53 [style="dashed"];
-                61 -> 52 [style="dashed"];
-                61 -> 51 [style="dashed"];
-                61 -> 49 [style="dashed"];
+                60 -> 54 [style="dashed"];
+                60 -> 53 [style="dashed"];
+                60 -> 52 [style="dashed"];
+                60 -> 51 [style="dashed"];
+                60 -> 50 [style="dashed"];
+                60 -> 49 [style="dashed"];
                 }
 
 Describe after configure

@@ -203,8 +203,8 @@ val default_random : random impl
 (** Default PRNG device to be used in unikernels. It uses getrandom/getentropy
     on Unix, and a Fortuna PRNG on other targets. *)
 
-val rng : ?time:time impl -> ?mclock:mclock impl -> unit -> random impl
-(** [rng ()] is the device [Mirage_crypto_rng.Make]. *)
+val rng : random impl
+(** [rng] is the device [Mirage_crypto_rng_mirage]. *)
 
 (** {2 Block devices} *)
 

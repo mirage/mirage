@@ -131,6 +131,19 @@ val run_leave_iter_hooks : unit -> unit
 (** [run_leave_iter_hooks ()] call the sequence of hooks registered with
     {!at_leave_iter} in sequence. *)
 
+(** {2 Sleepers} *)
+
+(** This is mainly for for developers implementing new targets. *)
+
+type sleep = { time : int64; mutable canceled : bool; thread : unit Lwt.u }
+
+val add_new_sleeper : sleep -> unit
+(** [add_new_sleeper sleep] adds [sleep] to the list of new sleepers. *)
+
+val get_new_sleepers : unit -> sleep list
+(** [get_new_sleepers ()] retrieves all new sleepers. Afterwards the list of new
+    sleepers will be empty. *)
+
 (** {2 Exit Codes} *)
 
 val argument_error : int

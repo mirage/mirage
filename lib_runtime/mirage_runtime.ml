@@ -250,6 +250,16 @@ let at_exit f = add f exit_hooks
 let at_leave_iter f = add f leave_iter_hooks
 let at_enter_iter f = add f enter_iter_hooks
 
+type sleep = { time : int64; mutable canceled : bool; thread : unit Lwt.u }
+
+let new_sleepers = ref []
+let add_new_sleeper s = new_sleepers := s :: !new_sleepers
+
+let get_new_sleepers () =
+  let sl = !new_sleepers in
+  new_sleepers := [];
+  sl
+
 let with_argv =
   Functoria_runtime.with_argv
     ~sections:

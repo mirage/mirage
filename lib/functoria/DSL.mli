@@ -138,6 +138,7 @@ val main :
   ?pos:string * int * int * int ->
   ?packages:package list ->
   ?packages_v:package list value ->
+  ?extra_deps:abstract_impl list ->
   ?runtime_args:Runtime_arg.t list ->
   string ->
   'a typ ->

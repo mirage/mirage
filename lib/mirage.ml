@@ -291,15 +291,9 @@ let delay_startup =
   let delay_key = Runtime_arg.delay in
   let runtime_args = [ Runtime_arg.v delay_key ] in
   let packages = [ package ~max:"1.0.0" "duration" ] in
-  let connect i _ = function
+  let connect _ _ = function
     | [ delay_key ] ->
-        let modname =
-          match Misc.get_target i with
-          | `Unix | `MacOSX -> "Unix_os.Time"
-          | `Xen | `Qubes -> "Xen_os.Time"
-          | `Virtio | `Hvt | `Spt | `Muen | `Genode -> "Solo5_os.Time"
-        in
-        code ~pos:__POS__ "%s.sleep_ns (Duration.of_sec %s)" modname delay_key
+        code ~pos:__POS__ "%s.sleep_ns (Duration.of_sec %s)" "Mirage_time" delay_key
     | _ -> Misc.connect_err "delay_startup" 1
   in
   impl ~packages ~runtime_args ~connect "Mirage_runtime" delay

@@ -12,11 +12,11 @@ let network_conf ?(intf : string runtime_arg option) name =
   let runtime_args = Option.to_list (Option.map Runtime_arg.v intf) in
   let packages_v =
     Key.match_ Key.(value target) @@ function
-    | `Unix -> [ package ~sublibs:["unix"] ~min:"3.0.0" ~max:"4.0.0" "mirage-net-unix" ]
+    | `Unix -> [ package ~sublibs:["unix"] ~min:"4.0.0" ~max:"5.0.0" "mirage-net-unix" ]
     | `MacOSX -> failwith "NYI"
     | `Xen -> failwith "NYI"
     | `Qubes -> failwith "NYI"
-    | #Key.mode_solo5 -> [ package ~sublibs:["solo5"] ~min:"3.0.0" ~max:"4.0.0" "mirage-net" ]
+    | #Key.mode_solo5 -> [ package ~sublibs:["solo5"] ~min:"4.0.0" ~max:"5.0.0" "mirage-net" ]
   in
   let connect _ modname = function
     | [] -> code ~pos:__POS__ "%s.connect %S" modname name

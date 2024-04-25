@@ -12,13 +12,11 @@ let network_conf ?(intf : string runtime_arg option) name =
   let runtime_args = Option.to_list (Option.map Runtime_arg.v intf) in
   let packages_v =
     Key.match_ Key.(value target) @@ function
-    | `Unix -> [ package ~min:"3.0.0" ~max:"4.0.0" "mirage-net-unix" ]
-    | `MacOSX -> [ package ~min:"1.8.0" ~max:"2.0.0" "mirage-net-macosx" ]
-    | `Xen -> [ package ~min:"2.1.0" ~max:"3.0.0" "mirage-net-xen" ]
-    | `Qubes ->
-        [ package ~min:"2.1.0" ~max:"3.0.0" "mirage-net-xen"; Qubesdb.pkg ]
-    | #Key.mode_solo5 ->
-        [ package ~min:"0.8.0" ~max:"0.9.0" "mirage-net-solo5" ]
+    | `Unix -> [ package ~sublibs:["unix"] ~min:"3.0.0" ~max:"4.0.0" "mirage-net-unix" ]
+    | `MacOSX -> failwith "NYI"
+    | `Xen -> failwith "NYI"
+    | `Qubes -> failwith "NYI"
+    | #Key.mode_solo5 -> [ package ~sublibs:["solo5"] ~min:"3.0.0" ~max:"4.0.0" "mirage-net" ]
   in
   let connect _ modname = function
     | [] -> code ~pos:__POS__ "%s.connect %S" modname name
@@ -29,7 +27,7 @@ let network_conf ?(intf : string runtime_arg option) name =
     add_new_network name;
     ok ()
   in
-  impl ~runtime_args ~packages_v ~connect ~configure "Netif" network
+  impl ~runtime_args ~packages_v ~connect ~configure "Mirage_net" network
 
 let netif ?group dev =
   if_impl Key.is_solo5 (network_conf dev)

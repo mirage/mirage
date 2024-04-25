@@ -13,19 +13,19 @@ let tcp = Functoria.Type.Type TCP
 let tcpv4v6 : tcpv4v6 typ = tcp
 
 (* this needs to be a function due to the value restriction. *)
-let tcp_direct_func () =
+let tcp_direct_func ip time clock random =
   let packages_v = right_tcpip_library ~sublibs:[ "tcp" ] "tcpip" in
   let connect _ modname = function
     | [ ip; _time; _clock; _random ] ->
         code ~pos:__POS__ "%s.connect %s" modname ip
     | _ -> connect_err "tcp" 4
   in
-  impl ~packages_v ~connect "Tcp.Flow.Make"
-    (ip @-> time @-> mclock @-> random @-> tcp)
+  let extra_deps = [ dep ip ; dep time ; dep clock ; dep random ] in
+  impl ~extra_deps ~packages_v ~connect "Tcp.Flow" tcp
 
 let direct_tcp ?(mclock = default_monotonic_clock) ?(time = default_time)
     ?(random = default_random) ip =
-  tcp_direct_func () $ ip $ time $ mclock $ random
+  tcp_direct_func ip time mclock random
 
 let tcpv4v6_socket_conf ~ipv4_only ~ipv6_only ipv4_key ipv6_key =
   let v = Runtime_arg.v in

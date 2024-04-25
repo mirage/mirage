@@ -25,7 +25,7 @@ type stackv4v6 = STACKV4V6
 
 let stackv4v6 = typ STACKV4V6
 
-let stackv4v6_direct_conf () =
+let stackv4v6_direct_conf time random network ethernet arpv4 ipv4v6 icmpv4 udp tcp =
   let packages_v = right_tcpip_library ~sublibs:[ "stack-direct" ] "tcpip" in
   let connect _i modname = function
     | [ _t; _r; interface; ethif; arp; ipv4v6; icmpv4; udp; tcp ] ->
@@ -33,33 +33,18 @@ let stackv4v6_direct_conf () =
           ethif arp ipv4v6 icmpv4 udp tcp
     | _ -> connect_err "direct stack" 9
   in
-  impl ~packages_v ~connect "Tcpip_stack_direct.MakeV4V6"
-    (time
-    @-> random
-    @-> network
-    @-> ethernet
-    @-> arpv4
-    @-> ipv4v6
-    @-> Icmp.icmpv4
-    @-> udp
-    @-> tcp
-    @-> stackv4v6)
+  let extra_deps = [ dep time ; dep random ; dep network ; dep ethernet ;
+                     dep arpv4 ; dep ipv4v6 ; dep icmpv4 ; dep udp ; dep tcp ]
+  in
+  impl ~extra_deps ~packages_v ~connect "Tcpip_stack_direct" stackv4v6
 
 let direct_stackv4v6 ?(mclock = default_monotonic_clock)
     ?(random = default_random) ?(time = default_time) ?tcp ~ipv4_only ~ipv6_only
     network eth arp ipv4 ipv6 =
   let ip = keyed_ipv4v6 ~ipv4_only ~ipv6_only ipv4 ipv6 in
-  stackv4v6_direct_conf ()
-  $ time
-  $ random
-  $ network
-  $ eth
-  $ arp
-  $ ip
-  $ Icmp.direct_icmpv4 ipv4
-  $ direct_udp ~random ip
-  $
-  match tcp with None -> direct_tcp ~mclock ~random ~time ip | Some tcp -> tcp
+  stackv4v6_direct_conf time random network eth arp ip (Icmp.direct_icmpv4 ipv4)
+  (direct_udp ip)
+  (match tcp with None -> direct_tcp ~mclock ~random ~time ip | Some tcp -> tcp)
 
 let static_ipv4v6_stack ?group ?ipv6_config ?ipv4_config ?(arp = arp)
     ?tcp tap =

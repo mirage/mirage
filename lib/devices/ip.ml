@@ -32,7 +32,7 @@ let right_tcpip_library ?libs ~sublibs pkg =
   let min = "7.0.0" and max = "9.0.0" in
   Key.pure [ package ~min ~max ?libs ~sublibs pkg ]
 
-let ipv4_keyed_conf ~ip ?gateway ?no_init () =
+let ipv4_keyed_conf ~ip ?gateway ?no_init random mclock ethernet arp =
   let packages_v = right_tcpip_library ~sublibs:[ "ipv4" ] "tcpip" in
   let runtime_args = runtime_args_opt [ no_init; gateway; Some ip ] in
   let err () = connect_err "ipv4 keyed" 5 ~max:7 in
@@ -47,8 +47,8 @@ let ipv4_keyed_conf ~ip ?gateway ?no_init () =
           gateway etif arp
     | _ -> err ()
   in
-  impl ~packages_v ~runtime_args ~connect "Static_ipv4.Make"
-    (random @-> mclock @-> ethernet @-> arpv4 @-> ipv4)
+  let extra_deps = [ dep random ; dep mclock ; dep ethernet ; dep arp ] in
+  impl ~extra_deps ~packages_v ~runtime_args ~connect "Static_ipv4" ipv4
 
 let ipv4_dhcp_conf =
   let packages =
@@ -76,7 +76,7 @@ let create_ipv4 ?group ?config ?no_init ?(random = default_random)
   in
   let ip = Runtime_arg.V4.network ?group network
   and gateway = Runtime_arg.V4.gateway ?group gateway in
-  ipv4_keyed_conf ~ip ~gateway ?no_init () $ random $ clock $ etif $ arp
+  ipv4_keyed_conf ~ip ~gateway ?no_init random clock etif arp
 
 type ipv6_config = {
   network : Ipaddr.V6.Prefix.t;
@@ -98,7 +98,7 @@ let ipv4_qubes ?(random = default_random) ?(clock = default_monotonic_clock) db
     ethernet arp =
   ipv4_qubes_conf $ db $ random $ clock $ ethernet $ arp
 
-let ipv6_conf ?ip ?gateway ?handle_ra ?no_init () =
+let ipv6_conf ?ip ?gateway ?handle_ra ?no_init network ethernet random time mclock =
   let packages_v = right_tcpip_library ~sublibs:[ "ipv6" ] "tcpip" in
   let runtime_args = runtime_args_opt [ ip; gateway; handle_ra; no_init ] in
   let err () = connect_err "ipv6" 5 ~max:9 in
@@ -114,8 +114,8 @@ let ipv6_conf ?ip ?gateway ?handle_ra ?no_init () =
           (pp_opt "cidr") ip (pp_opt "gateway") gateway netif etif
     | _ -> err ()
   in
-  impl ~packages_v ~runtime_args ~connect "Ipv6.Make"
-    (network @-> ethernet @-> random @-> time @-> mclock @-> ipv6)
+  let extra_deps = [ dep network ; dep ethernet ; dep random ; dep time ; dep mclock ] in
+  impl ~extra_deps ~packages_v ~runtime_args ~connect "Ipv6" ipv6
 
 let create_ipv6 ?(random = default_random) ?(time = default_time)
     ?(clock = default_monotonic_clock) ?group ?config ?no_init netif etif =
@@ -127,15 +127,10 @@ let create_ipv6 ?(random = default_random) ?(time = default_time)
   let ip = Runtime_arg.V6.network ?group network
   and gateway = Runtime_arg.V6.gateway ?group gateway
   and handle_ra = Runtime_arg.V6.accept_router_advertisements ?group () in
-  ipv6_conf ~ip ~gateway ~handle_ra ?no_init ()
-  $ netif
-  $ etif
-  $ random
-  $ time
-  $ clock
+  ipv6_conf ~ip ~gateway ~handle_ra ?no_init netif etif random time clock
 
-let ipv4v6_conf ?ipv4_only ?ipv6_only () =
-  let packages_v = right_tcpip_library ~sublibs:[ "stack-direct" ] "tcpip" in
+let ipv4v6_conf ?ipv4_only ?ipv6_only ipv4 ipv6 =
+  let packages_v = right_tcpip_library ~sublibs:[ "ipv4v6" ] "tcpip" in
   let runtime_args = runtime_args_opt [ ipv4_only; ipv6_only ] in
   let err () = connect_err "ipv4v6" 2 ~max:4 in
   let connect _ modname = function
@@ -148,11 +143,11 @@ let ipv4v6_conf ?ipv4_only ?ipv6_only () =
           ipv6
     | _ -> err ()
   in
-  impl ~packages_v ~runtime_args ~connect "Tcpip_stack_direct.IPV4V6"
-    (ipv4 @-> ipv6 @-> ipv4v6)
+  let extra_deps = [ dep ipv4 ; dep ipv6 ] in
+  impl ~extra_deps ~packages_v ~runtime_args ~connect "Ipv4v6" ipv4v6
 
 let keyed_ipv4v6 ~ipv4_only ~ipv6_only ipv4 ipv6 =
-  ipv4v6_conf ~ipv4_only ~ipv6_only () $ ipv4 $ ipv6
+  ipv4v6_conf ~ipv4_only ~ipv6_only ipv4 ipv6
 
 let create_ipv4v6 ?group ipv4 ipv6 =
   let ipv4_only = Runtime_arg.ipv4_only ?group ()

@@ -11,15 +11,16 @@ let udp = Functoria.Type.Type UDP
 let udpv4v6 : udpv4v6 typ = udp
 
 (* Value restriction ... *)
-let udp_direct_func () =
+let udp_direct_func ip random =
   let packages_v = right_tcpip_library ~sublibs:[ "udp" ] "tcpip" in
   let connect _ modname = function
-    | [ ip; _random ] -> code ~pos:__POS__ "%s.connect %s" modname ip
+    | [ ip ; _random ] -> code ~pos:__POS__ "%s.connect %s" modname ip
     | _ -> connect_err "udp" 2
   in
-  impl ~packages_v ~connect "Udp.Make" (ip @-> random @-> udp)
+  let extra_deps = [ dep ip ; dep random ] in
+  impl ~packages_v ~extra_deps ~connect "Udp" udp
 
-let direct_udp ?(random = default_random) ip = udp_direct_func () $ ip $ random
+let direct_udp ?(random = default_random) ip = udp_direct_func ip random
 
 let udpv4v6_socket_conf ~ipv4_only ~ipv6_only ipv4_key ipv6_key =
   let v = Runtime_arg.v in

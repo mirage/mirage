@@ -342,15 +342,24 @@ val chamelon :
   kv_rw impl
 (** [chamelon ~program_block_size] returns a {!kv_rw} filesystem which is an
     implementation of {{:https://github.com/littlefs-project/littlefs} littlefs}
-    in OCaml. The [chamelon] device expects a {i block-device}:
+    in OCaml. The [chamelon] device expects a {i block-device}.
 
+    [unikernel.ml]:
     {[
-      let program_block_size =
-        let doc = Key.Arg.info [ "program-block-size" ] in
-        Key.(create "program_block_size" Arg.(opt int 16 doc))
+      open Cmdliner
 
-      let block = block_of_file "db"
-      let fs = chamelon ~program_block_size block
+      let program_block_size =
+        Arg.(value & opt int 16 & info [ "program-block-size" ])
+    ]}
+    [config.ml]:
+    {[
+      let db =
+        let program_block_size =
+          Runtime_arg.create ~pos:__POS__ "Unikernel.program_block_size"
+        in
+        let block = block_of_file "db" in
+        chamelon ~program_block_size block
+      in
     ]}
 
     For Solo5 targets, you finally can launch the unikernel with:
@@ -389,19 +398,26 @@ val ccm_block :
       $ ccmblock enc -i db.img -k 0x10786d3a9c920d0b3ec80dfaaac557a7 -o edb.img
     ]}
 
+    Accept the key as a runtime argument, in [unikernel.ml]:
+    {[
+      open Cmdliner
+
+      let aes_ccm_key =
+        let doc = "The key of the block device (hex formatted)" in
+        Arg.(required & opt (some string) None & info ~doc [ "aes-ccm-key" ])
+    ]}
+
     Then, into you [config.ml], you just need to compose your block device with
     [ccm_block]:
 
     {[
-      let aes_ccm_key =
-        let doc =
-          Key.Arg.info [ "aes-ccm-key" ]
-            ~doc:"The key of the block device (hex formatted)"
+      let encrypted_block =
+        let aes_ccm_key =
+          Runtime_arg.create ~pos:__POS__ "Unikernel.aes_ccm_key"
         in
-        Key.(create "aes-ccm-key" Arg.(required string doc))
-
-      let block = block_of_file "edb"
-      let encrypted_block = ccm_block aes_ccm_key block
+        let block = block_of_file "edb"
+        ccm_block aes_ccm_key block
+      in
     ]}
 
     Finally, with Solo5, you can launch your unikernel with that:
@@ -834,6 +850,12 @@ val paf_server : port:int runtime_arg -> tcpv4v6 impl -> http_server impl
     This is a simple example of how to launch an HTTP server: {b unikernel.ml}
 
     {[
+      open Cmdliner
+
+      let port =
+        let doc = "Port of the HTTP service." in
+        Arg.(value & opt int 8080 & info [ "p"; "port" ])
+
       module Make (HTTP_server : Paf_mirage.S with type ipaddr = Ipaddr.t) =
       struct
         let error_handler (_ipaddr, _port) ?request:_ _error _send = ()
@@ -853,7 +875,7 @@ val paf_server : port:int runtime_arg -> tcpv4v6 impl -> http_server impl
           let response = Httpaf.Response.create ~headers `OK in
           Httpaf.Reqd.respond_with_string reqd response contents
 
-        let start http_server =
+        let start http_server port =
           let service =
             HTTP_service.http_service ~error_handler request_handler
           in
@@ -867,16 +889,15 @@ val paf_server : port:int runtime_arg -> tcpv4v6 impl -> http_server impl
     {[
       open Mirage
 
-      let port =
-        let doc =
-          Key.Arg.info ~doc:"Port of the HTTP service." [ "p"; "port" ]
-        in
-        Key.(create "port" Arg.(opt int 8080 doc))
+      let port = Runtime_arg.create ~pos:__POS__ "Unikernel.port"
 
       let main = main "Unikernel.Make" (http_server @-> job)
       let stackv4v6 = generic_stackv4v6 default_network
       let http_server = paf_server ~port (tcpv4v6_of_stackv4v6 stackv4v6)
-      let () = register "main" [ main $ http_server ]
+      let () =
+        register "main"
+          ~runtime_args:[ Runtime_arg.v port ]
+          [ main $ http_server ]
     ]} *)
 
 type alpn_client

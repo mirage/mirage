@@ -486,12 +486,6 @@ let ( ++ ) acc x =
 
 let register ?(argv = default_argv) ?(reporter = default_reporter ()) ?src name
     jobs =
-  if List.exists Functoria.Impl.app_has_no_arguments jobs then
-    invalid_arg
-      "Your configuration includes a job without arguments. Please add a \
-       dependency in your config.ml: use `let main = Mirage.main \
-       \"Unikernel.hello\" (job @-> job) register \"hello\" [ main $ noop ]` \
-       instead of `.. job .. [ main ]`.";
   let first =
     [ runtime_args argv; backtrace; randomize_hashtables; gc_control ]
   in

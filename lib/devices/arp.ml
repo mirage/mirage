@@ -11,10 +11,10 @@ let arp_conf eth =
     [ package ~min:"3.0.0" ~max:"4.0.0" ~sublibs:[ "mirage" ] "arp" ]
   in
   let connect _ modname = function
-    | [ eth; _time ] -> code ~pos:__POS__ "%s.connect %s" modname eth
-    | _ -> connect_err "arp" 2
+    | [ eth ] -> code ~pos:__POS__ "%s.connect %s" modname eth
+    | _ -> connect_err "arp" 1
   in
   let extra_deps = [ dep eth ] in
-  impl ~packages ~extra_deps ~connect "Arp.Make" arpv4
+  impl ~packages ~extra_deps ~connect "Arp" arpv4
 
 let arp (eth : ethernet impl) = arp_conf eth

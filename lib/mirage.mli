@@ -448,7 +448,7 @@ type arpv4
 val arpv4 : arpv4 typ
 (** Implementation of the [Arp.S] signature. *)
 
-val arp : ?time:time impl -> ethernet impl -> arpv4 impl
+val arp : ethernet impl -> arpv4 impl
 (** ARP implementation provided by the arp library *)
 
 (** {2 IP configuration}

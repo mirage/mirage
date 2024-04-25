@@ -61,7 +61,7 @@ let direct_stackv4v6 ?(mclock = default_monotonic_clock)
   $
   match tcp with None -> direct_tcp ~mclock ~random ~time ip | Some tcp -> tcp
 
-let static_ipv4v6_stack ?group ?ipv6_config ?ipv4_config ?(arp = arp ?time:None)
+let static_ipv4v6_stack ?group ?ipv6_config ?ipv4_config ?(arp = arp)
     ?tcp tap =
   let ipv4_only = Runtime_arg.ipv4_only ?group ()
   and ipv6_only = Runtime_arg.ipv6_only ?group () in
@@ -72,7 +72,7 @@ let static_ipv4v6_stack ?group ?ipv6_config ?ipv4_config ?(arp = arp ?time:None)
   direct_stackv4v6 ~ipv4_only ~ipv6_only ?tcp tap e a i4 i6
 
 let generic_ipv4v6_stack p ?group ?ipv6_config ?ipv4_config
-    ?(arp = arp ?time:None) ?tcp tap =
+    ?(arp = arp) ?tcp tap =
   let ipv4_only = Runtime_arg.ipv4_only ?group ()
   and ipv6_only = Runtime_arg.ipv6_only ?group () in
   let e = etif tap in

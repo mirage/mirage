@@ -35,8 +35,9 @@ val create_ipv4 :
   ?no_init:bool runtime_arg ->
   ?random:random impl ->
   ?clock:mclock impl ->
-  ethernet impl ->
-  arpv4 impl ->
+  ?ethif:ethernet impl ->
+  ?arp:arpv4 impl ->
+  unit ->
   ipv4 impl
 
 val create_ipv6 :
@@ -46,8 +47,9 @@ val create_ipv6 :
   ?group:string ->
   ?config:ipv6_config ->
   ?no_init:bool runtime_arg ->
-  network impl ->
-  ethernet impl ->
+  ?netif:network impl ->
+  ?ethif:ethernet impl ->
+  unit ->
   ipv6 impl
 
 val ipv4_of_dhcp :
@@ -77,4 +79,4 @@ val keyed_ipv4v6 :
   ipv4v6 impl
 
 val right_tcpip_library :
-  ?libs:string list -> sublibs:string list -> string -> package list value
+  ?libs:string list -> sublibs:string list -> string -> package list

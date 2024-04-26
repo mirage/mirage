@@ -5,6 +5,7 @@ type stackv4v6
 val stackv4v6 : stackv4v6 typ
 
 val direct_stackv4v6 :
+  [ `Socket | `Static ] Key.value ->
   ?mclock:Mclock.mclock impl ->
   ?random:Random.random impl ->
   ?time:Time.time impl ->
@@ -18,7 +19,11 @@ val direct_stackv4v6 :
   Ip.ipv6 impl ->
   stackv4v6 impl
 
-val socket_stackv4v6 : ?group:string -> unit -> stackv4v6 impl
+val socket_stackv4v6 :
+  Ip.v4v6 impl ->
+  Udp.udpv4v6 impl 
+    -> Tcp.tcpv4v6 impl
+  -> stackv4v6 impl
 
 val static_ipv4v6_stack :
   ?group:string ->

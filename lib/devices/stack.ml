@@ -111,7 +111,7 @@ let generic_stackv4v6 ?group ?ipv6_config ?ipv4_config
   let choose target net dhcp =
     match (target, net, dhcp) with
     | `Qubes, _, _ -> `Qubes
-    | _, Some `Socket, _ -> `Socket
+    | _, Some `Host, _ -> `Socket
     | _, _, true -> `Dhcp
     | (`Unix | `MacOSX), None, false -> `Socket
     | _, _, _ -> `Static

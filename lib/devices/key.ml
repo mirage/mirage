@@ -133,8 +133,12 @@ let dhcp ?group () =
   let doc = Fmt.str "Enable dhcp for %a." pp_group group in
   configure_key ~doc ?group ~default:false Arg.bool "dhcp"
 
-let net ?group () : [ `Socket | `Direct ] option Key.key =
-  let enum = [ ("socket", `Socket); ("direct", `Direct) ] in
+let net ?group () : [ `Host | `OCaml ] option Key.key =
+  let enum =
+    [
+      ("host", `Host); ("socket", `Host); ("direct", `OCaml); ("ocaml", `OCaml);
+    ]
+  in
   let conv = Cmdliner.Arg.enum enum in
   let doc =
     Fmt.str "Use %s group for %a."

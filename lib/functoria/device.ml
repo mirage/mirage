@@ -119,7 +119,10 @@ let runtime_args t = t.runtime_args
 let extra_deps t = t.extra_deps
 
 let start ?pos impl_name args =
-  code_opt ?pos "@[%s.start@ %a@]" impl_name Fmt.(list ~sep:sp string) args
+  code_opt ?pos "@[<hov>@[<hv 2>%s.start@ %a@]@ >>= fun (_ : unit) ->@ return ()@]"
+    impl_name
+    Fmt.(list ~sep:sp string)
+    args
 
 let uniq t = Fpath.Set.(elements (of_list t))
 let exec_hook i = function None -> Action.ok () | Some h -> h i

@@ -206,9 +206,10 @@ Configure the project for Unix:
     let __mirage_crypto_rng_mirage_make__11 = Lazy.force mirage_crypto_rng_mirage_make__11 in
     __mirage_crypto_rng_mirage_make__11 >>= fun _mirage_crypto_rng_mirage_make__11 ->
   # 3 "config.ml"
-    App_make__12.start _mirage_crypto_rng_mirage_make__11
+    App_make__12.start _mirage_crypto_rng_mirage_make__11 >>= fun (_ : unit) ->
+  return ()
   );;
-  # 189 "mirage/main.ml"
+  # 190 "mirage/main.ml"
   
   let mirage_runtime__13 = lazy (
     let __struct_end__2 = Lazy.force struct_end__2 in
@@ -228,7 +229,7 @@ Configure the project for Unix:
   # 384 "lib/mirage.ml"
     return ()
   );;
-  # 209 "mirage/main.ml"
+  # 210 "mirage/main.ml"
   
   let () =
     let t = Lazy.force struct_end__2 >>= fun _ ->
@@ -456,9 +457,10 @@ Configure the project for Xen:
     let __mirage_crypto_rng_mirage_make__11 = Lazy.force mirage_crypto_rng_mirage_make__11 in
     __mirage_crypto_rng_mirage_make__11 >>= fun _mirage_crypto_rng_mirage_make__11 ->
   # 3 "config.ml"
-    App_make__12.start _mirage_crypto_rng_mirage_make__11
+    App_make__12.start _mirage_crypto_rng_mirage_make__11 >>= fun (_ : unit) ->
+  return ()
   );;
-  # 189 "mirage/main.ml"
+  # 190 "mirage/main.ml"
   
   let mirage_runtime__13 = lazy (
     let __struct_end__2 = Lazy.force struct_end__2 in
@@ -478,7 +480,7 @@ Configure the project for Xen:
   # 384 "lib/mirage.ml"
     return ()
   );;
-  # 209 "mirage/main.ml"
+  # 210 "mirage/main.ml"
   
   let () =
     let t = Lazy.force struct_end__2 >>= fun _ ->

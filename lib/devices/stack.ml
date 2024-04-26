@@ -35,7 +35,7 @@ let stackv4v6_direct_conf time random network ethernet arpv4 ipv4v6 icmpv4 udp t
   let extra_deps = [ dep time ; dep random ; dep network ; dep ethernet ;
                      dep arpv4 ; dep ipv4v6 ; dep icmpv4 ; dep udp ; dep tcp ]
   in
-  impl ~extra_deps ~packages_v ~connect "Stack" stackv4v6
+  impl ~extra_deps ~packages_v ~connect "Tcpip_stack" stackv4v6
 
 let socket_stackv4v6 ipv4v6 udp tcp =
   let packages_v =

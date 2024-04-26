@@ -46,7 +46,7 @@ let ipv4_keyed_conf ~ip ?gateway ?no_init random mclock ?ethif ?arp () =
         let gateway, rest = pop ~err gateway rest in
         let ip, rest = pop ~err (Some ip) rest in
         let () = match rest with [] -> () | _ -> err () in
-        code ~pos:__POS__ "%s.connect@[%a%a%a@ ~ethernet:%s@ ~arp:%s@]" modname
+        code ~pos:__POS__ "%s.connect@[%a%a%a@ ~ethernet:%s@ ~arp:%s ()@]" modname
           (pp_label "no_init") no_init (pp_label "cidr") ip (pp_opt "gateway")
           gateway etif arp
     | _ -> err ()

@@ -27,7 +27,9 @@ let write_key i k f =
 module C = struct
   open Action.Syntax
 
-  let prelude _ = "let (>>=) x f = f x\nlet return x = x\nlet run x = x"
+  let prelude _ =
+    "let (>>=) x f = f x\ntype 'a io = 'a\nlet return x = x\nlet run x = x"
+
   let name = "test"
   let version = "1.0~test"
   let packages = [ package ~sublibs:[ "functoria" ] "mirage"; package "e2e" ]

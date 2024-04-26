@@ -119,8 +119,7 @@ let runtime_args t = t.runtime_args
 let extra_deps t = t.extra_deps
 
 let start ?pos impl_name args =
-  code_opt ?pos "@[<hov>@[<hv 2>%s.start@ %a@]@ >>= fun (_ : unit) ->@ return ()@]"
-    impl_name
+  code_opt ?pos "@[(%s.start@ %a@ : unit io)@]" impl_name
     Fmt.(list ~sep:sp string)
     args
 

@@ -324,6 +324,7 @@ module Project = struct
   let prelude info =
     Fmt.str
       {ocaml|open Lwt.Infix
+type 'a io = 'a Lwt.t
 let return = Lwt.return
 let run t = %s.Main.run t ; exit 0|ocaml}
       (os_of_target info)

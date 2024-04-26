@@ -49,7 +49,7 @@ let socket_stackv4v6 ipv4v6 udp tcp =
   in
   let extra_deps = [ dep ipv4v6 ; dep udp ; dep tcp ]
   in
-  impl ~extra_deps ~packages_v ~connect "Stack" stackv4v6
+  impl ~extra_deps ~packages_v ~connect "Tcpip_stack" stackv4v6
 
 let direct_stackv4v6 p ?(mclock = default_monotonic_clock)
     ?(random = default_random) ?(time = default_time) ?tcp ~ipv4_only ~ipv6_only

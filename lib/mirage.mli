@@ -890,10 +890,10 @@ val paf_server : port:int runtime_arg -> tcpv4v6 impl -> http_server impl
       open Mirage
 
       let port = Runtime_arg.create ~pos:__POS__ "Unikernel.port"
-
       let main = main "Unikernel.Make" (http_server @-> job)
       let stackv4v6 = generic_stackv4v6 default_network
       let http_server = paf_server ~port (tcpv4v6_of_stackv4v6 stackv4v6)
+
       let () =
         register "main"
           ~runtime_args:[ Runtime_arg.v port ]

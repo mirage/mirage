@@ -68,5 +68,5 @@ val block : ?group:string -> unit -> [ `XenstoreId | `BlockFile | `Ramdisk ] key
 val dhcp : ?group:string -> unit -> bool key
 (** Enable dhcp. Is either [true] or [false]. *)
 
-val net : ?group:string -> unit -> [ `Direct | `Socket ] option key
-(** The type of stack. Is either ["direct"] or ["socket"]. *)
+val net : ?group:string -> unit -> [ `OCaml | `Host ] option key
+(** The type of stack. Is either ["ocaml"] or ["host"]. *)

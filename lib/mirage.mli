@@ -620,7 +620,7 @@ val generic_stackv4v6 :
   ?ipv6_config:ipv6_config ->
   ?ipv4_config:ipv4_config ->
   ?dhcp_key:bool value ->
-  ?net_key:[ `Direct | `Socket ] option value ->
+  ?net_key:[ `OCaml | `Host ] option value ->
   ?tcp:tcpv4v6 impl ->
   network impl ->
   stackv4v6 impl

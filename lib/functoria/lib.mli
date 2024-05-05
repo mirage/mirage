@@ -29,6 +29,7 @@ module type S = sig
 
       It should put in scope:
 
+      - a [io] type as an alias to type ['a t]
       - a [run] function of type ['a t -> 'a]
       - a [return] function of type ['a -> 'a t]
       - a [>>=] operator of type ['a t -> ('a -> 'b t) -> 'b t] *)

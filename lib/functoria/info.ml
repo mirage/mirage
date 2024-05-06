@@ -126,7 +126,7 @@ let pp verbose ppf ({ name; keys; context; output; _ } as t) =
 let t =
   let i =
     v ~config_file:(Fpath.v "config.ml") ~packages:[] ~keys:[] ~runtime_args:[]
-      ~build_cmd:"dummy" ~context:Context.empty ~src:`None "dummy"
-      ~project_name:"dummy"
+      ~build_cmd:(fun _ -> "dummy")
+      ~context:Context.empty ~src:`None "dummy" ~project_name:"dummy"
   in
   Type.v i

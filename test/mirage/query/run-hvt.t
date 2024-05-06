@@ -14,7 +14,7 @@ Query opam file
   fetched.
   """
   
-  build: ["sh" "-exc" "mirage build"]
+  build: [make "build"]
   
   install: [
     [ "cp" "dist/noop.hvt" "%{bin}%/noop.hvt" ]

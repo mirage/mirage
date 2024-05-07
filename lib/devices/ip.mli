@@ -41,7 +41,6 @@ val create_ipv4 :
 
 val create_ipv6 :
   ?random:random impl ->
-  ?time:Time.time impl ->
   ?clock:mclock impl ->
   ?group:string ->
   ?config:ipv6_config ->
@@ -53,7 +52,6 @@ val create_ipv6 :
 val ipv4_of_dhcp :
   ?random:random impl ->
   ?clock:mclock impl ->
-  ?time:Time.time impl ->
   network impl ->
   ethernet impl ->
   arpv4 impl ->

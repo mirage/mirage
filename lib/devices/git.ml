@@ -37,7 +37,7 @@ let git_ssh ?authenticator key password =
   in
   let err () = connect_err "git_ssh" 4 ~max:7 in
   let connect _ modname = function
-    | _mclock :: _tcpv4v6 :: _time :: ctx :: rest ->
+    | _mclock :: _tcpv4v6 :: ctx :: _time :: rest ->
         let key, rest = pop ~err (Some key) rest in
         let password, rest = pop ~err (Some password) rest in
         let authenticator = pop_and_check_empty ~err authenticator rest in
@@ -50,8 +50,9 @@ let git_ssh ?authenticator key password =
   let runtime_args =
     runtime_args_opt [ Some key; Some password; authenticator ]
   in
-  impl ~packages ~connect ~runtime_args "Git_mirage_ssh.Make"
-    (mclock @-> tcpv4v6 @-> time @-> mimic @-> git_client)
+  let extra_deps = [ dep default_time ] in
+  impl ~extra_deps ~packages ~connect ~runtime_args "Git_mirage_ssh.Make"
+    (mclock @-> tcpv4v6 @-> mimic @-> git_client)
 
 let git_http ?authenticator headers =
   let packages =

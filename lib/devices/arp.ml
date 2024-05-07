@@ -15,6 +15,7 @@ let arp_conf =
     | [ eth; _time ] -> code ~pos:__POS__ "%s.connect %s" modname eth
     | _ -> connect_err "arp" 2
   in
-  impl ~packages ~connect "Arp.Make" (ethernet @-> time @-> arpv4)
+  let extra_deps = [ dep default_time ] in
+  impl ~extra_deps ~packages ~connect "Arp.Make" (ethernet @-> arpv4)
 
-let arp ?(time = default_time) (eth : ethernet impl) = arp_conf $ eth $ time
+let arp (eth : ethernet impl) = arp_conf $ eth

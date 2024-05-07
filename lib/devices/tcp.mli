@@ -10,7 +10,6 @@ val tcpv4v6 : tcpv4v6 typ
 
 val direct_tcp :
   ?mclock:Mclock.mclock impl ->
-  ?time:Time.time impl ->
   ?random:Random.random impl ->
   'a Ip.ip impl ->
   'a tcp impl

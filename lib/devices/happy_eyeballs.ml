@@ -25,7 +25,7 @@ let generic_happy_eyeballs aaaa_timeout connect_delay connect_timeout
   in
   let err () = connect_err "generic_happy_eyeballs" 3 ~max:4 in
   let connect _info modname = function
-    | _time :: _mclock :: stack :: rest ->
+    | _mclock :: stack :: _time :: rest ->
         let aaaa_timeout, rest = pop ~err aaaa_timeout rest in
         let connect_delay, rest = pop ~err connect_delay rest in
         let connect_timeout, rest = pop ~err connect_timeout rest in
@@ -40,5 +40,6 @@ let generic_happy_eyeballs aaaa_timeout connect_delay connect_timeout
           resolve_retries (pp_opt "timer_interval") timer_interval stack
     | _ -> err ()
   in
-  impl ~runtime_args ~packages ~connect "Happy_eyeballs_mirage.Make"
-    (time @-> mclock @-> stackv4v6 @-> happy_eyeballs)
+  let extra_deps = [ dep default_time ] in
+  impl ~extra_deps ~runtime_args ~packages ~connect "Happy_eyeballs_mirage.Make"
+    (mclock @-> stackv4v6 @-> happy_eyeballs)

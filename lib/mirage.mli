@@ -205,7 +205,7 @@ val default_random : random impl
 (** Default PRNG device to be used in unikernels. It uses getrandom/getentropy
     on Unix, and a Fortuna PRNG on other targets. *)
 
-val rng : ?time:time impl -> ?mclock:mclock impl -> unit -> random impl
+val rng : ?mclock:mclock impl -> unit -> random impl
 (** [rng ()] is the device [Mirage_crypto_rng.Make]. *)
 
 (** {2 Block devices} *)
@@ -471,7 +471,7 @@ type arpv4
 val arpv4 : arpv4 typ
 (** Implementation of the [Arp.S] signature. *)
 
-val arp : ?time:time impl -> ethernet impl -> arpv4 impl
+val arp : ethernet impl -> arpv4 impl
 (** ARP implementation provided by the arp library *)
 
 (** {2 IP configuration}
@@ -535,7 +535,6 @@ val ipv4_qubes :
 
 val create_ipv6 :
   ?random:random impl ->
-  ?time:time impl ->
   ?clock:mclock impl ->
   ?group:string ->
   ?config:ipv6_config ->
@@ -572,11 +571,7 @@ val tcp : 'a tcp typ
 val tcpv4v6 : tcpv4v6 typ
 
 val direct_tcp :
-  ?mclock:mclock impl ->
-  ?time:time impl ->
-  ?random:random impl ->
-  'a ip impl ->
-  'a tcp impl
+  ?mclock:mclock impl -> ?random:random impl -> 'a ip impl -> 'a tcp impl
 
 val socket_tcpv4v6 :
   ?group:string -> Ipaddr.V4.t option -> Ipaddr.V6.t option -> tcpv4v6 impl
@@ -593,7 +588,6 @@ val stackv4v6 : stackv4v6 typ
 val direct_stackv4v6 :
   ?mclock:mclock impl ->
   ?random:random impl ->
-  ?time:time impl ->
   ?tcp:tcpv4v6 impl ->
   ipv4_only:bool runtime_arg ->
   ipv6_only:bool runtime_arg ->
@@ -650,7 +644,6 @@ val resolver : resolver typ
 
 val resolver_dns :
   ?ns:string list ->
-  ?time:time impl ->
   ?mclock:mclock impl ->
   ?pclock:pclock impl ->
   ?random:random impl ->
@@ -680,7 +673,6 @@ val generic_happy_eyeballs :
   ?resolve_timeout:int64 option runtime_arg ->
   ?resolve_retries:int64 option runtime_arg ->
   ?timer_interval:int64 option runtime_arg ->
-  ?time:time impl ->
   ?mclock:mclock impl ->
   stackv4v6 impl ->
   happy_eyeballs impl
@@ -711,7 +703,6 @@ val generic_dns_client :
   ?timeout:int64 option runtime_arg ->
   ?nameservers:string list runtime_arg ->
   ?random:random impl ->
-  ?time:time impl ->
   ?mclock:mclock impl ->
   ?pclock:pclock impl ->
   stackv4v6 impl ->
@@ -1015,7 +1006,6 @@ val git_ssh :
   key:string option runtime_arg ->
   password:string option runtime_arg ->
   ?mclock:mclock impl ->
-  ?time:time impl ->
   tcpv4v6 impl ->
   mimic impl ->
   git_client impl

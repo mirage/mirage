@@ -20,11 +20,11 @@ let generic_dns_client timeout nameservers =
   let err () = connect_err "generic_dns_client" 6 ~max:8 in
   let connect _info modname = function
     | _random
-      :: _time
       :: _mclock
       :: _pclock
       :: stackv4v6
       :: happy_eyeballs
+      :: _time
       :: rest ->
         let nameservers, rest = pop ~err nameservers rest in
         let timeout, rest = pop ~err timeout rest in
@@ -34,9 +34,9 @@ let generic_dns_client timeout nameservers =
           happy_eyeballs
     | _ -> err ()
   in
-  impl ~runtime_args ~packages ~connect "Dns_client_mirage.Make"
+  let extra_deps = [ dep default_time ] in
+  impl ~extra_deps ~runtime_args ~packages ~connect "Dns_client_mirage.Make"
     (random
-    @-> time
     @-> mclock
     @-> pclock
     @-> stackv4v6

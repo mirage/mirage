@@ -192,11 +192,10 @@ type happy_eyeballs = Happy_eyeballs.happy_eyeballs
 let happy_eyeballs = Happy_eyeballs.happy_eyeballs
 
 let generic_happy_eyeballs ?aaaa_timeout ?connect_delay ?connect_timeout
-    ?resolve_timeout ?resolve_retries ?timer_interval ?(time = default_time)
+    ?resolve_timeout ?resolve_retries ?timer_interval
     ?(mclock = default_monotonic_clock) stackv4v6 =
   Happy_eyeballs.generic_happy_eyeballs aaaa_timeout connect_delay
     connect_timeout resolve_timeout resolve_retries timer_interval
-  $ time
   $ mclock
   $ stackv4v6
 
@@ -205,11 +204,10 @@ type dns_client = Dns.dns_client
 let dns_client = Dns.dns_client
 
 let generic_dns_client ?timeout ?nameservers ?(random = default_random)
-    ?(time = default_time) ?(mclock = default_monotonic_clock)
+    ?(mclock = default_monotonic_clock)
     ?(pclock = default_posix_clock) stackv4v6 happy_eyeballs =
   Dns.generic_dns_client timeout nameservers
   $ random
-  $ time
   $ mclock
   $ pclock
   $ stackv4v6
@@ -280,8 +278,8 @@ let merge_git_clients ctx0 ctx1 = Git.git_merge_clients $ ctx0 $ ctx1
 let git_tcp tcpv4v6 ctx = Git.git_tcp $ tcpv4v6 $ ctx
 
 let git_ssh ?authenticator ~key ~password ?(mclock = default_monotonic_clock)
-    ?(time = default_time) tcpv4v6 ctx =
-  Git.git_ssh ?authenticator key password $ mclock $ tcpv4v6 $ time $ ctx
+    tcpv4v6 ctx =
+  Git.git_ssh ?authenticator key password $ mclock $ tcpv4v6 $ ctx
 
 let git_http ?authenticator ?headers ?(pclock = default_posix_clock) tcpv4v6 ctx
     =
@@ -293,18 +291,13 @@ let delay_startup =
   let delay_key = Runtime_arg.delay in
   let runtime_args = [ Runtime_arg.v delay_key ] in
   let packages = [ package ~max:"1.0.0" "duration" ] in
-  let connect i _ = function
-    | [ delay_key ] ->
-        let modname =
-          match Misc.get_target i with
-          | `Unix | `MacOSX -> "Unix_os.Time"
-          | `Xen | `Qubes -> "Xen_os.Time"
-          | `Virtio | `Hvt | `Spt | `Muen | `Genode -> "Solo5_os.Time"
-        in
-        code ~pos:__POS__ "%s.sleep_ns (Duration.of_sec %s)" modname delay_key
-    | _ -> Misc.connect_err "delay_startup" 1
+  let connect _ _ = function
+    | [ delay_key; _time ] ->
+        code ~pos:__POS__ "Mirage_time.sleep_ns (Duration.of_sec %s)" delay_key
+    | _ -> Misc.connect_err "delay_startup" 2
   in
-  impl ~packages ~runtime_args ~connect "Mirage_runtime" delay
+  let extra_deps = [ dep Time.default_time ] in
+  impl ~extra_deps ~packages ~runtime_args ~connect "Mirage_runtime" delay
 
 (** Functoria devices *)
 

@@ -6,10 +6,14 @@ let time = typ TIME
 
 let default_time =
   let unix_time =
-    impl ~packages:[ package ~min:"4.0.0" ~sublibs:["unix"] "mirage-time" ] "Mirage_time" time
+    impl
+      ~packages:[ package ~min:"4.0.0" ~sublibs:[ "unix" ] "mirage-time" ]
+      "Mirage_time" time
   in
   let solo5_time =
-    impl ~packages:[ package ~min:"4.0.0" ~sublibs:["solo5"] "mirage-time" ] "Mirage_time" time
+    impl
+      ~packages:[ package ~min:"4.0.0" ~sublibs:[ "solo5" ] "mirage-time" ]
+      "Mirage_time" time
   in
   match_impl
     Key.(value target)

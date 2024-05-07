@@ -31,7 +31,7 @@ let resolver_dns_conf ~ns =
   let packages = [ Conduit.pkg ] in
   let runtime_args = Runtime_arg.[ v ns ] in
   let connect _ modname = function
-    | [ _r; _t; _m; _p; stack; ns ] ->
+    | [ _r; _m; _p; stack; _time; ns ] ->
         code ~pos:__POS__
           "let nameservers = %s in@;\
            %s.v ?nameservers %s >|= function@;\
@@ -40,10 +40,11 @@ let resolver_dns_conf ~ns =
           ns modname stack
     | _ -> connect_err "resolver" 6
   in
-  impl ~packages ~runtime_args ~connect "Resolver_mirage.Make"
-    (random @-> time @-> mclock @-> pclock @-> stackv4v6 @-> resolver)
+  let extra_deps = [ dep default_time ] in
+  impl ~extra_deps ~packages ~runtime_args ~connect "Resolver_mirage.Make"
+    (random @-> mclock @-> pclock @-> stackv4v6 @-> resolver)
 
-let resolver_dns ?ns ?(time = default_time) ?(mclock = default_monotonic_clock)
+let resolver_dns ?ns ?(mclock = default_monotonic_clock)
     ?(pclock = default_posix_clock) ?(random = default_random) stack =
   let ns = Runtime_arg.resolver ?default:ns () in
-  resolver_dns_conf ~ns $ random $ time $ mclock $ pclock $ stack
+  resolver_dns_conf ~ns $ random $ mclock $ pclock $ stack

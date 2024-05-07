@@ -292,7 +292,7 @@ let delay_startup =
   let runtime_args = [ Runtime_arg.v delay_key ] in
   let packages = [ package ~max:"1.0.0" "duration" ] in
   let connect _ _ = function
-    | [ delay_key; _time ] ->
+    | [ _time; delay_key ] ->
         code ~pos:__POS__ "Mirage_time.sleep_ns (Duration.of_sec %s)" delay_key
     | _ -> Misc.connect_err "delay_startup" 2
   in

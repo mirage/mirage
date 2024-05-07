@@ -55,17 +55,18 @@ let ipv4_dhcp_conf =
     [ package ~min:"1.3.0" ~max:"2.0.0" ~sublibs:[ "mirage" ] "charrua-client" ]
   in
   let connect _ modname = function
-    | [ _random; _mclock; _time; network; ethernet; arp ] ->
+    | [ _random; _mclock; network; ethernet; arp; _time ] ->
         code ~pos:__POS__ "%s.connect@[@ %s@ %s@ %s@]" modname network ethernet
           arp
     | _ -> connect_err "ipv4 dhcp" 6
   in
-  impl ~packages ~connect "Dhcp_ipv4.Make"
-    (random @-> mclock @-> time @-> network @-> ethernet @-> arpv4 @-> ipv4)
+  let extra_deps = [ dep default_time ] in
+  impl ~extra_deps ~packages ~connect "Dhcp_ipv4.Make"
+    (random @-> mclock @-> network @-> ethernet @-> arpv4 @-> ipv4)
 
 let ipv4_of_dhcp ?(random = default_random) ?(clock = default_monotonic_clock)
-    ?(time = default_time) net ethif arp =
-  ipv4_dhcp_conf $ random $ clock $ time $ net $ ethif $ arp
+    net ethif arp =
+  ipv4_dhcp_conf $ random $ clock $ net $ ethif $ arp
 
 let create_ipv4 ?group ?config ?no_init ?(random = default_random)
     ?(clock = default_monotonic_clock) etif arp =
@@ -103,7 +104,7 @@ let ipv6_conf ?ip ?gateway ?handle_ra ?no_init () =
   let runtime_args = runtime_args_opt [ ip; gateway; handle_ra; no_init ] in
   let err () = connect_err "ipv6" 5 ~max:9 in
   let connect _ modname = function
-    | netif :: etif :: _random :: _time :: _clock :: rest ->
+    | netif :: etif :: _random :: _clock :: _time :: rest ->
         let ip, rest = pop ~err ip rest in
         let gateway, rest = pop ~err gateway rest in
         let handle_ra, rest = pop ~err handle_ra rest in
@@ -114,11 +115,12 @@ let ipv6_conf ?ip ?gateway ?handle_ra ?no_init () =
           (pp_opt "cidr") ip (pp_opt "gateway") gateway netif etif
     | _ -> err ()
   in
-  impl ~packages_v ~runtime_args ~connect "Ipv6.Make"
-    (network @-> ethernet @-> random @-> time @-> mclock @-> ipv6)
+  let extra_deps = [ dep default_time ] in
+  impl ~extra_deps ~packages_v ~runtime_args ~connect "Ipv6.Make"
+    (network @-> ethernet @-> random @-> mclock @-> ipv6)
 
-let create_ipv6 ?(random = default_random) ?(time = default_time)
-    ?(clock = default_monotonic_clock) ?group ?config ?no_init netif etif =
+let create_ipv6 ?(random = default_random) ?(clock = default_monotonic_clock)
+    ?group ?config ?no_init netif etif =
   let network, gateway =
     match config with
     | None -> (None, None)
@@ -127,12 +129,7 @@ let create_ipv6 ?(random = default_random) ?(time = default_time)
   let ip = Runtime_arg.V6.network ?group network
   and gateway = Runtime_arg.V6.gateway ?group gateway
   and handle_ra = Runtime_arg.V6.accept_router_advertisements ?group () in
-  ipv6_conf ~ip ~gateway ~handle_ra ?no_init ()
-  $ netif
-  $ etif
-  $ random
-  $ time
-  $ clock
+  ipv6_conf ~ip ~gateway ~handle_ra ?no_init () $ netif $ etif $ random $ clock
 
 let ipv4v6_conf ?ipv4_only ?ipv6_only () =
   let packages_v = right_tcpip_library ~sublibs:[ "stack-direct" ] "tcpip" in

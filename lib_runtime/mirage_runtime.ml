@@ -16,11 +16,12 @@
 
 open Cmdliner
 
-let s_ocaml = "COMMON OCAML RUNTIME OPTIONS"
-let s_log = "LOG AND MONITORING OPTIONS"
-let s_net = "NETWORK OPTIONS"
-let s_disk = "DISK OPTIONS"
+(* Argument sections are sorted in reverse alphabetic order *)
 let s_arg = "UNIKERNEL ARGUMENTS"
+let s_net = "NETWORK OPTIONS"
+let s_log = "LOG AND MONITORING OPTIONS"
+let s_disk = "DISK OPTIONS"
+let s_ocaml = "COMMON OCAML RUNTIME OPTIONS"
 
 type log_threshold = [ `All | `Src of string ] * Logs.level option
 

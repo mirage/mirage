@@ -42,6 +42,22 @@ module Conv : sig
   (** [allocation_policy] converts allocation policy. *)
 end
 
+(** {2 Manpage sections} *)
+val s_arg : string
+(** [s_arg] is suggested to be used for your custom unikernel arguments. *)
+
+val s_net : string
+(** [s_net] is used for network options. *)
+
+val s_disk : string
+(** [s_disk] is used for disk options. *)
+
+val s_log : string
+(** [s_log] is used for logging and monitoring options. *)
+
+val s_ocaml : string
+(** [s_ocaml] is used for OCaml runtime keys. *)
+
 (** {2 OCaml runtime keys}
 
     The OCaml runtime is usually configurable via the [OCAMLRUNPARAM]

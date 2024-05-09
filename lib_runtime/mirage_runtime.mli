@@ -43,9 +43,6 @@ module Conv : sig
 end
 
 (** {2 Manpage sections} *)
-val s_arg : string
-(** [s_arg] is suggested to be used for your custom unikernel arguments. *)
-
 val s_net : string
 (** [s_net] is used for network options. *)
 

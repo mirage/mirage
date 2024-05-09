@@ -16,7 +16,7 @@
 
 open Cmdliner
 
-(* Argument sections are sorted in reverse alphabetic order *)
+(* These argument sections appear in the manpage in reverse alphabetic order -- as ordered here. *)
 let s_arg = "UNIKERNEL ARGUMENTS"
 let s_net = "NETWORK OPTIONS"
 let s_log = "LOG AND MONITORING OPTIONS"

@@ -249,7 +249,12 @@ let run_leave_iter_hooks () = run leave_iter_hooks
 let at_exit f = add f exit_hooks
 let at_leave_iter f = add f leave_iter_hooks
 let at_enter_iter f = add f enter_iter_hooks
-let with_argv = Functoria_runtime.with_argv ~sections:[ Manpage.s_arguments; Manpage.s_options; s_net; s_log; s_disk; s_ocaml ]
+
+let with_argv =
+  Functoria_runtime.with_argv
+    ~sections:
+      [ Manpage.s_arguments; Manpage.s_options; s_net; s_log; s_disk; s_ocaml ]
+
 let runtime_args = Functoria_runtime.runtime_args
 let register = Functoria_runtime.register
 let argument_error = Functoria_runtime.argument_error

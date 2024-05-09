@@ -2,24 +2,22 @@ open Functoria.DSL
 
 let ty = Functoria.argv
 
-let argv_unix =
-  let packages = [ package ~min:"0.1.0" ~max:"0.2.0" "mirage-bootvar-unix" ] in
-  let connect _ _ _ = code ~pos:__POS__ "Bootvar.argv ()" in
-  impl ~packages ~connect "Bootvar" ty
-
-let argv_solo5 =
-  let packages = [ package ~min:"0.6.0" ~max:"0.7.0" "mirage-bootvar-solo5" ] in
-  let connect _ _ _ = code ~pos:__POS__ "Bootvar.argv ()" in
-  impl ~packages ~connect "Bootvar" ty
-
 let no_argv =
   let connect _ _ _ = code ~pos:__POS__ "return [|\"\"|]" in
   impl ~connect "Mirage_runtime" ty
 
-let argv_xen =
-  let packages = [ package ~min:"0.8.0" ~max:"0.9.0" "mirage-bootvar-xen" ] in
-  let connect _ _ _ = code ~pos:__POS__ "Bootvar.argv ()" in
-  impl ~packages ~connect "Bootvar" ty
+let impl sublib =
+  let packages =
+    [
+      package ~min:"1.0.0" ~max:"2.0.0" ~sublibs:[ ""; sublib ] "mirage-bootvar";
+    ]
+  in
+  let connect _ _ _ = code ~pos:__POS__ "return (Mirage_bootvar.argv ())" in
+  impl ~packages ~connect "Mirage_bootvar" ty
+
+let argv_unix = impl "unix"
+let argv_solo5 = impl "solo5"
+let argv_xen = impl "xen"
 
 let default_argv =
   match_impl

@@ -24,7 +24,7 @@ Query opam file
     "duration" { ?monorepo & < "1.0.0" }
     "lwt" { ?monorepo }
     "mirage" { build & >= "4.5.0" & < "4.6.0" }
-    "mirage-bootvar-solo5" { ?monorepo & >= "0.6.0" & < "0.7.0" }
+    "mirage-bootvar" { ?monorepo & >= "1.0.0" & < "2.0.0" }
     "mirage-clock-solo5" { ?monorepo & >= "4.2.0" & < "5.0.0" }
     "mirage-logs" { ?monorepo & >= "2.0.0" & < "3.0.0" }
     "mirage-runtime" { ?monorepo & >= "4.5.0" & < "4.6.0" }
@@ -54,7 +54,7 @@ Query packages
   "duration" { ?monorepo & < "1.0.0" }
   "lwt" { ?monorepo }
   "mirage" { build & >= "4.5.0" & < "4.6.0" }
-  "mirage-bootvar-solo5" { ?monorepo & >= "0.6.0" & < "0.7.0" }
+  "mirage-bootvar" { ?monorepo & >= "1.0.0" & < "2.0.0" }
   "mirage-clock-solo5" { ?monorepo & >= "4.2.0" & < "5.0.0" }
   "mirage-logs" { ?monorepo & >= "2.0.0" & < "3.0.0" }
   "mirage-runtime" { ?monorepo & >= "4.5.0" & < "4.6.0" }
@@ -258,8 +258,8 @@ Query unikernel dune
    (enabled_if (= %{context_name} "solo5"))
    (name main)
    (modes (native exe))
-   (libraries duration lwt mirage-bootvar-solo5 mirage-clock-solo5 mirage-logs
-     mirage-runtime mirage-solo5)
+   (libraries duration lwt mirage-bootvar mirage-bootvar.solo5
+     mirage-clock-solo5 mirage-logs mirage-runtime mirage-solo5)
    (link_flags :standard -w -70 -cclib "-z solo5-abi=hvt")
    (modules (:standard \ config manifest))
    (foreign_stubs (language c) (names manifest))

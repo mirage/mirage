@@ -86,7 +86,8 @@ let v ?(scope = `Monorepo) ?(build = false) ?sublibs ?libs ?min ?max ?pin
   let libs =
     match (sublibs, libs) with
     | None, None -> [ name ]
-    | Some xs, None -> List.map (fun x -> name ^ "." ^ x) xs
+    | Some xs, None ->
+        List.map (fun x -> if x = "" then name else name ^ "." ^ x) xs
     | None, Some a -> a
     | Some _, Some _ ->
         Fmt.invalid_arg

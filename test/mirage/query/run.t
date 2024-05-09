@@ -28,7 +28,7 @@ Query opam file
     "duration" { ?monorepo & < "1.0.0" }
     "lwt" { ?monorepo }
     "mirage" { build & >= "4.5.0" & < "4.6.0" }
-    "mirage-bootvar-unix" { ?monorepo & >= "0.1.0" & < "0.2.0" }
+    "mirage-bootvar" { ?monorepo & >= "1.0.0" & < "2.0.0" }
     "mirage-clock-unix" { ?monorepo & >= "3.0.0" & < "5.0.0" }
     "mirage-logs" { ?monorepo & >= "2.0.0" & < "3.0.0" }
     "mirage-runtime" { ?monorepo & >= "4.5.0" & < "4.6.0" }
@@ -56,7 +56,7 @@ Query packages
   "duration" { ?monorepo & < "1.0.0" }
   "lwt" { ?monorepo }
   "mirage" { build & >= "4.5.0" & < "4.6.0" }
-  "mirage-bootvar-unix" { ?monorepo & >= "0.1.0" & < "0.2.0" }
+  "mirage-bootvar" { ?monorepo & >= "1.0.0" & < "2.0.0" }
   "mirage-clock-unix" { ?monorepo & >= "3.0.0" & < "5.0.0" }
   "mirage-logs" { ?monorepo & >= "2.0.0" & < "3.0.0" }
   "mirage-runtime" { ?monorepo & >= "4.5.0" & < "4.6.0" }
@@ -262,8 +262,8 @@ Query unikernel dune
   
   (executable
    (name main)
-   (libraries duration lwt mirage-bootvar-unix mirage-clock-unix mirage-logs
-     mirage-runtime mirage-unix)
+   (libraries duration lwt mirage-bootvar mirage-bootvar.unix
+     mirage-clock-unix mirage-logs mirage-runtime mirage-unix)
    (link_flags (-thread))
    (modules (:standard \ config))
    (flags :standard -w -70)

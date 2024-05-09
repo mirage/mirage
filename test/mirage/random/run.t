@@ -102,17 +102,17 @@ Configure the project for Unix:
   
   module App_make__12 = App.Make(Mirage_crypto_rng_mirage_make__11)
   
-  let bootvar__1 = lazy (
-  # 7 "lib/devices/argv.ml"
-    Bootvar.argv ()
+  let mirage_bootvar__1 = lazy (
+  # 15 "lib/devices/argv.ml"
+    return (Mirage_bootvar.argv ())
   );;
   # 87 "mirage/main.ml"
   
   let struct_end__2 = lazy (
-    let __bootvar__1 = Lazy.force bootvar__1 in
-    __bootvar__1 >>= fun _bootvar__1 ->
+    let __mirage_bootvar__1 = Lazy.force mirage_bootvar__1 in
+    __mirage_bootvar__1 >>= fun _mirage_bootvar__1 ->
   # 47 "lib/functoria/job.ml"
-    return Mirage_runtime.(with_argv (runtime_args ()) "random" _bootvar__1)
+    return Mirage_runtime.(with_argv (runtime_args ()) "random" _mirage_bootvar__1)
   );;
   # 95 "mirage/main.ml"
   
@@ -354,17 +354,17 @@ Configure the project for Xen:
   
   module App_make__12 = App.Make(Mirage_crypto_rng_mirage_make__11)
   
-  let bootvar__1 = lazy (
-  # 21 "lib/devices/argv.ml"
-    Bootvar.argv ()
+  let mirage_bootvar__1 = lazy (
+  # 15 "lib/devices/argv.ml"
+    return (Mirage_bootvar.argv ())
   );;
   # 87 "mirage/main.ml"
   
   let struct_end__2 = lazy (
-    let __bootvar__1 = Lazy.force bootvar__1 in
-    __bootvar__1 >>= fun _bootvar__1 ->
+    let __mirage_bootvar__1 = Lazy.force mirage_bootvar__1 in
+    __mirage_bootvar__1 >>= fun _mirage_bootvar__1 ->
   # 47 "lib/functoria/job.ml"
-    return Mirage_runtime.(with_argv (runtime_args ()) "random" _bootvar__1)
+    return Mirage_runtime.(with_argv (runtime_args ()) "random" _mirage_bootvar__1)
   );;
   # 95 "mirage/main.ml"
   

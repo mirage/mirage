@@ -16,7 +16,7 @@
 
 open Cmdliner
 
-(* These argument sections appear in the manpage in reverse alphabetic order -- as ordered here. *)
+(* The order of the argument sections in the manpage can be enforced in the call to [with_argv] *)
 let s_arg = "UNIKERNEL ARGUMENTS"
 let s_net = "NETWORK OPTIONS"
 let s_log = "LOG AND MONITORING OPTIONS"
@@ -250,7 +250,7 @@ let run_leave_iter_hooks () = run leave_iter_hooks
 let at_exit f = add f exit_hooks
 let at_leave_iter f = add f leave_iter_hooks
 let at_enter_iter f = add f enter_iter_hooks
-let with_argv = Functoria_runtime.with_argv [ s_arg; s_net; s_log; s_disk; s_ocaml ]
+let with_argv = Functoria_runtime.with_argv ~sections:[ s_arg; s_net; s_log; s_disk; s_ocaml ]
 let runtime_args = Functoria_runtime.runtime_args
 let register = Functoria_runtime.register
 let argument_error = Functoria_runtime.argument_error

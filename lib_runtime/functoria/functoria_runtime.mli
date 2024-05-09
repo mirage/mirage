@@ -41,8 +41,8 @@ val register : 'a Cmdliner.Term.t -> unit -> 'a
 
     [f] will raise [Invalid_argument] if called before cmdliner's evaluation. *)
 
-val with_argv : string list -> unit Cmdliner.Term.t list -> string -> string array -> unit
-(** [with_argv sections keys name argv] evaluates the [keys] {{!Key.term} terms} on the
+val with_argv : ?sections:string list -> unit Cmdliner.Term.t list -> string -> string array -> unit
+(** [with_argv ?sections keys name argv] evaluates the [keys] {{!Key.term} terms} on the
     command-line [argv]. [name] is the executable name. [sections] is a list of
     sections to include in the man page - useful for enforcing a specific order
     of sections. On evaluation error the application calls [exit(3)] with

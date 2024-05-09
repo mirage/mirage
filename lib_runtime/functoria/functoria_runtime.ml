@@ -48,7 +48,7 @@ let initialized = ref false
 let help_version = 63
 let argument_error = 64
 
-let with_argv sections keys s argv =
+let with_argv ?sections keys s argv =
   let open Cmdliner in
   if !initialized then ()
   else
@@ -68,8 +68,8 @@ let with_argv sections keys s argv =
         Cmd.Exit.info ~doc:"on OCaml uncaught exception." 255;
       ]
     in
-    let man = List.map (fun s -> `S s) sections in
-    match Cmd.(eval_value ~argv (Cmd.v (info ~man ~exits s) t)) with
+    let man = Option.map (List.map (fun s -> `S s)) sections in
+    match Cmd.(eval_value ~argv (Cmd.v (info ?man ~exits s) t)) with
     | Ok (`Ok _) ->
         initialized := true;
         ()

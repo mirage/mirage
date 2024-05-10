@@ -72,6 +72,9 @@ let with_argv keys s argv =
     | Ok (`Ok _) ->
         initialized := true;
         ()
-    | Error (`Parse | `Term) -> exit argument_error
+    | Error `Parse -> exit argument_error
+    | Error `Term ->
+      print_endline ("Hint: A space needs to be escaped twice: \027[1m--hello='\"Hello, world!\"'\027[m");
+      exit argument_error
     | Error `Exn -> exit Cmd.Exit.internal_error
     | Ok `Help | Ok `Version -> exit help_version

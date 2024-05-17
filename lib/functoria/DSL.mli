@@ -120,7 +120,17 @@ val package :
   ?pin_version:string ->
   string ->
   package
-(** Same as {!Functoria.Package.val-v} *)
+(** [package ~scope ~build ~sublibs ~libs ~min ~max ~pin opam] is a [package].
+    [Build] indicates a build-time dependency only, defaults to [false]. The
+    library name is by default the same as [opam], you can specify [~sublibs] to
+    add additional sublibraries (e.g. [~sublibs:["mirage"] "foo"] will result in
+    the library names [["foo"; "foo.mirage"]]. In case the library name is
+    disjoint (or empty), use [~libs]. Specifying both [~libs] and [~sublibs]
+    leads to an invalid argument. Version constraints are given as [min]
+    (inclusive) and [max] (exclusive). If [pin] is provided, a
+    {{:https://opam.ocaml.org/doc/Manual.html#opamfield-pin-depends}
+      pin-depends} is generated, [pin_version] is ["dev"] by default. [~scope]
+    specifies the installation location of the package. *)
 
 (** {1:app Application Builder}
 
@@ -177,7 +187,17 @@ val impl :
   string ->
   'a typ ->
   'a impl
-(** [impl ...] is [of_device @@ Device.v ...] *)
+(** [impl ~packages ~packages_v ~install ~install_v ~keys ~runtime_args ~extra_deps ~connect ~dune ~configure ~files module_name module_type]
+    is an implementation of the device constructed by the arguments. [packages]
+    and [packages_v] are the dependencies (where [packages_v] is inside
+    {!Key.value}). [install] and [install_v] are the install instructions (used
+    in the generated opam file), [keys] are the configuration-time keys,
+    [runtime_args] the arguments at runtime, [extra_deps] are a list of extra
+    dependencies (other implementations), [connect] is the code emitted for
+    initializing the device, [dune] are dune stanzas added to the build rule,
+    [configure] are commands executed at the configuration phase, [files] are
+    files to be added to the list of generated files, [module_name] is the name
+    of the device module, and [module_type] is the type of the module. *)
 
 (** {1 Jobs} *)
 

@@ -172,8 +172,8 @@ let reset_pos { dir; path; lines } =
   Some (file, lines + 1, 0, 0)
 
 let configure info t =
-  let* main = main info in
   let f (v : t) =
+    let* main = main info in
     let (D { dev; args; _ }) = v in
     let* () = Device.configure dev info in
     if args = [] then Action.ok ()

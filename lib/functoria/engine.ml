@@ -169,7 +169,7 @@ let pp_pos ppf = function
 
 let reset_pos { dir; path; lines } =
   let file = Fpath.(dir // path) |> Fpath.normalize |> Fpath.to_string in
-  Some (file, lines + 1, 0, 0)
+  Some (file, lines, 0, 0)
 
 let configure info t =
   let f (v : t) =

@@ -168,8 +168,12 @@ let pp_pos ppf = function
   | Some (file, line, _, _) -> Fmt.pf ppf "# %d %S@." line file
 
 let reset_pos { dir; path; lines } =
+  (* lines are 1-based and the line directive is refering to
+     "next line will be Y", so if we put a directive in the first line of a
+     file, it needs to say "# 2 myfile.ml" since the next line will be the
+     second one. This is the reason for the 2 below. *)
   let file = Fpath.(dir // path) |> Fpath.normalize |> Fpath.to_string in
-  Some (file, lines + 1, 0, 0)
+  Some (file, lines + 2, 0, 0)
 
 let configure info t =
   let f (v : t) =

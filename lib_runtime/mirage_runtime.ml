@@ -16,8 +16,11 @@
 
 open Cmdliner
 
-let ocaml_section = "OCAML RUNTIME PARAMETERS"
-let unikernel_section = "UNIKERNEL PARAMETERS"
+(* The order of the argument sections in the manpage can be enforced in the call to [with_argv] *)
+let s_net = "NETWORK OPTIONS"
+let s_log = "LOG AND MONITORING OPTIONS"
+let s_disk = "DISK OPTIONS"
+let s_ocaml = "OCAML RUNTIME OPTIONS"
 
 type log_threshold = [ `All | `Src of string ] * Logs.level option
 
@@ -73,13 +76,13 @@ let backtrace =
     "Trigger the printing of a stack backtrace when an uncaught exception \
      aborts the unikernel."
   in
-  let doc = Arg.info ~docs:ocaml_section ~docv:"BOOL" ~doc [ "backtrace" ] in
+  let doc = Arg.info ~docs:s_ocaml ~docv:"BOOL" ~doc [ "backtrace" ] in
   Arg.(value & opt bool true doc)
 
 let randomize_hashtables =
   let doc = "Turn on randomization of all hash tables by default." in
   let doc =
-    Arg.info ~docs:ocaml_section ~docv:"BOOL" ~doc [ "randomize-hashtables" ]
+    Arg.info ~docs:s_ocaml ~docv:"BOOL" ~doc [ "randomize-hashtables" ]
   in
   Arg.(value & opt bool true doc)
 
@@ -91,14 +94,14 @@ let allocation_policy =
       Conv.allocation_policy_doc_alts
   in
   let doc =
-    Arg.info ~docs:ocaml_section ~docv:"ALLOCATION" ~doc [ "allocation-policy" ]
+    Arg.info ~docs:s_ocaml ~docv:"ALLOCATION" ~doc [ "allocation-policy" ]
   in
   Arg.(value & opt Conv.allocation_policy `Best_fit doc)
 
 let minor_heap_size =
   let doc = "The size of the minor heap (in words). Default: 256k." in
   let doc =
-    Arg.info ~docs:ocaml_section ~docv:"MINOR SIZE" ~doc [ "minor-heap-size" ]
+    Arg.info ~docs:s_ocaml ~docv:"MINOR SIZE" ~doc [ "minor-heap-size" ]
   in
   Arg.(value & opt (some int) None doc)
 
@@ -109,7 +112,7 @@ let major_heap_increment =
      is a fixed number of words. Default: 15."
   in
   let doc =
-    Arg.info ~docs:ocaml_section ~docv:"MAJOR INCREMENT" ~doc
+    Arg.info ~docs:s_ocaml ~docv:"MAJOR INCREMENT" ~doc
       [ "major-heap-increment" ]
   in
   Arg.(value & opt (some int) None doc)
@@ -121,8 +124,7 @@ let space_overhead =
      from this parameter, it will work more if smaller. Default: 80."
   in
   let doc =
-    Arg.info ~docs:ocaml_section ~docv:"SPACE OVERHEAD" ~doc
-      [ "space-overhead" ]
+    Arg.info ~docs:s_ocaml ~docv:"SPACE OVERHEAD" ~doc [ "space-overhead" ]
   in
   Arg.(value & opt (some int) None doc)
 
@@ -133,7 +135,7 @@ let max_space_overhead =
      never triggered. Default: 500."
   in
   let doc =
-    Arg.info ~docs:ocaml_section ~docv:"MAX SPACE OVERHEAD" ~doc
+    Arg.info ~docs:s_ocaml ~docv:"MAX SPACE OVERHEAD" ~doc
       [ "max-space-overhead" ]
   in
   Arg.(value & opt (some int) None doc)
@@ -143,9 +145,7 @@ let gc_verbosity =
     "GC messages on standard error output. Sum of flags. Check GC module \
      documentation for details."
   in
-  let doc =
-    Arg.info ~docs:ocaml_section ~docv:"VERBOSITY" ~doc [ "gc-verbosity" ]
-  in
+  let doc = Arg.info ~docs:s_ocaml ~docv:"VERBOSITY" ~doc [ "gc-verbosity" ] in
   Arg.(value & opt (some int) None doc)
 
 let gc_window_size =
@@ -154,7 +154,7 @@ let gc_window_size =
      in its workload. Between 1 adn 50, default: 1."
   in
   let doc =
-    Arg.info ~docs:ocaml_section ~docv:"WINDOW SIZE" ~doc [ "gc-window-size" ]
+    Arg.info ~docs:s_ocaml ~docv:"WINDOW SIZE" ~doc [ "gc-window-size" ]
   in
   Arg.(value & opt (some int) None doc)
 
@@ -164,7 +164,7 @@ let custom_major_ratio =
      memory held by custom values. Default: 44."
   in
   let doc =
-    Arg.info ~docs:ocaml_section ~docv:"CUSTOM MAJOR RATIO" ~doc
+    Arg.info ~docs:s_ocaml ~docv:"CUSTOM MAJOR RATIO" ~doc
       [ "custom-major-ratio" ]
   in
   Arg.(value & opt (some int) None doc)
@@ -175,7 +175,7 @@ let custom_minor_ratio =
      the minor heap. Default: 100."
   in
   let doc =
-    Arg.info ~docs:ocaml_section ~docv:"CUSTOM MINOR RATIO" ~doc
+    Arg.info ~docs:s_ocaml ~docv:"CUSTOM MINOR RATIO" ~doc
       [ "custom-minor-ratio" ]
   in
   Arg.(value & opt (some int) None doc)
@@ -186,13 +186,13 @@ let custom_minor_max_size =
      the minor heap. Default: 8192 bytes."
   in
   let doc =
-    Arg.info ~docs:ocaml_section ~docv:"CUSTOM MINOR MAX SIZE" ~doc
+    Arg.info ~docs:s_ocaml ~docv:"CUSTOM MINOR MAX SIZE" ~doc
       [ "custom-minor-max-size" ]
   in
   Arg.(value & opt (some int) None doc)
 
 let logs =
-  let docs = unikernel_section in
+  let docs = s_log in
   let logs = Arg.list Conv.log_threshold in
   let doc =
     "Be more or less verbose. $(docv) must be of the form \
@@ -207,7 +207,7 @@ let logs =
 
 let disk =
   let doc =
-    Arg.info ~docs:unikernel_section
+    Arg.info ~docs:s_disk
       ~doc:
         "Name of the docteur disk (for Solo5 targets, the name must contains \
          only alpanumeric characters)."
@@ -217,7 +217,7 @@ let disk =
 
 let analyze =
   let doc =
-    Arg.info ~docs:unikernel_section
+    Arg.info ~docs:s_disk
       ~doc:"Analyze at the boot time the given docteur disk." [ "analyze" ]
   in
   Arg.(value & opt bool true doc)
@@ -226,8 +226,8 @@ let analyze =
 
 let delay =
   let doc =
-    Arg.info ~docs:unikernel_section ~doc:"Delay n seconds before starting up"
-      [ "delay" ]
+    Arg.info ~docs:Cmdliner.Manpage.s_common_options
+      ~doc:"Delay n seconds before starting up" [ "delay" ]
   in
   Arg.(value & opt int 0 doc)
 
@@ -249,7 +249,12 @@ let run_leave_iter_hooks () = run leave_iter_hooks
 let at_exit f = add f exit_hooks
 let at_leave_iter f = add f leave_iter_hooks
 let at_enter_iter f = add f enter_iter_hooks
-let with_argv = Functoria_runtime.with_argv
+
+let with_argv =
+  Functoria_runtime.with_argv
+    ~sections:
+      [ Manpage.s_arguments; Manpage.s_options; s_net; s_log; s_disk; s_ocaml ]
+
 let runtime_args = Functoria_runtime.runtime_args
 let register = Functoria_runtime.register
 let argument_error = Functoria_runtime.argument_error

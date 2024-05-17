@@ -8,4 +8,4 @@
  (name mirage_runtime_network)
  (public_name mirage-runtime.network)
  (modules mirage_runtime_network)
- (libraries mirage-runtime.functoria ipaddr))
+ (libraries mirage-runtime mirage-runtime.functoria ipaddr))

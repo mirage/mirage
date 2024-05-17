@@ -41,11 +41,18 @@ val register : 'a Cmdliner.Term.t -> unit -> 'a
 
     [f] will raise [Invalid_argument] if called before cmdliner's evaluation. *)
 
-val with_argv : unit Cmdliner.Term.t list -> string -> string array -> unit
-(** [with_argv keys name argv] evaluates the [keys] {{!Key.term} terms} on the
-    command-line [argv]. [name] is the executable name. On evaluation error the
-    application calls [exit(3)] with status [64]. If [`Help] or [`Version] were
-    evaluated, [exit(3)] is called with status [63]. *)
+val with_argv :
+  ?sections:string list ->
+  unit Cmdliner.Term.t list ->
+  string ->
+  string array ->
+  unit
+(** [with_argv ?sections keys name argv] evaluates the [keys] {{!Key.term}
+    terms} on the command-line [argv]. [name] is the executable name. [sections]
+    is a list of sections to include in the man page - useful for enforcing a
+    specific order of sections. On evaluation error the application calls
+    [exit(3)] with status [64]. If [`Help] or [`Version] were evaluated,
+    [exit(3)] is called with status [63]. *)
 
 val runtime_args : unit -> unit Cmdliner.Term.t list
 

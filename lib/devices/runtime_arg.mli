@@ -23,11 +23,7 @@ type 'a arg = 'a runtime_arg
 (** The type for command-line arguments that reads a value of type ['a]. *)
 
 val create :
-  pos:string * int * int * int ->
-  ?name:string ->
-  ?packages:package list ->
-  string ->
-  'a arg
+  pos:string * int * int * int -> ?packages:package list -> string -> 'a arg
 
 val v : 'a arg -> Functoria.Runtime_arg.t
 (** [v k] is the [k] with its type hidden. *)

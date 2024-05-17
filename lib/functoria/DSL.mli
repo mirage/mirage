@@ -71,10 +71,12 @@ type 'a runtime_arg = 'a Runtime_arg.arg
 
 val runtime_arg :
   pos:string * int * int * int ->
-  ?name:string ->
   ?packages:Package.t list ->
-  ('a, Format.formatter, unit, Runtime_arg.t) format4 ->
-  'a
+  string ->
+  Runtime_arg.t
+(** [runtime_arg ~pos ?packages v] is the runtime argument pointing to the value
+    [v]. [pos] is expected to be [__POS__]. [packages] specifies in which opam
+    package the value [v] is defined. *)
 
 type abstract_key = Key.t
 (** The type for abstract keys. *)

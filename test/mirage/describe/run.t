@@ -70,9 +70,9 @@ Describe before configure (no eval)
                 53 [label="gc__53\nGc\n", shape="box"];
                 54 [label="hashtbl__54\nHashtbl\n", shape="box"];
                 55 [label="printexc__55\nPrintexc\n", shape="box"];
-                56 [label="bootvar__56\nBootvar\n", shape="box"];
-                57 [label="bootvar__57\nBootvar\n", shape="box"];
-                58 [label="bootvar__58\nBootvar\n", shape="box"];
+                56 [label="mirage_bootvar__56\nMirage_bootvar\n", shape="box"];
+                57 [label="mirage_bootvar__57\nMirage_bootvar\n", shape="box"];
+                58 [label="mirage_bootvar__58\nMirage_bootvar\n", shape="box"];
                 59 [label="If\ntarget"];
                 60 [label="struct_end__60\nstruct end\n", shape="box"];
                 61 [label="mirage_runtime__61\nMirage_runtime\ntarget", shape="box"];

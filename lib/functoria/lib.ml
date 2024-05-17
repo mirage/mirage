@@ -33,7 +33,7 @@ module Config = struct
     configure_cmd : string;
     pre_build_cmd : Fpath.t option -> string;
     lock_location : Fpath.t option -> string -> string;
-    build_cmd : string;
+    build_cmd : Fpath.t option -> string;
     packages : package list Key.value;
     if_keys : Key.Set.t;
     runtime_args : Runtime_arg.Set.t;
@@ -145,7 +145,7 @@ module Make (P : S) = struct
         if m <> "" then Fmt.epr "%a\n%!" Fmt.(styled (`Fg `Red) string) m;
         if not args.Cli.dry_run then exit 1 else Fmt.epr "(exit 1)"
 
-  let get_build_cmd _ =
+  let get_cmds _ =
     let command_line_arguments =
       Sys.argv
       |> Array.to_list
@@ -168,7 +168,10 @@ module Make (P : S) = struct
         Fmt.str {|%amirage/%s.opam.locked|}
           Fmt.(option ~none:(any "") Fpath.pp)
           sub unikernel),
-      Fmt.str {|%s build|} P.name )
+      fun sub ->
+        Fmt.str {|make %a"build"|}
+          Fmt.(option ~none:(any "") (any "\"-C" ++ Fpath.pp ++ any "\" "))
+          sub )
 
   (* STAGE 2 *)
 
@@ -490,7 +493,7 @@ module Make (P : S) = struct
     let config_file = config_file args in
     let run () =
       let configure_cmd, pre_build_cmd, lock_location, build_cmd =
-        get_build_cmd args
+        get_cmds args
       in
       let main_dev = P.create (init @ jobs) in
       let c =

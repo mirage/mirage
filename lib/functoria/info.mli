@@ -75,7 +75,7 @@ val v :
   ?configure_cmd:string ->
   ?pre_build_cmd:(Fpath.t option -> string) ->
   ?lock_location:(Fpath.t option -> string -> string) ->
-  build_cmd:string ->
+  build_cmd:(Fpath.t option -> string) ->
   src:[ `Auto | `None | `Some of string ] ->
   project_name:string ->
   string ->

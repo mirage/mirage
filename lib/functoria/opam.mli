@@ -22,7 +22,7 @@ val v :
   ?configure:string ->
   ?pre_build:(Fpath.t option -> string) ->
   ?lock_location:(Fpath.t option -> string -> string) ->
-  ?build:string ->
+  ?build:(Fpath.t option -> string) ->
   ?install:Install.t ->
   ?extra_repo:(string * string) list ->
   ?depends:Package.t list ->

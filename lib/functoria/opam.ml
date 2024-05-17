@@ -137,7 +137,7 @@ type t = {
   configure : string option;
   pre_build : (Fpath.t option -> string) option;
   lock_location : (Fpath.t option -> string -> string) option;
-  build : string option;
+  build : (Fpath.t option -> string) option;
   install : Install.t;
   extra_repo : (string * string) list;
   pins : (string * string) list;
@@ -192,15 +192,16 @@ let pp_src ppf = function
 let pp_switch_package ppf s = Fmt.pf ppf "%S" s
 
 let pp ppf t =
-  let pp_build = function
+  let pp_cmd = function
     | None -> ""
     | Some cmd ->
         Fmt.str {|"sh" "-exc" "%a%s"|}
           Fmt.(option ~none:(any "") (any "cd " ++ Fpath.pp ++ any " && "))
           t.subdir cmd
   in
-  let pp_pre_build ppf pre_build =
-    match pre_build with None -> () | Some f -> Fmt.string ppf (f t.subdir)
+  let pp_with_sub ppf = function
+    | None -> ()
+    | Some f -> Fmt.string ppf (f t.subdir)
   in
   let pp_repo =
     Fmt.(
@@ -228,7 +229,7 @@ It assumes that local dependencies are already
 fetched.
 """
 
-build: [%s]
+build: [%a]
 
 install: [%a]
 
@@ -244,12 +245,12 @@ x-mirage-extra-repo: [%a]
 
 x-opam-monorepo-opam-provided: [%a]
 %a%a|}
-    t.name (pp_build t.build)
+    t.name pp_with_sub t.build
     (Install.pp_opam ?subdir:t.subdir ())
     t.install pp_packages t.depends
     (Option.fold ~none:""
        ~some:(fun l -> l t.subdir t.opam_name)
        t.lock_location)
-    (pp_build t.configure) pp_pre_build t.pre_build pp_repo t.extra_repo
+    (pp_cmd t.configure) pp_with_sub t.pre_build pp_repo t.extra_repo
     (Fmt.list ~sep:(Fmt.any " ") pp_switch_package)
     switch_packages pp_src t.src pp_pins t.pins

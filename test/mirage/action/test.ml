@@ -14,7 +14,11 @@ let print_banner s =
   print_newline ()
 
 let info context =
-  Info.v ~packages:[] ~keys:[] ~runtime_args:[] ~build_cmd:"mirage build"
+  Info.v ~packages:[] ~keys:[] ~runtime_args:[]
+    ~build_cmd:(fun sub ->
+      Fmt.str "make%a build"
+        Fmt.(option ~none:(any "") (any " " ++ Fpath.pp))
+        sub)
     ~context ~src:`None ~project_name:"test" "NAME"
 
 let test target =

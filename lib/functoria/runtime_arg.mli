@@ -20,11 +20,11 @@ type 'a arg
 (** The type for command-line arguments that reads a value of type ['a]. *)
 
 val create :
-  pos:string * int * int * int ->
-  ?name:string ->
-  ?packages:Package.t list ->
-  string ->
-  'a arg
+  pos:string * int * int * int -> ?packages:Package.t list -> string -> 'a arg
+(** [create ~pos ?packages v] is the runtime argument pointing to the value [v].
+    [pos] is expected to be [__POS__]. [packages] specifies in which opam
+    package the value [v] is defined. This should be constrained to the correct
+    type of the variable it is pointing to. *)
 
 type t
 (** The type command-line arguments where the type of the value is abstract. *)

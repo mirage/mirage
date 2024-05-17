@@ -49,8 +49,8 @@ module Set = struct
   let pp = pp_gen pp_elt
 end
 
-let create ~pos ?name ?(packages = []) code =
-  let name = match name with None -> Name.ocamlify code | Some n -> n in
+let create ~pos ?(packages = []) code =
+  let name = Name.ocamlify code in
   let pos = match pos with file, lnum, _, _ -> (file, lnum) in
   { pos; name; packages; code }
 

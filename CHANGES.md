@@ -1,3 +1,34 @@
+### v4.5.1 (2024-05-17)
+
+- BREAKING: remove `~name` parameter from Mirage.Runtime_args.create
+  (#1541 @samoht, fixes #1532)
+- BREAKING: remove `~name` parameter from Mirage.runtime_arg, and use a
+  string (instead of a format string) as third parameter (#1541 @samoht)
+- constrain the `start` function to `unit Lwt.t`. Previously, there was no
+  restrictions, and lots of time was spent in debugging when a unikernel
+  resulted in `unit Lwt.t Lwt.t` (@Julow #1524)
+- revise man page sections and ordering: ARGUMENTS, OPTIONAL, NETWORK OPTIONS,
+  DISK OPTIONS, LOG AND MONITORING OPTIONS, OCAML RUNTIME OPTIONS. Previously,
+  the ARGUMENTS and OPTIONS were put later, and were hard to find. These are
+  the sections where unikernel-specific arguments are put by default
+  (#1531 @hannesm @reynir)
+- add --net=host and --net=ocaml to reduce confusion. --net=host uses the
+  TCP/IP socket stack, --net=ocaml the OCaml network stack (#1525 @hannesm)
+- quote Runtime_arg.call (#1522 @Julow)
+- documentation fixes (inline examples @Julow #1523, @hannesm #1537 (fixes
+  #1512 reported by @reynir), Runtime_args.create #1541 @samoht)
+- fix the build instructions of the generated opam file: since 4.5.0
+  `mirage build` is no longer available, use `make "build"` (#1527 @hannesm)
+- add RELEASE.md, a guide on how to cut a mirage release (#1519 @samoht)
+- allow git 3.16 (#1536 @hannesm)
+- use mirage-bootvar (using dune variant) instead of parse-argv and
+  mirage-bootvar-xen, mirage-bootvar-solo5, mirage-bootvar-unix
+  (#1533 @hannesm)
+- BUGFIX: reset the lexer location before applying functors in generated code
+  (#1539 @samoht, fixes #1520 @hannesm)
+- BUGFIX: fix off-by-one locations for mirage/main.ml (#1540 @samoht, fixes
+  #1528 @hannesm)
+
 ### v4.5.0 (2024-04-09)
 
 - This release introduces a significant change in the Mirage tool by

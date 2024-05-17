@@ -163,21 +163,6 @@ let append_main main msg fmt =
           Fmt.pf ppf "%s@." str))
     fmt
 
-let configure info t =
-  let* main = main info in
-  let f (v : t) =
-    let (D { dev; args; _ }) = v in
-    let* () = Device.configure dev info in
-    if args = [] then Action.ok ()
-    else
-      append_main main "configure" "module %s = %a\n" (Device.Graph.impl_name v)
-        module_expression (dev, args)
-  in
-  iter_actions f t
-
-let meta_init fmt (connect_name, result_name) =
-  Fmt.pf fmt "  let _%s = Lazy.force %s in@ " result_name connect_name
-
 let pp_pos ppf = function
   | None -> ()
   | Some (file, line, _, _) -> Fmt.pf ppf "# %d %S@." line file
@@ -185,6 +170,22 @@ let pp_pos ppf = function
 let reset_pos { dir; path; lines } =
   let file = Fpath.(dir // path) |> Fpath.normalize |> Fpath.to_string in
   Some (file, lines + 1, 0, 0)
+
+let configure info t =
+  let* main = main info in
+  let f (v : t) =
+    let (D { dev; args; _ }) = v in
+    let* () = Device.configure dev info in
+    if args = [] then Action.ok ()
+    else
+      let* () = append_main main "reset" "%a" pp_pos (reset_pos main) in
+      append_main main "configure" "module %s = %a\n" (Device.Graph.impl_name v)
+        module_expression (dev, args)
+  in
+  iter_actions f t
+
+let meta_init fmt (connect_name, result_name) =
+  Fmt.pf fmt "  let _%s = Lazy.force %s in@ " result_name connect_name
 
 let emit_connect fmt (iname, names, runtime_args, connect_code) =
   (* We avoid potential collision between double application

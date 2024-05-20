@@ -659,44 +659,6 @@ val resolver_dns :
 
 val resolver_unix_system : resolver impl
 
-(** {2 DNS client} *)
-
-(** A DNS client is a module which implements:
-
-    - [getaddrinfo] to request a [query_type]-dependent response to a nameserver
-      regarding a domain-name such as the [MX] record.
-    - [gethostbyname] to request the [A] regarding a domain-name
-    - [gethostbyname6] to request the [AAAA] record regarding a domain-name *)
-
-type dns_client
-
-val dns_client : dns_client typ
-
-val generic_dns_client :
-  ?timeout:int64 option runtime_arg ->
-  ?nameservers:string list runtime_arg ->
-  ?random:random impl ->
-  ?time:time impl ->
-  ?mclock:mclock impl ->
-  ?pclock:pclock impl ->
-  stackv4v6 impl ->
-  dns_client impl
-(** [generic_dns_client stackv4v6] creates a new DNS value which is able to
-    resolve domain-name from [nameservers]. It requires a network stack to
-    communicate with these nameservers.
-
-    The [nameservers] argument is a list of strings. The format of them is:
-
-    - [udp:ipaddr(:port)?] if you want to communicate with a DNS resolver
-      {i via} UDP
-    - [tcp:ipaddr(:port)?] if you want to communicate with a DNS resolver
-      {i via} TCP/IP
-    - [tls:ipaddr(:port)?(!<authenticator>)] if you to communicate with a DNS
-      resolver {i via} TLS. You are able to introduce an [<authenticator>]
-      (please, follow the documentation about [X509.Authenticator.of_string] to
-      get an explanation of its format). Otherwise, by default, we use trust
-      anchors from NSS' [certdata.txt]. *)
-
 (** {2 Happy-eyeballs} *)
 
 (** Happy-eyeballs is an implementation of RFC 8305 which specifies how to
@@ -721,15 +683,55 @@ val generic_happy_eyeballs :
   ?time:time impl ->
   ?mclock:mclock impl ->
   stackv4v6 impl ->
-  dns_client impl ->
   happy_eyeballs impl
-(** [generic_happy_eyeballs stackv4v6 dns_client] creates a new happy-eyeballs
-    value which is able to resolve and connect to a remote host and allocate
-    finally a connected {i flow} from the given network implementation
-    [stackv4v6].
+(** [generic_happy_eyeballs stackv4v6] creates a new happy-eyeballs value which
+    is able to connect to a remote host and allocate finally a connected
+    {i flow} from the given network implementation [stackv4v6]. However, if you
+    want to resolve (DNS resolution) & connect to a remote host, you must
+    complete your unikernel with a {!val:generic_dns_client} which upgrade the
+    happy-eyeballs stack with a DNS resolution stack.
 
     This device has several optional arguments of keys for timeouts specified in
     nanoseconds. *)
+
+(** {2 DNS client} *)
+
+(** A DNS client is a module which implements:
+
+    - [getaddrinfo] to request a [query_type]-dependent response to a nameserver
+      regarding a domain-name such as the [MX] record.
+    - [gethostbyname] to request the [A] regarding a domain-name
+    - [gethostbyname6] to request the [AAAA] record regarding a domain-name *)
+
+type dns_client
+
+val dns_client : dns_client typ
+
+val generic_dns_client :
+  ?timeout:int64 option runtime_arg ->
+  ?nameservers:string list runtime_arg ->
+  ?random:random impl ->
+  ?time:time impl ->
+  ?mclock:mclock impl ->
+  ?pclock:pclock impl ->
+  stackv4v6 impl ->
+  happy_eyeballs impl ->
+  dns_client impl
+(** [generic_dns_client stackv4v6 happy_eyeballs] creates a new DNS value which
+    is able to resolve domain-name from [nameservers]. It requires a network
+    and happy-eyeballs stack to communicate with these nameservers.
+
+    The [nameservers] argument is a list of strings. The format of them is:
+
+    - [udp:ipaddr(:port)?] if you want to communicate with a DNS resolver
+      {i via} UDP
+    - [tcp:ipaddr(:port)?] if you want to communicate with a DNS resolver
+      {i via} TCP/IP
+    - [tls:ipaddr(:port)?(!<authenticator>)] if you to communicate with a DNS
+      resolver {i via} TLS. You are able to introduce an [<authenticator>]
+      (please, follow the documentation about [X509.Authenticator.of_string] to
+      get an explanation of its format). Otherwise, by default, we use trust
+      anchors from NSS' [certdata.txt]. *)
 
 (** {2 Syslog configuration} *)
 

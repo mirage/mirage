@@ -14,6 +14,5 @@ val generic_happy_eyeballs :
   (Time.time ->
   Mclock.mclock ->
   Stack.stackv4v6 ->
-  Dns.dns_client ->
   happy_eyeballs)
   impl

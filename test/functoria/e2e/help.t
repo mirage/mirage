@@ -108,7 +108,7 @@ Test that the help command works without config file:
          125 on unexpected internal errors (bugs).
   
   ENVIRONMENT
-         These environment variables affect the execution of help:
+         These environment variables affect the execution of test help:
   
          MIRAGE_EXTRA_REPOS
              See option --extra-repos.

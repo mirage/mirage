@@ -81,7 +81,7 @@ Help configure -o --man-format=plain
          125 on unexpected internal errors (bugs).
   
   ENVIRONMENT
-         These environment variables affect the execution of configure:
+         These environment variables affect the execution of mirage configure:
   
          MIRAGE_EXTRA_REPOS
              See option --extra-repos.
@@ -174,7 +174,7 @@ Help configure -o --help=plain
          125 on unexpected internal errors (bugs).
   
   ENVIRONMENT
-         These environment variables affect the execution of configure:
+         These environment variables affect the execution of mirage configure:
   
          MIRAGE_EXTRA_REPOS
              See option --extra-repos.

@@ -22,6 +22,7 @@ depends: [
   "dune" {>= "2.9.0"}
   "astring"
   "cmdliner" {>= "1.2.0"}
+  "cmdliner" {with-test & >= "1.3.0"}
   "emile" {>= "1.1"}
   "fmt" {>= "0.8.7"}
   "ipaddr" {>= "5.0.0"}

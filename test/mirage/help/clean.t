@@ -65,7 +65,7 @@ Help clean --man-format=plain
          125 on unexpected internal errors (bugs).
   
   ENVIRONMENT
-         These environment variables affect the execution of clean:
+         These environment variables affect the execution of mirage clean:
   
          MODE
              See option --target.
@@ -139,7 +139,7 @@ Help clean --help=plain
          125 on unexpected internal errors (bugs).
   
   ENVIRONMENT
-         These environment variables affect the execution of clean:
+         These environment variables affect the execution of mirage clean:
   
          MODE
              See option --target.

@@ -87,7 +87,7 @@ Help query --man-format=plain
          125 on unexpected internal errors (bugs).
   
   ENVIRONMENT
-         These environment variables affect the execution of query:
+         These environment variables affect the execution of mirage query:
   
          MIRAGE_EXTRA_REPOS
              See option --extra-repos.
@@ -186,7 +186,7 @@ Help query --help=plain
          125 on unexpected internal errors (bugs).
   
   ENVIRONMENT
-         These environment variables affect the execution of query:
+         These environment variables affect the execution of mirage query:
   
          MIRAGE_EXTRA_REPOS
              See option --extra-repos.

@@ -96,7 +96,7 @@ Help describe --man-format=plain
          125 on unexpected internal errors (bugs).
   
   ENVIRONMENT
-         These environment variables affect the execution of describe:
+         These environment variables affect the execution of mirage describe:
   
          MODE
              See option --target.
@@ -201,7 +201,7 @@ Help describe --help=plain
          125 on unexpected internal errors (bugs).
   
   ENVIRONMENT
-         These environment variables affect the execution of describe:
+         These environment variables affect the execution of mirage describe:
   
          MODE
              See option --target.

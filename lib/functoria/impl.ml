@@ -42,12 +42,15 @@ and 'a device = ('a, abstract) Device.t
 
 let abstract t = Abstract t
 
-let rec app_has_no_arguments = function
-  | App { args = Cons _; _ } | Dev { args = Cons _; _ } -> false
-  | Dev { dev; _ } when String.equal (Device.module_name dev) "Unit" ->
+let rec app_has_no_arguments : type a. a t -> bool = function
+  | App { f = _; args = Cons _ } -> false
+  | App { f; args = Nil } -> app_has_no_arguments f
+  | Dev { args = Nil; deps = []; dev } ->
       (* special hack for Job.noop *)
-      false
-  | App _ | Dev _ -> true
+      if not (String.equal (Device.module_name dev) "Unit") then
+        match Device.runtime_args dev with [] -> true | _ -> false
+      else false
+  | Dev _ -> false
   | If { cond = _; branches; default } ->
       app_has_no_arguments default
       || List.exists (fun (_, branch) -> app_has_no_arguments branch) branches

@@ -458,6 +458,11 @@ val ethernet : ethernet typ
 (** Implementations of the [Ethernet.S] signature. *)
 
 val etif : network impl -> ethernet impl
+[@@ocaml.deprecated "Deprecated. Use [ethif] instead."]
+(** [etif net] is the ethernet layer on [net]. *)
+
+val ethif : network impl -> ethernet impl
+(** [ethif net] is the ethernet layer on [net]. *)
 
 (** {2 ARP configuration} *)
 

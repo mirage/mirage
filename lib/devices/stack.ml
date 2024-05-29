@@ -65,7 +65,7 @@ let static_ipv4v6_stack ?group ?ipv6_config ?ipv4_config ?(arp = arp ?time:None)
     ?tcp tap =
   let ipv4_only = Runtime_arg.ipv4_only ?group ()
   and ipv6_only = Runtime_arg.ipv6_only ?group () in
-  let e = etif tap in
+  let e = ethif tap in
   let a = arp e in
   let i4 = create_ipv4 ?group ?config:ipv4_config ~no_init:ipv6_only e a in
   let i6 = create_ipv6 ?group ?config:ipv6_config ~no_init:ipv4_only tap e in
@@ -75,7 +75,7 @@ let generic_ipv4v6_stack p ?group ?ipv6_config ?ipv4_config
     ?(arp = arp ?time:None) ?tcp tap =
   let ipv4_only = Runtime_arg.ipv4_only ?group ()
   and ipv6_only = Runtime_arg.ipv6_only ?group () in
-  let e = etif tap in
+  let e = ethif tap in
   let a = arp e in
   let i4 =
     match_impl p

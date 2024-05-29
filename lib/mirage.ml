@@ -99,7 +99,8 @@ let default_network = Network.default_network
 type ethernet = Ethernet.ethernet
 
 let ethernet = Ethernet.ethernet
-let etif = Ethernet.etif
+let etif = Ethernet.ethif
+let ethif = Ethernet.ethif
 
 type arpv4 = Arp.arpv4
 

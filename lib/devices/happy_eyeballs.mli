@@ -11,8 +11,4 @@ val generic_happy_eyeballs :
   int64 option runtime_arg option ->
   int64 option runtime_arg option ->
   int64 option runtime_arg option ->
-  (Time.time ->
-  Mclock.mclock ->
-  Stack.stackv4v6 ->
-  happy_eyeballs)
-  impl
+  (Time.time -> Mclock.mclock -> Stack.stackv4v6 -> happy_eyeballs) impl

@@ -718,8 +718,8 @@ val generic_dns_client :
   happy_eyeballs impl ->
   dns_client impl
 (** [generic_dns_client stackv4v6 happy_eyeballs] creates a new DNS value which
-    is able to resolve domain-name from [nameservers]. It requires a network
-    and happy-eyeballs stack to communicate with these nameservers.
+    is able to resolve domain-name from [nameservers]. It requires a network and
+    happy-eyeballs stack to communicate with these nameservers.
 
     The [nameservers] argument is a list of strings. The format of them is:
 

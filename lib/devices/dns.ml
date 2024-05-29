@@ -29,9 +29,10 @@ let generic_dns_client timeout nameservers =
         let nameservers, rest = pop ~err nameservers rest in
         let timeout, rest = pop ~err timeout rest in
         let () = match rest with [] -> () | _ -> err () in
-        code ~pos:__POS__ {ocaml|%s.connect @[%a%a@ %s %s@]|ocaml} modname
-          pp_nameservers nameservers (pp_opt "timeout") timeout stackv4v6
-          happy_eyeballs
+        code ~pos:__POS__
+          {ocaml|%s.connect @[%a%a@ ~happy_eyeballs:%s %s@]|ocaml} modname
+          pp_nameservers nameservers (pp_opt "timeout") timeout happy_eyeballs
+          stackv4v6
     | _ -> err ()
   in
   impl ~runtime_args ~packages ~connect "Dns_client_mirage.Make"

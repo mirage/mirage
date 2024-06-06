@@ -164,7 +164,7 @@ let socket_stackv4v6 = Stack.socket_stackv4v6
 let tcpv4v6_of_stackv4v6 v =
   let impl =
     let packages =
-      [ package "tcpip" ~sublibs:[ "stack-direct" ] ~min:"7.1.0" ]
+      [ package "tcpip" ~sublibs:[ "stack-direct" ] ~min:"8.1.0" ]
     in
     let connect _ modname = function
       | [ stackv4v6 ] ->

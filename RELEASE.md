@@ -4,6 +4,10 @@ This document aims to streamline the release process for
 MirageOS. It's a living document, evolving with each
 release. Contributions to enhance this guide are highly encouraged!
 
+Since opam and CI systems use the latest version number released to
+opam-repository, there's some caution needed and there'll be CI runs that are
+not successful (since the CI doesn't yet know about your new version number).
+
 ## Before the release
 
 - Check that `let min = "xxx" and max = "yyy" in` `lib/mirage.ml`
@@ -12,6 +16,18 @@ release. Contributions to enhance this guide are highly encouraged!
   Pull Request (PR) with these changes to begin the release process.
 
 and open a PR
+
+### Version bounds
+
+Mirage generates OCaml code, including device initialization code (usually
+named "connect"). To avoid breakage of configured unikernels, package
+dependencies are generated as well, with lower and upper bounds.
+
+These bounds need to change:
+- if there's a new release of a package (and the "connect" function didn't
+  change), adjust the upper bound only,
+- the code generation in mirage targets a new release of the package, adjust the
+  lower bound and the upper bound.
 
 ### Release `mirage` and `mirage-runtime` to opam-repository
 
@@ -28,6 +44,11 @@ and open a PR
   reflect the latest, stable changes.
 - When complete, force-push dev to become the new main, solidifying
   these updates.
+- If there are breaking changes, and mirage-skeleton unikernels needed
+  adjustments, also adjust the first line in config.ml to reflect that:
+  `(* mirage >= planned_release & < planned_release+1 *)`
+- If there are no breaking changes, ensure that mirage-skeleton unikernels
+  have a good upper bound `(* mirage < planned_release+1 *)`
 
 ### Update `mirage-www`
 

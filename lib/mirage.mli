@@ -942,11 +942,12 @@ val paf_client :
 
       let main = main "Unikernel.Make" (alpn_client @-> job)
       let stackv4v6 = generic_stackv4v6 default_network
-      let dns = generic_dns_client stack
+      let he = generic_happy_eyeballs stack
+      let dns = generic_dns_client stack he
 
       let alpn_client =
         let dns =
-          mimic_happy_eyeballs stackv4v6 dns (generic_happy_eyeballs stack dns)
+          mimic_happy_eyeballs stackv4v6 dns he
         in
         paf_client (tcpv4v6_of_stackv4v6 stackv4v6) dns
 

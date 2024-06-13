@@ -12,7 +12,7 @@ type dns_client = Dns_client
 let dns_client = typ Dns_client
 
 let generic_dns_client timeout nameservers =
-  let packages = [ package "dns-client-mirage" ~min:"7.0.0" ~max:"8.0.0" ] in
+  let packages = [ package "dns-client-mirage" ~min:"8.0.0" ~max:"9.0.0" ] in
   let runtime_args = runtime_args_opt [ nameservers; timeout ] in
   let pp_nameservers ppf s =
     pp_label "nameservers" ppf (match s with None -> Some "[]" | _ -> s)
@@ -30,9 +30,9 @@ let generic_dns_client timeout nameservers =
         let timeout, rest = pop ~err timeout rest in
         let () = match rest with [] -> () | _ -> err () in
         code ~pos:__POS__
-          {ocaml|%s.connect @[%a%a@ ~happy_eyeballs:%s %s@]|ocaml} modname
-          pp_nameservers nameservers (pp_opt "timeout") timeout happy_eyeballs
-          stackv4v6
+          {ocaml|%s.connect @[%a%a@ (%s, %s)@]|ocaml} modname
+          pp_nameservers nameservers (pp_opt "timeout") timeout
+          stackv4v6 happy_eyeballs
     | _ -> err ()
   in
   impl ~runtime_args ~packages ~connect "Dns_client_mirage.Make"

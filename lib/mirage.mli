@@ -805,17 +805,14 @@ type mimic
 
 val mimic : mimic typ
 
-val mimic_happy_eyeballs :
-  stackv4v6 impl -> dns_client impl -> happy_eyeballs impl -> mimic impl
-(** [mimic_happy_eyeballs stackv4v6 dns happy_eyeballs] creates a device which
+val mimic_happy_eyeballs : stackv4v6 impl -> happy_eyeballs impl -> mimic impl
+(** [mimic_happy_eyeballs stackv4v6 happy_eyeballs] creates a device which
     initiate a global {i happy-eyeballs} loop. By this way, an underlying
     instance works to initiate a TCP/IP connection from an IP address or a
     domain-name.
 
     For the domain-name resolution, we ask the {i happy-eyeballs} instance to
-    resolve the given domain-name {i via} the DNS instance created by [dns]
-    (which includes several arguments like nameservers used - see
-    {!val:generic_dns_client} for more informations).
+    resolve the given domain-name {i via} its DNS instance.
 
     The resulting {i device} can be used {b and} re-used to for any {i clients}
     which need to initiate a connection (like {!val:alpn_client} or
@@ -946,10 +943,8 @@ val paf_client :
       let dns = generic_dns_client stack he
 
       let alpn_client =
-        let dns =
-          mimic_happy_eyeballs stackv4v6 dns he
-        in
-        paf_client (tcpv4v6_of_stackv4v6 stackv4v6) dns
+        let mimic = mimic_happy_eyeballs stackv4v6 he in
+        paf_client (tcpv4v6_of_stackv4v6 stackv4v6) mimic
 
       let () = register "main" [ main $ alpn_client ]
     ]} *)
@@ -989,14 +984,15 @@ val no_argv : argv impl
     can be implemented like:
 
     {[
-      let dns = generic_dns_client stack
+      let he = generic_happy_eyeballs stack
+      let dns = generic_dns_client stack he
 
       let git_client =
-        let dns =
-          mimic_happy_eyeballs stackv4v6 dns (generic_happy_eyeballs stack dns)
+        let mimic = mimic_happy_eyeballs stackv4v6 he in
+        let ssh =
+          git_ssh ~key ~password (tcpv4v6_of_stackv4v6 stackv4v6) mimic
         in
-        let ssh = git_ssh ~key ~password (tcpv4v6_of_stackv4v6 stackv4v6) dns in
-        let tcp = git_tcp (tcpv4v6_of_stackv4v6 stackv4v6) dns in
+        let tcp = git_tcp (tcpv4v6_of_stackv4v6 stackv4v6) mimic in
         merge_git_clients ssh tcp
     ]} *)
 

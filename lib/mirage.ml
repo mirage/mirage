@@ -269,8 +269,8 @@ type mimic = Mimic.mimic
 
 let mimic = Mimic.mimic
 
-let mimic_happy_eyeballs stackv4v6 dns happy_eyeballs =
-  Mimic.mimic_happy_eyeballs $ stackv4v6 $ dns $ happy_eyeballs
+let mimic_happy_eyeballs stackv4v6 happy_eyeballs dns =
+  Mimic.mimic_happy_eyeballs $ stackv4v6 $ happy_eyeballs $ dns
 
 type git_client = Git.git_client
 

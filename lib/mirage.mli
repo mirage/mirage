@@ -806,8 +806,8 @@ type mimic
 val mimic : mimic typ
 
 val mimic_happy_eyeballs :
-  stackv4v6 impl -> dns_client impl -> happy_eyeballs impl -> mimic impl
-(** [mimic_happy_eyeballs stackv4v6 dns_client happy_eyeballs] creates a device
+  stackv4v6 impl -> happy_eyeballs impl -> dns_client impl -> mimic impl
+(** [mimic_happy_eyeballs stackv4v6 happy_eyeballs dns_client] creates a device
     which initiate a global {i happy-eyeballs} loop. By this way, an underlying
     instance works to initiate a TCP/IP connection from an IP address or a
     domain-name.
@@ -944,7 +944,7 @@ val paf_client :
       let dns = generic_dns_client stack he
 
       let alpn_client =
-        let mimic = mimic_happy_eyeballs stackv4v6 dns he in
+        let mimic = mimic_happy_eyeballs stackv4v6 he dns in
         paf_client (tcpv4v6_of_stackv4v6 stackv4v6) mimic
 
       let () = register "main" [ main $ alpn_client ]
@@ -989,7 +989,7 @@ val no_argv : argv impl
       let dns = generic_dns_client stack he
 
       let git_client =
-        let mimic = mimic_happy_eyeballs stackv4v6 dns he in
+        let mimic = mimic_happy_eyeballs stackv4v6 he dns in
         let ssh =
           git_ssh ~key ~password (tcpv4v6_of_stackv4v6 stackv4v6) mimic
         in

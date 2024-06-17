@@ -9,7 +9,7 @@
 <div align="center">
 <br />
 
-[![OCaml-CI Build Status](https://img.shields.io/endpoint?url=https%3A%2F%2Fci.ocamllabs.io%2Fbadge%2Fmirage%2Fmirage%2Fmain&logo=ocaml&style=flat-square)](https://ci.ocamllabs.io/github/mirage/mirage)
+[![OCaml-CI Build Status](https://img.shields.io/endpoint?url=https%3A%2F%2Focaml.ci.dev%2Fbadge%2Fmirage%2Fmirage%2Fmain&logo=ocaml&style=flat-square)](https://ocaml.ci.dev/github/mirage/mirage)
 [![docs](https://img.shields.io/badge/doc-online-blue.svg)](https://mirage.github.io/mirage/)
 
 </div>

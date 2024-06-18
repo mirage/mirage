@@ -13,7 +13,16 @@ let generic_happy_eyeballs aaaa_timeout connect_delay connect_timeout
   let packages =
     [ package "happy-eyeballs-mirage" ~min:"1.1.0" ~max:"1.2.0" ]
   in
-  let runtime_args = runtime_args_opt [ timer_interval ] in
+  let runtime_args =
+    runtime_args_opt
+      [
+        aaaa_timeout;
+        connect_delay;
+        resolve_timeout;
+        resolve_retries;
+        timer_interval;
+      ]
+  in
   let err () = connect_err "generic_happy_eyeballs" 3 ~max:4 in
   let connect _info modname = function
     | _time :: _mclock :: stack :: rest ->

@@ -1,3 +1,24 @@
+### v4.6.0 (2024-06-26)
+
+- BREAKING adapt to happy-eyeballs and dns-client devices where dependencies
+  got reversed (#1543 @dinosaure @hannesm)
+
+  Adapting unikernels requires to notice that the generic_dns_client now
+  takes a happy_eyeballs, and happy_eyeballs does no longer take a dns_client:
+
+  -let dns_client = generic_dns_client ~nameservers stackv4v6
+  -let happy_eyeballs = generic_happy_eyeballs stackv4v6 dns_client
+  +let happy_eyeballs = generic_happy_eyeballs stackv4v6
+  +let dns_client = generic_dns_client ~nameservers stackv4v6 happy_eyeballs
+
+- allow mirage-qubes 0.10 series (#1548 @dinosaure)
+- revise "job without arguments" to take runtime arguments into consideration
+  (#1544 @hannesm)
+- provide Mirage.ethif (alias to Mirage.etif - which is now deprecated)
+  (#1546 @reynir @hannesm)
+- update tests for cmdliner 1.3.0 (#1545 @hannesm)
+- allow paf 0.6.0 (#1542 @hannesm)
+
 ### v4.5.1 (2024-05-17)
 
 - BREAKING: remove `~name` parameter from Mirage.Runtime_args.create

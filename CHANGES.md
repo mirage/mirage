@@ -1,3 +1,9 @@
+### Unreleased
+
+- BREAKING re-introduce `?deps` argument into `Mirage.main` function to be
+  able to track how to compile some artifacts for an unikernel without emitting
+  modules/functors used by these artifacts (#1555, @dinosaure)
+
 ### v4.6.0 (2024-06-26)
 
 - BREAKING adapt to happy-eyeballs and dns-client devices where dependencies

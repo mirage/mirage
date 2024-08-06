@@ -106,7 +106,7 @@ let generic_block ?group ?(key = Key.(value @@ block ?group ())) name =
     ~default:(ramdisk name)
 
 let tar_kv_ro_conf =
-  let packages = [ package ~min:"1.0.0" ~max:"3.0.0" "tar-mirage" ] in
+  let packages = [ package ~min:"1.0.0" ~max:"4.0.0" "tar-mirage" ] in
   let connect _ modname = function
     | [ block ] -> code ~pos:__POS__ "%s.connect %s" modname block
     | _ -> connect_err "tar_kv_ro" 1
@@ -114,7 +114,7 @@ let tar_kv_ro_conf =
   impl ~packages ~connect "Tar_mirage.Make_KV_RO" (block @-> Kv.ro)
 
 let tar_kv_rw_conf =
-  let packages = [ package ~min:"2.2.0" ~max:"3.0.0" "tar-mirage" ] in
+  let packages = [ package ~min:"2.2.0" ~max:"4.0.0" "tar-mirage" ] in
   let connect _ modname = function
     | [ _pclock; block ] -> code ~pos:__POS__ "%s.connect %s" modname block
     | _ -> connect_err "tar_kv_rw" 2

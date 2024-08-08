@@ -1,8 +1,10 @@
-### Unreleased
+### v4.6.1 (2024-08-08)
 
 - BREAKING re-introduce `?deps` argument into `Mirage.main` function to be
   able to track how to compile some artifacts for an unikernel without emitting
-  modules/functors used by these artifacts (#1555, @dinosaure)
+  modules/functors used by these artifacts (#1555, @dinosaure) - this was
+  removed in mirage 4.5.0, and is back now
+- Allow tar 3.0.0 (#1557, @hannesm)
 
 ### v4.6.0 (2024-06-26)
 
@@ -152,7 +154,7 @@
   respectives libraries became `mirage.functoria` and `mirage-runtime.functoria`
   (#1509, @samoht)
 - BREAKING: `Mirage.keys` is renamed to `Mirage.runtime_args` (#1506, @samoht)
-- BREAKING: remove `Mirage.foreign. Use `Mirage.main` instead (#1505, @samoht)
+- BREAKING: remove `Mirage.foreign`. Use `Mirage.main` instead (#1505, @samoht)
 - BREAKING: `Mirage.main` does not take a `?extra_deps` parameter anymore
   (#1505, @samoht)
 - BREAKING: the `Mirage.connect` functions passed to create devices

@@ -12,7 +12,7 @@ type dns_client = Dns_client
 let dns_client = typ Dns_client
 
 let generic_dns_client timeout nameservers =
-  let packages = [ package "dns-client-mirage" ~min:"8.0.0" ~max:"9.0.0" ] in
+  let packages = [ package "dns-client-mirage" ~min:"9.0.0" ~max:"10.0.0" ] in
   let runtime_args = runtime_args_opt [ nameservers; timeout ] in
   let pp_nameservers ppf s =
     pp_label "nameservers" ppf (match s with None -> Some "[]" | _ -> s)

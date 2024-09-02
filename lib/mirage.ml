@@ -163,15 +163,16 @@ let socket_stackv4v6 = Stack.socket_stackv4v6
 
 let tcpv4v6_of_stackv4v6 v =
   let impl =
-    let packages =
-      [ package "tcpip" ~sublibs:[ "stack-direct" ] ~min:"7.1.0" ~max:"9.0.0" ]
+    let packages_v =
+      Ip.right_tcpip_library ~sublibs:[ "stack-direct" ] "tcpip"
     in
     let connect _ modname = function
       | [ stackv4v6 ] ->
           code ~pos:__POS__ {ocaml|%s.connect %s|ocaml} modname stackv4v6
       | _ -> Misc.connect_err "tcpv4v6_of_stackv4v6" 1
     in
-    impl ~packages ~connect "Tcpip_stack_direct.TCPV4V6" (stackv4v6 @-> tcpv4v6)
+    impl ~packages_v ~connect "Tcpip_stack_direct.TCPV4V6"
+      (stackv4v6 @-> tcpv4v6)
   in
   impl $ v
 

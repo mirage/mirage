@@ -29,7 +29,7 @@ type ipv4_config = {
 
 (* convenience function for linking tcpip.unix for checksums *)
 let right_tcpip_library ?libs ~sublibs pkg =
-  let min = "7.0.0" and max = "9.0.0" in
+  let min = "8.2.0" and max = "9.0.0" in
   Key.pure [ package ~min ~max ?libs ~sublibs pkg ]
 
 let ipv4_keyed_conf ~ip ?gateway ?no_init () =
@@ -85,7 +85,7 @@ type ipv6_config = {
 (** Types for IP manual configuration. *)
 
 let ipv4_qubes_conf =
-  let packages = [ package ~min:"0.9.0" ~max:"0.12.0" "mirage-qubes-ipv4" ] in
+  let packages = [ package ~min:"1.0.0" ~max:"2.0.0" "mirage-qubes-ipv4" ] in
   let connect _ modname = function
     | [ db; _random; _mclock; etif; arp ] ->
         code ~pos:__POS__ "%s.connect@[@ %s@ %s@ %s@]" modname db etif arp

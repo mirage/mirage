@@ -1,3 +1,11 @@
+### v4.7.0 (2024-09-05)
+
+- Adapt bounds for mirage-crypto-rng-mirage {>= "1.0.0"}, tls {>= "1.0.0"},
+  conduit {>= "7.0.0"}, dns {>= "9.0.0"}, happy-eyeballs {>= "1.2.0"},
+  tcpip {>= "8.2.0"}, mirage-qubes {>= "1.0.0"}, git {>= "3.17"}.
+  The changes are in mirage-crypto to use string instead of cstruct.t
+  (#1559 @hannesm)
+
 ### v4.6.1 (2024-08-08)
 
 - BREAKING re-introduce `?deps` argument into `Mirage.main` function to be

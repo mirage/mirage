@@ -31,7 +31,7 @@ depends: [
   "rresult" {>= "0.7.0"}
   "uri" {>= "4.2.0"}
   "logs" {>= "0.7.0"}
-  "opam-monorepo" {>= "0.3.2"}
+  "opam-monorepo" {>= "0.4.0"}
   "alcotest" {with-test}
   "mirage-runtime" {with-test & = version}
 ]

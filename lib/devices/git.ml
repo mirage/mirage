@@ -21,7 +21,7 @@ let git_merge_clients =
 
 let git_tcp =
   let packages =
-    [ package "git-mirage" ~sublibs:[ "tcp" ] ~min:"3.10.0" ~max:"3.17.0" ]
+    [ package "git-mirage" ~sublibs:[ "tcp" ] ~min:"3.10.0" ~max:"3.18.0" ]
   in
   let connect _ modname = function
     | [ _tcpv4v6; ctx ] ->
@@ -33,7 +33,7 @@ let git_tcp =
 
 let git_ssh ?authenticator key password =
   let packages =
-    [ package "git-mirage" ~sublibs:[ "ssh" ] ~min:"3.13.0" ~max:"3.17.0" ]
+    [ package "git-mirage" ~sublibs:[ "ssh" ] ~min:"3.13.0" ~max:"3.18.0" ]
   in
   let err () = connect_err "git_ssh" 4 ~max:7 in
   let connect _ modname = function
@@ -55,7 +55,7 @@ let git_ssh ?authenticator key password =
 
 let git_http ?authenticator headers =
   let packages =
-    [ package "git-mirage" ~sublibs:[ "http" ] ~min:"3.10.0" ~max:"3.17.0" ]
+    [ package "git-mirage" ~sublibs:[ "http" ] ~min:"3.10.0" ~max:"3.18.0" ]
   in
   let runtime_args = runtime_args_opt [ headers; authenticator ] in
   let err () = connect_err "git_http" 3 ~max:5 in

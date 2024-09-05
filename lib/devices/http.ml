@@ -55,7 +55,7 @@ let paf_server port =
     | _ -> connect_err "paf_server" 2
   in
   let packages =
-    [ package "paf" ~sublibs:[ "mirage" ] ~min:"0.3.0" ~max:"0.7.0" ]
+    [ package "paf" ~sublibs:[ "mirage" ] ~min:"0.7.0" ~max:"0.8.0" ]
   in
   let runtime_args = Runtime_arg.[ v port ] in
   impl ~connect ~packages ~runtime_args "Paf_mirage.Make"

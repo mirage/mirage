@@ -14,7 +14,7 @@ let resolver = typ Resolver
 let resolver_unix_system =
   let packages_v =
     Key.(if_ is_unix)
-      [ Conduit.pkg; package ~min:"4.0.0" ~max:"7.0.0" "conduit-lwt-unix" ]
+      [ Conduit.pkg; package ~min:"7.0.0" ~max:"8.0.0" "conduit-lwt-unix" ]
       []
   in
   let configure i =

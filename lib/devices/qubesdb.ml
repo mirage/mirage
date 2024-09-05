@@ -5,7 +5,7 @@ open Misc
 type qubesdb = QUBES_DB
 
 let qubesdb = typ QUBES_DB
-let pkg = package ~min:"0.9.0" ~max:"0.12.0" "mirage-qubes"
+let pkg = package ~min:"1.0.0" ~max:"2.0.0" "mirage-qubes"
 
 let default_qubesdb =
   let packages = [ pkg ] in

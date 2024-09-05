@@ -6,7 +6,7 @@ open Random
 type conduit = Conduit
 
 let conduit = typ Conduit
-let pkg = package ~min:"6.0.1" ~max:"7.0.0" "conduit-mirage"
+let pkg = package ~min:"7.0.0" ~max:"8.0.0" "conduit-mirage"
 
 let tcp =
   let packages = [ pkg ] in
@@ -17,7 +17,7 @@ let tcp =
   impl ~packages ~connect "Conduit_mirage.TCP" (stackv4v6 @-> conduit)
 
 let tls random =
-  let packages = [ pkg; package ~min:"0.13.0" ~max:"0.18.0" "tls-mirage" ] in
+  let packages = [ pkg; package ~min:"1.0.0" ~max:"2.0.0" "tls-mirage" ] in
   let extra_deps = [ dep random ] in
   let connect _ _ = function
     | [ stack; _random ] -> code ~pos:__POS__ "Lwt.return %s@;" stack

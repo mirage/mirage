@@ -11,7 +11,7 @@ let happy_eyeballs = typ Happy_eyeballs
 let generic_happy_eyeballs aaaa_timeout connect_delay connect_timeout
     resolve_timeout resolve_retries timer_interval =
   let packages =
-    [ package "happy-eyeballs-mirage" ~min:"1.1.0" ~max:"1.2.0" ]
+    [ package "happy-eyeballs-mirage" ~min:"1.2.0" ~max:"2.0.0" ]
   in
   let runtime_args =
     runtime_args_opt

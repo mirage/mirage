@@ -8,10 +8,7 @@ let random = typ RANDOM
 
 let rng ?(time = default_time) ?(mclock = default_monotonic_clock) () =
   let packages =
-    [
-      package ~min:"0.8.0" ~max:"0.12.0" "mirage-crypto-rng-mirage";
-      package ~min:"3.0.0" ~max:"4.0.0" "mirage-random";
-    ]
+    [ package ~min:"1.0.0" ~max:"2.0.0" "mirage-crypto-rng-mirage" ]
   in
   let connect _ modname _ =
     (* here we could use the boot argument (--prng) to select the RNG! *)

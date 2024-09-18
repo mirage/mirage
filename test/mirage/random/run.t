@@ -98,11 +98,11 @@ Configure the project for Unix:
   
   # 78 "mirage/main.ml"
   
-  module Mirage_logs_make__8 = Mirage_logs.Make(Pclock)
+  module Mirage_logs_make__9 = Mirage_logs.Make(Pclock)
   
   # 82 "mirage/main.ml"
   
-  module Mirage_crypto_rng_mirage_make__11 = Mirage_crypto_rng_mirage.Make(Unix_os.Time)(Mclock)
+  module Mirage_crypto_rng_mirage_make__11 = Mirage_crypto_rng_mirage.Make(Mclock)
   
   # 86 "mirage/main.ml"
   
@@ -124,14 +124,14 @@ Configure the project for Unix:
   
   let printexc__3 = lazy (
     let _mirage_runtime_backtrace = (mirage_runtime_backtrace__key ()) in
-  # 399 "lib/mirage.ml"
+  # 392 "lib/mirage.ml"
     return (Printexc.record_backtrace _mirage_runtime_backtrace)
   );;
   # 109 "mirage/main.ml"
   
   let hashtbl__4 = lazy (
     let _mirage_runtime_randomize_hashtables = (mirage_runtime_randomize_hashtables__key ()) in
-  # 408 "lib/mirage.ml"
+  # 401 "lib/mirage.ml"
     return (if _mirage_runtime_randomize_hashtables then Hashtbl.randomize ())
   );;
   # 116 "mirage/main.ml"
@@ -147,7 +147,7 @@ Configure the project for Unix:
     let _mirage_runtime_custom_major_ratio = (mirage_runtime_custom_major_ratio__key ()) in
     let _mirage_runtime_custom_minor_ratio = (mirage_runtime_custom_minor_ratio__key ()) in
     let _mirage_runtime_custom_minor_max_size = (mirage_runtime_custom_minor_max_size__key ()) in
-  # 460 "lib/mirage.ml"
+  # 453 "lib/mirage.ml"
     return (
   let open Gc in
     let ctrl = get () in
@@ -165,49 +165,51 @@ Configure the project for Unix:
   );;
   # 145 "mirage/main.ml"
   
-  let mirage_runtime__6 = lazy (
-    let _mirage_runtime_delay = (mirage_runtime_delay__key ()) in
-  # 304 "lib/mirage.ml"
-    Unix_os.Time.sleep_ns (Duration.of_sec _mirage_runtime_delay)
-  );;
-  # 152 "mirage/main.ml"
-  
-  let pclock__7 = lazy (
+  let mirage_time__6 = lazy (
     return ()
   );;
-  # 157 "mirage/main.ml"
+  # 150 "mirage/main.ml"
   
-  let mirage_logs_make__8 = lazy (
-    let __pclock__7 = Lazy.force pclock__7 in
-    __pclock__7 >>= fun _pclock__7 ->
+  let mirage_runtime__7 = lazy (
+    let __mirage_time__6 = Lazy.force mirage_time__6 in
+    __mirage_time__6 >>= fun _mirage_time__6 ->
+    let _mirage_runtime_delay = (mirage_runtime_delay__key ()) in
+  # 296 "lib/mirage.ml"
+    Mirage_time.sleep_ns (Duration.of_sec _mirage_runtime_delay)
+  );;
+  # 159 "mirage/main.ml"
+  
+  let pclock__8 = lazy (
+    return ()
+  );;
+  # 164 "mirage/main.ml"
+  
+  let mirage_logs_make__9 = lazy (
+    let __pclock__8 = Lazy.force pclock__8 in
+    __pclock__8 >>= fun _pclock__8 ->
     let _mirage_runtime_logs = (mirage_runtime_logs__key ()) in
   # 22 "lib/devices/reporter.ml"
-    let reporter = Mirage_logs_make__8.create () in
+    let reporter = Mirage_logs_make__9.create () in
     Mirage_runtime.set_level ~default:(Some Logs.Info) _mirage_runtime_logs;
     Logs.set_reporter reporter;
     Lwt.return reporter
   );;
-  # 169 "mirage/main.ml"
-  
-  let unix_os_time__9 = lazy (
-    return ()
-  );;
-  # 174 "mirage/main.ml"
+  # 176 "mirage/main.ml"
   
   let mclock__10 = lazy (
     return ()
   );;
-  # 179 "mirage/main.ml"
+  # 181 "mirage/main.ml"
   
   let mirage_crypto_rng_mirage_make__11 = lazy (
-    let __unix_os_time__9 = Lazy.force unix_os_time__9 in
     let __mclock__10 = Lazy.force mclock__10 in
-    __unix_os_time__9 >>= fun _unix_os_time__9 ->
+    let __mirage_time__6 = Lazy.force mirage_time__6 in
     __mclock__10 >>= fun _mclock__10 ->
+    __mirage_time__6 >>= fun _mirage_time__6 ->
   # 15 "lib/devices/random.ml"
     Mirage_crypto_rng_mirage_make__11.initialize (module Mirage_crypto_rng.Fortuna)
   );;
-  # 189 "mirage/main.ml"
+  # 191 "mirage/main.ml"
   
   let app_make__12 = lazy (
     let __mirage_crypto_rng_mirage_make__11 = Lazy.force mirage_crypto_rng_mirage_make__11 in
@@ -215,35 +217,35 @@ Configure the project for Unix:
   # 3 "config.ml"
     (App_make__12.start _mirage_crypto_rng_mirage_make__11 : unit io)
   );;
-  # 197 "mirage/main.ml"
+  # 199 "mirage/main.ml"
   
   let mirage_runtime__13 = lazy (
     let __struct_end__2 = Lazy.force struct_end__2 in
     let __printexc__3 = Lazy.force printexc__3 in
     let __hashtbl__4 = Lazy.force hashtbl__4 in
     let __gc__5 = Lazy.force gc__5 in
-    let __mirage_runtime__6 = Lazy.force mirage_runtime__6 in
-    let __mirage_logs_make__8 = Lazy.force mirage_logs_make__8 in
+    let __mirage_runtime__7 = Lazy.force mirage_runtime__7 in
+    let __mirage_logs_make__9 = Lazy.force mirage_logs_make__9 in
     let __app_make__12 = Lazy.force app_make__12 in
     __struct_end__2 >>= fun _struct_end__2 ->
     __printexc__3 >>= fun _printexc__3 ->
     __hashtbl__4 >>= fun _hashtbl__4 ->
     __gc__5 >>= fun _gc__5 ->
-    __mirage_runtime__6 >>= fun _mirage_runtime__6 ->
-    __mirage_logs_make__8 >>= fun _mirage_logs_make__8 ->
+    __mirage_runtime__7 >>= fun _mirage_runtime__7 ->
+    __mirage_logs_make__9 >>= fun _mirage_logs_make__9 ->
     __app_make__12 >>= fun _app_make__12 ->
-  # 387 "lib/mirage.ml"
+  # 380 "lib/mirage.ml"
     return ()
   );;
-  # 217 "mirage/main.ml"
+  # 219 "mirage/main.ml"
   
   let () =
     let t = Lazy.force struct_end__2 >>= fun _ ->
     Lazy.force printexc__3 >>= fun _ ->
     Lazy.force hashtbl__4 >>= fun _ ->
     Lazy.force gc__5 >>= fun _ ->
-    Lazy.force mirage_runtime__6 >>= fun _ ->
-    Lazy.force mirage_logs_make__8 >>= fun _ ->
+    Lazy.force mirage_runtime__7 >>= fun _ ->
+    Lazy.force mirage_logs_make__9 >>= fun _ ->
     Lazy.force mirage_runtime__13 in
     run t
   ;;
@@ -356,11 +358,11 @@ Configure the project for Xen:
   
   # 78 "mirage/main.ml"
   
-  module Mirage_logs_make__8 = Mirage_logs.Make(Pclock)
+  module Mirage_logs_make__9 = Mirage_logs.Make(Pclock)
   
   # 82 "mirage/main.ml"
   
-  module Mirage_crypto_rng_mirage_make__11 = Mirage_crypto_rng_mirage.Make(Xen_os.Time)(Mclock)
+  module Mirage_crypto_rng_mirage_make__11 = Mirage_crypto_rng_mirage.Make(Mclock)
   
   # 86 "mirage/main.ml"
   
@@ -382,14 +384,14 @@ Configure the project for Xen:
   
   let printexc__3 = lazy (
     let _mirage_runtime_backtrace = (mirage_runtime_backtrace__key ()) in
-  # 399 "lib/mirage.ml"
+  # 392 "lib/mirage.ml"
     return (Printexc.record_backtrace _mirage_runtime_backtrace)
   );;
   # 109 "mirage/main.ml"
   
   let hashtbl__4 = lazy (
     let _mirage_runtime_randomize_hashtables = (mirage_runtime_randomize_hashtables__key ()) in
-  # 408 "lib/mirage.ml"
+  # 401 "lib/mirage.ml"
     return (if _mirage_runtime_randomize_hashtables then Hashtbl.randomize ())
   );;
   # 116 "mirage/main.ml"
@@ -405,7 +407,7 @@ Configure the project for Xen:
     let _mirage_runtime_custom_major_ratio = (mirage_runtime_custom_major_ratio__key ()) in
     let _mirage_runtime_custom_minor_ratio = (mirage_runtime_custom_minor_ratio__key ()) in
     let _mirage_runtime_custom_minor_max_size = (mirage_runtime_custom_minor_max_size__key ()) in
-  # 460 "lib/mirage.ml"
+  # 453 "lib/mirage.ml"
     return (
   let open Gc in
     let ctrl = get () in
@@ -423,49 +425,51 @@ Configure the project for Xen:
   );;
   # 145 "mirage/main.ml"
   
-  let mirage_runtime__6 = lazy (
-    let _mirage_runtime_delay = (mirage_runtime_delay__key ()) in
-  # 304 "lib/mirage.ml"
-    Xen_os.Time.sleep_ns (Duration.of_sec _mirage_runtime_delay)
-  );;
-  # 152 "mirage/main.ml"
-  
-  let pclock__7 = lazy (
+  let mirage_time__6 = lazy (
     return ()
   );;
-  # 157 "mirage/main.ml"
+  # 150 "mirage/main.ml"
   
-  let mirage_logs_make__8 = lazy (
-    let __pclock__7 = Lazy.force pclock__7 in
-    __pclock__7 >>= fun _pclock__7 ->
+  let mirage_runtime__7 = lazy (
+    let __mirage_time__6 = Lazy.force mirage_time__6 in
+    __mirage_time__6 >>= fun _mirage_time__6 ->
+    let _mirage_runtime_delay = (mirage_runtime_delay__key ()) in
+  # 296 "lib/mirage.ml"
+    Mirage_time.sleep_ns (Duration.of_sec _mirage_runtime_delay)
+  );;
+  # 159 "mirage/main.ml"
+  
+  let pclock__8 = lazy (
+    return ()
+  );;
+  # 164 "mirage/main.ml"
+  
+  let mirage_logs_make__9 = lazy (
+    let __pclock__8 = Lazy.force pclock__8 in
+    __pclock__8 >>= fun _pclock__8 ->
     let _mirage_runtime_logs = (mirage_runtime_logs__key ()) in
   # 22 "lib/devices/reporter.ml"
-    let reporter = Mirage_logs_make__8.create () in
+    let reporter = Mirage_logs_make__9.create () in
     Mirage_runtime.set_level ~default:(Some Logs.Info) _mirage_runtime_logs;
     Logs.set_reporter reporter;
     Lwt.return reporter
   );;
-  # 169 "mirage/main.ml"
-  
-  let xen_os_time__9 = lazy (
-    return ()
-  );;
-  # 174 "mirage/main.ml"
+  # 176 "mirage/main.ml"
   
   let mclock__10 = lazy (
     return ()
   );;
-  # 179 "mirage/main.ml"
+  # 181 "mirage/main.ml"
   
   let mirage_crypto_rng_mirage_make__11 = lazy (
-    let __xen_os_time__9 = Lazy.force xen_os_time__9 in
     let __mclock__10 = Lazy.force mclock__10 in
-    __xen_os_time__9 >>= fun _xen_os_time__9 ->
+    let __mirage_time__6 = Lazy.force mirage_time__6 in
     __mclock__10 >>= fun _mclock__10 ->
+    __mirage_time__6 >>= fun _mirage_time__6 ->
   # 15 "lib/devices/random.ml"
     Mirage_crypto_rng_mirage_make__11.initialize (module Mirage_crypto_rng.Fortuna)
   );;
-  # 189 "mirage/main.ml"
+  # 191 "mirage/main.ml"
   
   let app_make__12 = lazy (
     let __mirage_crypto_rng_mirage_make__11 = Lazy.force mirage_crypto_rng_mirage_make__11 in
@@ -473,35 +477,35 @@ Configure the project for Xen:
   # 3 "config.ml"
     (App_make__12.start _mirage_crypto_rng_mirage_make__11 : unit io)
   );;
-  # 197 "mirage/main.ml"
+  # 199 "mirage/main.ml"
   
   let mirage_runtime__13 = lazy (
     let __struct_end__2 = Lazy.force struct_end__2 in
     let __printexc__3 = Lazy.force printexc__3 in
     let __hashtbl__4 = Lazy.force hashtbl__4 in
     let __gc__5 = Lazy.force gc__5 in
-    let __mirage_runtime__6 = Lazy.force mirage_runtime__6 in
-    let __mirage_logs_make__8 = Lazy.force mirage_logs_make__8 in
+    let __mirage_runtime__7 = Lazy.force mirage_runtime__7 in
+    let __mirage_logs_make__9 = Lazy.force mirage_logs_make__9 in
     let __app_make__12 = Lazy.force app_make__12 in
     __struct_end__2 >>= fun _struct_end__2 ->
     __printexc__3 >>= fun _printexc__3 ->
     __hashtbl__4 >>= fun _hashtbl__4 ->
     __gc__5 >>= fun _gc__5 ->
-    __mirage_runtime__6 >>= fun _mirage_runtime__6 ->
-    __mirage_logs_make__8 >>= fun _mirage_logs_make__8 ->
+    __mirage_runtime__7 >>= fun _mirage_runtime__7 ->
+    __mirage_logs_make__9 >>= fun _mirage_logs_make__9 ->
     __app_make__12 >>= fun _app_make__12 ->
-  # 387 "lib/mirage.ml"
+  # 380 "lib/mirage.ml"
     return ()
   );;
-  # 217 "mirage/main.ml"
+  # 219 "mirage/main.ml"
   
   let () =
     let t = Lazy.force struct_end__2 >>= fun _ ->
     Lazy.force printexc__3 >>= fun _ ->
     Lazy.force hashtbl__4 >>= fun _ ->
     Lazy.force gc__5 >>= fun _ ->
-    Lazy.force mirage_runtime__6 >>= fun _ ->
-    Lazy.force mirage_logs_make__8 >>= fun _ ->
+    Lazy.force mirage_runtime__7 >>= fun _ ->
+    Lazy.force mirage_logs_make__9 >>= fun _ ->
     Lazy.force mirage_runtime__13 in
     run t
   ;;

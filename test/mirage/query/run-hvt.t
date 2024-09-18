@@ -29,6 +29,7 @@ Query opam file
     "mirage-logs" { ?monorepo & >= "2.0.0" & < "3.0.0" }
     "mirage-runtime" { ?monorepo & >= "4.7.0" & < "4.8.0" }
     "mirage-solo5" { ?monorepo & >= "0.9.0" & < "0.10.0" }
+    "mirage-time" { ?monorepo & >= "4.0.0" & < "5.0.0" }
     "ocaml-solo5" { build & >= "0.8.2" & < "0.9.0" }
     "opam-monorepo" { build & >= "0.3.2" }
     "solo5" { build & >= "0.7.5" & < "0.9.0" }
@@ -59,6 +60,7 @@ Query packages
   "mirage-logs" { ?monorepo & >= "2.0.0" & < "3.0.0" }
   "mirage-runtime" { ?monorepo & >= "4.7.0" & < "4.8.0" }
   "mirage-solo5" { ?monorepo & >= "0.9.0" & < "0.10.0" }
+  "mirage-time" { ?monorepo & >= "4.0.0" & < "5.0.0" }
   "ocaml-solo5" { build & >= "0.8.2" & < "0.9.0" }
   "opam-monorepo" { build & >= "0.3.2" }
   "solo5" { build & >= "0.7.5" & < "0.9.0" }
@@ -259,7 +261,8 @@ Query unikernel dune
    (name main)
    (modes (native exe))
    (libraries duration lwt mirage-bootvar mirage-bootvar.solo5
-     mirage-clock-solo5 mirage-logs mirage-runtime mirage-solo5)
+     mirage-clock-solo5 mirage-logs mirage-runtime mirage-solo5
+     mirage-time.solo5)
    (link_flags :standard -w -70 -cclib "-z solo5-abi=hvt")
    (modules (:standard \ config manifest))
    (foreign_stubs (language c) (names manifest))

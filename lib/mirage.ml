@@ -204,8 +204,8 @@ type dns_client = Dns.dns_client
 let dns_client = Dns.dns_client
 
 let generic_dns_client ?timeout ?nameservers ?(random = default_random)
-    ?(mclock = default_monotonic_clock)
-    ?(pclock = default_posix_clock) stackv4v6 happy_eyeballs =
+    ?(mclock = default_monotonic_clock) ?(pclock = default_posix_clock)
+    stackv4v6 happy_eyeballs =
   Dns.generic_dns_client timeout nameservers
   $ random
   $ mclock

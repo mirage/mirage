@@ -1,6 +1,7 @@
 Build an application.
 
   $ ./test.exe configure --file app/config.ml
+  test.exe: [WARNING] Skipping version check, since our_version ("1.0~test") fails to parse: only digits and . allowed in version
   $ make build
   dune build --profile release --root . app/dist
   $ ls -a app/
@@ -35,6 +36,7 @@ Build an application.
 Test `--output`:
 
   $ ./test.exe configure --file app/config.ml -o toto
+  test.exe: [WARNING] Skipping version check, since our_version ("1.0~test") fails to parse: only digits and . allowed in version
   $ make build
   dune build --profile release --root . app/dist
   $ ls -a app/

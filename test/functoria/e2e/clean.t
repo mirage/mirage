@@ -1,6 +1,7 @@
 Make sure that clean remove everything:
 
   $ ./test.exe configure --file app/config.ml
+  test.exe: [WARNING] Skipping version check, since our_version ("1.0~test") fails to parse: only digits and . allowed in version
   $ ls -a app
   .
   ..
@@ -48,6 +49,7 @@ Make sure that clean remove everything:
 Check that clean works with `--output`:
 
   $ ./test.exe configure --file app/config.ml --output=toto
+  test.exe: [WARNING] Skipping version check, since our_version ("1.0~test") fails to parse: only digits and . allowed in version
   $ ls -a app
   .
   ..

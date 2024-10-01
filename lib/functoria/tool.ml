@@ -33,17 +33,20 @@ end
 let check_version ~name ~version data =
   let ( let* ) = Result.bind in
   let extract_version v =
-    try Ok (Scanf.sscanf v "%u.%u.%u" (fun ma mi pa -> (ma, mi, pa))) with
-    | Scanf.Scan_failure _ | End_of_file -> (
-        try Ok (Scanf.sscanf v "%u.%u" (fun ma mi -> (ma, mi, 0))) with
-        | Scanf.Scan_failure _ | End_of_file -> (
-            try Ok (Scanf.sscanf v "%u" (fun ma -> (ma, 0, 0)))
-            with Scanf.Scan_failure _ | Failure _ | End_of_file ->
-              Error ("couldn't extract version (%u) from " ^ v))
-        | Failure f ->
+    if String.for_all (function '0' .. '9' | '.' -> true | _ -> false) v then
+      try Ok (Scanf.sscanf v "%u.%u.%u" (fun ma mi pa -> (ma, mi, pa))) with
+      | Scanf.Scan_failure _ | End_of_file -> (
+          try Ok (Scanf.sscanf v "%u.%u" (fun ma mi -> (ma, mi, 0))) with
+          | Scanf.Scan_failure _ | End_of_file -> (
+              try Ok (Scanf.sscanf v "%u" (fun ma -> (ma, 0, 0)))
+              with Scanf.Scan_failure _ | Failure _ | End_of_file ->
+                Error ("couldn't extract version (%u) from " ^ v))
+          | Failure f ->
             Error ("couldn't extract version (%u.%u) from " ^ v ^ ": " ^ f))
-    | Failure f ->
+      | Failure f ->
         Error ("couldn't extract version (%u.%u.%u) from " ^ v ^ ": " ^ f)
+    else
+      Error ("only digits and . allowed in version")
   in
   if String.equal version ("%%" ^ "VERSION%%") then (
     Log.warn (fun m ->

@@ -42,11 +42,10 @@ let check_version ~name ~version data =
               with Scanf.Scan_failure _ | Failure _ | End_of_file ->
                 Error ("couldn't extract version (%u) from " ^ v))
           | Failure f ->
-            Error ("couldn't extract version (%u.%u) from " ^ v ^ ": " ^ f))
+              Error ("couldn't extract version (%u.%u) from " ^ v ^ ": " ^ f))
       | Failure f ->
-        Error ("couldn't extract version (%u.%u.%u) from " ^ v ^ ": " ^ f)
-    else
-      Error ("only digits and . allowed in version")
+          Error ("couldn't extract version (%u.%u.%u) from " ^ v ^ ": " ^ f)
+    else Error "only digits and . allowed in version"
   in
   if String.equal version ("%%" ^ "VERSION%%") then (
     Log.warn (fun m ->

@@ -9,6 +9,7 @@ is passed:
                              "output" = None;
                              "dry_run" = false };
                           "depext" = true }
+  test.exe: [WARNING] Skipping version check, since our_version ("1.0~test") fails to parse: only digits and . allowed in version
   test.exe: [INFO] Generating: app/test/dune-workspace.config (base)
   test.exe: [INFO] Generating: dune-project (base)
   test.exe: [INFO] Generating: app/dune.config (base)
@@ -54,12 +55,14 @@ is passed:
 Check that configure create the correct context file:
 
   $ ./test.exe configure --file=app/config.ml
+  test.exe: [WARNING] Skipping version check, since our_version ("1.0~test") fails to parse: only digits and . allowed in version
   $ cat app/test/context
   configure
   --file=app/config.ml
   $ rm -rf custom_build_
 
   $ ./test.exe configure --file=app/config.ml
+  test.exe: [WARNING] Skipping version check, since our_version ("1.0~test") fails to parse: only digits and . allowed in version
   $ cat app/test/context
   configure
   --file=app/config.ml
@@ -81,6 +84,7 @@ Check that `test help configure` works when no config.ml file is present.
 Check that errors are reported correcty:
 
   $ ./test.exe configure a b c --file=app/config.ml
+  test.exe: [WARNING] Skipping version check, since our_version ("1.0~test") fails to parse: only digits and . allowed in version
   test: too many arguments, don't know what to do with 'a', 'b', 'c'
   Usage: test configure [OPTION]…
   Try 'test configure --help' or 'test --help' for more information.

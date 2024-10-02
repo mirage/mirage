@@ -61,6 +61,7 @@ module Endpoint = struct
         Astring.String.cut ~sep:":" (String.sub str consumed (len - consumed))
       with
       | Some ("", path) ->
+          let path = "/" ^ path in
           let local =
             List.map
               (function `Atom x -> x | `String x -> Fmt.str "%S" x)
@@ -113,7 +114,7 @@ let guess_src () =
         | Ok
             { Endpoint.scheme = `Scheme scheme; port = None; path; hostname; _ }
           ->
-            Fmt.str "%s://%s/%s" scheme hostname path
+            Fmt.str "%s://%s%s" scheme hostname path
         | Ok
             {
               Endpoint.scheme = `Scheme scheme;
@@ -122,11 +123,11 @@ let guess_src () =
               hostname;
               _;
             } ->
-            Fmt.str "%s://%s:%d/%s" scheme hostname port path
+            Fmt.str "%s://%s:%d%s" scheme hostname port path
         | Ok { Endpoint.port = None; path; hostname; _ } ->
-            Fmt.str "git+https://%s/%s" hostname path
+            Fmt.str "git+https://%s%s" hostname path
         | Ok { Endpoint.port = Some port; path; hostname; _ } ->
-            Fmt.str "git+https://%s:%d/%s" hostname port path
+            Fmt.str "git+https://%s:%d%s" hostname port path
         | _ -> "git+https://invalid/endpoint"
       in
       (subdir, Some (Fmt.str "%s#%s" public branch))

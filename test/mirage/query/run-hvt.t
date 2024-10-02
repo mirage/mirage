@@ -285,6 +285,7 @@ Query configuration dune
   (executable
    (name config)
    (modules config)
+   (flags :standard -warn-error -3)
    (libraries mirage))
 
 Query dune-project

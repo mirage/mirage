@@ -90,6 +90,7 @@ let config_rule ~config_ml_file ~packages =
 (executable
  (name config)
  (modules config)
+ (flags :standard -warn-error -3)
  (libraries %s))
 |}
       pkgs

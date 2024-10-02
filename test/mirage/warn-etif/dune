@@ -1,0 +1,7 @@
+(cram
+ (deps
+  config.ml
+  (package mirage))
+ (enabled_if ;XXX(reynir): not sure about this
+  (<> %{architecture} "i386"))
+ (package mirage))

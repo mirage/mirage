@@ -1,5 +1,8 @@
 open Mirage
 
+(* This file exercises as many warnings as possible. It is thus a very poor
+   example of a config.ml file. *)
+
 module T : sig end = struct
   type t = ()
   type t' = ()

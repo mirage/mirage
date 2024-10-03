@@ -4,7 +4,7 @@ of a device's connect function:
   $ ./test.exe configure -f errors/in_device.ml
   test.exe: [WARNING] Skipping version check, since our_version ("1.0~test") fails to parse: only digits and . allowed in version
   $ dune build
-  File "errors/config.ml", line 6, characters 2-26:
+  File "errors/in_device.ml", line 6, characters 2-26:
   Error: Unbound value Unikernel_make__4.start'
   Hint: Did you mean start?
   [1]

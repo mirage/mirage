@@ -80,7 +80,9 @@ let config_rule ~config_ml_file ~packages =
     if name = "config" then []
     else
       [
-        stanzaf "(rule (copy %s config%s))" (Fpath.to_string config_ml_file) ext;
+        stanzaf "(rule (copy# %s config%s))"
+          (Fpath.to_string config_ml_file)
+          ext;
       ]
   in
   let contents =

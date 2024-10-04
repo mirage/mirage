@@ -86,10 +86,12 @@ let config_rule ~config_ml_file ~packages =
       ]
   in
   let contents =
-    stanzaf {|
+    stanzaf
+      {|
 (executable
  (name config)
  (modules config)
+ (flags :standard -warn-error -A)
  (libraries %s))
 |}
       pkgs

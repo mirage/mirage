@@ -16,6 +16,7 @@
 
 let runtime_args_r = ref []
 let runtime_args () = !runtime_args_r
+let initialized = ref false
 
 module Arg = struct
   type 'a t = { arg : 'a Cmdliner.Term.t; mutable value : 'a option }
@@ -25,9 +26,14 @@ module Arg = struct
   let get t =
     match t.value with
     | None ->
-        invalid_arg
-          "Functoria_runtime.Arg..get: Called too early. Please delay this \
-           call after cmdliner's evaluation."
+        if !initialized then
+          invalid_arg
+            "Not sure how you got here, please report an issue at the issue \
+             tracker with your unikernel source."
+        else
+          invalid_arg
+            "Called too early. Please delay this call to after the start \
+             function of the unikernel."
     | Some v -> v
 
   let term (type a) (t : a t) =
@@ -40,11 +46,14 @@ module Arg = struct
 end
 
 let register t =
+  if !initialized then
+    invalid_arg
+      "register called to late. Please call register before the start function \
+       is executed (e.g. in a top-level binding).";
   let u = Arg.create t in
   runtime_args_r := Arg.term u :: !runtime_args_r;
   fun () -> Arg.get u
 
-let initialized = ref false
 let help_version = 63
 let argument_error = 64
 

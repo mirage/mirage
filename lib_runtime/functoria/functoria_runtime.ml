@@ -33,10 +33,6 @@ module Arg = struct
   let term (type a) (t : a t) =
     let set w = t.value <- Some w in
     Cmdliner.Term.(const set $ t.arg)
-
-  let conv of_string to_string : _ Cmdliner.Arg.conv =
-    let pp ppf v = Format.pp_print_string ppf (to_string v) in
-    Cmdliner.Arg.conv (of_string, pp)
 end
 
 let initialized = ref false

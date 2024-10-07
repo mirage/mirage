@@ -68,42 +68,41 @@ val resolver :
 val dns_servers :
   ?group:string ->
   ?docs:string ->
-  ?default:string list ->
-  unit ->
+  string list option ->
   string list option Term.t
 (** The address of the DNS servers to use. See $REFERENCE for format. [docs]
     defaults to {!Mirage_runtime.s_net}. *)
 
 val dns_timeout :
-  ?group:string -> ?docs:string -> ?default:int64 -> unit -> int64 option Term.t
+  ?group:string -> ?docs:string -> int64 option -> int64 option Term.t
 (** The timeout (in nanoseconds) for DNS resolution. *)
 
 val dns_cache_size :
-  ?group:string -> ?docs:string -> ?default:int -> unit -> int option Term.t
+  ?group:string -> ?docs:string -> int option -> int option Term.t
 (** The DNS resolution cache size. *)
 
 val he_aaaa_timeout :
-  ?group:string -> ?docs:string -> ?default:int64 -> unit -> int64 option Term.t
+  ?group:string -> ?docs:string -> int64 option -> int64 option Term.t
 (** The timeout (in nanoseconds) for AAAA resolution. *)
 
 val he_connect_delay :
-  ?group:string -> ?docs:string -> ?default:int64 -> unit -> int64 option Term.t
+  ?group:string -> ?docs:string -> int64 option -> int64 option Term.t
 (** The delay (in nanoseconds) for establishing connections. *)
 
 val he_connect_timeout :
-  ?group:string -> ?docs:string -> ?default:int64 -> unit -> int64 option Term.t
+  ?group:string -> ?docs:string -> int64 option -> int64 option Term.t
 (** The timeout (in nanoseconds) for establishing connections. *)
 
 val he_resolve_timeout :
-  ?group:string -> ?docs:string -> ?default:int64 -> unit -> int64 option Term.t
+  ?group:string -> ?docs:string -> int64 option -> int64 option Term.t
 (** The timeout (in nanoseconds) for DNS resolution. *)
 
 val he_resolve_retries :
-  ?group:string -> ?docs:string -> ?default:int -> unit -> int option Term.t
+  ?group:string -> ?docs:string -> int option -> int option Term.t
 (** The number of DNS resolution attempts. *)
 
 val he_timer_interval :
-  ?group:string -> ?docs:string -> ?default:int64 -> unit -> int64 option Term.t
+  ?group:string -> ?docs:string -> int64 option -> int64 option Term.t
 (** The interval (in nanoseconds) when the timer is executed. *)
 
 val ssh_key :

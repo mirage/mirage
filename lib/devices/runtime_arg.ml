@@ -119,12 +119,10 @@ let resolver ?group ?docs ?(default = []) () =
     docs pp_default default
 
 let dns_servers ?group ?docs default =
-  let pp_default ppf = function
-    | [] -> ()
-    | l -> Fmt.pf ppf "~default:%a " Fmt.Dump.(list string) l
-  in
   runtime_network_key ~pos:__POS__ "dns_servers %a%a%a" pp_group group pp_docs
-    docs (pp_option pp_default) default
+    docs
+    (pp_option Fmt.Dump.(list string))
+    default
 
 let dns_timeout ?group ?docs default =
   runtime_network_key ~pos:__POS__ "dns_timeout %a%a%a" pp_group group pp_docs
@@ -182,12 +180,10 @@ let tls_authenticator ?group ?docs default =
     default
 
 let http_headers ?group ?docs default =
-  let pp_default ppf = function
-    | None | Some [] -> ()
-    | Some l -> Fmt.pf ppf "~default:%a " Fmt.Dump.(list (pair string string)) l
-  in
   runtime_network_key ~pos:__POS__ "http_headers %a%a%a" pp_group group pp_docs
-    docs pp_default default
+    docs
+    (pp_option Fmt.Dump.(list (pair string string)))
+    default
 
 let pp_ipaddr ppf p = Fmt.pf ppf "Ipaddr.of_string %a" (escape Ipaddr.pp) p
 

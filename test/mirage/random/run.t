@@ -93,7 +93,7 @@ Configure the project for Unix:
   ;;
   
   let mirage_runtime_logs__key = Mirage_runtime.register_arg @@
-  # 212 "lib/devices/runtime_arg.ml"
+  # 208 "lib/devices/runtime_arg.ml"
     Mirage_runtime.logs
   ;;
   
@@ -352,7 +352,7 @@ Configure the project for Xen:
   ;;
   
   let mirage_runtime_logs__key = Mirage_runtime.register_arg @@
-  # 212 "lib/devices/runtime_arg.ml"
+  # 208 "lib/devices/runtime_arg.ml"
     Mirage_runtime.logs
   ;;
   

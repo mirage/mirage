@@ -43,8 +43,8 @@ let generic_happy_eyeballs ?group ?aaaa_timeout ?connect_delay ?connect_timeout
         timer_interval;
       ] ->
         code ~pos:__POS__
-          {ocaml|Lwt.return (%s.create ?aaaa_timeout:%s ?connect_delay:%s
-?connect_timeout:%s ?resolve_timeout:%s ?resolve_retries:%s ?timer_interval:%s %s)|ocaml}
+          {ocaml|%s.connect_device ?aaaa_timeout:%s ?connect_delay:%s
+?connect_timeout:%s ?resolve_timeout:%s ?resolve_retries:%s ?timer_interval:%s %s|ocaml}
           modname aaaa_timeout connect_delay connect_timeout resolve_timeout
           resolve_retries timer_interval stack
     | _ -> connect_err "generic_happy_eyeballs" 9

@@ -712,8 +712,10 @@ type dns_client
 val dns_client : dns_client typ
 
 val generic_dns_client :
-  ?timeout:int64 option runtime_arg ->
-  ?nameservers:string list runtime_arg ->
+  ?group:string ->
+  ?timeout:int64 ->
+  ?nameservers:string list ->
+  ?cache_size:int ->
   ?random:random impl ->
   ?time:time impl ->
   ?mclock:mclock impl ->

@@ -118,6 +118,22 @@ let resolver ?group ?docs ?(default = []) () =
   runtime_network_key ~pos:__POS__ "resolver %a%a%a()" pp_group group pp_docs
     docs pp_default default
 
+let dns_servers ?group ?docs default =
+  let pp_default ppf = function
+    | [] -> ()
+    | l -> Fmt.pf ppf "~default:%a " Fmt.Dump.(list string) l
+  in
+  runtime_network_key ~pos:__POS__ "dns_servers %a%a%a" pp_group group pp_docs
+    docs (pp_option pp_default) default
+
+let dns_timeout ?group ?docs default =
+  runtime_network_key ~pos:__POS__ "dns_timeout %a%a%a" pp_group group pp_docs
+    docs (pp_option Fmt.int64) default
+
+let dns_cache_size ?group ?docs default =
+  runtime_network_key ~pos:__POS__ "dns_cache_size %a%a%a" pp_group group
+    pp_docs docs (pp_option Fmt.int) default
+
 let pp_ipaddr ?group ?docs ppf p =
   Fmt.pf ppf "Ipaddr.of_string %a%a%a" pp_group group pp_docs docs
     (escape Ipaddr.pp) p

@@ -65,6 +65,23 @@ val resolver :
 (** The address of the DNS resolver to use. See $REFERENCE for format. [docs]
     defaults to {!Mirage_runtime.s_net}. *)
 
+val dns_servers :
+  ?group:string ->
+  ?docs:string ->
+  ?default:string list ->
+  unit ->
+  string list option Term.t
+(** The address of the DNS servers to use. See $REFERENCE for format. [docs]
+    defaults to {!Mirage_runtime.s_net}. *)
+
+val dns_timeout :
+  ?group:string -> ?docs:string -> ?default:int64 -> unit -> int64 option Term.t
+(** The timeout (in nanoseconds) for DNS resolution. *)
+
+val dns_cache_size :
+  ?group:string -> ?docs:string -> ?default:int -> unit -> int option Term.t
+(** The DNS resolution cache size. *)
+
 val syslog :
   ?group:string -> ?docs:string -> Ipaddr.t option -> Ipaddr.t option Term.t
 (** The address to send syslog frames to, [docs] defaults to

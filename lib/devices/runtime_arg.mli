@@ -111,6 +111,21 @@ val resolver :
   string list option runtime_arg
 (** The address of the DNS resolver to use. See $REFERENCE for format. *)
 
+val dns_servers :
+  ?group:string ->
+  ?docs:string ->
+  string list option ->
+  string list option runtime_arg
+(** The address of the DNS servers to use. *)
+
+val dns_timeout :
+  ?group:string -> ?docs:string -> int64 option -> int option runtime_arg
+(** The timeout (in nanoseconds) for DNS resolution. *)
+
+val dns_cache_size :
+  ?group:string -> ?docs:string -> int option -> int option runtime_arg
+(** The cache size of the LRU cache used for DNS resolution. *)
+
 val syslog :
   ?group:string ->
   ?docs:string ->

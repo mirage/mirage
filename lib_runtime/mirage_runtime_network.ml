@@ -82,6 +82,24 @@ let resolver ?group ?(docs = Mirage_runtime.s_net) ?default () =
     Arg.(some (list string))
     "resolver"
 
+let dns_servers ?group ?(docs = Mirage_runtime.s_net) ?default () =
+  let doc = str "DNS servers (default to anycast.censurfridns.dk)" in
+  runtime_arg ~doc ~docv:"DNS-SERVER" ~docs ?group ~default
+    Arg.(some (list string))
+    "dns_servers"
+
+let dns_timeout ?group ?(docs = Mirage_runtime.s_net) ?default () =
+  let doc = str "DNS timeout (in nanoseconds)" in
+  runtime_arg ~doc ~docv:"DNS-TIMEOUT" ~docs ?group ~default
+    Arg.(some int64)
+    "dns_timeout"
+
+let dns_cache_size ?group ?(docs = Mirage_runtime.s_net) ?default () =
+  let doc = str "DNS cache size" in
+  runtime_arg ~doc ~docv:"DNS-CACHE-SIZE" ~docs ?group ~default
+    Arg.(some int)
+    "dns_cache_size"
+
 let syslog ?group ?(docs = Mirage_runtime.s_log) default =
   let doc = str "syslog server" in
   runtime_arg ~doc ~docv:"IP" ~docs ?group ~default

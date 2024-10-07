@@ -257,5 +257,6 @@ let with_argv =
 
 let runtime_args = Functoria_runtime.runtime_args
 let register = Functoria_runtime.register
+let register_arg = Functoria_runtime.register
 let argument_error = Functoria_runtime.argument_error
 let help_version = Functoria_runtime.help_version

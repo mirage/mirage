@@ -27,72 +27,72 @@ Configure the project for Unix:
   let run t = Unix_os.Main.run t ; exit
   0
   
-  let mirage_runtime_delay__key = Mirage_runtime.register @@
+  let mirage_runtime_delay__key = Mirage_runtime.register_arg @@
   # 33 "lib/devices/runtime_arg.ml"
     Mirage_runtime.delay
   ;;
   
-  let mirage_runtime_backtrace__key = Mirage_runtime.register @@
+  let mirage_runtime_backtrace__key = Mirage_runtime.register_arg @@
   # 34 "lib/devices/runtime_arg.ml"
     Mirage_runtime.backtrace
   ;;
   
-  let mirage_runtime_randomize_hashtables__key = Mirage_runtime.register @@
+  let mirage_runtime_randomize_hashtables__key = Mirage_runtime.register_arg @@
   # 35 "lib/devices/runtime_arg.ml"
     Mirage_runtime.randomize_hashtables
   ;;
   
-  let mirage_runtime_allocation_policy__key = Mirage_runtime.register @@
+  let mirage_runtime_allocation_policy__key = Mirage_runtime.register_arg @@
   # 36 "lib/devices/runtime_arg.ml"
     Mirage_runtime.allocation_policy
   ;;
   
-  let mirage_runtime_minor_heap_size__key = Mirage_runtime.register @@
+  let mirage_runtime_minor_heap_size__key = Mirage_runtime.register_arg @@
   # 37 "lib/devices/runtime_arg.ml"
     Mirage_runtime.minor_heap_size
   ;;
   
-  let mirage_runtime_major_heap_increment__key = Mirage_runtime.register @@
+  let mirage_runtime_major_heap_increment__key = Mirage_runtime.register_arg @@
   # 38 "lib/devices/runtime_arg.ml"
     Mirage_runtime.major_heap_increment
   ;;
   
-  let mirage_runtime_space_overhead__key = Mirage_runtime.register @@
+  let mirage_runtime_space_overhead__key = Mirage_runtime.register_arg @@
   # 39 "lib/devices/runtime_arg.ml"
     Mirage_runtime.space_overhead
   ;;
   
-  let mirage_runtime_max_space_overhead__key = Mirage_runtime.register @@
+  let mirage_runtime_max_space_overhead__key = Mirage_runtime.register_arg @@
   # 40 "lib/devices/runtime_arg.ml"
     Mirage_runtime.max_space_overhead
   ;;
   
-  let mirage_runtime_gc_verbosity__key = Mirage_runtime.register @@
+  let mirage_runtime_gc_verbosity__key = Mirage_runtime.register_arg @@
   # 41 "lib/devices/runtime_arg.ml"
     Mirage_runtime.gc_verbosity
   ;;
   
-  let mirage_runtime_gc_window_size__key = Mirage_runtime.register @@
+  let mirage_runtime_gc_window_size__key = Mirage_runtime.register_arg @@
   # 42 "lib/devices/runtime_arg.ml"
     Mirage_runtime.gc_window_size
   ;;
   
-  let mirage_runtime_custom_major_ratio__key = Mirage_runtime.register @@
+  let mirage_runtime_custom_major_ratio__key = Mirage_runtime.register_arg @@
   # 43 "lib/devices/runtime_arg.ml"
     Mirage_runtime.custom_major_ratio
   ;;
   
-  let mirage_runtime_custom_minor_ratio__key = Mirage_runtime.register @@
+  let mirage_runtime_custom_minor_ratio__key = Mirage_runtime.register_arg @@
   # 44 "lib/devices/runtime_arg.ml"
     Mirage_runtime.custom_minor_ratio
   ;;
   
-  let mirage_runtime_custom_minor_max_size__key = Mirage_runtime.register @@
+  let mirage_runtime_custom_minor_max_size__key = Mirage_runtime.register_arg @@
   # 45 "lib/devices/runtime_arg.ml"
     Mirage_runtime.custom_minor_max_size
   ;;
   
-  let mirage_runtime_logs__key = Mirage_runtime.register @@
+  let mirage_runtime_logs__key = Mirage_runtime.register_arg @@
   # 143 "lib/devices/runtime_arg.ml"
     Mirage_runtime.logs
   ;;
@@ -286,72 +286,72 @@ Configure the project for Xen:
   let run t = Xen_os.Main.run t ; exit
   0
   
-  let mirage_runtime_delay__key = Mirage_runtime.register @@
+  let mirage_runtime_delay__key = Mirage_runtime.register_arg @@
   # 33 "lib/devices/runtime_arg.ml"
     Mirage_runtime.delay
   ;;
   
-  let mirage_runtime_backtrace__key = Mirage_runtime.register @@
+  let mirage_runtime_backtrace__key = Mirage_runtime.register_arg @@
   # 34 "lib/devices/runtime_arg.ml"
     Mirage_runtime.backtrace
   ;;
   
-  let mirage_runtime_randomize_hashtables__key = Mirage_runtime.register @@
+  let mirage_runtime_randomize_hashtables__key = Mirage_runtime.register_arg @@
   # 35 "lib/devices/runtime_arg.ml"
     Mirage_runtime.randomize_hashtables
   ;;
   
-  let mirage_runtime_allocation_policy__key = Mirage_runtime.register @@
+  let mirage_runtime_allocation_policy__key = Mirage_runtime.register_arg @@
   # 36 "lib/devices/runtime_arg.ml"
     Mirage_runtime.allocation_policy
   ;;
   
-  let mirage_runtime_minor_heap_size__key = Mirage_runtime.register @@
+  let mirage_runtime_minor_heap_size__key = Mirage_runtime.register_arg @@
   # 37 "lib/devices/runtime_arg.ml"
     Mirage_runtime.minor_heap_size
   ;;
   
-  let mirage_runtime_major_heap_increment__key = Mirage_runtime.register @@
+  let mirage_runtime_major_heap_increment__key = Mirage_runtime.register_arg @@
   # 38 "lib/devices/runtime_arg.ml"
     Mirage_runtime.major_heap_increment
   ;;
   
-  let mirage_runtime_space_overhead__key = Mirage_runtime.register @@
+  let mirage_runtime_space_overhead__key = Mirage_runtime.register_arg @@
   # 39 "lib/devices/runtime_arg.ml"
     Mirage_runtime.space_overhead
   ;;
   
-  let mirage_runtime_max_space_overhead__key = Mirage_runtime.register @@
+  let mirage_runtime_max_space_overhead__key = Mirage_runtime.register_arg @@
   # 40 "lib/devices/runtime_arg.ml"
     Mirage_runtime.max_space_overhead
   ;;
   
-  let mirage_runtime_gc_verbosity__key = Mirage_runtime.register @@
+  let mirage_runtime_gc_verbosity__key = Mirage_runtime.register_arg @@
   # 41 "lib/devices/runtime_arg.ml"
     Mirage_runtime.gc_verbosity
   ;;
   
-  let mirage_runtime_gc_window_size__key = Mirage_runtime.register @@
+  let mirage_runtime_gc_window_size__key = Mirage_runtime.register_arg @@
   # 42 "lib/devices/runtime_arg.ml"
     Mirage_runtime.gc_window_size
   ;;
   
-  let mirage_runtime_custom_major_ratio__key = Mirage_runtime.register @@
+  let mirage_runtime_custom_major_ratio__key = Mirage_runtime.register_arg @@
   # 43 "lib/devices/runtime_arg.ml"
     Mirage_runtime.custom_major_ratio
   ;;
   
-  let mirage_runtime_custom_minor_ratio__key = Mirage_runtime.register @@
+  let mirage_runtime_custom_minor_ratio__key = Mirage_runtime.register_arg @@
   # 44 "lib/devices/runtime_arg.ml"
     Mirage_runtime.custom_minor_ratio
   ;;
   
-  let mirage_runtime_custom_minor_max_size__key = Mirage_runtime.register @@
+  let mirage_runtime_custom_minor_max_size__key = Mirage_runtime.register_arg @@
   # 45 "lib/devices/runtime_arg.ml"
     Mirage_runtime.custom_minor_max_size
   ;;
   
-  let mirage_runtime_logs__key = Mirage_runtime.register @@
+  let mirage_runtime_logs__key = Mirage_runtime.register_arg @@
   # 143 "lib/devices/runtime_arg.ml"
     Mirage_runtime.logs
   ;;

@@ -633,7 +633,7 @@ val generic_stackv4v6 :
   ?tcp:tcpv4v6 impl ->
   network impl ->
   stackv4v6 impl
-(** Generic stack using a [net] keys: {!.net}.
+(** Generic stack using a [net] keys: {!Key.net}.
 
     - If [net] = [host] then {!socket_stackv4v6} is used
     - Else, if [unix or macosx] then {!socket_stackv4v6} is used

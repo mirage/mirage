@@ -30,7 +30,7 @@ let generic_dns_client ?group ?timeout ?nameservers ?cache_size () =
         cache_size;
       ] ->
         code ~pos:__POS__
-          {ocaml|%s.connect @[?nameserver:%s ?timeout:%s ?cache_size:%s@ (%s, %s)@]|ocaml}
+          {ocaml|%s.connect @[?nameservers:%s ?timeout:%s ?cache_size:%s@ (%s, %s)@]|ocaml}
           modname nameservers timeout cache_size stackv4v6 happy_eyeballs
     | _ -> connect_err "generic_dns_client" 8
   in

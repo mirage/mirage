@@ -18,14 +18,6 @@ let pop ~err x rest =
   | _, None -> (None, rest)
   | _ -> err ()
 
-let pop_and_check_empty ~err x rest =
-  let result, rest = pop ~err x rest in
-  match rest with [] -> result | _ -> fst (err ())
-
-let pp_opt name ppf = function
-  | None -> ()
-  | Some key -> Fmt.pf ppf "@ ?%s:%s" name key
-
 let pp_label name ppf = function
   | None -> ()
   | Some key -> Fmt.pf ppf "@ ~%s:%s" name key
@@ -37,15 +29,3 @@ let terminal () =
     with Unix.Unix_error _ -> false
   in
   (not dumb) && isatty
-
-module K = struct
-  type t = [] | ( :: ) : 'a Runtime_arg.arg option * t -> t
-end
-
-let runtime_args_opt l =
-  let rec aux acc = function
-    | K.[] -> List.rev acc
-    | K.(None :: t) -> aux acc t
-    | K.(Some h :: t) -> aux (Runtime_arg.v h :: acc) t
-  in
-  aux [] l

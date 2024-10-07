@@ -44,8 +44,8 @@ let initialized = ref false
 let register_arg t =
   if !initialized then
     invalid_arg
-      "register called to late. Please call register before the start function \
-       is executed (e.g. in a top-level binding).";
+      "The function register_arg was called to late. Please call register_arg \
+       before the start function is executed (e.g. in a top-level binding).";
   let u = Arg.create t in
   runtime_args_r := Arg.term u :: !runtime_args_r;
   fun () -> Arg.get u

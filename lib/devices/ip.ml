@@ -32,19 +32,19 @@ let right_tcpip_library ?libs ~sublibs pkg =
   let min = "8.2.0" and max = "9.0.0" in
   Key.pure [ package ~min ~max ?libs ~sublibs pkg ]
 
-let ipv4_keyed_conf ~ip ?gateway ?no_init () =
+let ipv4_keyed_conf ~ip ~gateway ?no_init () =
   let packages_v = right_tcpip_library ~sublibs:[ "ipv4" ] "tcpip" in
-  let runtime_args = runtime_args_opt [ no_init; gateway; Some ip ] in
-  let err () = connect_err "ipv4 keyed" 5 ~max:7 in
+  let no_init_k =
+    match no_init with None -> [] | Some k -> [ Runtime_arg.v k ]
+  in
+  let runtime_args = Runtime_arg.[ v ip; v gateway ] @ no_init_k in
+  let err () = connect_err "ipv4 keyed" 6 ~max:7 in
   let connect _ modname = function
-    | _random :: _mclock :: etif :: arp :: rest ->
+    | _random :: _mclock :: etif :: arp :: ip :: gateway :: rest ->
         let no_init, rest = pop ~err no_init rest in
-        let gateway, rest = pop ~err gateway rest in
-        let ip, rest = pop ~err (Some ip) rest in
         let () = match rest with [] -> () | _ -> err () in
-        code ~pos:__POS__ "%s.connect@[%a%a%a@ %s@ %s@]" modname
-          (pp_label "no_init") no_init (pp_label "cidr") ip (pp_opt "gateway")
-          gateway etif arp
+        code ~pos:__POS__ "%s.connect@[%a@ ~cidr:%s@ ?gateway:%s@ %s@ %s@]"
+          modname (pp_label "no_init") no_init ip gateway etif arp
     | _ -> err ()
   in
   impl ~packages_v ~runtime_args ~connect "Static_ipv4.Make"
@@ -98,20 +98,28 @@ let ipv4_qubes ?(random = default_random) ?(clock = default_monotonic_clock) db
     ethernet arp =
   ipv4_qubes_conf $ db $ random $ clock $ ethernet $ arp
 
-let ipv6_conf ?ip ?gateway ?handle_ra ?no_init () =
+let ipv6_conf ~ip ~gateway ~handle_ra ?no_init () =
   let packages_v = right_tcpip_library ~sublibs:[ "ipv6" ] "tcpip" in
-  let runtime_args = runtime_args_opt [ ip; gateway; handle_ra; no_init ] in
-  let err () = connect_err "ipv6" 5 ~max:9 in
+  let no_init_k =
+    match no_init with None -> [] | Some k -> [ Runtime_arg.v k ]
+  in
+  let runtime_args = Runtime_arg.[ v ip; v gateway; v handle_ra ] @ no_init_k in
+  let err () = connect_err "ipv6" 8 ~max:9 in
   let connect _ modname = function
-    | netif :: etif :: _random :: _time :: _clock :: rest ->
-        let ip, rest = pop ~err ip rest in
-        let gateway, rest = pop ~err gateway rest in
-        let handle_ra, rest = pop ~err handle_ra rest in
+    | netif
+      :: etif
+      :: _random
+      :: _time
+      :: _clock
+      :: ip
+      :: gateway
+      :: handle_ra
+      :: rest ->
         let no_init, rest = pop ~err no_init rest in
         let () = match rest with [] -> () | _ -> err () in
-        code ~pos:__POS__ "%s.connect@[%a%a%a%a@ %s@ %s@]" modname
-          (pp_label "no_init") no_init (pp_label "handle_ra") handle_ra
-          (pp_opt "cidr") ip (pp_opt "gateway") gateway netif etif
+        code ~pos:__POS__
+          "%s.connect@[%a@ ~handle_ra:%s@ ?cidr:%s@ ?gateway:%s@ %s@ %s@]"
+          modname (pp_label "no_init") no_init handle_ra ip gateway netif etif
     | _ -> err ()
   in
   impl ~packages_v ~runtime_args ~connect "Ipv6.Make"
@@ -134,19 +142,14 @@ let create_ipv6 ?(random = default_random) ?(time = default_time)
   $ time
   $ clock
 
-let ipv4v6_conf ?ipv4_only ?ipv6_only () =
+let ipv4v6_conf ~ipv4_only ~ipv6_only () =
   let packages_v = right_tcpip_library ~sublibs:[ "stack-direct" ] "tcpip" in
-  let runtime_args = runtime_args_opt [ ipv4_only; ipv6_only ] in
-  let err () = connect_err "ipv4v6" 2 ~max:4 in
+  let runtime_args = [ Runtime_arg.v ipv4_only; Runtime_arg.v ipv6_only ] in
   let connect _ modname = function
-    | ipv4 :: ipv6 :: rest ->
-        let ipv4_only, rest = pop ~err ipv4_only rest in
-        let ipv6_only, rest = pop ~err ipv6_only rest in
-        let () = match rest with [] -> () | _ -> err () in
-        code ~pos:__POS__ "%s.connect@[%a%a@ %s@ %s@]" modname
-          (pp_label "ipv4_only") ipv4_only (pp_label "ipv6_only") ipv6_only ipv4
-          ipv6
-    | _ -> err ()
+    | [ ipv4; ipv6; ipv4_only; ipv6_only ] ->
+        code ~pos:__POS__ "%s.connect@[@ ~ipv4_only:%s@ ~ipv6_only:%s@ %s@ %s@]"
+          modname ipv4_only ipv6_only ipv4 ipv6
+    | _ -> connect_err "ipv4v6" 4
   in
   impl ~packages_v ~runtime_args ~connect "Tcpip_stack_direct.IPV4V6"
     (ipv4 @-> ipv6 @-> ipv4v6)

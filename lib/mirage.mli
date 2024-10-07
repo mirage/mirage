@@ -1018,16 +1018,17 @@ val git_tcp : tcpv4v6 impl -> mimic impl -> git_client impl
     using TCP/IP. *)
 
 val git_ssh :
-  ?authenticator:string option runtime_arg ->
-  key:string option runtime_arg ->
-  password:string option runtime_arg ->
+  ?group:string ->
+  ?authenticator:string ->
+  ?key:string ->
+  ?password:string ->
   ?mclock:mclock impl ->
   ?time:time impl ->
   tcpv4v6 impl ->
   mimic impl ->
   git_client impl
-(** [git_ssh ?authenticator ~key ~password tcpv4v6 dns] is a device able to
-    connect to a remote Git repository using an SSH connection with the given
+(** [git_ssh ?group ?authenticator ?key ?password tcpv4v6 dns] is a device able
+    to connect to a remote Git repository using an SSH connection with the given
     private [key] or [password]. The identity of the remote Git repository can
     be verified using [authenticator].
 
@@ -1044,16 +1045,17 @@ val git_ssh :
     ]} *)
 
 val git_http :
-  ?authenticator:string option runtime_arg ->
-  ?headers:(string * string) list runtime_arg ->
+  ?group:string ->
+  ?authenticator:string ->
+  ?headers:(string * string) list ->
   ?pclock:pclock impl ->
   tcpv4v6 impl ->
   mimic impl ->
   git_client impl
-(** [git_http ?authenticator ?headers tcpv4v6 dns] is a device able to connect
-    to a remote Git repository via an HTTP(S) connection, using the provided
-    HTTP [headers]. The identity of the remote Git repository can be verified
-    using [authenticator].
+(** [git_http ?group ?authenticator ?headers tcpv4v6 dns] is a device able to
+    connect to a remote Git repository via an HTTP(S) connection, using the
+    provided HTTP [headers]. The identity of the remote Git repository can be
+    verified using [authenticator].
 
     The format of it is:
 
@@ -1063,8 +1065,8 @@ val git_http :
     - cert(:<hash>)?:<b64-encoded fingerprint> to authenticate via the cert
       fingerprint
     - trust-anchor(:<der-encoded cert>)+ to authenticate via a list of
-      certificates - By default, we use X.509 trust anchors extracted from
-      Mozilla's NSS *)
+      certificates
+    - By default, we use X.509 trust anchors extracted from Mozilla's NSS *)
 
 (** {2 Other devices} *)
 

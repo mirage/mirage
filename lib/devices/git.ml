@@ -31,43 +31,37 @@ let git_tcp =
   impl ~packages ~connect "Git_mirage_tcp.Make"
     (tcpv4v6 @-> mimic @-> git_client)
 
-let git_ssh ?authenticator key password =
+let git_ssh ?group ?authenticator ?key ?password () =
   let packages =
     [ package "git-mirage" ~sublibs:[ "ssh" ] ~min:"3.13.0" ~max:"3.18.0" ]
   in
-  let err () = connect_err "git_ssh" 4 ~max:7 in
+  let key = Runtime_arg.ssh_key ?group key
+  and password = Runtime_arg.ssh_password ?group password
+  and authenticator = Runtime_arg.ssh_authenticator ?group authenticator in
+  let runtime_args = Runtime_arg.[ v key; v password; v authenticator ] in
   let connect _ modname = function
-    | _mclock :: _tcpv4v6 :: _time :: ctx :: rest ->
-        let key, rest = pop ~err (Some key) rest in
-        let password, rest = pop ~err (Some password) rest in
-        let authenticator = pop_and_check_empty ~err authenticator rest in
+    | [ _mclock; _tcpv4v6; _time; ctx; key; password; authenticator ] ->
         code ~pos:__POS__
-          {ocaml|%s.connect %s >>= %s.with_optionnal_key %a %a %a|ocaml} modname
-          ctx modname (pp_opt "authenticator") authenticator (pp_label "key")
-          key (pp_label "password") password
-    | _ -> err ()
-  in
-  let runtime_args =
-    runtime_args_opt [ Some key; Some password; authenticator ]
+          {ocaml|%s.connect %s >>= %s.with_optionnal_key ?authenticator:%s ~key:%s ~password:%s|ocaml}
+          modname ctx modname authenticator key password
+    | _ -> connect_err "git_ssh" 7
   in
   impl ~packages ~connect ~runtime_args "Git_mirage_ssh.Make"
     (mclock @-> tcpv4v6 @-> time @-> mimic @-> git_client)
 
-let git_http ?authenticator headers =
+let git_http ?group ?authenticator ?headers () =
   let packages =
     [ package "git-mirage" ~sublibs:[ "http" ] ~min:"3.10.0" ~max:"3.18.0" ]
   in
-  let runtime_args = runtime_args_opt [ headers; authenticator ] in
-  let err () = connect_err "git_http" 3 ~max:5 in
+  let authenticator = Runtime_arg.tls_authenticator ?group authenticator
+  and headers = Runtime_arg.http_headers ?group headers in
+  let runtime_args = Runtime_arg.[ v authenticator; v headers ] in
   let connect _ modname = function
-    | _pclock :: _tcpv4v6 :: ctx :: rest ->
-        let headers, rest = pop ~err headers rest in
-        let authenticator = pop_and_check_empty ~err authenticator rest in
+    | [ _pclock; _tcpv4v6; ctx; authenticator; headers ] ->
         code ~pos:__POS__
-          {ocaml|%s.connect %s >>= fun ctx -> %s.with_optional_tls_config_and_headers%a%a ctx|ocaml}
-          modname ctx modname (pp_opt "authenticator") authenticator
-          (pp_opt "headers") headers
-    | _ -> err ()
+          {ocaml|%s.connect %s >>= %s.with_optional_tls_config_and_headers ?headers:%s ?authenticator:%s|ocaml}
+          modname ctx modname headers authenticator
+    | _ -> connect_err "git_http" 5
   in
   impl ~packages ~connect ~runtime_args "Git_mirage_http.Make"
     (pclock @-> tcpv4v6 @-> mimic @-> git_client)

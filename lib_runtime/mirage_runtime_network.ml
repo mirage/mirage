@@ -136,6 +136,34 @@ let he_timer_interval ?group ?(docs = Mirage_runtime.s_net) ?default () =
     Arg.(some int64)
     "he_timer_interval"
 
+let ssh_key ?group ?(docs = Mirage_runtime.s_net) default =
+  let doc = str "Private SSH key (rsa:<seed> or ed25519:<b64-key>)." in
+  runtime_arg ~doc ~docs ~docv:"KEY" ?group ~default Arg.(some string) "ssh-key"
+
+let ssh_password ?group ?(docs = Mirage_runtime.s_net) default =
+  let doc = str "Private SSH password." in
+  runtime_arg ~doc ~docs ~docv:"PASSWORD" ?group ~default
+    Arg.(some string)
+    "ssh-password"
+
+let ssh_authenticator ?group ?(docs = Mirage_runtime.s_net) default =
+  let doc = str "SSH authenticator." in
+  runtime_arg ~doc ~docs ~docv:"SSH-AUTHENTICATOR" ?group ~default
+    Arg.(some string)
+    "ssh-authenticator"
+
+let tls_authenticator ?group ?(docs = Mirage_runtime.s_net) default =
+  let doc = str "TLS authenticator." in
+  runtime_arg ~doc ~docs ~docv:"TLS-AUTHENTICATOR" ?group ~default
+    Arg.(some string)
+    "tls-authenticator"
+
+let http_headers ?group ?(docs = Mirage_runtime.s_net) default =
+  let doc = str "HTTP headers." in
+  runtime_arg ~doc ~docs ~docv:"HEADERS" ?group ~default
+    Arg.(some (list ~sep:',' (pair ~sep:':' string string)))
+    "http-headers"
+
 let syslog ?group ?(docs = Mirage_runtime.s_log) default =
   let doc = str "syslog server" in
   runtime_arg ~doc ~docv:"IP" ~docs ?group ~default

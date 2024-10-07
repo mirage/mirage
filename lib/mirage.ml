@@ -280,13 +280,17 @@ let git_client = Git.git_client
 let merge_git_clients ctx0 ctx1 = Git.git_merge_clients $ ctx0 $ ctx1
 let git_tcp tcpv4v6 ctx = Git.git_tcp $ tcpv4v6 $ ctx
 
-let git_ssh ?authenticator ~key ~password ?(mclock = default_monotonic_clock)
-    ?(time = default_time) tcpv4v6 ctx =
-  Git.git_ssh ?authenticator key password $ mclock $ tcpv4v6 $ time $ ctx
+let git_ssh ?group ?authenticator ?key ?password
+    ?(mclock = default_monotonic_clock) ?(time = default_time) tcpv4v6 ctx =
+  Git.git_ssh ?group ?authenticator ?key ?password ()
+  $ mclock
+  $ tcpv4v6
+  $ time
+  $ ctx
 
-let git_http ?authenticator ?headers ?(pclock = default_posix_clock) tcpv4v6 ctx
-    =
-  Git.git_http ?authenticator headers $ pclock $ tcpv4v6 $ ctx
+let git_http ?group ?authenticator ?headers ?(pclock = default_posix_clock)
+    tcpv4v6 ctx =
+  Git.git_http ?group ?authenticator ?headers () $ pclock $ tcpv4v6 $ ctx
 
 let delay = job
 

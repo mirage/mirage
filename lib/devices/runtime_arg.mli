@@ -150,6 +150,29 @@ val he_timer_interval :
   ?group:string -> ?docs:string -> int64 option -> int64 option runtime_arg
 (** The interval (in nanoseconds) when the timer is executed. *)
 
+val ssh_key :
+  ?group:string -> ?docs:string -> string option -> string option runtime_arg
+(** A SSH private key. *)
+
+val ssh_password :
+  ?group:string -> ?docs:string -> string option -> string option runtime_arg
+(** A SSH password. *)
+
+val ssh_authenticator :
+  ?group:string -> ?docs:string -> string option -> string option runtime_arg
+(** A SSH authenticator. *)
+
+val tls_authenticator :
+  ?group:string -> ?docs:string -> string option -> string option runtime_arg
+(** A TLS authenticator. *)
+
+val http_headers :
+  ?group:string ->
+  ?docs:string ->
+  (string * string) list option ->
+  (string * string) list option runtime_arg
+(** HTTP headers. *)
+
 val syslog :
   ?group:string ->
   ?docs:string ->

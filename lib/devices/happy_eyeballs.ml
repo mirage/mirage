@@ -18,10 +18,10 @@ let generic_happy_eyeballs ?group ?aaaa_timeout ?connect_delay ?connect_timeout
   and connect_timeout = Runtime_arg.he_connect_timeout ?group connect_timeout
   and resolve_timeout = Runtime_arg.he_resolve_timeout ?group resolve_timeout
   and resolve_retries = Runtime_arg.he_resolve_retries ?group resolve_retries
-  and timer_interval = Runtime_arg.he_timer_interval ?group timer_interval
-  in
+  and timer_interval = Runtime_arg.he_timer_interval ?group timer_interval in
   let runtime_args =
-    Runtime_arg.[
+    Runtime_arg.
+      [
         v aaaa_timeout;
         v connect_delay;
         v connect_timeout;
@@ -31,13 +31,21 @@ let generic_happy_eyeballs ?group ?aaaa_timeout ?connect_delay ?connect_timeout
       ]
   in
   let connect _info modname = function
-    | [ _time ; _mclock ; stack ; aaaa_timeout ; connect_delay ; connect_timeout ;
-        resolve_timeout ; resolve_retries ; timer_interval ] ->
-      code ~pos:__POS__ {ocaml|Lwt.return (%s.create ?aaaa_timeout:%s ?connect_delay:%s
+    | [
+        _time;
+        _mclock;
+        stack;
+        aaaa_timeout;
+        connect_delay;
+        connect_timeout;
+        resolve_timeout;
+        resolve_retries;
+        timer_interval;
+      ] ->
+        code ~pos:__POS__
+          {ocaml|Lwt.return (%s.create ?aaaa_timeout:%s ?connect_delay:%s
 ?connect_timeout:%s ?resolve_timeout:%s ?resolve_retries:%s ?timer_interval:%s %s)|ocaml}
-          modname aaaa_timeout
-          connect_delay connect_timeout
-          resolve_timeout
+          modname aaaa_timeout connect_delay connect_timeout resolve_timeout
           resolve_retries timer_interval stack
     | _ -> connect_err "generic_happy_eyeballs" 9
   in

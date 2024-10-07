@@ -259,7 +259,8 @@ val generic_kv_ro :
 (** Generic key/value that will choose dynamically between {!direct_kv_ro} and
     {!crunch}. To use a filesystem implementation, try {!kv_ro_of_fs}.
 
-    If no key is provided, it uses {!Key.kv_ro} to create a new one. *)
+    If no key is provided, a new {!Key.kv_ro} is created with the [group]
+    argument. *)
 
 val docteur :
   ?mode:[ `Fast | `Light ] ->
@@ -448,7 +449,7 @@ val default_network : network impl
     something reasonable based on the target. *)
 
 val netif : ?group:string -> string -> network impl
-(** A custom network interface. Exposes a {!Key.interface} key. *)
+(** A custom network interface. Exposes a {!Runtime_arg.interface} key. *)
 
 (** {2 Ethernet configuration} *)
 
@@ -519,9 +520,10 @@ val create_ipv4 :
   ethernet impl ->
   arpv4 impl ->
   ipv4 impl
-(** Use an IPv4 address Exposes the keys {!Key.V4.network} and
-    {!Key.V4.gateway}. If provided, the values of these keys will override those
-    supplied in the ipv4 configuration record, if that has been provided. *)
+(** Use an IPv4 address Exposes the keys {!Runtime_arg.V4.network} and
+    {!Runtime_arg.V4.gateway}. If provided, the values of these keys will
+    override those supplied in the ipv4 configuration record, if that has been
+    provided. *)
 
 val ipv4_qubes :
   ?random:random impl ->
@@ -543,7 +545,8 @@ val create_ipv6 :
   network impl ->
   ethernet impl ->
   ipv6 impl
-(** Use an IPv6 address. Exposes the keys {!Key.V6.network}, {!Key.V6.gateway}. *)
+(** Use an IPv6 address. Exposes the keys {!Runtime_arg.V6.network},
+    {!Runtime_arg.V6.gateway}. *)
 
 val create_ipv4v6 : ?group:string -> ipv4 impl -> ipv6 impl -> ipv4v6 impl
 
@@ -616,9 +619,10 @@ val static_ipv4v6_stack :
   ?tcp:tcpv4v6 impl ->
   network impl ->
   stackv4v6 impl
-(** Build a stackv4v6 by checking the {!Key.V6.network}, and {!Key.V6.gateway}
-    keys for IPv4 and IPv6 configuration information, filling in unspecified
-    information from [?config], then building a stack on top of that. *)
+(** Build a stackv4v6 by checking the {!Runtime_arg.V6.network}, and
+    {!Runtime_arg.V6.gateway} keys for IPv4 and IPv6 configuration information,
+    filling in unspecified information from [?config], then building a stack on
+    top of that. *)
 
 val generic_stackv4v6 :
   ?group:string ->
@@ -631,7 +635,7 @@ val generic_stackv4v6 :
   stackv4v6 impl
 (** Generic stack using a [net] keys: {!Key.net}.
 
-    - If [net] = [socket] then {!socket_stackv4v6} is used
+    - If [net] = [host] then {!socket_stackv4v6} is used
     - Else, if [unix or macosx] then {!socket_stackv4v6} is used
     - Else, {!static_ipv4v6_stack} is used.
 

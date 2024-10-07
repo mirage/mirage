@@ -37,14 +37,16 @@ end
 
 val register : 'a Cmdliner.Term.t -> unit -> 'a
 [@@ocaml.deprecated "Use register_arg instead."]
-(** [register t] registers the Cmdliner term [k] as a runtime key and return a
-    callback [f] that evaluates to [t]s' value passed on the command-line.
+(** [register t] registers the Cmdliner term [k] as a runtime argument and
+    return a callback [f] that evaluates to [t]s' value passed on the
+    command-line.
 
     [f] will raise [Invalid_argument] if called before cmdliner's evaluation. *)
 
 val register_arg : 'a Cmdliner.Term.t -> unit -> 'a
-(** [register_arg t] registers the Cmdliner term [k] as a runtime key and return
-    a callback [f] that evaluates to [t]s' value passed on the command-line.
+(** [register_arg t] registers the Cmdliner term [k] as a runtime argument and
+    return a callback [f] that evaluates to [t]s' value passed on the
+    command-line.
 
     [f] will raise [Invalid_argument] if called before cmdliner's evaluation. *)
 
@@ -54,12 +56,12 @@ val with_argv :
   string ->
   string array ->
   unit
-(** [with_argv ?sections keys name argv] evaluates the [keys] {{!Key.term}
-    terms} on the command-line [argv]. [name] is the executable name. [sections]
-    is a list of sections to include in the man page - useful for enforcing a
-    specific order of sections. On evaluation error the application calls
-    [exit(3)] with status [64]. If [`Help] or [`Version] were evaluated,
-    [exit(3)] is called with status [63]. *)
+(** [with_argv ?sections arguments name argv] evaluates the [arguments]
+    {{!Key.term} terms} on the command-line [argv]. [name] is the executable
+    name. [sections] is a list of sections to include in the man page - useful
+    for enforcing a specific order of sections. On evaluation error the
+    application calls [exit(3)] with status [64]. If [`Help] or [`Version] were
+    evaluated, [exit(3)] is called with status [63]. *)
 
 val runtime_args : unit -> unit Cmdliner.Term.t list
 

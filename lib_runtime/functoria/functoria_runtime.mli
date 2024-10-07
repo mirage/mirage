@@ -18,23 +18,6 @@
 
 (** Functoria runtime. *)
 
-(** [Arg] defines values that can be set by runtime command-line arguments. This
-    module is the runtime companion of {!Functora.Runtime_arg}. *)
-module Arg : sig
-  (** {1 Command-line Arguments} *)
-
-  type 'a t
-  (** The type for command-line arguments containing a value of type ['a]. *)
-
-  val create : 'a Cmdliner.Term.t -> 'a t
-  (** [create conv] create a new command-line argument from a [Cmdliner] term. *)
-
-  val conv :
-    (string -> ('a, [ `Msg of string ]) result) ->
-    ('a -> string) ->
-    'a Cmdliner.Arg.conv
-end
-
 val register : 'a Cmdliner.Term.t -> unit -> 'a
 (** [register t] registers the Cmdliner term [k] as a runtime key and return a
     callback [f] that evaluates to [t]s' value passed on the command-line.

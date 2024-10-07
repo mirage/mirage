@@ -93,7 +93,7 @@ Configure the project for Unix:
   ;;
   
   let mirage_runtime_logs__key = Mirage_runtime.register_arg @@
-  # 143 "lib/devices/runtime_arg.ml"
+  # 183 "lib/devices/runtime_arg.ml"
     Mirage_runtime.logs
   ;;
   
@@ -125,14 +125,14 @@ Configure the project for Unix:
   
   let printexc__3 = lazy (
     let _mirage_runtime_backtrace = (mirage_runtime_backtrace__key ()) in
-  # 399 "lib/mirage.ml"
+  # 400 "lib/mirage.ml"
     return (Printexc.record_backtrace _mirage_runtime_backtrace)
   );;
   # 109 "mirage/main.ml"
   
   let hashtbl__4 = lazy (
     let _mirage_runtime_randomize_hashtables = (mirage_runtime_randomize_hashtables__key ()) in
-  # 408 "lib/mirage.ml"
+  # 409 "lib/mirage.ml"
     return (if _mirage_runtime_randomize_hashtables then Hashtbl.randomize ())
   );;
   # 116 "mirage/main.ml"
@@ -148,7 +148,7 @@ Configure the project for Unix:
     let _mirage_runtime_custom_major_ratio = (mirage_runtime_custom_major_ratio__key ()) in
     let _mirage_runtime_custom_minor_ratio = (mirage_runtime_custom_minor_ratio__key ()) in
     let _mirage_runtime_custom_minor_max_size = (mirage_runtime_custom_minor_max_size__key ()) in
-  # 460 "lib/mirage.ml"
+  # 461 "lib/mirage.ml"
     return (
   let open Gc in
     let ctrl = get () in
@@ -168,7 +168,7 @@ Configure the project for Unix:
   
   let mirage_runtime__6 = lazy (
     let _mirage_runtime_delay = (mirage_runtime_delay__key ()) in
-  # 304 "lib/mirage.ml"
+  # 305 "lib/mirage.ml"
     Unix_os.Time.sleep_ns (Duration.of_sec _mirage_runtime_delay)
   );;
   # 152 "mirage/main.ml"
@@ -233,7 +233,7 @@ Configure the project for Unix:
     __mirage_runtime__6 >>= fun _mirage_runtime__6 ->
     __mirage_logs_make__8 >>= fun _mirage_logs_make__8 ->
     __app_make__12 >>= fun _app_make__12 ->
-  # 387 "lib/mirage.ml"
+  # 388 "lib/mirage.ml"
     return ()
   );;
   # 217 "mirage/main.ml"
@@ -352,7 +352,7 @@ Configure the project for Xen:
   ;;
   
   let mirage_runtime_logs__key = Mirage_runtime.register_arg @@
-  # 143 "lib/devices/runtime_arg.ml"
+  # 183 "lib/devices/runtime_arg.ml"
     Mirage_runtime.logs
   ;;
   
@@ -384,14 +384,14 @@ Configure the project for Xen:
   
   let printexc__3 = lazy (
     let _mirage_runtime_backtrace = (mirage_runtime_backtrace__key ()) in
-  # 399 "lib/mirage.ml"
+  # 400 "lib/mirage.ml"
     return (Printexc.record_backtrace _mirage_runtime_backtrace)
   );;
   # 109 "mirage/main.ml"
   
   let hashtbl__4 = lazy (
     let _mirage_runtime_randomize_hashtables = (mirage_runtime_randomize_hashtables__key ()) in
-  # 408 "lib/mirage.ml"
+  # 409 "lib/mirage.ml"
     return (if _mirage_runtime_randomize_hashtables then Hashtbl.randomize ())
   );;
   # 116 "mirage/main.ml"
@@ -407,7 +407,7 @@ Configure the project for Xen:
     let _mirage_runtime_custom_major_ratio = (mirage_runtime_custom_major_ratio__key ()) in
     let _mirage_runtime_custom_minor_ratio = (mirage_runtime_custom_minor_ratio__key ()) in
     let _mirage_runtime_custom_minor_max_size = (mirage_runtime_custom_minor_max_size__key ()) in
-  # 460 "lib/mirage.ml"
+  # 461 "lib/mirage.ml"
     return (
   let open Gc in
     let ctrl = get () in
@@ -427,7 +427,7 @@ Configure the project for Xen:
   
   let mirage_runtime__6 = lazy (
     let _mirage_runtime_delay = (mirage_runtime_delay__key ()) in
-  # 304 "lib/mirage.ml"
+  # 305 "lib/mirage.ml"
     Xen_os.Time.sleep_ns (Duration.of_sec _mirage_runtime_delay)
   );;
   # 152 "mirage/main.ml"
@@ -492,7 +492,7 @@ Configure the project for Xen:
     __mirage_runtime__6 >>= fun _mirage_runtime__6 ->
     __mirage_logs_make__8 >>= fun _mirage_logs_make__8 ->
     __app_make__12 >>= fun _app_make__12 ->
-  # 387 "lib/mirage.ml"
+  # 388 "lib/mirage.ml"
     return ()
   );;
   # 217 "mirage/main.ml"

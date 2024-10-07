@@ -100,6 +100,42 @@ let dns_cache_size ?group ?(docs = Mirage_runtime.s_net) ?default () =
     Arg.(some int)
     "dns_cache_size"
 
+let he_aaaa_timeout ?group ?(docs = Mirage_runtime.s_net) ?default () =
+  let doc = str "AAAA timeout (in nanoseconds)" in
+  runtime_arg ~doc ~docv:"AAAA-TIMEOUT" ~docs ?group ~default
+    Arg.(some int64)
+    "he_aaaa_timeout"
+
+let he_connect_delay ?group ?(docs = Mirage_runtime.s_net) ?default () =
+  let doc = str "Delay (in nanoseconds) for connection establishment" in
+  runtime_arg ~doc ~docv:"CONNECT-DELAY" ~docs ?group ~default
+    Arg.(some int64)
+    "he_connect_delay"
+
+let he_connect_timeout ?group ?(docs = Mirage_runtime.s_net) ?default () =
+  let doc = str "Connection establishment timeout (in nanoseconds)" in
+  runtime_arg ~doc ~docv:"CONNECT-TIMEOUT" ~docs ?group ~default
+    Arg.(some int64)
+    "he_connect_timeout"
+
+let he_resolve_timeout ?group ?(docs = Mirage_runtime.s_net) ?default () =
+  let doc = str "DNS resolution timeout (in nanoseconds)" in
+  runtime_arg ~doc ~docv:"RESOLVE-TIMEOUT" ~docs ?group ~default
+    Arg.(some int64)
+    "he_resolve_timeout"
+
+let he_resolve_retries ?group ?(docs = Mirage_runtime.s_net) ?default () =
+  let doc = str "Amount of DNS resolution attempts" in
+  runtime_arg ~doc ~docv:"RESOLVE-RETRIES" ~docs ?group ~default
+    Arg.(some int)
+    "he_resolve_retries"
+
+let he_timer_interval ?group ?(docs = Mirage_runtime.s_net) ?default () =
+  let doc = str "Interal (in nanoseconds) for execution of the timer" in
+  runtime_arg ~doc ~docv:"TIMER-INTERVAL" ~docs ?group ~default
+    Arg.(some int64)
+    "he_timer_interval"
+
 let syslog ?group ?(docs = Mirage_runtime.s_log) default =
   let doc = str "syslog server" in
   runtime_arg ~doc ~docv:"IP" ~docs ?group ~default

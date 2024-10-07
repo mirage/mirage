@@ -116,15 +116,39 @@ val dns_servers :
   ?docs:string ->
   string list option ->
   string list option runtime_arg
-(** The address of the DNS servers to use. *)
+(** The addresses of the DNS servers to use. *)
 
 val dns_timeout :
-  ?group:string -> ?docs:string -> int64 option -> int option runtime_arg
+  ?group:string -> ?docs:string -> int64 option -> int64 option runtime_arg
 (** The timeout (in nanoseconds) for DNS resolution. *)
 
 val dns_cache_size :
   ?group:string -> ?docs:string -> int option -> int option runtime_arg
 (** The cache size of the LRU cache used for DNS resolution. *)
+
+val he_aaaa_timeout :
+  ?group:string -> ?docs:string -> int64 option -> int64 option runtime_arg
+(** The timeout (in nanoseconds) for IPv6 resolution. *)
+
+val he_connect_delay :
+  ?group:string -> ?docs:string -> int64 option -> int64 option runtime_arg
+(** The delay (in nanoseconds) for establishing connections. *)
+
+val he_connect_timeout :
+  ?group:string -> ?docs:string -> int64 option -> int64 option runtime_arg
+(** The timeout (in nanoseconds) for establishing connections. *)
+
+val he_resolve_timeout :
+  ?group:string -> ?docs:string -> int64 option -> int64 option runtime_arg
+(** The timeout (in nanoseconds) for resolving hostnames. *)
+
+val he_resolve_retries :
+  ?group:string -> ?docs:string -> int option -> int option runtime_arg
+(** The number of resolution attempts before an error is returned. *)
+
+val he_timer_interval :
+  ?group:string -> ?docs:string -> int64 option -> int64 option runtime_arg
+(** The interval (in nanoseconds) when the timer is executed. *)
 
 val syslog :
   ?group:string ->

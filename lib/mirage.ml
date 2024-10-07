@@ -191,11 +191,11 @@ type happy_eyeballs = Happy_eyeballs.happy_eyeballs
 
 let happy_eyeballs = Happy_eyeballs.happy_eyeballs
 
-let generic_happy_eyeballs ?aaaa_timeout ?connect_delay ?connect_timeout
+let generic_happy_eyeballs ?group ?aaaa_timeout ?connect_delay ?connect_timeout
     ?resolve_timeout ?resolve_retries ?timer_interval ?(time = default_time)
     ?(mclock = default_monotonic_clock) stackv4v6 =
-  Happy_eyeballs.generic_happy_eyeballs aaaa_timeout connect_delay
-    connect_timeout resolve_timeout resolve_retries timer_interval
+  Happy_eyeballs.generic_happy_eyeballs ?group ?aaaa_timeout ?connect_delay
+    ?connect_timeout ?resolve_timeout ?resolve_retries ?timer_interval ()
   $ time
   $ mclock
   $ stackv4v6

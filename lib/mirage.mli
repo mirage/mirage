@@ -678,12 +678,13 @@ type happy_eyeballs
 val happy_eyeballs : happy_eyeballs typ
 
 val generic_happy_eyeballs :
-  ?aaaa_timeout:int64 option runtime_arg ->
-  ?connect_delay:int64 option runtime_arg ->
-  ?connect_timeout:int64 option runtime_arg ->
-  ?resolve_timeout:int64 option runtime_arg ->
-  ?resolve_retries:int64 option runtime_arg ->
-  ?timer_interval:int64 option runtime_arg ->
+  ?group:string ->
+  ?aaaa_timeout:int64 ->
+  ?connect_delay:int64 ->
+  ?connect_timeout:int64 ->
+  ?resolve_timeout:int64 ->
+  ?resolve_retries:int ->
+  ?timer_interval:int64 ->
   ?time:time impl ->
   ?mclock:mclock impl ->
   stackv4v6 impl ->

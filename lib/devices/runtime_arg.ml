@@ -134,6 +134,30 @@ let dns_cache_size ?group ?docs default =
   runtime_network_key ~pos:__POS__ "dns_cache_size %a%a%a" pp_group group
     pp_docs docs (pp_option Fmt.int) default
 
+let he_aaaa_timeout ?group ?docs default =
+  runtime_network_key ~pos:__POS__ "he_aaaa_timeout %a%a%a" pp_group group pp_docs
+    docs (pp_option Fmt.int64) default
+
+let he_connect_delay ?group ?docs default =
+  runtime_network_key ~pos:__POS__ "he_connect_delay %a%a%a" pp_group group pp_docs
+    docs (pp_option Fmt.int64) default
+
+let he_connect_timeout ?group ?docs default =
+  runtime_network_key ~pos:__POS__ "he_connect_timeout %a%a%a" pp_group group pp_docs
+    docs (pp_option Fmt.int64) default
+
+let he_resolve_timeout ?group ?docs default =
+  runtime_network_key ~pos:__POS__ "he_resolve_timeout %a%a%a" pp_group group pp_docs
+    docs (pp_option Fmt.int64) default
+
+let he_resolve_retries ?group ?docs default =
+  runtime_network_key ~pos:__POS__ "he_resolve_retries %a%a%a" pp_group group pp_docs
+    docs (pp_option Fmt.int) default
+
+let he_timer_interval ?group ?docs default =
+  runtime_network_key ~pos:__POS__ "he_timer_interval %a%a%a" pp_group group pp_docs
+    docs (pp_option Fmt.int64) default
+
 let pp_ipaddr ?group ?docs ppf p =
   Fmt.pf ppf "Ipaddr.of_string %a%a%a" pp_group group pp_docs docs
     (escape Ipaddr.pp) p

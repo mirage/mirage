@@ -82,6 +82,30 @@ val dns_cache_size :
   ?group:string -> ?docs:string -> ?default:int -> unit -> int option Term.t
 (** The DNS resolution cache size. *)
 
+val he_aaaa_timeout :
+  ?group:string -> ?docs:string -> ?default:int64 -> unit -> int64 option Term.t
+(** The timeout (in nanoseconds) for AAAA resolution. *)
+
+val he_connect_delay :
+  ?group:string -> ?docs:string -> ?default:int64 -> unit -> int64 option Term.t
+(** The delay (in nanoseconds) for establishing connections. *)
+
+val he_connect_timeout :
+  ?group:string -> ?docs:string -> ?default:int64 -> unit -> int64 option Term.t
+(** The timeout (in nanoseconds) for establishing connections. *)
+
+val he_resolve_timeout :
+  ?group:string -> ?docs:string -> ?default:int64 -> unit -> int64 option Term.t
+(** The timeout (in nanoseconds) for DNS resolution. *)
+
+val he_resolve_retries :
+  ?group:string -> ?docs:string -> ?default:int -> unit -> int option Term.t
+(** The number of DNS resolution attempts. *)
+
+val he_timer_interval :
+  ?group:string -> ?docs:string -> ?default:int64 -> unit -> int64 option Term.t
+(** The interval (in nanoseconds) when the timer is executed. *)
+
 val syslog :
   ?group:string -> ?docs:string -> Ipaddr.t option -> Ipaddr.t option Term.t
 (** The address to send syslog frames to, [docs] defaults to

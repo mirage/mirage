@@ -63,7 +63,7 @@ let ocaml_name k = String.lowercase_ascii (Name.ocamlify k)
 let pp_pos ppf (file, line) = Fmt.pf ppf "# %d %S@." line file
 
 let serialize ~runtime_modname fmt (Any k) =
-  Format.fprintf fmt "let %s__key = %s.register @@@@\n%a  @[<v2>%s@]\n;;\n"
+  Format.fprintf fmt "let %s__key = %s.register_arg @@@@\n%a  @[<v2>%s@]\n;;\n"
     (ocaml_name k.name) runtime_modname pp_pos k.pos k.code
 
 let call fmt (Any k) = Fmt.pf fmt "(%s__key ())" (ocaml_name k.name)

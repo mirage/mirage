@@ -256,7 +256,7 @@ let with_argv =
       [ Manpage.s_arguments; Manpage.s_options; s_net; s_log; s_disk; s_ocaml ]
 
 let runtime_args = Functoria_runtime.runtime_args
-let register = Functoria_runtime.register
-let register_arg = Functoria_runtime.register
+let register = Functoria_runtime.register_arg
+let register_arg = Functoria_runtime.register_arg
 let argument_error = Functoria_runtime.argument_error
 let help_version = Functoria_runtime.help_version

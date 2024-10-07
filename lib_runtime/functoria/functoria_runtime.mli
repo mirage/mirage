@@ -36,8 +36,15 @@ module Arg : sig
 end
 
 val register : 'a Cmdliner.Term.t -> unit -> 'a
+[@@ocaml.deprecated "Use register_arg instead."]
 (** [register t] registers the Cmdliner term [k] as a runtime key and return a
     callback [f] that evaluates to [t]s' value passed on the command-line.
+
+    [f] will raise [Invalid_argument] if called before cmdliner's evaluation. *)
+
+val register_arg : 'a Cmdliner.Term.t -> unit -> 'a
+(** [register_arg t] registers the Cmdliner term [k] as a runtime key and return
+    a callback [f] that evaluates to [t]s' value passed on the command-line.
 
     [f] will raise [Invalid_argument] if called before cmdliner's evaluation. *)
 

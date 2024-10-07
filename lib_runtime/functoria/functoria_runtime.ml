@@ -41,7 +41,7 @@ end
 
 let initialized = ref false
 
-let register t =
+let register_arg t =
   if !initialized then
     invalid_arg
       "register called to late. Please call register before the start function \
@@ -50,6 +50,7 @@ let register t =
   runtime_args_r := Arg.term u :: !runtime_args_r;
   fun () -> Arg.get u
 
+let register = register_arg
 let help_version = 63
 let argument_error = 64
 

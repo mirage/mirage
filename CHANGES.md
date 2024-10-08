@@ -1,3 +1,19 @@
+### v4.8.0 (2024-10-08)
+
+- BREAKING avoid optional runtime arguments in devices (ip, git, happy-eyeballs,
+  dns) (#1552 #1577 by @hannesm)
+- update documentation (fixes #1560, #1571 #1576 by @hannesm)
+- code cleanups, removed unused code (#1575 by @reynir)
+- provide Mirage_runtime,register_arg, deprecate Mirage_runtime.register
+  (#1574 by @hannesm)
+- improve Mirage_runtime argument error message (#1573 by @hannesm)
+- config.ml: make deprecation warnings non-errors (#1568 by @reynir)
+- Use copy# for config.ml (#1570 by @reynir)
+- generated opam file: avoid double slash (reported in #1563 by @reynir, fixed
+  in #1564 by @reynir)
+- BUGFIX: version check: log a warning if version is not parseable
+  (reported in #1565 by @reynir, fixed in #1566 by @hannesm)
+
 ### v4.7.0 (2024-09-05)
 
 - Adapt bounds for mirage-crypto-rng-mirage {>= "1.0.0"}, tls {>= "1.0.0"},

@@ -111,6 +111,68 @@ val resolver :
   string list option runtime_arg
 (** The address of the DNS resolver to use. See $REFERENCE for format. *)
 
+val dns_servers :
+  ?group:string ->
+  ?docs:string ->
+  string list option ->
+  string list option runtime_arg
+(** The addresses of the DNS servers to use. *)
+
+val dns_timeout :
+  ?group:string -> ?docs:string -> int64 option -> int64 option runtime_arg
+(** The timeout (in nanoseconds) for DNS resolution. *)
+
+val dns_cache_size :
+  ?group:string -> ?docs:string -> int option -> int option runtime_arg
+(** The cache size of the LRU cache used for DNS resolution. *)
+
+val he_aaaa_timeout :
+  ?group:string -> ?docs:string -> int64 option -> int64 option runtime_arg
+(** The timeout (in nanoseconds) for IPv6 resolution. *)
+
+val he_connect_delay :
+  ?group:string -> ?docs:string -> int64 option -> int64 option runtime_arg
+(** The delay (in nanoseconds) for establishing connections. *)
+
+val he_connect_timeout :
+  ?group:string -> ?docs:string -> int64 option -> int64 option runtime_arg
+(** The timeout (in nanoseconds) for establishing connections. *)
+
+val he_resolve_timeout :
+  ?group:string -> ?docs:string -> int64 option -> int64 option runtime_arg
+(** The timeout (in nanoseconds) for resolving hostnames. *)
+
+val he_resolve_retries :
+  ?group:string -> ?docs:string -> int option -> int option runtime_arg
+(** The number of resolution attempts before an error is returned. *)
+
+val he_timer_interval :
+  ?group:string -> ?docs:string -> int64 option -> int64 option runtime_arg
+(** The interval (in nanoseconds) when the timer is executed. *)
+
+val ssh_key :
+  ?group:string -> ?docs:string -> string option -> string option runtime_arg
+(** A SSH private key. *)
+
+val ssh_password :
+  ?group:string -> ?docs:string -> string option -> string option runtime_arg
+(** A SSH password. *)
+
+val ssh_authenticator :
+  ?group:string -> ?docs:string -> string option -> string option runtime_arg
+(** A SSH authenticator. *)
+
+val tls_authenticator :
+  ?group:string -> ?docs:string -> string option -> string option runtime_arg
+(** A TLS authenticator. *)
+
+val http_headers :
+  ?group:string ->
+  ?docs:string ->
+  (string * string) list option ->
+  (string * string) list option runtime_arg
+(** HTTP headers. *)
+
 val syslog :
   ?group:string ->
   ?docs:string ->

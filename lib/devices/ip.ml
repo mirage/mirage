@@ -32,20 +32,15 @@ let right_tcpip_library ?libs ~sublibs pkg =
   let min = "8.2.0" and max = "9.0.0" in
   Key.pure [ package ~min ~max ?libs ~sublibs pkg ]
 
-let ipv4_keyed_conf ~ip ~gateway ?no_init () =
+let ipv4_keyed_conf ~ip ~gateway ~no_init () =
   let packages_v = right_tcpip_library ~sublibs:[ "ipv4" ] "tcpip" in
-  let no_init_k =
-    match no_init with None -> [] | Some k -> [ Runtime_arg.v k ]
-  in
-  let runtime_args = Runtime_arg.[ v ip; v gateway ] @ no_init_k in
-  let err () = connect_err "ipv4 keyed" 6 ~max:7 in
+  let runtime_args = Runtime_arg.[ v ip; v gateway; v no_init ] in
   let connect _ modname = function
-    | _random :: _mclock :: etif :: arp :: ip :: gateway :: rest ->
-        let no_init, rest = pop ~err no_init rest in
-        let () = match rest with [] -> () | _ -> err () in
-        code ~pos:__POS__ "%s.connect@[%a@ ~cidr:%s@ ?gateway:%s@ %s@ %s@]"
-          modname (pp_label "no_init") no_init ip gateway etif arp
-    | _ -> err ()
+    | [ _random; _mclock; etif; arp; ip; gateway; no_init ] ->
+        code ~pos:__POS__
+          "%s.connect@[~no_init:%s@ ~cidr:%s@ ?gateway:%s@ %s@ %s@]" modname
+          no_init ip gateway etif arp
+    | _ -> connect_err "ipv4 keyed" 7
   in
   impl ~packages_v ~runtime_args ~connect "Static_ipv4.Make"
     (random @-> mclock @-> ethernet @-> arpv4 @-> ipv4)
@@ -67,7 +62,7 @@ let ipv4_of_dhcp ?(random = default_random) ?(clock = default_monotonic_clock)
     ?(time = default_time) net ethif arp =
   ipv4_dhcp_conf $ random $ clock $ time $ net $ ethif $ arp
 
-let create_ipv4 ?group ?config ?no_init ?(random = default_random)
+let keyed_create_ipv4 ?group ?config ~no_init ?(random = default_random)
     ?(clock = default_monotonic_clock) etif arp =
   let network, gateway =
     match config with
@@ -76,7 +71,19 @@ let create_ipv4 ?group ?config ?no_init ?(random = default_random)
   in
   let ip = Runtime_arg.V4.network ?group network
   and gateway = Runtime_arg.V4.gateway ?group gateway in
-  ipv4_keyed_conf ~ip ~gateway ?no_init () $ random $ clock $ etif $ arp
+  ipv4_keyed_conf ~ip ~gateway ~no_init () $ random $ clock $ etif $ arp
+
+let create_ipv4 ?group ?config ?(random = default_random)
+    ?(clock = default_monotonic_clock) etif arp =
+  let network, gateway =
+    match config with
+    | None -> (Ipaddr.V4.Prefix.of_string_exn "10.0.0.2/24", None)
+    | Some { network; gateway } -> (network, gateway)
+  in
+  let ip = Runtime_arg.V4.network ?group network
+  and gateway = Runtime_arg.V4.gateway ?group gateway
+  and no_init = Runtime_arg.ipv6_only ?group () in
+  ipv4_keyed_conf ~ip ~gateway ~no_init () $ random $ clock $ etif $ arp
 
 type ipv6_config = {
   network : Ipaddr.V6.Prefix.t;
@@ -98,35 +105,24 @@ let ipv4_qubes ?(random = default_random) ?(clock = default_monotonic_clock) db
     ethernet arp =
   ipv4_qubes_conf $ db $ random $ clock $ ethernet $ arp
 
-let ipv6_conf ~ip ~gateway ~handle_ra ?no_init () =
+let ipv6_conf ~ip ~gateway ~handle_ra ~no_init () =
   let packages_v = right_tcpip_library ~sublibs:[ "ipv6" ] "tcpip" in
-  let no_init_k =
-    match no_init with None -> [] | Some k -> [ Runtime_arg.v k ]
-  in
-  let runtime_args = Runtime_arg.[ v ip; v gateway; v handle_ra ] @ no_init_k in
-  let err () = connect_err "ipv6" 8 ~max:9 in
+  let runtime_args = Runtime_arg.[ v ip; v gateway; v handle_ra; v no_init ] in
   let connect _ modname = function
-    | netif
-      :: etif
-      :: _random
-      :: _time
-      :: _clock
-      :: ip
-      :: gateway
-      :: handle_ra
-      :: rest ->
-        let no_init, rest = pop ~err no_init rest in
-        let () = match rest with [] -> () | _ -> err () in
+    | [ netif; etif; _random; _time; _clock; ip; gateway; handle_ra; no_init ]
+      ->
         code ~pos:__POS__
-          "%s.connect@[%a@ ~handle_ra:%s@ ?cidr:%s@ ?gateway:%s@ %s@ %s@]"
-          modname (pp_label "no_init") no_init handle_ra ip gateway netif etif
-    | _ -> err ()
+          "%s.connect@[~no_init:%s@ ~handle_ra:%s@ ?cidr:%s@ ?gateway:%s@ %s@ \
+           %s@]"
+          modname no_init handle_ra ip gateway netif etif
+    | _ -> connect_err "ipv6" 9
   in
+
   impl ~packages_v ~runtime_args ~connect "Ipv6.Make"
     (network @-> ethernet @-> random @-> time @-> mclock @-> ipv6)
 
-let create_ipv6 ?(random = default_random) ?(time = default_time)
-    ?(clock = default_monotonic_clock) ?group ?config ?no_init netif etif =
+let keyed_create_ipv6 ?(random = default_random) ?(time = default_time)
+    ?(clock = default_monotonic_clock) ?group ?config ~no_init netif etif =
   let network, gateway =
     match config with
     | None -> (None, None)
@@ -135,7 +131,25 @@ let create_ipv6 ?(random = default_random) ?(time = default_time)
   let ip = Runtime_arg.V6.network ?group network
   and gateway = Runtime_arg.V6.gateway ?group gateway
   and handle_ra = Runtime_arg.V6.accept_router_advertisements ?group () in
-  ipv6_conf ~ip ~gateway ~handle_ra ?no_init ()
+  ipv6_conf ~ip ~gateway ~handle_ra ~no_init ()
+  $ netif
+  $ etif
+  $ random
+  $ time
+  $ clock
+
+let create_ipv6 ?(random = default_random) ?(time = default_time)
+    ?(clock = default_monotonic_clock) ?group ?config netif etif =
+  let network, gateway =
+    match config with
+    | None -> (None, None)
+    | Some { network; gateway } -> (Some network, gateway)
+  in
+  let ip = Runtime_arg.V6.network ?group network
+  and gateway = Runtime_arg.V6.gateway ?group gateway
+  and handle_ra = Runtime_arg.V6.accept_router_advertisements ?group ()
+  and no_init = Runtime_arg.ipv4_only ?group () in
+  ipv6_conf ~ip ~gateway ~handle_ra ~no_init ()
   $ netif
   $ etif
   $ random

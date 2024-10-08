@@ -514,7 +514,6 @@ type ipv6_config = {
 val create_ipv4 :
   ?group:string ->
   ?config:ipv4_config ->
-  ?no_init:bool runtime_arg ->
   ?random:random impl ->
   ?clock:mclock impl ->
   ethernet impl ->
@@ -541,7 +540,6 @@ val create_ipv6 :
   ?clock:mclock impl ->
   ?group:string ->
   ?config:ipv6_config ->
-  ?no_init:bool runtime_arg ->
   network impl ->
   ethernet impl ->
   ipv6 impl
@@ -594,12 +592,11 @@ val stackv4v6 : stackv4v6 typ
 (** Implementation of the [Tcpip.Stack.V4V6] signature. *)
 
 val direct_stackv4v6 :
+  ?group:string ->
   ?mclock:mclock impl ->
   ?random:random impl ->
   ?time:time impl ->
   ?tcp:tcpv4v6 impl ->
-  ipv4_only:bool runtime_arg ->
-  ipv6_only:bool runtime_arg ->
   network impl ->
   ethernet impl ->
   arpv4 impl ->
@@ -678,12 +675,13 @@ type happy_eyeballs
 val happy_eyeballs : happy_eyeballs typ
 
 val generic_happy_eyeballs :
-  ?aaaa_timeout:int64 option runtime_arg ->
-  ?connect_delay:int64 option runtime_arg ->
-  ?connect_timeout:int64 option runtime_arg ->
-  ?resolve_timeout:int64 option runtime_arg ->
-  ?resolve_retries:int64 option runtime_arg ->
-  ?timer_interval:int64 option runtime_arg ->
+  ?group:string ->
+  ?aaaa_timeout:int64 ->
+  ?connect_delay:int64 ->
+  ?connect_timeout:int64 ->
+  ?resolve_timeout:int64 ->
+  ?resolve_retries:int ->
+  ?timer_interval:int64 ->
   ?time:time impl ->
   ?mclock:mclock impl ->
   stackv4v6 impl ->
@@ -712,8 +710,10 @@ type dns_client
 val dns_client : dns_client typ
 
 val generic_dns_client :
-  ?timeout:int64 option runtime_arg ->
-  ?nameservers:string list runtime_arg ->
+  ?group:string ->
+  ?timeout:int64 ->
+  ?nameservers:string list ->
+  ?cache_size:int ->
   ?random:random impl ->
   ?time:time impl ->
   ?mclock:mclock impl ->
@@ -1015,16 +1015,17 @@ val git_tcp : tcpv4v6 impl -> mimic impl -> git_client impl
     using TCP/IP. *)
 
 val git_ssh :
-  ?authenticator:string option runtime_arg ->
-  key:string option runtime_arg ->
-  password:string option runtime_arg ->
+  ?group:string ->
+  ?authenticator:string ->
+  ?key:string ->
+  ?password:string ->
   ?mclock:mclock impl ->
   ?time:time impl ->
   tcpv4v6 impl ->
   mimic impl ->
   git_client impl
-(** [git_ssh ?authenticator ~key ~password tcpv4v6 dns] is a device able to
-    connect to a remote Git repository using an SSH connection with the given
+(** [git_ssh ?group ?authenticator ?key ?password tcpv4v6 dns] is a device able
+    to connect to a remote Git repository using an SSH connection with the given
     private [key] or [password]. The identity of the remote Git repository can
     be verified using [authenticator].
 
@@ -1041,16 +1042,17 @@ val git_ssh :
     ]} *)
 
 val git_http :
-  ?authenticator:string option runtime_arg ->
-  ?headers:(string * string) list runtime_arg ->
+  ?group:string ->
+  ?authenticator:string ->
+  ?headers:(string * string) list ->
   ?pclock:pclock impl ->
   tcpv4v6 impl ->
   mimic impl ->
   git_client impl
-(** [git_http ?authenticator ?headers tcpv4v6 dns] is a device able to connect
-    to a remote Git repository via an HTTP(S) connection, using the provided
-    HTTP [headers]. The identity of the remote Git repository can be verified
-    using [authenticator].
+(** [git_http ?group ?authenticator ?headers tcpv4v6 dns] is a device able to
+    connect to a remote Git repository via an HTTP(S) connection, using the
+    provided HTTP [headers]. The identity of the remote Git repository can be
+    verified using [authenticator].
 
     The format of it is:
 
@@ -1060,8 +1062,8 @@ val git_http :
     - cert(:<hash>)?:<b64-encoded fingerprint> to authenticate via the cert
       fingerprint
     - trust-anchor(:<der-encoded cert>)+ to authenticate via a list of
-      certificates - By default, we use X.509 trust anchors extracted from
-      Mozilla's NSS *)
+      certificates
+    - By default, we use X.509 trust anchors extracted from Mozilla's NSS *)
 
 (** {2 Other devices} *)
 
@@ -1100,7 +1102,7 @@ module Dune = Functoria.Dune
 module Action = Functoria.Action
 module Context = Functoria.Context
 
-val connect_err : string -> ?max:int -> int -> 'a
+val connect_err : string -> int -> 'a
 
 module Project : sig
   val dune : Info.t -> Dune.stanza list

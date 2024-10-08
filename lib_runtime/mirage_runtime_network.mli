@@ -65,6 +65,69 @@ val resolver :
 (** The address of the DNS resolver to use. See $REFERENCE for format. [docs]
     defaults to {!Mirage_runtime.s_net}. *)
 
+val dns_servers :
+  ?group:string ->
+  ?docs:string ->
+  string list option ->
+  string list option Term.t
+(** The address of the DNS servers to use. See $REFERENCE for format. [docs]
+    defaults to {!Mirage_runtime.s_net}. *)
+
+val dns_timeout :
+  ?group:string -> ?docs:string -> int64 option -> int64 option Term.t
+(** The timeout (in nanoseconds) for DNS resolution. *)
+
+val dns_cache_size :
+  ?group:string -> ?docs:string -> int option -> int option Term.t
+(** The DNS resolution cache size. *)
+
+val he_aaaa_timeout :
+  ?group:string -> ?docs:string -> int64 option -> int64 option Term.t
+(** The timeout (in nanoseconds) for AAAA resolution. *)
+
+val he_connect_delay :
+  ?group:string -> ?docs:string -> int64 option -> int64 option Term.t
+(** The delay (in nanoseconds) for establishing connections. *)
+
+val he_connect_timeout :
+  ?group:string -> ?docs:string -> int64 option -> int64 option Term.t
+(** The timeout (in nanoseconds) for establishing connections. *)
+
+val he_resolve_timeout :
+  ?group:string -> ?docs:string -> int64 option -> int64 option Term.t
+(** The timeout (in nanoseconds) for DNS resolution. *)
+
+val he_resolve_retries :
+  ?group:string -> ?docs:string -> int option -> int option Term.t
+(** The number of DNS resolution attempts. *)
+
+val he_timer_interval :
+  ?group:string -> ?docs:string -> int64 option -> int64 option Term.t
+(** The interval (in nanoseconds) when the timer is executed. *)
+
+val ssh_key :
+  ?group:string -> ?docs:string -> string option -> string option Term.t
+(** The private SSH key. *)
+
+val ssh_password :
+  ?group:string -> ?docs:string -> string option -> string option Term.t
+(** The SSH password. *)
+
+val ssh_authenticator :
+  ?group:string -> ?docs:string -> string option -> string option Term.t
+(** The SSH authenticator. *)
+
+val tls_authenticator :
+  ?group:string -> ?docs:string -> string option -> string option Term.t
+(** The TLS authenticator. *)
+
+val http_headers :
+  ?group:string ->
+  ?docs:string ->
+  (string * string) list option ->
+  (string * string) list option Term.t
+(** HTTP headers. *)
+
 val syslog :
   ?group:string -> ?docs:string -> Ipaddr.t option -> Ipaddr.t option Term.t
 (** The address to send syslog frames to, [docs] defaults to

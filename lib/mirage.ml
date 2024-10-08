@@ -191,11 +191,11 @@ type happy_eyeballs = Happy_eyeballs.happy_eyeballs
 
 let happy_eyeballs = Happy_eyeballs.happy_eyeballs
 
-let generic_happy_eyeballs ?aaaa_timeout ?connect_delay ?connect_timeout
+let generic_happy_eyeballs ?group ?aaaa_timeout ?connect_delay ?connect_timeout
     ?resolve_timeout ?resolve_retries ?timer_interval ?(time = default_time)
     ?(mclock = default_monotonic_clock) stackv4v6 =
-  Happy_eyeballs.generic_happy_eyeballs aaaa_timeout connect_delay
-    connect_timeout resolve_timeout resolve_retries timer_interval
+  Happy_eyeballs.generic_happy_eyeballs ?group ?aaaa_timeout ?connect_delay
+    ?connect_timeout ?resolve_timeout ?resolve_retries ?timer_interval ()
   $ time
   $ mclock
   $ stackv4v6
@@ -204,10 +204,11 @@ type dns_client = Dns.dns_client
 
 let dns_client = Dns.dns_client
 
-let generic_dns_client ?timeout ?nameservers ?(random = default_random)
-    ?(time = default_time) ?(mclock = default_monotonic_clock)
-    ?(pclock = default_posix_clock) stackv4v6 happy_eyeballs =
-  Dns.generic_dns_client timeout nameservers
+let generic_dns_client ?group ?timeout ?nameservers ?cache_size
+    ?(random = default_random) ?(time = default_time)
+    ?(mclock = default_monotonic_clock) ?(pclock = default_posix_clock)
+    stackv4v6 happy_eyeballs =
+  Dns.generic_dns_client ?group ?timeout ?nameservers ?cache_size ()
   $ random
   $ time
   $ mclock
@@ -279,13 +280,17 @@ let git_client = Git.git_client
 let merge_git_clients ctx0 ctx1 = Git.git_merge_clients $ ctx0 $ ctx1
 let git_tcp tcpv4v6 ctx = Git.git_tcp $ tcpv4v6 $ ctx
 
-let git_ssh ?authenticator ~key ~password ?(mclock = default_monotonic_clock)
-    ?(time = default_time) tcpv4v6 ctx =
-  Git.git_ssh ?authenticator key password $ mclock $ tcpv4v6 $ time $ ctx
+let git_ssh ?group ?authenticator ?key ?password
+    ?(mclock = default_monotonic_clock) ?(time = default_time) tcpv4v6 ctx =
+  Git.git_ssh ?group ?authenticator ?key ?password ()
+  $ mclock
+  $ tcpv4v6
+  $ time
+  $ ctx
 
-let git_http ?authenticator ?headers ?(pclock = default_posix_clock) tcpv4v6 ctx
-    =
-  Git.git_http ?authenticator headers $ pclock $ tcpv4v6 $ ctx
+let git_http ?group ?authenticator ?headers ?(pclock = default_posix_clock)
+    tcpv4v6 ctx =
+  Git.git_http ?group ?authenticator ?headers () $ pclock $ tcpv4v6 $ ctx
 
 let delay = job
 

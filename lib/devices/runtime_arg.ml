@@ -118,9 +118,74 @@ let resolver ?group ?docs ?(default = []) () =
   runtime_network_key ~pos:__POS__ "resolver %a%a%a()" pp_group group pp_docs
     docs pp_default default
 
-let pp_ipaddr ?group ?docs ppf p =
-  Fmt.pf ppf "Ipaddr.of_string %a%a%a" pp_group group pp_docs docs
-    (escape Ipaddr.pp) p
+let dns_servers ?group ?docs default =
+  runtime_network_key ~pos:__POS__ "dns_servers %a%a%a" pp_group group pp_docs
+    docs
+    (pp_option Fmt.Dump.(list string))
+    default
+
+let dns_timeout ?group ?docs default =
+  runtime_network_key ~pos:__POS__ "dns_timeout %a%a%a" pp_group group pp_docs
+    docs (pp_option Fmt.int64) default
+
+let dns_cache_size ?group ?docs default =
+  runtime_network_key ~pos:__POS__ "dns_cache_size %a%a%a" pp_group group
+    pp_docs docs (pp_option Fmt.int) default
+
+let he_aaaa_timeout ?group ?docs default =
+  runtime_network_key ~pos:__POS__ "he_aaaa_timeout %a%a%a" pp_group group
+    pp_docs docs (pp_option Fmt.int64) default
+
+let he_connect_delay ?group ?docs default =
+  runtime_network_key ~pos:__POS__ "he_connect_delay %a%a%a" pp_group group
+    pp_docs docs (pp_option Fmt.int64) default
+
+let he_connect_timeout ?group ?docs default =
+  runtime_network_key ~pos:__POS__ "he_connect_timeout %a%a%a" pp_group group
+    pp_docs docs (pp_option Fmt.int64) default
+
+let he_resolve_timeout ?group ?docs default =
+  runtime_network_key ~pos:__POS__ "he_resolve_timeout %a%a%a" pp_group group
+    pp_docs docs (pp_option Fmt.int64) default
+
+let he_resolve_retries ?group ?docs default =
+  runtime_network_key ~pos:__POS__ "he_resolve_retries %a%a%a" pp_group group
+    pp_docs docs (pp_option Fmt.int) default
+
+let he_timer_interval ?group ?docs default =
+  runtime_network_key ~pos:__POS__ "he_timer_interval %a%a%a" pp_group group
+    pp_docs docs (pp_option Fmt.int64) default
+
+let ssh_key ?group ?docs default =
+  runtime_network_key ~pos:__POS__ "ssh_key %a%a%a" pp_group group pp_docs docs
+    (pp_option Fmt.Dump.string)
+    default
+
+let ssh_password ?group ?docs default =
+  runtime_network_key ~pos:__POS__ "ssh_password %a%a%a" pp_group group pp_docs
+    docs
+    (pp_option Fmt.Dump.string)
+    default
+
+let ssh_authenticator ?group ?docs default =
+  runtime_network_key ~pos:__POS__ "ssh_authenticator %a%a%a" pp_group group
+    pp_docs docs
+    (pp_option Fmt.Dump.string)
+    default
+
+let tls_authenticator ?group ?docs default =
+  runtime_network_key ~pos:__POS__ "tls_authenticator %a%a%a" pp_group group
+    pp_docs docs
+    (pp_option Fmt.Dump.string)
+    default
+
+let http_headers ?group ?docs default =
+  runtime_network_key ~pos:__POS__ "http_headers %a%a%a" pp_group group pp_docs
+    docs
+    (pp_option Fmt.Dump.(list (pair string string)))
+    default
+
+let pp_ipaddr ppf p = Fmt.pf ppf "Ipaddr.of_string %a" (escape Ipaddr.pp) p
 
 let syslog ?group ?docs default =
   runtime_network_key ~pos:__POS__ "syslog %a%a%a" pp_group group pp_docs docs

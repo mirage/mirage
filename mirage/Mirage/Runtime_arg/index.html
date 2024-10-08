@@ -21,7 +21,63 @@
   <span><span class="optlabel">?docs</span>:string <span class="arrow">&#45;&gt;</span></span>
   <span><span class="optlabel">?default</span>:<span>string list</span> <span class="arrow">&#45;&gt;</span></span>
   <span>unit <span class="arrow">&#45;&gt;</span></span>
-  <span><span><span>string list</span> option</span> <a href="../../Functoria/DSL/index.html#type-runtime_arg">Functoria.DSL.runtime_arg</a></span></span></code></div><div class="spec-doc"><p>The address of the DNS resolver to use. See $REFERENCE for format.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-syslog"><a href="#val-syslog" class="anchor"></a><code><span><span class="keyword">val</span> syslog : 
+  <span><span><span>string list</span> option</span> <a href="../../Functoria/DSL/index.html#type-runtime_arg">Functoria.DSL.runtime_arg</a></span></span></code></div><div class="spec-doc"><p>The address of the DNS resolver to use. See $REFERENCE for format.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-dns_servers"><a href="#val-dns_servers" class="anchor"></a><code><span><span class="keyword">val</span> dns_servers : 
+  <span><span class="optlabel">?group</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?docs</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>string list</span> option</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>string list</span> option</span> <a href="../../Functoria/DSL/index.html#type-runtime_arg">Functoria.DSL.runtime_arg</a></span></span></code></div><div class="spec-doc"><p>The addresses of the DNS servers to use.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-dns_timeout"><a href="#val-dns_timeout" class="anchor"></a><code><span><span class="keyword">val</span> dns_timeout : 
+  <span><span class="optlabel">?group</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?docs</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span>int64 option</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>int64 option</span> <a href="../../Functoria/DSL/index.html#type-runtime_arg">Functoria.DSL.runtime_arg</a></span></span></code></div><div class="spec-doc"><p>The timeout (in nanoseconds) for DNS resolution.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-dns_cache_size"><a href="#val-dns_cache_size" class="anchor"></a><code><span><span class="keyword">val</span> dns_cache_size : 
+  <span><span class="optlabel">?group</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?docs</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span>int option</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>int option</span> <a href="../../Functoria/DSL/index.html#type-runtime_arg">Functoria.DSL.runtime_arg</a></span></span></code></div><div class="spec-doc"><p>The cache size of the LRU cache used for DNS resolution.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-he_aaaa_timeout"><a href="#val-he_aaaa_timeout" class="anchor"></a><code><span><span class="keyword">val</span> he_aaaa_timeout : 
+  <span><span class="optlabel">?group</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?docs</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span>int64 option</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>int64 option</span> <a href="../../Functoria/DSL/index.html#type-runtime_arg">Functoria.DSL.runtime_arg</a></span></span></code></div><div class="spec-doc"><p>The timeout (in nanoseconds) for IPv6 resolution.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-he_connect_delay"><a href="#val-he_connect_delay" class="anchor"></a><code><span><span class="keyword">val</span> he_connect_delay : 
+  <span><span class="optlabel">?group</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?docs</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span>int64 option</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>int64 option</span> <a href="../../Functoria/DSL/index.html#type-runtime_arg">Functoria.DSL.runtime_arg</a></span></span></code></div><div class="spec-doc"><p>The delay (in nanoseconds) for establishing connections.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-he_connect_timeout"><a href="#val-he_connect_timeout" class="anchor"></a><code><span><span class="keyword">val</span> he_connect_timeout : 
+  <span><span class="optlabel">?group</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?docs</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span>int64 option</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>int64 option</span> <a href="../../Functoria/DSL/index.html#type-runtime_arg">Functoria.DSL.runtime_arg</a></span></span></code></div><div class="spec-doc"><p>The timeout (in nanoseconds) for establishing connections.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-he_resolve_timeout"><a href="#val-he_resolve_timeout" class="anchor"></a><code><span><span class="keyword">val</span> he_resolve_timeout : 
+  <span><span class="optlabel">?group</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?docs</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span>int64 option</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>int64 option</span> <a href="../../Functoria/DSL/index.html#type-runtime_arg">Functoria.DSL.runtime_arg</a></span></span></code></div><div class="spec-doc"><p>The timeout (in nanoseconds) for resolving hostnames.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-he_resolve_retries"><a href="#val-he_resolve_retries" class="anchor"></a><code><span><span class="keyword">val</span> he_resolve_retries : 
+  <span><span class="optlabel">?group</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?docs</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span>int option</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>int option</span> <a href="../../Functoria/DSL/index.html#type-runtime_arg">Functoria.DSL.runtime_arg</a></span></span></code></div><div class="spec-doc"><p>The number of resolution attempts before an error is returned.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-he_timer_interval"><a href="#val-he_timer_interval" class="anchor"></a><code><span><span class="keyword">val</span> he_timer_interval : 
+  <span><span class="optlabel">?group</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?docs</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span>int64 option</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>int64 option</span> <a href="../../Functoria/DSL/index.html#type-runtime_arg">Functoria.DSL.runtime_arg</a></span></span></code></div><div class="spec-doc"><p>The interval (in nanoseconds) when the timer is executed.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-ssh_key"><a href="#val-ssh_key" class="anchor"></a><code><span><span class="keyword">val</span> ssh_key : 
+  <span><span class="optlabel">?group</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?docs</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span>string option</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>string option</span> <a href="../../Functoria/DSL/index.html#type-runtime_arg">Functoria.DSL.runtime_arg</a></span></span></code></div><div class="spec-doc"><p>A SSH private key.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-ssh_password"><a href="#val-ssh_password" class="anchor"></a><code><span><span class="keyword">val</span> ssh_password : 
+  <span><span class="optlabel">?group</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?docs</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span>string option</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>string option</span> <a href="../../Functoria/DSL/index.html#type-runtime_arg">Functoria.DSL.runtime_arg</a></span></span></code></div><div class="spec-doc"><p>A SSH password.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-ssh_authenticator"><a href="#val-ssh_authenticator" class="anchor"></a><code><span><span class="keyword">val</span> ssh_authenticator : 
+  <span><span class="optlabel">?group</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?docs</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span>string option</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>string option</span> <a href="../../Functoria/DSL/index.html#type-runtime_arg">Functoria.DSL.runtime_arg</a></span></span></code></div><div class="spec-doc"><p>A SSH authenticator.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-tls_authenticator"><a href="#val-tls_authenticator" class="anchor"></a><code><span><span class="keyword">val</span> tls_authenticator : 
+  <span><span class="optlabel">?group</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?docs</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span>string option</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>string option</span> <a href="../../Functoria/DSL/index.html#type-runtime_arg">Functoria.DSL.runtime_arg</a></span></span></code></div><div class="spec-doc"><p>A TLS authenticator.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-http_headers"><a href="#val-http_headers" class="anchor"></a><code><span><span class="keyword">val</span> http_headers : 
+  <span><span class="optlabel">?group</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?docs</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span><span>(string * string)</span> list</span> option</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span><span>(string * string)</span> list</span> option</span> <a href="../../Functoria/DSL/index.html#type-runtime_arg">Functoria.DSL.runtime_arg</a></span></span></code></div><div class="spec-doc"><p>HTTP headers.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-syslog"><a href="#val-syslog" class="anchor"></a><code><span><span class="keyword">val</span> syslog : 
   <span><span class="optlabel">?group</span>:string <span class="arrow">&#45;&gt;</span></span>
   <span><span class="optlabel">?docs</span>:string <span class="arrow">&#45;&gt;</span></span>
   <span><span><span class="xref-unresolved">Ipaddr</span>.t option</span> <span class="arrow">&#45;&gt;</span></span>

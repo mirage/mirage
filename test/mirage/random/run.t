@@ -1,7 +1,6 @@
 Configure the project for Unix:
 
   $ mirage configure -t unix
-  mirage: [WARNING] Skipping version check, since our_version is not watermarked
   $ ls . mirage/
   .:
   Makefile
@@ -255,7 +254,6 @@ Configure the project for Unix:
 Configure the project for Xen:
 
   $ mirage configure -t xen
-  mirage: [WARNING] Skipping version check, since our_version is not watermarked
   $ ls . mirage/
   .:
   Makefile

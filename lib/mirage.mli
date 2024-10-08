@@ -514,7 +514,6 @@ type ipv6_config = {
 val create_ipv4 :
   ?group:string ->
   ?config:ipv4_config ->
-  ?no_init:bool runtime_arg ->
   ?random:random impl ->
   ?clock:mclock impl ->
   ethernet impl ->
@@ -541,7 +540,6 @@ val create_ipv6 :
   ?clock:mclock impl ->
   ?group:string ->
   ?config:ipv6_config ->
-  ?no_init:bool runtime_arg ->
   network impl ->
   ethernet impl ->
   ipv6 impl
@@ -594,12 +592,11 @@ val stackv4v6 : stackv4v6 typ
 (** Implementation of the [Tcpip.Stack.V4V6] signature. *)
 
 val direct_stackv4v6 :
+  ?group:string ->
   ?mclock:mclock impl ->
   ?random:random impl ->
   ?time:time impl ->
   ?tcp:tcpv4v6 impl ->
-  ipv4_only:bool runtime_arg ->
-  ipv6_only:bool runtime_arg ->
   network impl ->
   ethernet impl ->
   arpv4 impl ->
@@ -1105,7 +1102,7 @@ module Dune = Functoria.Dune
 module Action = Functoria.Action
 module Context = Functoria.Context
 
-val connect_err : string -> ?max:int -> int -> 'a
+val connect_err : string -> int -> 'a
 
 module Project : sig
   val dune : Info.t -> Dune.stanza list

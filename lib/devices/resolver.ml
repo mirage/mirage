@@ -1,11 +1,7 @@
 open Functoria.DSL
 open Functoria.Action
 open Misc
-open Mclock
-open Pclock
 open Stack
-open Random
-open Time
 
 type resolver = Resolver
 
@@ -31,19 +27,18 @@ let resolver_dns_conf ~ns =
   let packages = [ Conduit.pkg ] in
   let runtime_args = Runtime_arg.[ v ns ] in
   let connect _ modname = function
-    | [ _r; _t; _m; _p; stack; ns ] ->
+    | [ stack; ns ] ->
         code ~pos:__POS__
           "let nameservers = %s in@;\
            %s.v ?nameservers %s >|= function@;\
            | Ok r -> r@;\
            | Error (`Msg e) -> invalid_arg e@;"
           ns modname stack
-    | _ -> connect_err "resolver" 6
+    | _ -> connect_err "resolver" 2
   in
   impl ~packages ~runtime_args ~connect "Resolver_mirage.Make"
-    (random @-> time @-> mclock @-> pclock @-> stackv4v6 @-> resolver)
+    (stackv4v6 @-> resolver)
 
-let resolver_dns ?ns ?(time = default_time) ?(mclock = default_monotonic_clock)
-    ?(pclock = default_posix_clock) ?(random = default_random) stack =
+let resolver_dns ?ns stack =
   let ns = Runtime_arg.resolver ?default:ns () in
-  resolver_dns_conf ~ns $ random $ time $ mclock $ pclock $ stack
+  resolver_dns_conf ~ns $ stack

@@ -1,12 +1,9 @@
 open Functoria.DSL
 open Arp
 open Ethernet
-open Mclock
 open Misc
 open Network
 open Qubesdb
-open Random
-open Time
 
 type v4
 type v6
@@ -36,34 +33,31 @@ let ipv4_keyed_conf ~ip ~gateway ~no_init () =
   let packages_v = right_tcpip_library ~sublibs:[ "ipv4" ] "tcpip" in
   let runtime_args = Runtime_arg.[ v ip; v gateway; v no_init ] in
   let connect _ modname = function
-    | [ _random; _mclock; etif; arp; ip; gateway; no_init ] ->
+    | [ etif; arp; ip; gateway; no_init ] ->
         code ~pos:__POS__
           "%s.connect@[~no_init:%s@ ~cidr:%s@ ?gateway:%s@ %s@ %s@]" modname
           no_init ip gateway etif arp
-    | _ -> connect_err "ipv4 keyed" 7
+    | _ -> connect_err "ipv4 keyed" 5
   in
   impl ~packages_v ~runtime_args ~connect "Static_ipv4.Make"
-    (random @-> mclock @-> ethernet @-> arpv4 @-> ipv4)
+    (ethernet @-> arpv4 @-> ipv4)
 
 let ipv4_dhcp_conf =
   let packages =
     [ package ~min:"1.3.0" ~max:"2.0.0" ~sublibs:[ "mirage" ] "charrua-client" ]
   in
   let connect _ modname = function
-    | [ _random; _mclock; _time; network; ethernet; arp ] ->
+    | [ network; ethernet; arp ] ->
         code ~pos:__POS__ "%s.connect@[@ %s@ %s@ %s@]" modname network ethernet
           arp
-    | _ -> connect_err "ipv4 dhcp" 6
+    | _ -> connect_err "ipv4 dhcp" 3
   in
   impl ~packages ~connect "Dhcp_ipv4.Make"
-    (random @-> mclock @-> time @-> network @-> ethernet @-> arpv4 @-> ipv4)
+    (network @-> ethernet @-> arpv4 @-> ipv4)
 
-let ipv4_of_dhcp ?(random = default_random) ?(clock = default_monotonic_clock)
-    ?(time = default_time) net ethif arp =
-  ipv4_dhcp_conf $ random $ clock $ time $ net $ ethif $ arp
+let ipv4_of_dhcp net ethif arp = ipv4_dhcp_conf $ net $ ethif $ arp
 
-let keyed_create_ipv4 ?group ?config ~no_init ?(random = default_random)
-    ?(clock = default_monotonic_clock) etif arp =
+let keyed_create_ipv4 ?group ?config ~no_init etif arp =
   let network, gateway =
     match config with
     | None -> (Ipaddr.V4.Prefix.of_string_exn "10.0.0.2/24", None)
@@ -71,10 +65,9 @@ let keyed_create_ipv4 ?group ?config ~no_init ?(random = default_random)
   in
   let ip = Runtime_arg.V4.network ?group network
   and gateway = Runtime_arg.V4.gateway ?group gateway in
-  ipv4_keyed_conf ~ip ~gateway ~no_init () $ random $ clock $ etif $ arp
+  ipv4_keyed_conf ~ip ~gateway ~no_init () $ etif $ arp
 
-let create_ipv4 ?group ?config ?(random = default_random)
-    ?(clock = default_monotonic_clock) etif arp =
+let create_ipv4 ?group ?config etif arp =
   let network, gateway =
     match config with
     | None -> (Ipaddr.V4.Prefix.of_string_exn "10.0.0.2/24", None)
@@ -83,7 +76,7 @@ let create_ipv4 ?group ?config ?(random = default_random)
   let ip = Runtime_arg.V4.network ?group network
   and gateway = Runtime_arg.V4.gateway ?group gateway
   and no_init = Runtime_arg.ipv6_only ?group () in
-  ipv4_keyed_conf ~ip ~gateway ~no_init () $ random $ clock $ etif $ arp
+  ipv4_keyed_conf ~ip ~gateway ~no_init () $ etif $ arp
 
 type ipv6_config = {
   network : Ipaddr.V6.Prefix.t;
@@ -94,35 +87,31 @@ type ipv6_config = {
 let ipv4_qubes_conf =
   let packages = [ package ~min:"1.0.0" ~max:"2.0.0" "mirage-qubes-ipv4" ] in
   let connect _ modname = function
-    | [ db; _random; _mclock; etif; arp ] ->
+    | [ db; etif; arp ] ->
         code ~pos:__POS__ "%s.connect@[@ %s@ %s@ %s@]" modname db etif arp
-    | _ -> connect_err "qubes_ipv4" 5
+    | _ -> connect_err "qubes_ipv4" 3
   in
   impl ~packages ~connect "Qubesdb_ipv4.Make"
-    (qubesdb @-> random @-> mclock @-> ethernet @-> arpv4 @-> ipv4)
+    (qubesdb @-> ethernet @-> arpv4 @-> ipv4)
 
-let ipv4_qubes ?(random = default_random) ?(clock = default_monotonic_clock) db
-    ethernet arp =
-  ipv4_qubes_conf $ db $ random $ clock $ ethernet $ arp
+let ipv4_qubes db ethernet arp = ipv4_qubes_conf $ db $ ethernet $ arp
 
 let ipv6_conf ~ip ~gateway ~handle_ra ~no_init () =
   let packages_v = right_tcpip_library ~sublibs:[ "ipv6" ] "tcpip" in
   let runtime_args = Runtime_arg.[ v ip; v gateway; v handle_ra; v no_init ] in
   let connect _ modname = function
-    | [ netif; etif; _random; _time; _clock; ip; gateway; handle_ra; no_init ]
-      ->
+    | [ netif; etif; ip; gateway; handle_ra; no_init ] ->
         code ~pos:__POS__
           "%s.connect@[~no_init:%s@ ~handle_ra:%s@ ?cidr:%s@ ?gateway:%s@ %s@ \
            %s@]"
           modname no_init handle_ra ip gateway netif etif
-    | _ -> connect_err "ipv6" 9
+    | _ -> connect_err "ipv6" 6
   in
 
   impl ~packages_v ~runtime_args ~connect "Ipv6.Make"
-    (network @-> ethernet @-> random @-> time @-> mclock @-> ipv6)
+    (network @-> ethernet @-> ipv6)
 
-let keyed_create_ipv6 ?(random = default_random) ?(time = default_time)
-    ?(clock = default_monotonic_clock) ?group ?config ~no_init netif etif =
+let keyed_create_ipv6 ?group ?config ~no_init netif etif =
   let network, gateway =
     match config with
     | None -> (None, None)
@@ -131,15 +120,9 @@ let keyed_create_ipv6 ?(random = default_random) ?(time = default_time)
   let ip = Runtime_arg.V6.network ?group network
   and gateway = Runtime_arg.V6.gateway ?group gateway
   and handle_ra = Runtime_arg.V6.accept_router_advertisements ?group () in
-  ipv6_conf ~ip ~gateway ~handle_ra ~no_init ()
-  $ netif
-  $ etif
-  $ random
-  $ time
-  $ clock
+  ipv6_conf ~ip ~gateway ~handle_ra ~no_init () $ netif $ etif
 
-let create_ipv6 ?(random = default_random) ?(time = default_time)
-    ?(clock = default_monotonic_clock) ?group ?config netif etif =
+let create_ipv6 ?group ?config netif etif =
   let network, gateway =
     match config with
     | None -> (None, None)
@@ -149,12 +132,7 @@ let create_ipv6 ?(random = default_random) ?(time = default_time)
   and gateway = Runtime_arg.V6.gateway ?group gateway
   and handle_ra = Runtime_arg.V6.accept_router_advertisements ?group ()
   and no_init = Runtime_arg.ipv4_only ?group () in
-  ipv6_conf ~ip ~gateway ~handle_ra ~no_init ()
-  $ netif
-  $ etif
-  $ random
-  $ time
-  $ clock
+  ipv6_conf ~ip ~gateway ~handle_ra ~no_init () $ netif $ etif
 
 let ipv4v6_conf ~ipv4_only ~ipv6_only () =
   let packages_v = right_tcpip_library ~sublibs:[ "stack-direct" ] "tcpip" in

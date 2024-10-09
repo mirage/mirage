@@ -10,11 +10,4 @@ val generic_dns_client :
   ?nameservers:string list ->
   ?cache_size:int ->
   unit ->
-  (Random.random ->
-  Time.time ->
-  Mclock.mclock ->
-  Pclock.pclock ->
-  Stack.stackv4v6 ->
-  Happy_eyeballs.happy_eyeballs ->
-  dns_client)
-  impl
+  (Stack.stackv4v6 -> Happy_eyeballs.happy_eyeballs -> dns_client) impl

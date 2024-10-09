@@ -5,7 +5,6 @@ open Functoria.DSL
 open Functoria.Action
 open Misc
 open Kv
-open Pclock
 open Cmdliner
 
 type block = BLOCK
@@ -116,13 +115,13 @@ let tar_kv_ro_conf =
 let tar_kv_rw_conf =
   let packages = [ package ~min:"2.2.0" ~max:"4.0.0" "tar-mirage" ] in
   let connect _ modname = function
-    | [ _pclock; block ] -> code ~pos:__POS__ "%s.connect %s" modname block
-    | _ -> connect_err "tar_kv_rw" 2
+    | [ block ] -> code ~pos:__POS__ "%s.connect %s" modname block
+    | _ -> connect_err "tar_kv_rw" 1
   in
-  impl ~packages ~connect "Tar_mirage.Make_KV_RW" (pclock @-> block @-> Kv.rw)
+  impl ~packages ~connect "Tar_mirage.Make_KV_RW" (block @-> Kv.rw)
 
 let tar_kv_ro block = tar_kv_ro_conf $ block
-let tar_kv_rw pclock block = tar_kv_rw_conf $ pclock $ block
+let tar_kv_rw block = tar_kv_rw_conf $ block
 
 let fat_conf =
   let packages = [ package ~min:"0.15.0" ~max:"0.16.0" "fat-filesystem" ] in
@@ -312,15 +311,15 @@ let chamelon ~program_block_size =
   let runtime_args = Runtime_arg.[ v program_block_size ] in
   let packages = [ package "chamelon" ~sublibs:[ "kv" ] ~min:"0.0.8" ] in
   let connect _ modname = function
-    | [ block; _; program_block_size ] ->
+    | [ block; program_block_size ] ->
         code ~pos:__POS__
           {ocaml|%s.connect ~program_block_size:%s %s
                  >|= Result.map_error (Fmt.str "%%a" %s.pp_error)
                  >|= Result.fold ~ok:Fun.id ~error:failwith|ocaml}
           modname program_block_size block modname
-    | _ -> connect_err "chameleon" 3
+    | _ -> connect_err "chameleon" 2
   in
-  impl ~packages ~runtime_args ~connect "Kv.Make" (block @-> pclock @-> Kv.rw)
+  impl ~packages ~runtime_args ~connect "Kv.Make" (block @-> Kv.rw)
 
 let ccm_block ?nonce_len key =
   let runtime_args = Runtime_arg.[ v key ] in

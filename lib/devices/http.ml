@@ -1,5 +1,4 @@
 open Functoria.DSL
-open Pclock
 open Misc
 open Conduit
 open Resolver
@@ -33,10 +32,9 @@ let cohttp_client =
     | _ -> connect_err "http" 3
   in
   impl ~packages ~connect "Cohttp_mirage.Client.Make"
-    (pclock @-> resolver @-> conduit @-> http_client)
+    (resolver @-> conduit @-> http_client)
 
-let cohttp_client ?(pclock = default_posix_clock) resolver conduit =
-  cohttp_client $ pclock $ resolver $ conduit
+let cohttp_client resolver conduit = cohttp_client $ resolver $ conduit
 
 let httpaf_server conduit =
   let packages = [ package "httpaf-mirage" ] in
@@ -68,9 +66,9 @@ let alpn_client = typ ALPN_client
 let paf_client =
   let packages = [ package "http-mirage-client" ~min:"0.0.1" ~max:"0.1.0" ] in
   let connect _ modname = function
-    | [ _pclock; _tcpv4v6; ctx ] ->
+    | [ _tcpv4v6; ctx ] ->
         code ~pos:__POS__ {ocaml|%s.connect %s|ocaml} modname ctx
-    | _ -> connect_err "paf_client" 3
+    | _ -> connect_err "paf_client" 2
   in
   impl ~connect ~packages "Http_mirage_client.Make"
-    (pclock @-> tcpv4v6 @-> mimic @-> alpn_client)
+    (tcpv4v6 @-> mimic @-> alpn_client)

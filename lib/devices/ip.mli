@@ -1,10 +1,8 @@
 open Functoria
 open Arp
 open Ethernet
-open Mclock
 open Network
 open Qubesdb
-open Random
 
 type v4
 type v6
@@ -32,8 +30,6 @@ type ipv6_config = {
 val create_ipv4 :
   ?group:string ->
   ?config:ipv4_config ->
-  ?random:random impl ->
-  ?clock:mclock impl ->
   ethernet impl ->
   arpv4 impl ->
   ipv4 impl
@@ -42,16 +38,11 @@ val keyed_create_ipv4 :
   ?group:string ->
   ?config:ipv4_config ->
   no_init:bool runtime_arg ->
-  ?random:random impl ->
-  ?clock:mclock impl ->
   ethernet impl ->
   arpv4 impl ->
   ipv4 impl
 
 val create_ipv6 :
-  ?random:random impl ->
-  ?time:Time.time impl ->
-  ?clock:mclock impl ->
   ?group:string ->
   ?config:ipv6_config ->
   network impl ->
@@ -59,9 +50,6 @@ val create_ipv6 :
   ipv6 impl
 
 val keyed_create_ipv6 :
-  ?random:random impl ->
-  ?time:Time.time impl ->
-  ?clock:mclock impl ->
   ?group:string ->
   ?config:ipv6_config ->
   no_init:bool runtime_arg ->
@@ -69,23 +57,8 @@ val keyed_create_ipv6 :
   ethernet impl ->
   ipv6 impl
 
-val ipv4_of_dhcp :
-  ?random:random impl ->
-  ?clock:mclock impl ->
-  ?time:Time.time impl ->
-  network impl ->
-  ethernet impl ->
-  arpv4 impl ->
-  ipv4 impl
-
-val ipv4_qubes :
-  ?random:random impl ->
-  ?clock:mclock impl ->
-  qubesdb impl ->
-  ethernet impl ->
-  arpv4 impl ->
-  ipv4 impl
-
+val ipv4_of_dhcp : network impl -> ethernet impl -> arpv4 impl -> ipv4 impl
+val ipv4_qubes : qubesdb impl -> ethernet impl -> arpv4 impl -> ipv4 impl
 val create_ipv4v6 : ?group:string -> ipv4 impl -> ipv6 impl -> ipv4v6 impl
 
 val keyed_ipv4v6 :

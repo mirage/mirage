@@ -5,9 +5,6 @@ type stackv4v6
 val stackv4v6 : stackv4v6 typ
 
 val keyed_direct_stackv4v6 :
-  ?mclock:Mclock.mclock impl ->
-  ?random:Random.random impl ->
-  ?time:Time.time impl ->
   ?tcp:Tcp.tcpv4v6 impl ->
   ipv4_only:bool runtime_arg ->
   ipv6_only:bool runtime_arg ->
@@ -20,9 +17,6 @@ val keyed_direct_stackv4v6 :
 
 val direct_stackv4v6 :
   ?group:string ->
-  ?mclock:Mclock.mclock impl ->
-  ?random:Random.random impl ->
-  ?time:Time.time impl ->
   ?tcp:Tcp.tcpv4v6 impl ->
   Network.network impl ->
   Ethernet.ethernet impl ->

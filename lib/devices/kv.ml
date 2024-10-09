@@ -73,13 +73,10 @@ let direct_kv_rw dirname =
   in
   impl ~packages ~connect "Mirage_kv_unix" rw
 
-let mem_kv_rw_config =
+let mem_kv_rw () =
   let packages = [ package ~min:"3.0.0" ~max:"4.0.0" "mirage-kv-mem" ] in
   let connect _ modname _names = code ~pos:__POS__ "%s.connect ()" modname in
-  impl ~packages ~connect "Mirage_kv_mem.Make" (Pclock.pclock @-> rw)
-
-let mem_kv_rw ?(clock = Pclock.default_posix_clock) () =
-  mem_kv_rw_config $ clock
+  impl ~packages ~connect "Mirage_kv_mem" rw
 
 (** generic kv_ro. *)
 

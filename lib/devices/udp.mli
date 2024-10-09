@@ -7,7 +7,7 @@ val udp : 'a udp typ
 type udpv4v6 = Ip.v4v6 udp
 
 val udpv4v6 : udpv4v6 typ
-val direct_udp : ?random:Random.random impl -> 'a Ip.ip impl -> 'a udp impl
+val direct_udp : 'a Ip.ip impl -> 'a udp impl
 
 val socket_udpv4v6 :
   ?group:string -> Ipaddr.V4.t option -> Ipaddr.V6.t option -> udpv4v6 impl

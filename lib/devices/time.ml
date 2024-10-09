@@ -3,26 +3,14 @@ open Functoria.DSL
 type time = TIME
 
 let time = typ TIME
+let no_time = impl "Mirage_runtime" time
 
-let default_time =
-  let unix_time =
-    impl ~packages:[ package "mirage-time" ] "Unix_os.Time" time
+let impl sublib =
+  let packages =
+    [ package ~min:"4.0.0" ~max:"5.0.0" ~sublibs:[ ""; sublib ] "mirage-time" ]
   in
-  let solo5_time =
-    impl ~packages:[ package "mirage-time" ] "Solo5_os.Time" time
-  in
-  let xen_time = impl ~packages:[ package "mirage-time" ] "Xen_os.Time" time in
-  match_impl
-    Key.(value target)
-    [
-      (`Unix, unix_time);
-      (`MacOSX, unix_time);
-      (`Xen, xen_time);
-      (`Qubes, xen_time);
-      (`Virtio, solo5_time);
-      (`Hvt, solo5_time);
-      (`Spt, solo5_time);
-      (`Muen, solo5_time);
-      (`Genode, solo5_time);
-    ]
-    ~default:unix_time
+  impl ~packages "Mirage_time" time
+
+let time_unix = impl "unix"
+let time_solo5 = impl "solo5"
+let default_time = if_impl Key.is_unix time_unix time_solo5

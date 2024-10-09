@@ -2,17 +2,13 @@ open Functoria.DSL
 open Arp
 open Ethernet
 open Ip
-open Mclock
 open Misc
 open Network
 open Qubesdb
-open Random
 open Tcp
-open Time
 open Udp
 
-let dhcp_ipv4 ?random ?clock ?time tap e a =
-  ipv4_of_dhcp ?random ?clock ?time tap e a
+let dhcp_ipv4 tap e a = ipv4_of_dhcp tap e a
 
 let static_ipv4 ?group ?config ~no_init e a =
   keyed_create_ipv4 ?group ?config ~no_init e a
@@ -28,15 +24,13 @@ let stackv4v6 = typ STACKV4V6
 let stackv4v6_direct_conf () =
   let packages_v = right_tcpip_library ~sublibs:[ "stack-direct" ] "tcpip" in
   let connect _i modname = function
-    | [ _t; _r; interface; ethif; arp; ipv4v6; icmpv4; udp; tcp ] ->
+    | [ interface; ethif; arp; ipv4v6; icmpv4; udp; tcp ] ->
         code ~pos:__POS__ "%s.connect %s %s %s %s %s %s %s" modname interface
           ethif arp ipv4v6 icmpv4 udp tcp
-    | _ -> connect_err "direct stack" 9
+    | _ -> connect_err "direct stack" 7
   in
   impl ~packages_v ~connect "Tcpip_stack_direct.MakeV4V6"
-    (time
-    @-> random
-    @-> network
+    (network
     @-> ethernet
     @-> arpv4
     @-> ipv4v6
@@ -45,42 +39,32 @@ let stackv4v6_direct_conf () =
     @-> tcp
     @-> stackv4v6)
 
-let direct_stackv4v6 ?group ?(mclock = default_monotonic_clock)
-    ?(random = default_random) ?(time = default_time) ?tcp network eth arp ipv4
-    ipv6 =
+let direct_stackv4v6 ?group ?tcp network eth arp ipv4 ipv6 =
   let ipv4_only = Runtime_arg.ipv4_only ?group ()
   and ipv6_only = Runtime_arg.ipv6_only ?group () in
   let ip = keyed_ipv4v6 ~ipv4_only ~ipv6_only ipv4 ipv6 in
   stackv4v6_direct_conf ()
-  $ time
-  $ random
   $ network
   $ eth
   $ arp
   $ ip
   $ Icmp.direct_icmpv4 ipv4
-  $ direct_udp ~random ip
-  $
-  match tcp with None -> direct_tcp ~mclock ~random ~time ip | Some tcp -> tcp
+  $ direct_udp ip
+  $ match tcp with None -> direct_tcp ip | Some tcp -> tcp
 
-let keyed_direct_stackv4v6 ?(mclock = default_monotonic_clock)
-    ?(random = default_random) ?(time = default_time) ?tcp ~ipv4_only ~ipv6_only
-    network eth arp ipv4 ipv6 =
+let keyed_direct_stackv4v6 ?tcp ~ipv4_only ~ipv6_only network eth arp ipv4 ipv6
+    =
   let ip = keyed_ipv4v6 ~ipv4_only ~ipv6_only ipv4 ipv6 in
   stackv4v6_direct_conf ()
-  $ time
-  $ random
   $ network
   $ eth
   $ arp
   $ ip
   $ Icmp.direct_icmpv4 ipv4
-  $ direct_udp ~random ip
-  $
-  match tcp with None -> direct_tcp ~mclock ~random ~time ip | Some tcp -> tcp
+  $ direct_udp ip
+  $ match tcp with None -> direct_tcp ip | Some tcp -> tcp
 
-let static_ipv4v6_stack ?group ?ipv6_config ?ipv4_config ?(arp = arp ?time:None)
-    ?tcp tap =
+let static_ipv4v6_stack ?group ?ipv6_config ?ipv4_config ?(arp = arp) ?tcp tap =
   let ipv4_only = Runtime_arg.ipv4_only ?group ()
   and ipv6_only = Runtime_arg.ipv6_only ?group () in
   let e = ethif tap in
@@ -89,8 +73,8 @@ let static_ipv4v6_stack ?group ?ipv6_config ?ipv4_config ?(arp = arp ?time:None)
   let i6 = create_ipv6 ?group ?config:ipv6_config tap e in
   keyed_direct_stackv4v6 ~ipv4_only ~ipv6_only ?tcp tap e a i4 i6
 
-let generic_ipv4v6_stack p ?group ?ipv6_config ?ipv4_config
-    ?(arp = arp ?time:None) ?tcp tap =
+let generic_ipv4v6_stack p ?group ?ipv6_config ?ipv4_config ?(arp = arp) ?tcp
+    tap =
   let ipv4_only = Runtime_arg.ipv4_only ?group ()
   and ipv6_only = Runtime_arg.ipv6_only ?group () in
   let e = ethif tap in

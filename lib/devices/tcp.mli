@@ -7,13 +7,7 @@ val tcp : 'a tcp typ
 type tcpv4v6 = Ip.v4v6 tcp
 
 val tcpv4v6 : tcpv4v6 typ
-
-val direct_tcp :
-  ?mclock:Mclock.mclock impl ->
-  ?time:Time.time impl ->
-  ?random:Random.random impl ->
-  'a Ip.ip impl ->
-  'a tcp impl
+val direct_tcp : 'a Ip.ip impl -> 'a tcp impl
 
 val socket_tcpv4v6 :
   ?group:string -> Ipaddr.V4.t option -> Ipaddr.V6.t option -> tcpv4v6 impl

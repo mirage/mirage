@@ -1,8 +1,8 @@
 open Functoria.DSL
 
-type random = RANDOM
+type random = job
 
-let random = typ RANDOM
+let random = Functoria.job
 
 let default_random =
   let packages =

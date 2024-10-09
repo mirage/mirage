@@ -1,6 +1,6 @@
 open Functoria
 
-type random
+type random = job
 
 val random : random typ
 val default_random : random impl

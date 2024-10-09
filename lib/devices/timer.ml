@@ -1,8 +1,8 @@
 open Functoria.DSL
 
-type timer = TIMER
+type timer = job
 
-let timer = typ TIMER
+let timer = Functoria.job
 let no_timer = impl "Mirage_runtime" timer
 
 let impl sublib =

@@ -1,6 +1,6 @@
 open Functoria
 
-type timer
+type timer = job
 
 val timer : timer typ
 val default_timer : timer impl

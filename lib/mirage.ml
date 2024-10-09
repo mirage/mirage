@@ -500,10 +500,10 @@ let register ?(argv = default_argv) ?(reporter = default_reporter ())
     Some first
     ++ Some delay_startup
     ++ reporter
-    ++ Some (Obj.magic timer)
-    ++ Some (Obj.magic clock)
-    ++ Some (Obj.magic time)
-    ++ Some (Obj.magic random)
+    ++ Some timer
+    ++ Some clock
+    ++ Some time
+    ++ Some random
   in
   register ?init ?src name jobs
 

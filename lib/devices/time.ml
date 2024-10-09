@@ -1,8 +1,8 @@
 open Functoria.DSL
 
-type time = TIME
+type time = job
 
-let time = typ TIME
+let time = Functoria.job
 let no_time = impl "Mirage_runtime" time
 
 let impl sublib =

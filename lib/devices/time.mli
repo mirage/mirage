@@ -1,6 +1,6 @@
 open Functoria
 
-type time
+type time = job
 
 val time : time typ
 val default_time : time impl

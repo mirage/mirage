@@ -1085,15 +1085,19 @@ val register :
   string ->
   job impl list ->
   unit
-(** [register name jobs] registers the application named by [name] which will
-    executes the given [jobs].
+(** [register ~argv ~reporter ~src name jobs] registers the application named by
+    [name] which will executes the given [jobs].
 
     @param reporter
       Configure logging. The default log reporter is {!default_reporter}. To
       disable logging, use {!no_reporter}.
     @param argv
       Configure command-line argument parsing. The default parser is
-      {!default_argv}. To disable command-line parsing, use {!no_argv}. *)
+      {!default_argv}. To disable command-line parsing, use {!no_argv}.
+    @param src
+      The source to use in the generated opam file. If [`None] no source is
+      output. If [`Some mysource] the string [mysource] is used as the source.
+      If [`Auto] (default) the is guessed from the VCS information. *)
 
 module Type = Functoria.Type
 module Impl = Functoria.Impl

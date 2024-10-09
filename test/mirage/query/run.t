@@ -29,9 +29,12 @@ Query opam file
     "lwt" { ?monorepo }
     "mirage" { build & >= "4.8.0" & < "4.9.0" }
     "mirage-bootvar" { ?monorepo & >= "1.0.0" & < "2.0.0" }
-    "mirage-clock-unix" { ?monorepo & >= "3.0.0" & < "5.0.0" }
+    "mirage-clock" { ?monorepo & >= "5.0.0" & < "6.0.0" }
+    "mirage-crypto-rng-mirage" { ?monorepo & >= "1.0.0" & < "2.0.0" }
     "mirage-logs" { ?monorepo & >= "2.0.0" & < "3.0.0" }
     "mirage-runtime" { ?monorepo & >= "4.8.0" & < "4.9.0" }
+    "mirage-time" { ?monorepo & >= "4.0.0" & < "5.0.0" }
+    "mirage-timer" { ?monorepo & >= "1.0.0" & < "2.0.0" }
     "mirage-unix" { ?monorepo & >= "5.0.0" & < "6.0.0" }
     "opam-monorepo" { build & >= "0.3.2" }
   ]
@@ -57,9 +60,12 @@ Query packages
   "lwt" { ?monorepo }
   "mirage" { build & >= "4.8.0" & < "4.9.0" }
   "mirage-bootvar" { ?monorepo & >= "1.0.0" & < "2.0.0" }
-  "mirage-clock-unix" { ?monorepo & >= "3.0.0" & < "5.0.0" }
+  "mirage-clock" { ?monorepo & >= "5.0.0" & < "6.0.0" }
+  "mirage-crypto-rng-mirage" { ?monorepo & >= "1.0.0" & < "2.0.0" }
   "mirage-logs" { ?monorepo & >= "2.0.0" & < "3.0.0" }
   "mirage-runtime" { ?monorepo & >= "4.8.0" & < "4.9.0" }
+  "mirage-time" { ?monorepo & >= "4.0.0" & < "5.0.0" }
+  "mirage-timer" { ?monorepo & >= "1.0.0" & < "2.0.0" }
   "mirage-unix" { ?monorepo & >= "5.0.0" & < "6.0.0" }
   "opam-monorepo" { build & >= "0.3.2" }
 
@@ -262,8 +268,9 @@ Query unikernel dune
   
   (executable
    (name main)
-   (libraries duration lwt mirage-bootvar mirage-bootvar.unix
-     mirage-clock-unix mirage-logs mirage-runtime mirage-unix)
+   (libraries duration lwt mirage-bootvar mirage-bootvar.unix mirage-clock
+     mirage-clock.unix mirage-crypto-rng-mirage mirage-logs mirage-runtime
+     mirage-time mirage-time.unix mirage-timer mirage-timer.unix mirage-unix)
    (link_flags (-thread))
    (modules (:standard \ config))
    (flags :standard -w -70)

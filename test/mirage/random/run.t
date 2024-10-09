@@ -99,7 +99,7 @@ Configure the project for Unix:
   
   # 78 "mirage/main.ml"
   
-  module App_make__12 = App.Make(Mirage_crypto_rng_mirage)
+  module App_make__13 = App.Make(Unit)
   
   let mirage_bootvar__1 = lazy (
   # 15 "lib/devices/argv.ml"
@@ -196,15 +196,20 @@ Configure the project for Unix:
   );;
   # 175 "mirage/main.ml"
   
-  let app_make__12 = lazy (
-    let __mirage_crypto_rng_mirage__11 = Lazy.force mirage_crypto_rng_mirage__11 in
-    __mirage_crypto_rng_mirage__11 >>= fun _mirage_crypto_rng_mirage__11 ->
-  # 3 "config.ml"
-    (App_make__12.start _mirage_crypto_rng_mirage__11 : unit io)
+  let unit__12 = lazy (
+    return ()
   );;
-  # 183 "mirage/main.ml"
+  # 180 "mirage/main.ml"
   
-  let mirage_runtime__13 = lazy (
+  let app_make__13 = lazy (
+    let __unit__12 = Lazy.force unit__12 in
+    __unit__12 >>= fun _unit__12 ->
+  # 3 "config.ml"
+    (App_make__13.start _unit__12 : unit io)
+  );;
+  # 188 "mirage/main.ml"
+  
+  let mirage_runtime__14 = lazy (
     let __struct_end__2 = Lazy.force struct_end__2 in
     let __printexc__3 = Lazy.force printexc__3 in
     let __hashtbl__4 = Lazy.force hashtbl__4 in
@@ -215,7 +220,7 @@ Configure the project for Unix:
     let __mirage_clock__9 = Lazy.force mirage_clock__9 in
     let __mirage_time__10 = Lazy.force mirage_time__10 in
     let __mirage_crypto_rng_mirage__11 = Lazy.force mirage_crypto_rng_mirage__11 in
-    let __app_make__12 = Lazy.force app_make__12 in
+    let __app_make__13 = Lazy.force app_make__13 in
     __struct_end__2 >>= fun _struct_end__2 ->
     __printexc__3 >>= fun _printexc__3 ->
     __hashtbl__4 >>= fun _hashtbl__4 ->
@@ -226,11 +231,11 @@ Configure the project for Unix:
     __mirage_clock__9 >>= fun _mirage_clock__9 ->
     __mirage_time__10 >>= fun _mirage_time__10 ->
     __mirage_crypto_rng_mirage__11 >>= fun _mirage_crypto_rng_mirage__11 ->
-    __app_make__12 >>= fun _app_make__12 ->
+    __app_make__13 >>= fun _app_make__13 ->
   # 377 "lib/mirage.ml"
     return ()
   );;
-  # 211 "mirage/main.ml"
+  # 216 "mirage/main.ml"
   
   let () =
     let t = Lazy.force struct_end__2 >>= fun _ ->
@@ -243,7 +248,7 @@ Configure the project for Unix:
     Lazy.force mirage_clock__9 >>= fun _ ->
     Lazy.force mirage_time__10 >>= fun _ ->
     Lazy.force mirage_crypto_rng_mirage__11 >>= fun _ ->
-    Lazy.force mirage_runtime__13 in
+    Lazy.force mirage_runtime__14 in
     run t
   ;;
 
@@ -356,7 +361,7 @@ Configure the project for Xen:
   
   # 78 "mirage/main.ml"
   
-  module App_make__12 = App.Make(Mirage_crypto_rng_mirage)
+  module App_make__13 = App.Make(Unit)
   
   let mirage_bootvar__1 = lazy (
   # 15 "lib/devices/argv.ml"
@@ -453,15 +458,20 @@ Configure the project for Xen:
   );;
   # 175 "mirage/main.ml"
   
-  let app_make__12 = lazy (
-    let __mirage_crypto_rng_mirage__11 = Lazy.force mirage_crypto_rng_mirage__11 in
-    __mirage_crypto_rng_mirage__11 >>= fun _mirage_crypto_rng_mirage__11 ->
-  # 3 "config.ml"
-    (App_make__12.start _mirage_crypto_rng_mirage__11 : unit io)
+  let unit__12 = lazy (
+    return ()
   );;
-  # 183 "mirage/main.ml"
+  # 180 "mirage/main.ml"
   
-  let mirage_runtime__13 = lazy (
+  let app_make__13 = lazy (
+    let __unit__12 = Lazy.force unit__12 in
+    __unit__12 >>= fun _unit__12 ->
+  # 3 "config.ml"
+    (App_make__13.start _unit__12 : unit io)
+  );;
+  # 188 "mirage/main.ml"
+  
+  let mirage_runtime__14 = lazy (
     let __struct_end__2 = Lazy.force struct_end__2 in
     let __printexc__3 = Lazy.force printexc__3 in
     let __hashtbl__4 = Lazy.force hashtbl__4 in
@@ -472,7 +482,7 @@ Configure the project for Xen:
     let __mirage_clock__9 = Lazy.force mirage_clock__9 in
     let __mirage_time__10 = Lazy.force mirage_time__10 in
     let __mirage_crypto_rng_mirage__11 = Lazy.force mirage_crypto_rng_mirage__11 in
-    let __app_make__12 = Lazy.force app_make__12 in
+    let __app_make__13 = Lazy.force app_make__13 in
     __struct_end__2 >>= fun _struct_end__2 ->
     __printexc__3 >>= fun _printexc__3 ->
     __hashtbl__4 >>= fun _hashtbl__4 ->
@@ -483,11 +493,11 @@ Configure the project for Xen:
     __mirage_clock__9 >>= fun _mirage_clock__9 ->
     __mirage_time__10 >>= fun _mirage_time__10 ->
     __mirage_crypto_rng_mirage__11 >>= fun _mirage_crypto_rng_mirage__11 ->
-    __app_make__12 >>= fun _app_make__12 ->
+    __app_make__13 >>= fun _app_make__13 ->
   # 377 "lib/mirage.ml"
     return ()
   );;
-  # 211 "mirage/main.ml"
+  # 216 "mirage/main.ml"
   
   let () =
     let t = Lazy.force struct_end__2 >>= fun _ ->
@@ -500,7 +510,7 @@ Configure the project for Xen:
     Lazy.force mirage_clock__9 >>= fun _ ->
     Lazy.force mirage_time__10 >>= fun _ ->
     Lazy.force mirage_crypto_rng_mirage__11 >>= fun _ ->
-    Lazy.force mirage_runtime__13 in
+    Lazy.force mirage_runtime__14 in
     run t
   ;;
 

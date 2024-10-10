@@ -67,7 +67,7 @@ Describe before configure (no eval)
                 50 [label="pclock__50\nPclock\n", shape="box"];
                 51 [label="mirage_logs_make__51\nMirage_logs.Make\n", shape="box"];
                 52 [label="mirage_runtime__52\nMirage_runtime\n", shape="box"];
-                53 [label="mirage_runtime__53\nMirage_runtime\n", shape="box"];
+                53 [label="cmdliner_stdlib__53\nCmdliner_stdlib\n", shape="box"];
                 54 [label="mirage_bootvar__54\nMirage_bootvar\n", shape="box"];
                 55 [label="mirage_bootvar__55\nMirage_bootvar\n", shape="box"];
                 56 [label="mirage_bootvar__56\nMirage_bootvar\n", shape="box"];

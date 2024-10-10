@@ -403,11 +403,17 @@ let runtime_args argv =
   Functoria.runtime_args ~runtime_package:(package "mirage-runtime")
     ~runtime_modname:"Mirage_runtime" argv
 
-let ocaml_runtime_args =
-  let connect _ _ _ =
-    code ~pos:__POS__ "return (Mirage_runtime.configure_ocaml_runtime ())"
+let ocaml_runtime =
+  let packages = [ package ~min:"1.0.0" ~max:"2.0.0" "cmdliner-stdlib" ] in
+  let runtime_args =
+    [
+      Runtime_arg.v
+        (Runtime_arg.create ~pos:__POS__
+           "Cmdliner_stdlib.setup ~backtrace:(Some true) \
+            ~randomize_hashtables:(Some true) ()");
+    ]
   in
-  impl ~connect "Mirage_runtime" job
+  impl ~packages ~runtime_args "Cmdliner_stdlib" job
 
 let ( ++ ) acc x =
   match (acc, x) with
@@ -423,7 +429,7 @@ let register ?(argv = default_argv) ?(reporter = default_reporter ()) ?src name
        dependency in your config.ml: use `let main = Mirage.main \
        \"Unikernel.hello\" (job @-> job) register \"hello\" [ main $ noop ]` \
        instead of `.. job .. [ main ]`.";
-  let first = [ runtime_args argv; ocaml_runtime_args ] in
+  let first = [ runtime_args argv; ocaml_runtime ] in
   let reporter = if reporter == no_reporter then None else Some reporter in
   let init = Some first ++ Some delay_startup ++ reporter in
   register ?init ?src name jobs

@@ -36,10 +36,6 @@ val logs : log_threshold list Term.t
 module Conv : sig
   val log_threshold : log_threshold Cmdliner.Arg.conv
   (** [log_threshold] converts log reporter threshold. *)
-
-  val allocation_policy :
-    [ `Next_fit | `First_fit | `Best_fit ] Cmdliner.Arg.conv
-  (** [allocation_policy] converts allocation policy. *)
 end
 
 (** {2 Manpage sections} *)
@@ -107,10 +103,6 @@ val argument_error : int
 
 val help_version : int
 (** [help_version] is the exit code used when help/version is used: 63. *)
-
-val configure_ocaml_runtime : unit -> unit
-(** [configure_ocaml_runtime ()] uses boot arguments to configure the OCaml
-    runtime (GC settings, backtrace, hashtable randomization). *)
 
 val register_arg : 'a Cmdliner.Term.t -> unit -> 'a
 (** [register_arg term] registers term to be evaluated at boot time. An example

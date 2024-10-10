@@ -16,9 +16,6 @@
 
 open Cmdliner
 
-let register = Functoria_runtime.register_arg
-let register_arg = Functoria_runtime.register_arg
-
 (* The order of the argument sections in the manpage can be enforced in the call to [with_argv] *)
 let s_net = "NETWORK OPTIONS"
 let s_log = "LOG AND MONITORING OPTIONS"
@@ -62,193 +59,7 @@ module Conv = struct
       | `Src s, l -> Format.fprintf ppf "%s:%s" s (Logs.level_to_string l)
     in
     Arg.conv (parser, serialize)
-
-  let allocation_policy, allocation_policy_doc_alts =
-    let enum =
-      [
-        ("next-fit", `Next_fit);
-        ("first-fit", `First_fit);
-        ("best-fit", `Best_fit);
-      ]
-    in
-    (Arg.enum enum, Arg.doc_alts_enum enum)
 end
-
-module OCaml = struct
-  let backtrace =
-    let doc =
-      "Trigger the printing of a stack backtrace when an uncaught exception \
-       aborts the unikernel."
-    in
-    let doc = Arg.info ~docs:s_ocaml ~docv:"BOOL" ~doc [ "backtrace" ] in
-    register_arg Arg.(value & opt bool true doc)
-
-  let randomize_hashtables =
-    let doc = "Turn on randomization of all hash tables by default." in
-    let doc =
-      Arg.info ~docs:s_ocaml ~docv:"BOOL" ~doc [ "randomize-hashtables" ]
-    in
-    register_arg Arg.(value & opt bool true doc)
-
-  let allocation_policy =
-    let doc =
-      Printf.sprintf
-        "The policy used for allocating in the OCaml heap. Possible values \
-         are: %s. Best-fit is only supported since OCaml 4.10."
-        Conv.allocation_policy_doc_alts
-    in
-    let doc =
-      Arg.info ~docs:s_ocaml ~docv:"ALLOCATION" ~doc [ "allocation-policy" ]
-    in
-    register_arg Arg.(value & opt Conv.allocation_policy `Best_fit doc)
-
-  let minor_heap_size =
-    let doc = "The size of the minor heap (in words). Default: 256k." in
-    let doc =
-      Arg.info ~docs:s_ocaml ~docv:"MINOR SIZE" ~doc [ "minor-heap-size" ]
-    in
-    register_arg Arg.(value & opt (some int) None doc)
-
-  let major_heap_increment =
-    let doc =
-      "The size increment for the major heap (in words). If less than or equal \
-       1000, it is a percentage of the current heap size. If more than 1000, \
-       it is a fixed number of words. Default: 15."
-    in
-    let doc =
-      Arg.info ~docs:s_ocaml ~docv:"MAJOR INCREMENT" ~doc
-        [ "major-heap-increment" ]
-    in
-    register_arg Arg.(value & opt (some int) None doc)
-
-  let space_overhead =
-    let doc =
-      "The percentage of live data of wasted memory, due to GC does not \
-       immediately collect unreachable blocks. The major GC speed is computed \
-       from this parameter, it will work more if smaller. Default: 80."
-    in
-    let doc =
-      Arg.info ~docs:s_ocaml ~docv:"SPACE OVERHEAD" ~doc [ "space-overhead" ]
-    in
-    register_arg Arg.(value & opt (some int) None doc)
-
-  let max_space_overhead =
-    let doc =
-      "Heap compaction is triggered when the estimated amount of wasted memory \
-       exceeds this (percentage of live data). If above 1000000, compaction is \
-       never triggered. Default: 500."
-    in
-    let doc =
-      Arg.info ~docs:s_ocaml ~docv:"MAX SPACE OVERHEAD" ~doc
-        [ "max-space-overhead" ]
-    in
-    register_arg Arg.(value & opt (some int) None doc)
-
-  let gc_verbosity =
-    let doc =
-      "GC messages on standard error output. Sum of flags. Check GC module \
-       documentation for details."
-    in
-    let doc =
-      Arg.info ~docs:s_ocaml ~docv:"VERBOSITY" ~doc [ "gc-verbosity" ]
-    in
-    register_arg Arg.(value & opt (some int) None doc)
-
-  let gc_window_size =
-    let doc =
-      "The size of the window used by the major GC for smoothing out \
-       variations in its workload. Between 1 adn 50, default: 1."
-    in
-    let doc =
-      Arg.info ~docs:s_ocaml ~docv:"WINDOW SIZE" ~doc [ "gc-window-size" ]
-    in
-    register_arg Arg.(value & opt (some int) None doc)
-
-  let custom_major_ratio =
-    let doc =
-      "Target ratio of floating garbage to major heap size for out-of-heap \
-       memory held by custom values. Default: 44."
-    in
-    let doc =
-      Arg.info ~docs:s_ocaml ~docv:"CUSTOM MAJOR RATIO" ~doc
-        [ "custom-major-ratio" ]
-    in
-    register_arg Arg.(value & opt (some int) None doc)
-
-  let custom_minor_ratio =
-    let doc =
-      "Bound on floating garbage for out-of-heap memory held by custom values \
-       in the minor heap. Default: 100."
-    in
-    let doc =
-      Arg.info ~docs:s_ocaml ~docv:"CUSTOM MINOR RATIO" ~doc
-        [ "custom-minor-ratio" ]
-    in
-    register_arg Arg.(value & opt (some int) None doc)
-
-  let custom_minor_max_size =
-    let doc =
-      "Maximum amount of out-of-heap memory for each custom value allocated in \
-       the minor heap. Default: 8192 bytes."
-    in
-    let doc =
-      Arg.info ~docs:s_ocaml ~docv:"CUSTOM MINOR MAX SIZE" ~doc
-        [ "custom-minor-max-size" ]
-    in
-    register_arg Arg.(value & opt (some int) None doc)
-
-  let set_gc allocation_policy minor_heap_size major_heap_increment
-      space_overhead max_overhead verbose window_size custom_major_ratio
-      custom_minor_ratio custom_minor_max_size =
-    let ctrl = Gc.get () in
-    let allocation_policy =
-      match allocation_policy with
-      | `Next_fit -> 0
-      | `First_fit -> 1
-      | `Best_fit -> 2
-    and minor_heap_size =
-      Option.value ~default:ctrl.minor_heap_size minor_heap_size
-    and major_heap_increment =
-      Option.value ~default:ctrl.major_heap_increment major_heap_increment
-    and space_overhead =
-      Option.value ~default:ctrl.space_overhead space_overhead
-    and max_overhead = Option.value ~default:ctrl.max_overhead max_overhead
-    and verbose = Option.value ~default:ctrl.verbose verbose
-    and window_size = Option.value ~default:ctrl.window_size window_size
-    and custom_major_ratio =
-      Option.value ~default:ctrl.custom_major_ratio custom_major_ratio
-    and custom_minor_ratio =
-      Option.value ~default:ctrl.custom_minor_ratio custom_minor_ratio
-    and custom_minor_max_size =
-      Option.value ~default:ctrl.custom_minor_max_size custom_minor_max_size
-    in
-    Gc.set
-      {
-        ctrl with
-        allocation_policy;
-        minor_heap_size;
-        major_heap_increment;
-        space_overhead;
-        max_overhead;
-        verbose;
-        window_size;
-        custom_major_ratio;
-        custom_minor_ratio;
-        custom_minor_max_size;
-      }
-
-  let connect () =
-    let set_backtrace doit = Printexc.record_backtrace doit
-    and set_randomize_hashtables doit = if doit then Hashtbl.randomize () in
-    set_backtrace (backtrace ());
-    set_randomize_hashtables (randomize_hashtables ());
-    set_gc (allocation_policy ()) (minor_heap_size ()) (major_heap_increment ())
-      (space_overhead ()) (max_space_overhead ()) (gc_verbosity ())
-      (gc_window_size ()) (custom_major_ratio ()) (custom_minor_ratio ())
-      (custom_minor_max_size ())
-end
-
-let configure_ocaml_runtime () = OCaml.connect ()
 
 let logs =
   let docs = s_log in
@@ -315,5 +126,7 @@ let with_argv =
       [ Manpage.s_arguments; Manpage.s_options; s_net; s_log; s_disk; s_ocaml ]
 
 let runtime_args = Functoria_runtime.runtime_args
+let register = Functoria_runtime.register_arg
+let register_arg = Functoria_runtime.register_arg
 let argument_error = Functoria_runtime.argument_error
 let help_version = Functoria_runtime.help_version

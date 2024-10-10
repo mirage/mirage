@@ -192,13 +192,20 @@ let custom_minor_max_size =
   Arg.(value & opt (some int) None doc)
 
 let logs =
+  let enum =
+    List.map
+      (fun v -> (Logs.level_to_string v, v))
+      Logs.[ None; Some App; Some Error; Some Warning; Some Info; Some Debug ]
+  in
   let docs = s_log in
   let logs = Arg.list Conv.log_threshold in
   let doc =
-    "Be more or less verbose. $(docv) must be of the form \
-     $(b,*:info,foo:debug) means that that the log threshold is set to \
-     $(b,info) for every log sources but the $(b,foo) which is set to \
-     $(b,debug)."
+    Printf.sprintf
+      "Be more or less verbose. $(docv) must be of the form \
+       $(b,*:info,foo:debug) means that that the log threshold is set to \
+       $(b,info) for every log sources but the $(b,foo) which is set to \
+       $(b,debug). The log level must be %s."
+      (Arg.doc_alts_enum enum)
   in
   let doc = Arg.info ~docv:"LEVEL" ~doc ~docs [ "l"; "logs" ] in
   Arg.(value & opt logs [] doc)

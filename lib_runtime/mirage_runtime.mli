@@ -55,37 +55,6 @@ val s_log : string
 val s_ocaml : string
 (** [s_ocaml] is used for OCaml runtime keys. *)
 
-(** {2 OCaml runtime keys}
-
-    The OCaml runtime is usually configurable via the [OCAMLRUNPARAM]
-    environment variable. We provide boot parameters covering these options. *)
-
-val backtrace : bool Term.t
-(** [--backtrace]: Output a backtrace if an uncaught exception terminated the
-    unikernel. *)
-
-val randomize_hashtables : bool Term.t
-(** [--randomize-hashtables]: Randomize all hash tables. *)
-
-(** {3 GC control}
-
-    The OCaml garbage collector can be configured, as described in detail in
-    {{:http://caml.inria.fr/pub/docs/manual-ocaml/libref/Gc.html#TYPEcontrol} GC
-      control}.
-
-    The following Term.ts allow boot time configuration. *)
-
-val allocation_policy : [ `Next_fit | `First_fit | `Best_fit ] Term.t
-val minor_heap_size : int option Term.t
-val major_heap_increment : int option Term.t
-val space_overhead : int option Term.t
-val max_space_overhead : int option Term.t
-val gc_verbosity : int option Term.t
-val gc_window_size : int option Term.t
-val custom_major_ratio : int option Term.t
-val custom_minor_ratio : int option Term.t
-val custom_minor_max_size : int option Term.t
-
 (** {3 Blocks} *)
 
 val disk : string Term.t
@@ -139,6 +108,16 @@ val argument_error : int
 val help_version : int
 (** [help_version] is the exit code used when help/version is used: 63. *)
 
+val configure_ocaml_runtime : unit -> unit
+(** [configure_ocaml_runtime ()] uses boot arguments to configure the OCaml
+    runtime (GC settings, backtrace, hashtable randomization). *)
+
+val register_arg : 'a Cmdliner.Term.t -> unit -> 'a
+(** [register_arg term] registers term to be evaluated at boot time. An example
+    is: [let hello = register_arg <myterm>] (at the toplevel of the unikernel),
+    and in the unikernel code
+    [Logs.info (fun m -> m "hello argument is: %s" (hello ()))]. *)
+
 (** / *)
 
 val with_argv : unit Cmdliner.Term.t list -> string -> string array -> unit
@@ -146,5 +125,3 @@ val runtime_args : unit -> unit Cmdliner.Term.t list
 
 val register : 'a Cmdliner.Term.t -> unit -> 'a
 [@@ocaml.deprecated "Use Mirage_runtime.register_arg instead."]
-
-val register_arg : 'a Cmdliner.Term.t -> unit -> 'a

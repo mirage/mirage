@@ -397,100 +397,17 @@ end
 include Lib.Make (Project)
 module Tool = Tool.Make (Project)
 
-let backtrace =
-  let runtime_args = Runtime_arg.[ v backtrace ] in
-  let connect _ _ = function
-    | [ backtrace ] ->
-        code ~pos:__POS__ "return (Printexc.record_backtrace %s)" backtrace
-    | _ -> Misc.connect_err "backtrace" 1
-  in
-  impl ~runtime_args ~connect "Printexc" job
-
-let randomize_hashtables =
-  let runtime_args = Runtime_arg.[ v randomize_hashtables ] in
-  let connect _ _ = function
-    | [ randomize_hashtables ] ->
-        code ~pos:__POS__ "return (if %s then Hashtbl.randomize ())"
-          randomize_hashtables
-    | _ -> Misc.connect_err "randomize_hashtables" 2
-  in
-  impl ~runtime_args ~connect "Hashtbl" job
-
-let gc_control =
-  let pp_pol ~name =
-    Fmt.(
-      any name
-      ++ any " = "
-      ++ any "(match "
-      ++ string
-      ++ any " with `Next_fit -> 0 | `First_fit -> 1 | `Best_fit -> 2)")
-  and pp_k ~name =
-    Fmt.(
-      any name
-      ++ any " = "
-      ++ any "(match "
-      ++ string
-      ++ any " with None -> ctrl."
-      ++ any name
-      ++ any " | Some x -> x)")
-  in
-  let runtime_args =
-    Runtime_arg.
-      [
-        v allocation_policy;
-        v minor_heap_size;
-        v major_heap_increment;
-        v space_overhead;
-        v max_space_overhead;
-        v gc_verbosity;
-        v gc_window_size;
-        v custom_major_ratio;
-        v custom_minor_ratio;
-        v custom_minor_max_size;
-      ]
-  in
-  let connect _ _ = function
-    | [
-        allocation_policy;
-        minor_heap_size;
-        major_heap_increment;
-        space_overhead;
-        max_space_overhead;
-        gc_verbosity;
-        gc_window_size;
-        custom_major_ratio;
-        custom_minor_ratio;
-        custom_minor_max_size;
-      ] ->
-        code ~pos:__POS__
-          "return (@.@[<v 2>let open Gc in@ let ctrl = get () in@ set ({ ctrl \
-           with %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a;@ %a })@]@.)"
-          (pp_pol ~name:"allocation_policy")
-          allocation_policy
-          (pp_k ~name:"minor_heap_size")
-          minor_heap_size
-          (pp_k ~name:"major_heap_increment")
-          major_heap_increment
-          (pp_k ~name:"space_overhead")
-          space_overhead
-          (pp_k ~name:"max_overhead")
-          max_space_overhead (pp_k ~name:"verbose") gc_verbosity
-          (pp_k ~name:"window_size") gc_window_size
-          (pp_k ~name:"custom_major_ratio")
-          custom_major_ratio
-          (pp_k ~name:"custom_minor_ratio")
-          custom_minor_ratio
-          (pp_k ~name:"custom_minor_max_size")
-          custom_minor_max_size
-    | _ -> Misc.connect_err "gc_control" 11
-  in
-  impl ~runtime_args ~connect "Gc" job
-
 (** Custom registration *)
 
 let runtime_args argv =
   Functoria.runtime_args ~runtime_package:(package "mirage-runtime")
     ~runtime_modname:"Mirage_runtime" argv
+
+let ocaml_runtime_args =
+  let connect _ _ _ =
+    code ~pos:__POS__ "return (Mirage_runtime.configure_ocaml_runtime ())"
+  in
+  impl ~connect "Mirage_runtime" job
 
 let ( ++ ) acc x =
   match (acc, x) with
@@ -506,9 +423,7 @@ let register ?(argv = default_argv) ?(reporter = default_reporter ()) ?src name
        dependency in your config.ml: use `let main = Mirage.main \
        \"Unikernel.hello\" (job @-> job) register \"hello\" [ main $ noop ]` \
        instead of `.. job .. [ main ]`.";
-  let first =
-    [ runtime_args argv; backtrace; randomize_hashtables; gc_control ]
-  in
+  let first = [ runtime_args argv; ocaml_runtime_args ] in
   let reporter = if reporter == no_reporter then None else Some reporter in
   let init = Some first ++ Some delay_startup ++ reporter in
   register ?init ?src name jobs

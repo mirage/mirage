@@ -31,18 +31,6 @@ let runtime_network_key ~pos fmt =
     ("Mirage_runtime_network." ^^ fmt)
 
 let delay = runtime_arg ~pos:__POS__ "delay"
-let backtrace = runtime_arg ~pos:__POS__ "backtrace"
-let randomize_hashtables = runtime_arg ~pos:__POS__ "randomize_hashtables"
-let allocation_policy = runtime_arg ~pos:__POS__ "allocation_policy"
-let minor_heap_size = runtime_arg ~pos:__POS__ "minor_heap_size"
-let major_heap_increment = runtime_arg ~pos:__POS__ "major_heap_increment"
-let space_overhead = runtime_arg ~pos:__POS__ "space_overhead"
-let max_space_overhead = runtime_arg ~pos:__POS__ "max_space_overhead"
-let gc_verbosity = runtime_arg ~pos:__POS__ "gc_verbosity"
-let gc_window_size = runtime_arg ~pos:__POS__ "gc_window_size"
-let custom_major_ratio = runtime_arg ~pos:__POS__ "custom_major_ratio"
-let custom_minor_ratio = runtime_arg ~pos:__POS__ "custom_minor_ratio"
-let custom_minor_max_size = runtime_arg ~pos:__POS__ "custom_minor_max_size"
 
 let pp_group ppf = function
   | None | Some "" -> ()

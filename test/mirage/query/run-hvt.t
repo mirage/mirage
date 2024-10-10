@@ -21,6 +21,7 @@ Query opam file
   ]
   
   depends: [
+    "cmdliner-stdlib" { ?monorepo & >= "1.0.0" & < "2.0.0" }
     "duration" { ?monorepo & < "1.0.0" }
     "lwt" { ?monorepo }
     "mirage" { build & >= "4.8.0" & < "4.9.0" }
@@ -51,6 +52,7 @@ Query opam file
 
 Query packages
   $ ./config.exe query --target hvt packages
+  "cmdliner-stdlib" { ?monorepo & >= "1.0.0" & < "2.0.0" }
   "duration" { ?monorepo & < "1.0.0" }
   "lwt" { ?monorepo }
   "mirage" { build & >= "4.8.0" & < "4.9.0" }
@@ -258,7 +260,7 @@ Query unikernel dune
    (enabled_if (= %{context_name} "solo5"))
    (name main)
    (modes (native exe))
-   (libraries duration lwt mirage-bootvar mirage-bootvar.solo5
+   (libraries cmdliner-stdlib duration lwt mirage-bootvar mirage-bootvar.solo5
      mirage-clock-solo5 mirage-logs mirage-runtime mirage-solo5)
    (link_flags :standard -w -70 -cclib "-z solo5-abi=hvt")
    (modules (:standard \ config manifest))

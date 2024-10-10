@@ -48,9 +48,6 @@ val s_disk : string
 val s_log : string
 (** [s_log] is used for logging and monitoring options. *)
 
-val s_ocaml : string
-(** [s_ocaml] is used for OCaml runtime keys. *)
-
 (** {3 Blocks} *)
 
 val disk : string Term.t

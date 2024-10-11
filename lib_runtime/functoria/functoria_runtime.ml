@@ -25,6 +25,8 @@ module Arg = struct
   let get t =
     match t.value with
     | None ->
+        (* When used incorrectly this may raise before we otherwise turn on back traces *)
+        Printexc.record_backtrace true;
         invalid_arg
           "Called too early. Please delay this call to after the start \
            function of the unikernel."

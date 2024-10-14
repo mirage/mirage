@@ -102,6 +102,8 @@ val help_version : int
 (** [help_version] is the exit code used when help/version is used: 63. *)
 
 val register_arg : 'a Cmdliner.Term.t -> (unit -> 'a)
+(* the return value is (unit -> 'a), let's keep the parens although they're
+   superfluous. *)
 [@@ocamlformat "disable"]
 (** [register_arg term] registers term to be evaluated at boot time. An example
     is: [let hello = register_arg <myterm>] (at the toplevel of the unikernel),
@@ -114,5 +116,7 @@ val with_argv : unit Cmdliner.Term.t list -> string -> string array -> unit
 val runtime_args : unit -> unit Cmdliner.Term.t list
 
 val register : 'a Cmdliner.Term.t -> (unit -> 'a)
+(* the return value is (unit -> 'a), let's keep the parens although they're
+   superfluous. *)
 [@@ocamlformat "disable"]
 [@@ocaml.deprecated "Use Mirage_runtime.register_arg instead."]

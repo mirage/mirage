@@ -24,6 +24,12 @@ let s_ocaml = "OCAML RUNTIME OPTIONS"
 
 type log_threshold = [ `All | `Src of string ] * Logs.level option
 
+(* We provisionally record backtraces until the [backtrace] runtime argument
+   further below is evaluated. This ensures we get proper backtraces if someone
+   calls [register_arg _ ()] too early before command line arguments are
+   evaluated. *)
+let () = Printexc.record_backtrace true
+
 let set_level ~default l =
   let srcs = Logs.Src.list () in
   let default =

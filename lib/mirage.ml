@@ -333,6 +333,7 @@ module Project = struct
       {ocaml|open Lwt.Infix
 type 'a io = 'a Lwt.t
 let return = Lwt.return
+Printexc.record_backtrace true
 let run t = %s.Main.run t ; exit 0|ocaml}
       (os_of_target info)
 

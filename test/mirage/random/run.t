@@ -23,8 +23,8 @@ Configure the project for Unix:
   $ cat mirage/main.ml
   open Lwt.Infix
   type 'a io = 'a Lwt.t
-  let return = Lwt.return
-  Printexc.record_backtrace true
+  let return = Lwt.return;;
+  Printexc.record_backtrace true;;
   let run t = Unix_os.Main.run t ; exit
   0
   
@@ -185,8 +185,8 @@ Configure the project for Xen:
   $ cat mirage/main.ml
   open Lwt.Infix
   type 'a io = 'a Lwt.t
-  let return = Lwt.return
-  Printexc.record_backtrace true
+  let return = Lwt.return;;
+  Printexc.record_backtrace true;;
   let run t = Xen_os.Main.run t ; exit
   0
   

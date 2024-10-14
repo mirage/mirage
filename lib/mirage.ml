@@ -404,7 +404,7 @@ let runtime_args argv =
     ~runtime_modname:"Mirage_runtime" argv
 
 let ocaml_runtime =
-  let packages = [ package ~min:"1.0.0" ~max:"2.0.0" "cmdliner-stdlib" ] in
+  let packages = [ package ~min:"1.0.1" ~max:"2.0.0" "cmdliner-stdlib" ] in
   let runtime_args =
     [
       Runtime_arg.v

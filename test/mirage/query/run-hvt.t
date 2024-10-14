@@ -21,7 +21,7 @@ Query opam file
   ]
   
   depends: [
-    "cmdliner-stdlib" { ?monorepo & >= "1.0.0" & < "2.0.0" }
+    "cmdliner-stdlib" { ?monorepo & >= "1.0.1" & < "2.0.0" }
     "duration" { ?monorepo & < "1.0.0" }
     "lwt" { ?monorepo }
     "mirage" { build & >= "4.8.0" & < "4.9.0" }
@@ -52,7 +52,7 @@ Query opam file
 
 Query packages
   $ ./config.exe query --target hvt packages
-  "cmdliner-stdlib" { ?monorepo & >= "1.0.0" & < "2.0.0" }
+  "cmdliner-stdlib" { ?monorepo & >= "1.0.1" & < "2.0.0" }
   "duration" { ?monorepo & < "1.0.0" }
   "lwt" { ?monorepo }
   "mirage" { build & >= "4.8.0" & < "4.9.0" }

@@ -1,3 +1,9 @@
+### unreleased
+
+- FEATURE: install `mirage` in the local duniverse. This allows `config.ml`
+  and `unikernel.ml` to be built simultaneously so that tools like merlin can
+  work on both seamlessly. This is a follow-up of #1475 (#1515, #1582, @samoht)
+
 ### v4.8.0 (2024-10-08)
 
 - BREAKING avoid optional runtime arguments in devices (ip, git, happy-eyeballs,

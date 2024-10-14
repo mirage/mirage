@@ -1,3 +1,20 @@
+### v4.8.1 (2024-10-14)
+
+* Mirage_runtime: add a top-level call to Printexc.record_backtrace
+  The runtime argument --backtrace=true/false turns backtraces on and off in
+  the running unikernel - but for the time where runtime arguments are not yet
+  evaluated, we enable backtraces by default. The reason is that e.g.
+  `Mirage_runtime.register_arg <my-cmdliner-term> ()` leads to an exception,
+  and without backtrace this is not easy to spot where work needs to be done
+  (#1584 @reynir)
+* Document Mirage_runtime.register_arg, add parens around its return value
+  (unit -> 'a) (#1580 #1585 @hannesm)
+* Use OCaml runtime arguments from cmdliner-stdlib opam package
+  (#1580 by @hannesm)
+* Allow solo5 0.9 (#1583 by @hannesm)
+* Mirage_runtime.logs: explain the log levels (#1581 by @reynir)
+* Mirage.register: document ?src argument (#1578 by @reynir)
+
 ### v4.8.0 (2024-10-08)
 
 - BREAKING avoid optional runtime arguments in devices (ip, git, happy-eyeballs,

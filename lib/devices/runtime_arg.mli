@@ -28,37 +28,6 @@ val create :
 val v : 'a arg -> Functoria.Runtime_arg.t
 (** [v k] is the [k] with its type hidden. *)
 
-(** {2 OCaml Arguments}
-
-    The OCaml runtime is usually configurable via the [OCAMLRUNPARAM]
-    environment variable. We provide boot parameters covering these options. *)
-
-val backtrace : bool runtime_arg
-(** [--backtrace]: Output a backtrace if an uncaught exception terminated the
-    unikernel. *)
-
-val randomize_hashtables : bool runtime_arg
-(** [--randomize-hashtables]: Randomize all hash tables. *)
-
-(** {3 GC control}
-
-    The OCaml garbage collector can be configured, as described in detail in
-    {{:http://caml.inria.fr/pub/docs/manual-ocaml/libref/Gc.html#TYPEcontrol} GC
-      control}.
-
-    The following arguments allow boot time configuration. *)
-
-val allocation_policy : [ `Next_fit | `First_fit | `Best_fit ] runtime_arg
-val minor_heap_size : int option runtime_arg
-val major_heap_increment : int option runtime_arg
-val space_overhead : int option runtime_arg
-val max_space_overhead : int option runtime_arg
-val gc_verbosity : int option runtime_arg
-val gc_window_size : int option runtime_arg
-val custom_major_ratio : int option runtime_arg
-val custom_minor_ratio : int option runtime_arg
-val custom_minor_max_size : int option runtime_arg
-
 (** {3 Network Arguments} *)
 
 val interface : ?group:string -> ?docs:string -> string -> string runtime_arg

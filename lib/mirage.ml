@@ -427,7 +427,7 @@ let register ?(argv = default_argv) ?(reporter = default_reporter ()) ?src name
     invalid_arg
       "Your configuration includes a job without arguments. Please add a \
        dependency in your config.ml: use `let main = Mirage.main \
-       \"Unikernel.hello\" (job @-> job) register \"hello\" [ main $ noop ]` \
+       \"Unikernel.Hello\" (job @-> job) register \"hello\" [ main $ noop ]` \
        instead of `.. job .. [ main ]`.";
   let first = [ runtime_args argv; ocaml_runtime ] in
   let reporter = if reporter == no_reporter then None else Some reporter in

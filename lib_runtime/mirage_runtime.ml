@@ -18,6 +18,11 @@ open Cmdliner
 
 (* The order of the argument sections in the manpage can be enforced in the call to [with_argv] *)
 let s_net = "NETWORK OPTIONS"
+let s_dns = "DNS OPTIONS"
+let s_he = "HAPPY EYEBALLS OPTIONS"
+let s_ssh = "SSH OPTIONS"
+let s_tls = "TLS OPTIONS"
+let s_http = "HTTP OPTIONS"
 let s_log = "LOG AND MONITORING OPTIONS"
 let s_disk = "DISK OPTIONS"
 let s_ocaml = "OCAML RUNTIME OPTIONS"
@@ -136,7 +141,19 @@ let at_enter_iter f = add f enter_iter_hooks
 let with_argv =
   Functoria_runtime.with_argv
     ~sections:
-      [ Manpage.s_arguments; Manpage.s_options; s_net; s_log; s_disk; s_ocaml ]
+      [
+        Manpage.s_arguments;
+        Manpage.s_options;
+        s_http;
+        s_ssh;
+        s_tls;
+        s_he;
+        s_dns;
+        s_net;
+        s_log;
+        s_disk;
+        s_ocaml;
+      ]
 
 let runtime_args = Functoria_runtime.runtime_args
 let register = Functoria_runtime.register_arg

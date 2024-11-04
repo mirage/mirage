@@ -82,83 +82,83 @@ let resolver ?group ?(docs = Mirage_runtime.s_net) ?default () =
     Arg.(some (list string))
     "resolver"
 
-let dns_servers ?group ?(docs = Mirage_runtime.s_net) default =
+let dns_servers ?group ?(docs = Mirage_runtime.s_dns) default =
   let doc = str "DNS servers (default to anycast.censurfridns.dk)" in
   runtime_arg ~doc ~docv:"DNS-SERVER" ~docs ?group ~default
     Arg.(some (list string))
     "dns_servers"
 
-let dns_timeout ?group ?(docs = Mirage_runtime.s_net) default =
+let dns_timeout ?group ?(docs = Mirage_runtime.s_dns) default =
   let doc = str "DNS timeout (in nanoseconds)" in
   runtime_arg ~doc ~docv:"DNS-TIMEOUT" ~docs ?group ~default
     Arg.(some int64)
     "dns_timeout"
 
-let dns_cache_size ?group ?(docs = Mirage_runtime.s_net) default =
+let dns_cache_size ?group ?(docs = Mirage_runtime.s_dns) default =
   let doc = str "DNS cache size" in
   runtime_arg ~doc ~docv:"DNS-CACHE-SIZE" ~docs ?group ~default
     Arg.(some int)
     "dns_cache_size"
 
-let he_aaaa_timeout ?group ?(docs = Mirage_runtime.s_net) default =
+let he_aaaa_timeout ?group ?(docs = Mirage_runtime.s_he) default =
   let doc = str "AAAA timeout (in nanoseconds)" in
   runtime_arg ~doc ~docv:"AAAA-TIMEOUT" ~docs ?group ~default
     Arg.(some int64)
     "he_aaaa_timeout"
 
-let he_connect_delay ?group ?(docs = Mirage_runtime.s_net) default =
+let he_connect_delay ?group ?(docs = Mirage_runtime.s_he) default =
   let doc = str "Delay (in nanoseconds) for connection establishment" in
   runtime_arg ~doc ~docv:"CONNECT-DELAY" ~docs ?group ~default
     Arg.(some int64)
     "he_connect_delay"
 
-let he_connect_timeout ?group ?(docs = Mirage_runtime.s_net) default =
+let he_connect_timeout ?group ?(docs = Mirage_runtime.s_he) default =
   let doc = str "Connection establishment timeout (in nanoseconds)" in
   runtime_arg ~doc ~docv:"CONNECT-TIMEOUT" ~docs ?group ~default
     Arg.(some int64)
     "he_connect_timeout"
 
-let he_resolve_timeout ?group ?(docs = Mirage_runtime.s_net) default =
+let he_resolve_timeout ?group ?(docs = Mirage_runtime.s_he) default =
   let doc = str "DNS resolution timeout (in nanoseconds)" in
   runtime_arg ~doc ~docv:"RESOLVE-TIMEOUT" ~docs ?group ~default
     Arg.(some int64)
     "he_resolve_timeout"
 
-let he_resolve_retries ?group ?(docs = Mirage_runtime.s_net) default =
+let he_resolve_retries ?group ?(docs = Mirage_runtime.s_he) default =
   let doc = str "Amount of DNS resolution attempts" in
   runtime_arg ~doc ~docv:"RESOLVE-RETRIES" ~docs ?group ~default
     Arg.(some int)
     "he_resolve_retries"
 
-let he_timer_interval ?group ?(docs = Mirage_runtime.s_net) default =
+let he_timer_interval ?group ?(docs = Mirage_runtime.s_he) default =
   let doc = str "Interal (in nanoseconds) for execution of the timer" in
   runtime_arg ~doc ~docv:"TIMER-INTERVAL" ~docs ?group ~default
     Arg.(some int64)
     "he_timer_interval"
 
-let ssh_key ?group ?(docs = Mirage_runtime.s_net) default =
+let ssh_key ?group ?(docs = Mirage_runtime.s_ssh) default =
   let doc = str "Private SSH key (rsa:<seed> or ed25519:<b64-key>)." in
   runtime_arg ~doc ~docs ~docv:"KEY" ?group ~default Arg.(some string) "ssh-key"
 
-let ssh_password ?group ?(docs = Mirage_runtime.s_net) default =
+let ssh_password ?group ?(docs = Mirage_runtime.s_ssh) default =
   let doc = str "Private SSH password." in
   runtime_arg ~doc ~docs ~docv:"PASSWORD" ?group ~default
     Arg.(some string)
     "ssh-password"
 
-let ssh_authenticator ?group ?(docs = Mirage_runtime.s_net) default =
+let ssh_authenticator ?group ?(docs = Mirage_runtime.s_ssh) default =
   let doc = str "SSH authenticator." in
   runtime_arg ~doc ~docs ~docv:"SSH-AUTHENTICATOR" ?group ~default
     Arg.(some string)
     "ssh-authenticator"
 
-let tls_authenticator ?group ?(docs = Mirage_runtime.s_net) default =
+let tls_authenticator ?group ?(docs = Mirage_runtime.s_tls) default =
   let doc = str "TLS authenticator." in
   runtime_arg ~doc ~docs ~docv:"TLS-AUTHENTICATOR" ?group ~default
     Arg.(some string)
     "tls-authenticator"
 
-let http_headers ?group ?(docs = Mirage_runtime.s_net) default =
+let http_headers ?group ?(docs = Mirage_runtime.s_http) default =
   let doc = str "HTTP headers." in
   runtime_arg ~doc ~docs ~docv:"HEADERS" ?group ~default
     Arg.(some (list ~sep:',' (pair ~sep:':' string string)))

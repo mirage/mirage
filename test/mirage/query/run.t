@@ -67,6 +67,7 @@ Query packages
 
 Query files
   $ ./config.exe query files
+  Successfully configured the unikernel. Now run 'make' (or more fine-grained steps: 'make all', 'make depends', or 'make lock').
   main.ml
 
 Query Makefile
@@ -108,15 +109,18 @@ Query Makefile
   
   lock::
   	@$(MAKE) -B $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked
+  	@echo "The lock file has been generated. Run 'make pull' to retrieve the sources, or 'make install-switch' to install the host dependencies."
   
   pull:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked
   	@echo " ↳ fetch monorepo dependencies in the duniverse folder"
   	@env OPAMVAR_monorepo="opam-monorepo" $(OPAM) monorepo pull -l $< -r $(abspath $(BUILD_DIR))
+  	@echo "The sources have been pulled to the duniverse folder. Run 'make build' to build the unikernel."
   
   install-switch:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam
   	@echo " ↳ opam install switch dependencies"
   	@$(OPAM) install $< --deps-only --yes
   	@$(MAKE) -s depext-lockfile
+  	@echo "The dependencies have been installed. Run 'make build' to build the unikernel."
   
   depends depend::
   	@$(MAKE) --no-print-directory lock
@@ -125,6 +129,7 @@ Query Makefile
   
   build::
   	dune build --profile release --root . $(BUILD_DIR)dist
+  	@echo "Your unikernel binary is now ready in $(BUILD_DIR)dist/noop"
   
   clean::
   	mirage clean
@@ -164,14 +169,17 @@ Query Makefile without depexts
   
   lock::
   	@$(MAKE) -B $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked
+  	@echo "The lock file has been generated. Run 'make pull' to retrieve the sources, or 'make install-switch' to install the host dependencies."
   
   pull:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked
   	@echo " ↳ fetch monorepo dependencies in the duniverse folder"
   	@env OPAMVAR_monorepo="opam-monorepo" $(OPAM) monorepo pull -l $< -r $(abspath $(BUILD_DIR))
+  	@echo "The sources have been pulled to the duniverse folder. Run 'make build' to build the unikernel."
   
   install-switch:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam
   	@echo " ↳ opam install switch dependencies"
   	@$(OPAM) install $< --deps-only --yes --no-depexts
+  	@echo "The dependencies have been installed. Run 'make build' to build the unikernel."
   
   depends depend::
   	@$(MAKE) --no-print-directory lock
@@ -180,6 +188,7 @@ Query Makefile without depexts
   
   build::
   	dune build --profile release --root . $(BUILD_DIR)dist
+  	@echo "Your unikernel binary is now ready in $(BUILD_DIR)dist/noop"
   
   clean::
   	mirage clean
@@ -225,15 +234,18 @@ Query Makefile with depext
   
   lock::
   	@$(MAKE) -B $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked
+  	@echo "The lock file has been generated. Run 'make pull' to retrieve the sources, or 'make install-switch' to install the host dependencies."
   
   pull:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked
   	@echo " ↳ fetch monorepo dependencies in the duniverse folder"
   	@env OPAMVAR_monorepo="opam-monorepo" $(OPAM) monorepo pull -l $< -r $(abspath $(BUILD_DIR))
+  	@echo "The sources have been pulled to the duniverse folder. Run 'make build' to build the unikernel."
   
   install-switch:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam
   	@echo " ↳ opam install switch dependencies"
   	@$(OPAM) install $< --deps-only --yes
   	@$(MAKE) -s depext-lockfile
+  	@echo "The dependencies have been installed. Run 'make build' to build the unikernel."
   
   depends depend::
   	@$(MAKE) --no-print-directory lock
@@ -242,6 +254,7 @@ Query Makefile with depext
   
   build::
   	dune build --profile release --root . $(BUILD_DIR)dist
+  	@echo "Your unikernel binary is now ready in $(BUILD_DIR)dist/noop"
   
   clean::
   	mirage clean
@@ -253,6 +266,7 @@ Query version
 
 Query unikernel dune
   $ ./config.exe query dune.build
+  Successfully configured the unikernel. Now run 'make' (or more fine-grained steps: 'make all', 'make depends', or 'make lock').
   (copy_files# ./mirage/main.ml)
   
   (rule

@@ -5,6 +5,7 @@ Build an application.
   $ make build
   dune build --profile release --root . app/dist
   Your unikernel binary is now ready in app/dist/noop
+  Execute the binary using solo5-hvt, solo5-spt, xl, ...
   $ ls -a app/
   .
   ..
@@ -41,6 +42,7 @@ Test `--output`:
   $ make build
   dune build --profile release --root . app/dist
   Your unikernel binary is now ready in app/dist/toto
+  Execute the binary using solo5-hvt, solo5-spt, xl, ...
   $ ls -a app/
   .
   ..

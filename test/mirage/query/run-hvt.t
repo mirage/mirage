@@ -130,6 +130,7 @@ Query Makefile
   build::
   	dune build --profile release --root . $(BUILD_DIR)dist
   	@echo "Your unikernel binary is now ready in $(BUILD_DIR)dist/noop"
+  	@echo "Execute the binary using solo5-hvt, solo5-spt, xl, ..."
   
   clean::
   	mirage clean
@@ -188,6 +189,7 @@ Query Makefile without depexts
   build::
   	dune build --profile release --root . $(BUILD_DIR)dist
   	@echo "Your unikernel binary is now ready in $(BUILD_DIR)dist/noop"
+  	@echo "Execute the binary using solo5-hvt, solo5-spt, xl, ..."
   
   clean::
   	mirage clean
@@ -253,6 +255,7 @@ Query Makefile with depext
   build::
   	dune build --profile release --root . $(BUILD_DIR)dist
   	@echo "Your unikernel binary is now ready in $(BUILD_DIR)dist/noop"
+  	@echo "Execute the binary using solo5-hvt, solo5-spt, xl, ..."
   
   clean::
   	mirage clean

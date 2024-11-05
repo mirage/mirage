@@ -150,6 +150,7 @@ depends depend::
 build::
 	dune build --profile release --root . $(BUILD_DIR)dist
 	@@echo "Your unikernel binary is now ready in $(BUILD_DIR)dist/%s"
+	@@echo "Execute the binary using solo5-hvt, solo5-spt, xl, ..."
 
 clean::
 	mirage clean

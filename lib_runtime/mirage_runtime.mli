@@ -48,6 +48,21 @@ val s_disk : string
 val s_log : string
 (** [s_log] is used for logging and monitoring options. *)
 
+val s_he : string
+(** [s_he] is used for happy eyeballs options. *)
+
+val s_dns : string
+(** [s_dns] is used for DNS options. *)
+
+val s_ssh : string
+(** [s_ssh] is used for SSH options. *)
+
+val s_tls : string
+(** [s_tls] is used for TLS options. *)
+
+val s_http : string
+(** [s_http] is used for HTTP options. *)
+
 (** {3 Blocks} *)
 
 val disk : string Term.t

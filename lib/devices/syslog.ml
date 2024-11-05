@@ -18,15 +18,15 @@ let syslog_udp_conf ?group () =
     Runtime_arg.[ v endpoint; v hostname; v port; v truncate ]
   in
   let connect _i modname = function
-    | [ pclock; stack; endpoint; hostname; port; truncate ] ->
+    | [ _pclock; stack; endpoint; hostname; port; truncate ] ->
         code ~pos:__POS__
           "@[<v 2>match %s with@ | None ->Logs.warn (fun m -> m \"no syslog \
            server specified, dumping logs to stdout\"); Lwt.return_unit@ | \
-           Some server ->@ let port = %s in@ let reporter =@ %s.create %s %s \
-           ~hostname:%s ?port server ?truncate:%s ()@ in@ Logs.set_reporter \
-           reporter;@ Lwt.return_unit@]"
-          endpoint port modname pclock stack hostname truncate
-    | _ -> connect_err "syslog_udp" 5
+           Some server ->@ let reporter =@ %s.create %s ~hostname:%s ~port:%s \
+           server ?truncate:%s ()@ in@ Logs.set_reporter reporter;@ \
+           Lwt.return_unit@]"
+          endpoint modname stack hostname port truncate
+    | _ -> connect_err "syslog_udp" 6
   in
   impl ~packages ~runtime_args ~connect "Logs_syslog_mirage.Udp"
     (pclock @-> stackv4v6 @-> syslog)
@@ -44,16 +44,15 @@ let syslog_tcp_conf ?group () =
     Runtime_arg.[ v endpoint; v hostname; v port; v truncate ]
   in
   let connect _i modname = function
-    | [ pclock; stack; endpoint; hostname; port; truncate ] ->
+    | [ _pclock; stack; endpoint; hostname; port; truncate ] ->
         code ~pos:__POS__
           "@[<v 2>match %s with@ | None -> Logs.warn (fun m -> m \"no syslog \
            server specified, dumping logs to stdout\"); Lwt.return_unit@ | \
-           Some server ->@ let port = %s in@ %s.create %s %s ~hostname:%s \
-           ?port server ?truncate:%s () >>= function@ | Ok reporter -> \
-           Logs.set_reporter reporter; Lwt.return_unit@ | Error e -> \
-           invalid_arg e@]"
-          endpoint port modname pclock stack hostname truncate
-    | _ -> connect_err "syslog_tcp" 5
+           Some server ->@ %s.create %s ~hostname:%s ~port:%s server \
+           ?truncate:%s () >>= function@ | Ok reporter -> Logs.set_reporter \
+           reporter; Lwt.return_unit@ | Error e -> invalid_arg e@]"
+          endpoint modname stack hostname port truncate
+    | _ -> connect_err "syslog_tcp" 6
   in
   impl ~packages ~runtime_args ~connect "Logs_syslog_mirage.Tcp"
     (pclock @-> stackv4v6 @-> syslog)
@@ -72,16 +71,16 @@ let syslog_tls_conf ?group () =
     Runtime_arg.[ v endpoint; v hostname; v port; v truncate; v keyname ]
   in
   let connect _i modname = function
-    | [ pclock; stack; kv; endpoint; hostname; port; truncate; keyname ] ->
+    | [ _pclock; stack; kv; endpoint; hostname; port; truncate; keyname ] ->
         code ~pos:__POS__
           "@[<v 2>match %s with@ | None -> Logs.warn (fun m -> m \"no syslog \
            server specified, dumping logs to stdout\"); Lwt.return_unit@ | \
-           Some server ->@ let port = %s in@ %s.create %s %s %s ~hostname:%s \
-           ?port server ?truncate:%s ?keyname:%s () >>= function@ | Ok \
-           reporter -> Logs.set_reporter reporter; Lwt.return_unit@ | Error e \
-           -> invalid_arg e@]"
-          endpoint port modname pclock stack kv hostname truncate keyname
-    | _ -> connect_err "syslog_tls" 6
+           Some server ->@ %s.create %s %s ~hostname:%s ~port:%s server \
+           ?truncate:%s ?keyname:%s () >>= function@ | Ok reporter -> \
+           Logs.set_reporter reporter; Lwt.return_unit@ | Error e -> \
+           invalid_arg e@]"
+          endpoint modname stack kv hostname port truncate keyname
+    | _ -> connect_err "syslog_tls" 8
   in
   impl ~packages ~runtime_args ~connect "Logs_syslog_mirage_tls.Tls"
     (pclock @-> stackv4v6 @-> Kv.ro @-> syslog)

@@ -754,17 +754,6 @@ val generic_dns_client :
     controlled via the {!Mirage_runtime.logs} key. The functionality is provided
     by the [logs-syslog] package. *)
 
-type syslog_config = {
-  hostname : string;
-  server : Ipaddr.t option;
-  port : int option;
-  truncate : int option;
-}
-
-val syslog_config :
-  ?port:int -> ?truncate:int -> ?server:Ipaddr.t -> string -> syslog_config
-(** Helper for constructing a {!type:syslog_config}. *)
-
 type syslog
 (** The type for syslog *)
 
@@ -772,23 +761,31 @@ val syslog : syslog typ
 (** Implementation of the {!type:syslog} type. *)
 
 val syslog_udp :
-  ?config:syslog_config -> ?clock:pclock impl -> stackv4v6 impl -> syslog impl
-(** Emit log messages via UDP to the configured host. *)
+  ?group:string -> ?clock:pclock impl -> stackv4v6 impl -> syslog impl
+(** Emit log messages via UDP. *)
 
 val syslog_tcp :
-  ?config:syslog_config -> ?clock:pclock impl -> stackv4v6 impl -> syslog impl
-(** Emit log messages via TCP to the configured host. *)
+  ?group:string -> ?clock:pclock impl -> stackv4v6 impl -> syslog impl
+(** Emit log messages via TCP. *)
 
 val syslog_tls :
-  ?config:syslog_config ->
-  ?keyname:string ->
+  ?group:string ->
   ?clock:pclock impl ->
   stackv4v6 impl ->
   kv_ro impl ->
   syslog impl
-(** Emit log messages via TLS to the configured host, using the credentials
-    (private key, certificate, trust anchor) provided in the KV_RO using the
-    [keyname]. *)
+(** Emit log messages via TLS, using the credentials (private key, certificate,
+    trust anchor) provided in the KV_RO. *)
+
+(** {2 Monitoring} *)
+val monitoring :
+  ?group:string ->
+  ?time:time impl ->
+  ?clock:pclock impl ->
+  stackv4v6 impl ->
+  job impl
+(** Monitor metrics to a remote Influx host, also allow adjustments to log
+    sources and levels. The provided [stack] should not be publicly reachable. *)
 
 (** {2 Conduit configuration} *)
 

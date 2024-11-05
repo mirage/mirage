@@ -133,16 +133,24 @@ val syslog :
 (** The address to send syslog frames to, [docs] defaults to
     {!Mirage_runtime.s_log}. *)
 
-val monitor :
-  ?group:string -> ?docs:string -> Ipaddr.t option -> Ipaddr.t option Term.t
-(** The address to send monitor statistics to, [docs] defaults to
-    {!Mirage_runtime.s_log}. *)
-
-val syslog_port :
-  ?group:string -> ?docs:string -> int option -> int option Term.t
+val syslog_port : ?group:string -> ?docs:string -> int option -> int Term.t
 (** The port to send syslog frames to, [docs] defaults to
     {!Mirage_runtime.s_log}. *)
 
-val syslog_hostname : ?group:string -> ?docs:string -> string -> string Term.t
-(** The hostname to use in syslog frames, [docs] defaults to
+val syslog_truncate :
+  ?group:string -> ?docs:string -> int option -> int option Term.t
+(** Truncate syslog frames to a specific byte count, [docs] defaults to
+    {!Mirage_runtime.s_log}. *)
+
+val syslog_keyname :
+  ?group:string -> ?docs:string -> string option -> string option Term.t
+(** TLS key used for syslog, [docs] defaults to {!Mirage_runtime.s_log}. *)
+
+val monitor_hostname : ?group:string -> ?docs:string -> unit -> string Term.t
+(** The hostname used for syslog and monitoring, [docs] defaults to
+    {!Mirage_runtime.s_log}. *)
+
+val monitor :
+  ?group:string -> ?docs:string -> Ipaddr.t option -> Ipaddr.t option Term.t
+(** The address to send monitor statistics to, [docs] defaults to
     {!Mirage_runtime.s_log}. *)

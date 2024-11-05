@@ -179,17 +179,25 @@ let syslog ?group ?docs default =
   runtime_network_key ~pos:__POS__ "syslog %a%a%a" pp_group group pp_docs docs
     (pp_option pp_ipaddr) default
 
-let monitor ?group ?docs default =
-  runtime_network_key ~pos:__POS__ "monitor %a%a%a" pp_group group pp_docs docs
-    (pp_option pp_ipaddr) default
-
 let syslog_port ?group ?docs default =
   runtime_network_key ~pos:__POS__ "syslog_port %a%a%a" pp_group group pp_docs
     docs (pp_option Fmt.int) default
 
-let syslog_hostname ?group ?docs default =
-  runtime_network_key ~pos:__POS__ "syslog_hostname %a%a%S" pp_group group
-    pp_docs docs default
+let syslog_truncate ?group ?docs default =
+  runtime_network_key ~pos:__POS__ "syslog_truncate %a%a%a" pp_group group
+    pp_docs docs (pp_option Fmt.int) default
+
+let syslog_keyname ?group ?docs default =
+  runtime_network_key ~pos:__POS__ "syslog_keyname %a%a%a" pp_group group
+    pp_docs docs (pp_option Fmt.string) default
+
+let monitor_hostname ?group ?docs () =
+  runtime_network_key ~pos:__POS__ "monitor_hostname %a%a ()" pp_group group
+    pp_docs docs
+
+let monitor ?group ?docs default =
+  runtime_network_key ~pos:__POS__ "monitor %a%a%a" pp_group group pp_docs docs
+    (pp_option pp_ipaddr) default
 
 type log_threshold = [ `All | `Src of string ] * Logs.level option
 

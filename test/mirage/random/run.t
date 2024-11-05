@@ -33,12 +33,12 @@ Configure the project for Unix:
   ;;
   
   let mirage_runtime_logs__key = Mirage_runtime.register_arg @@
-  # 196 "lib/devices/runtime_arg.ml"
+  # 204 "lib/devices/runtime_arg.ml"
     Mirage_runtime.logs
   ;;
   
   let cmdliner_stdlib_setup_backtracesome_true_randomize_hashtablessome_true___key = Mirage_runtime.register_arg @@
-  # 412 "lib/mirage.ml"
+  # 404 "lib/mirage.ml"
     Cmdliner_stdlib.setup ~backtrace:(Some true) ~randomize_hashtables:(Some true) ()
   ;;
   
@@ -76,7 +76,7 @@ Configure the project for Unix:
   
   let mirage_runtime__4 = lazy (
     let _mirage_runtime_delay = (mirage_runtime_delay__key ()) in
-  # 310 "lib/mirage.ml"
+  # 302 "lib/mirage.ml"
     Unix_os.Time.sleep_ns (Duration.of_sec _mirage_runtime_delay)
   );;
   # 60 "mirage/main.ml"
@@ -137,7 +137,7 @@ Configure the project for Unix:
     __mirage_runtime__4 >>= fun _mirage_runtime__4 ->
     __mirage_logs_make__6 >>= fun _mirage_logs_make__6 ->
     __app_make__10 >>= fun _app_make__10 ->
-  # 393 "lib/mirage.ml"
+  # 385 "lib/mirage.ml"
     return ()
   );;
   # 121 "mirage/main.ml"
@@ -194,12 +194,12 @@ Configure the project for Xen:
   ;;
   
   let mirage_runtime_logs__key = Mirage_runtime.register_arg @@
-  # 196 "lib/devices/runtime_arg.ml"
+  # 204 "lib/devices/runtime_arg.ml"
     Mirage_runtime.logs
   ;;
   
   let cmdliner_stdlib_setup_backtracesome_true_randomize_hashtablessome_true___key = Mirage_runtime.register_arg @@
-  # 412 "lib/mirage.ml"
+  # 404 "lib/mirage.ml"
     Cmdliner_stdlib.setup ~backtrace:(Some true) ~randomize_hashtables:(Some true) ()
   ;;
   
@@ -237,7 +237,7 @@ Configure the project for Xen:
   
   let mirage_runtime__4 = lazy (
     let _mirage_runtime_delay = (mirage_runtime_delay__key ()) in
-  # 310 "lib/mirage.ml"
+  # 302 "lib/mirage.ml"
     Xen_os.Time.sleep_ns (Duration.of_sec _mirage_runtime_delay)
   );;
   # 60 "mirage/main.ml"
@@ -298,7 +298,7 @@ Configure the project for Xen:
     __mirage_runtime__4 >>= fun _mirage_runtime__4 ->
     __mirage_logs_make__6 >>= fun _mirage_logs_make__6 ->
     __app_make__10 >>= fun _app_make__10 ->
-  # 393 "lib/mirage.ml"
+  # 385 "lib/mirage.ml"
     return ()
   );;
   # 121 "mirage/main.ml"

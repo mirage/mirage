@@ -119,6 +119,7 @@ let ipv4 = Ip.ipv4
 let ipv6 = Ip.ipv6
 let ipv4_qubes = Ip.ipv4_qubes
 let ipv4v6 = Ip.ipv4v6
+let ipv4_of_dhcp = Ip.ipv4_of_dhcp
 let create_ipv4 = Ip.create_ipv4
 let create_ipv6 = Ip.create_ipv6
 let create_ipv4v6 = Ip.create_ipv4v6

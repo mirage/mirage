@@ -398,15 +398,19 @@ let dune i =
   let (module Target) = choose target in
   Target.dune i
 
+let output_message = ref true
+
 let configure i =
   let open Action.Infix in
   let target = Info.get i Key.target in
   let (module Target) = choose target in
   Target.configure i >|= fun () ->
-  Logs.app (fun m ->
-      m
-        "Successfully configured the unikernel. Now run 'make' (or more \
-         fine-grained steps: 'make all', 'make depends', or 'make lock').")
+  if !output_message then (
+    output_message := false;
+    Logs.app (fun m ->
+        m
+          "Successfully configured the unikernel. Now run 'make' (or more \
+           fine-grained steps: 'make all', 'make depends', or 'make lock')."))
 
 let build_context ?build_dir i =
   let target = Info.get i Key.target in

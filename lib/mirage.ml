@@ -223,15 +223,7 @@ let syslog = Syslog.syslog
 let syslog_tls = Syslog.syslog_tls
 let syslog_tcp = Syslog.syslog_tcp
 let syslog_udp = Syslog.syslog_udp
-
-type syslog_config = Syslog.syslog_config = {
-  hostname : string;
-  server : Ipaddr.t option;
-  port : int option;
-  truncate : int option;
-}
-
-let syslog_config = Syslog.syslog_config
+let monitoring = Syslog.monitoring
 
 type http = Http.http
 

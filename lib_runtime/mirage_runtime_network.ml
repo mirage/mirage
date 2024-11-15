@@ -165,26 +165,34 @@ let http_headers ?group ?(docs = Mirage_runtime.s_http) default =
     "http-headers"
 
 let syslog ?group ?(docs = Mirage_runtime.s_log) default =
-  let doc = str "syslog server" in
+  let doc = str "syslog server IP" in
   runtime_arg ~doc ~docv:"IP" ~docs ?group ~default
     Arg.(some ip_address)
     "syslog"
+
+let syslog_port ?group ?(docs = Mirage_runtime.s_log) default =
+  let default = Option.value ~default:514 default in
+  let doc = str "syslog server port" in
+  runtime_arg ~doc ~docs ~docv:"PORT" ?group ~default Arg.int "syslog-port"
+
+let syslog_truncate ?group ?(docs = Mirage_runtime.s_log) default =
+  let doc = str "truncate syslog messages" in
+  runtime_arg ~doc ~docs ?group ~default Arg.(some int) "syslog-truncate"
+
+let syslog_keyname ?group ?(docs = Mirage_runtime.s_log) default =
+  let doc = str "TLS key name used for syslog" in
+  runtime_arg ~doc ~docs ?group ~default Arg.(some string) "syslog-keyname"
+
+let monitor_hostname ?(group = "") ?(docs = Mirage_runtime.s_log) () =
+  let doc = str "hostname used for syslog and monitoring" in
+  let prefix = if group = "" then group else group ^ "-" in
+  let doc = Arg.info ~docs ~docv:"NAME" ~doc [ prefix ^ "monitor-hostname" ] in
+  Arg.(required & opt (some string) None doc)
 
 let monitor ?group ?(docs = Mirage_runtime.s_log) default =
   let doc = str "monitor server" in
   runtime_arg ~doc ~docv:"IP" ~docs ?group ~default
     Arg.(some ip_address)
     "monitor"
-
-let syslog_port ?group ?(docs = Mirage_runtime.s_log) default =
-  let doc = str "syslog server port" in
-  runtime_arg ~doc ~docs ~docv:"PORT" ?group ~default
-    Arg.(some int)
-    "syslog-port"
-
-let syslog_hostname ?group ?(docs = Mirage_runtime.s_log) default =
-  let doc = str "hostname to report to syslog" in
-  runtime_arg ~doc ~docs ~docv:"NAME" ?group ~default Arg.string
-    "syslog-hostname"
 
 module Arg = Conv

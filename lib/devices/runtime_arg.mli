@@ -149,20 +149,28 @@ val syslog :
   Ipaddr.t option runtime_arg
 (** The address to send syslog frames to. *)
 
+val syslog_port : ?group:string -> ?docs:string -> int option -> int runtime_arg
+(** The port to send syslog frames to. *)
+
+val syslog_truncate :
+  ?group:string -> ?docs:string -> int option -> int option runtime_arg
+(** Truncate syslog frames to a specific byte count, [docs] defaults to
+    {!Mirage_runtime.s_log}. *)
+
+val syslog_keyname :
+  ?group:string -> ?docs:string -> string option -> string option runtime_arg
+(** TLS key used for syslog, [docs] defaults to {!Mirage_runtime.s_log}. *)
+
+val monitor_hostname :
+  ?group:string -> ?docs:string -> unit -> string runtime_arg
+(** The hostname to use for syslog and monitoring. *)
+
 val monitor :
   ?group:string ->
   ?docs:string ->
   Ipaddr.t option ->
   Ipaddr.t option runtime_arg
 (** The address to send monitor statistics to. *)
-
-val syslog_port :
-  ?group:string -> ?docs:string -> int option -> int option runtime_arg
-(** The port to send syslog frames to. *)
-
-val syslog_hostname :
-  ?group:string -> ?docs:string -> string -> string runtime_arg
-(** The hostname to use in syslog frames. *)
 
 (** {3 Logs} *)
 

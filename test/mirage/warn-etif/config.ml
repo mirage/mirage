@@ -12,7 +12,7 @@ let rec eth = etif default_network
 let main = main "App.Make" ~pos:__POS__ (ethernet @-> job)
 
 let () =
-  let ramdisk (conf : syslog_config) =
-    match conf with { hostname } -> ramdisk "secrets\f42"
+  let ramdisk (conf : ipv4_config) =
+    match conf with { network } -> ramdisk "secrets\f42"
   in
   register "etif" [ main $ eth ]

@@ -29,15 +29,6 @@ type ipv6_config = {
   gateway : Ipaddr.V6.t option;
 }
 
-val ipv4_of_dhcp :
-  ?random:random impl ->
-  ?clock:mclock impl ->
-  ?time:Time.time impl ->
-  network impl ->
-  ethernet impl ->
-  arpv4 impl ->
-  ipv4 impl
-
 val create_ipv4 :
   ?group:string ->
   ?config:ipv4_config ->

@@ -1,3 +1,11 @@
+### unreleased
+
+- guide the user what to do next (#1592 @hannesm, fixes #921)
+- revise syslog devices, add monitoring (#1591 @hannesm)
+- add `ipv4_of_dhcp` device (#1593, @palainp)
+- separate sections for DNS, happy-eyeballs, SSH, TLS, HTTP arguments in
+  unikernel man pages (#1590 @hannesm, fixes #1587)
+
 ### v4.8.1 (2024-10-14)
 
 * Mirage_runtime: add a top-level call to Printexc.record_backtrace

@@ -38,7 +38,7 @@ Configure the project for Unix:
   ;;
   
   let cmdliner_stdlib_setup_backtracesome_true_randomize_hashtablessome_true___key = Mirage_runtime.register_arg @@
-  # 411 "lib/mirage.ml"
+  # 412 "lib/mirage.ml"
     Cmdliner_stdlib.setup ~backtrace:(Some true) ~randomize_hashtables:(Some true) ()
   ;;
   
@@ -76,7 +76,7 @@ Configure the project for Unix:
   
   let mirage_runtime__4 = lazy (
     let _mirage_runtime_delay = (mirage_runtime_delay__key ()) in
-  # 309 "lib/mirage.ml"
+  # 310 "lib/mirage.ml"
     Unix_os.Time.sleep_ns (Duration.of_sec _mirage_runtime_delay)
   );;
   # 60 "mirage/main.ml"
@@ -137,7 +137,7 @@ Configure the project for Unix:
     __mirage_runtime__4 >>= fun _mirage_runtime__4 ->
     __mirage_logs_make__6 >>= fun _mirage_logs_make__6 ->
     __app_make__10 >>= fun _app_make__10 ->
-  # 392 "lib/mirage.ml"
+  # 393 "lib/mirage.ml"
     return ()
   );;
   # 121 "mirage/main.ml"
@@ -199,7 +199,7 @@ Configure the project for Xen:
   ;;
   
   let cmdliner_stdlib_setup_backtracesome_true_randomize_hashtablessome_true___key = Mirage_runtime.register_arg @@
-  # 411 "lib/mirage.ml"
+  # 412 "lib/mirage.ml"
     Cmdliner_stdlib.setup ~backtrace:(Some true) ~randomize_hashtables:(Some true) ()
   ;;
   
@@ -237,7 +237,7 @@ Configure the project for Xen:
   
   let mirage_runtime__4 = lazy (
     let _mirage_runtime_delay = (mirage_runtime_delay__key ()) in
-  # 309 "lib/mirage.ml"
+  # 310 "lib/mirage.ml"
     Xen_os.Time.sleep_ns (Duration.of_sec _mirage_runtime_delay)
   );;
   # 60 "mirage/main.ml"
@@ -298,7 +298,7 @@ Configure the project for Xen:
     __mirage_runtime__4 >>= fun _mirage_runtime__4 ->
     __mirage_logs_make__6 >>= fun _mirage_logs_make__6 ->
     __app_make__10 >>= fun _app_make__10 ->
-  # 392 "lib/mirage.ml"
+  # 393 "lib/mirage.ml"
     return ()
   );;
   # 121 "mirage/main.ml"

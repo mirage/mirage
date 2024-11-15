@@ -511,6 +511,16 @@ type ipv6_config = {
 }
 (** Types for manual IPv6 configuration. *)
 
+val ipv4_of_dhcp :
+  ?random:random impl ->
+  ?clock:mclock impl ->
+  ?time:time impl ->
+  network impl ->
+  ethernet impl ->
+  arpv4 impl ->
+  ipv4 impl
+(** Configure the interface via DHCP *)
+
 val create_ipv4 :
   ?group:string ->
   ?config:ipv4_config ->

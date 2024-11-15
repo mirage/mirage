@@ -26,7 +26,6 @@ Configure the project for Unix:
   $ mirage configure -t unix
   mirage: [WARNING] Skipping version check, since our_version is not watermarked
   Successfully configured the unikernel. Now run 'make' (or more fine-grained steps: 'make all', 'make depends', or 'make lock').
-  Successfully configured the unikernel. Now run 'make' (or more fine-grained steps: 'make all', 'make depends', or 'make lock').
 
 Check the source url of the generated opam package
 
@@ -41,7 +40,6 @@ Configure the project again for Unix:
 
   $ mirage configure -t unix
   mirage: [WARNING] Skipping version check, since our_version is not watermarked
-  Successfully configured the unikernel. Now run 'make' (or more fine-grained steps: 'make all', 'make depends', or 'make lock').
   Successfully configured the unikernel. Now run 'make' (or more fine-grained steps: 'make all', 'make depends', or 'make lock').
 
 Check the source url of the generated opam package

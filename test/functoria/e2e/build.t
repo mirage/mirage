@@ -4,6 +4,8 @@ Build an application.
   test.exe: [WARNING] Skipping version check, since our_version ("1.0~test") fails to parse: only digits and . allowed in version
   $ make build
   dune build --profile release --root . app/dist
+  Your unikernel binary is now ready in app/dist/noop
+  Execute the binary using solo5-hvt, solo5-spt, xl, ...
   $ ls -a app/
   .
   ..
@@ -39,6 +41,8 @@ Test `--output`:
   test.exe: [WARNING] Skipping version check, since our_version ("1.0~test") fails to parse: only digits and . allowed in version
   $ make build
   dune build --profile release --root . app/dist
+  Your unikernel binary is now ready in app/dist/toto
+  Execute the binary using solo5-hvt, solo5-spt, xl, ...
   $ ls -a app/
   .
   ..

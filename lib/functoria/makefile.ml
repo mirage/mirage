@@ -22,10 +22,19 @@ type t = {
   builder_name : string;
   unikernel_opam_name : Misc.Name.Opam.t;
   extra_repo : (string * string) list;
+  public_name : string;
 }
 
-let v ?(extra_repo = []) ~build_dir ~builder_name ~depext unikernel_opam_name =
-  { depext; build_dir; builder_name; unikernel_opam_name; extra_repo }
+let v ?(extra_repo = []) ~build_dir ~builder_name ~depext ~public_name
+    unikernel_opam_name =
+  {
+    depext;
+    build_dir;
+    builder_name;
+    unikernel_opam_name;
+    extra_repo;
+    public_name;
+  }
 
 let depext_rules =
   {|
@@ -121,14 +130,17 @@ $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opa
 
 lock::
 	@@$(MAKE) -B $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked
+	@@echo "The lock file has been generated. Run 'make pull' to retrieve the sources, or 'make install-switch' to install the host dependencies."
 
 pull:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked
 	@@echo " ↳ fetch monorepo dependencies in the duniverse folder"
 	@@env OPAMVAR_monorepo="opam-monorepo" $(OPAM) monorepo pull -l $< -r $(abspath $(BUILD_DIR))
+	@@echo "The sources have been pulled to the duniverse folder. Run 'make build' to build the unikernel."
 
 install-switch:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam
 	@@echo " ↳ opam install switch dependencies"
 	@@$(OPAM) install $< --deps-only --yes%a%a
+	@@echo "The dependencies have been installed. Run 'make build' to build the unikernel."
 
 depends depend::
 	@@$(MAKE) --no-print-directory lock
@@ -137,6 +149,8 @@ depends depend::
 
 build::
 	dune build --profile release --root . $(BUILD_DIR)dist
+	@@echo "Your unikernel binary is now ready in $(BUILD_DIR)dist/%s"
+	@@echo "Execute the binary using solo5-hvt, solo5-spt, xl, ..."
 
 clean::
 	mirage clean
@@ -144,4 +158,4 @@ clean::
     Fpath.pp t.build_dir Fpath.pp mirage_dir
     (Misc.Name.Opam.to_string t.unikernel_opam_name)
     pp_extra_rules t pp_add_repo t.extra_repo pp_or_remove_repo t.extra_repo
-    pp_no_depext t.depext pp_depext_lockfile t.depext
+    pp_no_depext t.depext pp_depext_lockfile t.depext t.public_name

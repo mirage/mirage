@@ -307,19 +307,26 @@ module Make (P : S) = struct
           (`Dune alias :> Cli.query_kind));
     Filegen.write file contents
 
-  let makefile_contents ~build_dir ~depext ~extra_repo opam_name =
+  let makefile_contents ~build_dir ~depext ~extra_repo ~public_name opam_name =
     Fmt.to_to_string Makefile.pp
-      (Makefile.v ~build_dir ~depext ~builder_name:P.name ~extra_repo opam_name)
+      (Makefile.v ~build_dir ~depext ~builder_name:P.name ~public_name
+         ~extra_repo opam_name)
 
-  let generate_makefile ~build_dir ~depext ~extra_repo opam_name =
-    let contents = makefile_contents ~build_dir ~depext ~extra_repo opam_name in
+  let generate_makefile ~build_dir ~depext ~extra_repo ~public_name opam_name =
+    let contents =
+      makefile_contents ~build_dir ~depext ~extra_repo ~public_name opam_name
+    in
     let file = Fpath.(v "Makefile") in
     Filegen.write file contents
+
+  let public_name info =
+    Option.value ~default:(Info.name info) (Info.output info)
 
   let query ({ args; kind; depext; extra_repo } : _ Cli.query_args) =
     let { Config.jobs; info; _ } = args.Cli.context in
     let name = P.name_of_target info in
     let build_dir = Fpath.parent args.config_file in
+    let public_name = public_name info in
     match kind with
     | `Name -> Fmt.pr "%s\n%!" (Info.name info)
     | `Packages ->
@@ -335,7 +342,8 @@ module Make (P : S) = struct
     | `Makefile ->
         let opam_name = Misc.Name.opamify name in
         let contents =
-          makefile_contents ~build_dir ~depext ~extra_repo opam_name
+          makefile_contents ~build_dir ~depext ~extra_repo ~public_name
+            opam_name
         in
         Fmt.pr "%s\n%!" contents
     | `Dune alias -> Fmt.pr "%s%!" (dune_contents alias args)
@@ -352,7 +360,10 @@ module Make (P : S) = struct
     let build_dir = build_dir args in
     let name = P.name_of_target info in
     let opam_name = Misc.Name.opamify name in
-    let* () = generate_makefile ~build_dir ~depext ~extra_repo opam_name in
+    let public_name = public_name info in
+    let* () =
+      generate_makefile ~build_dir ~depext ~extra_repo ~public_name opam_name
+    in
     let* _ = Action.mkdir (mirage_dir args) in
     let* () =
       Action.with_dir (mirage_dir args) (fun () ->

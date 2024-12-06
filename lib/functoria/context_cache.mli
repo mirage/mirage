@@ -23,7 +23,8 @@ type t
 (** The type for cache. *)
 
 val file : name:string -> 'a Cli.args -> Fpath.t
-(** [file ~name args] is the filename of the context cache for the tool [name]. *)
+(** [file ~name args] is the filename of the context cache for the tool [name].
+*)
 
 val empty : t
 (** The empty cache. *)

@@ -98,7 +98,7 @@
     with [pkg-config]. Then every bindings uses [pkg-config] to configure their
     [CFLAGS] and [ocamlfind] to register
     {{:https://github.com/ocaml/opam-repository/blob/master/packages/zarith-xen/zarith-xen.1.7/files/mirage-install.sh#L20}
-      link-time predicates}, e.g. additional link time options like the name of
+     link-time predicates}, e.g. additional link time options like the name of
     the C archives. Finally, the final link step is done by querying ocamlfind
     (using the custom registered predicates) to link the list of dependencies'
     objects files with the result of OCam compiler's [--output-obj] option.
@@ -785,7 +785,8 @@ val monitoring :
   stackv4v6 impl ->
   job impl
 (** Monitor metrics to a remote Influx host, also allow adjustments to log
-    sources and levels. The provided [stack] should not be publicly reachable. *)
+    sources and levels. The provided [stack] should not be publicly reachable.
+*)
 
 (** {2 Conduit configuration} *)
 

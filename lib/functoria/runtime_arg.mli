@@ -45,8 +45,8 @@ end
 (** {1 Code Serialization} *)
 
 val call : t Fmt.t
-(** [call fmt k] outputs [name ()] to [fmt], where [n] is [k]'s {{!ocaml_name}
-    OCaml name}. *)
+(** [call fmt k] outputs [name ()] to [fmt], where [n] is [k]'s
+    {{!ocaml_name} OCaml name}. *)
 
 val serialize : runtime_modname:string -> t Fmt.t
 (** [serialize ctx ppf k] outputs the [Cmdliner] runes to parse command-line

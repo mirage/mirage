@@ -61,7 +61,8 @@ val runtime_args : t -> Runtime_arg.t list
     configure [t] at runtime. *)
 
 val context : t -> Context.t
-(** [parsed t] is a value representing the command-line argument being parsed. *)
+(** [parsed t] is a value representing the command-line argument being parsed.
+*)
 
 val get : t -> 'a Key.key -> 'a
 (** [get i k] is the value associated with [k] in [context i]. *)
@@ -80,7 +81,8 @@ val v :
   project_name:string ->
   string ->
   t
-(** [create context n r] contains information about the application being built. *)
+(** [create context n r] contains information about the application being built.
+*)
 
 val pp : bool -> t Fmt.t
 

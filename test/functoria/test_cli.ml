@@ -32,25 +32,25 @@ let test_configure () =
   Alcotest.(check result_b)
     "configure"
     (`Ok
-      (Cli.Configure
-         {
-           depext = true;
-           extra_repo =
-             [
-               ( "opam-overlays",
-                 "https://github.com/dune-universe/opam-overlays.git" );
-               ( "mirage-overlays",
-                 "https://github.com/dune-universe/mirage-opam-overlays.git" );
-             ];
-           args =
-             {
-               context = (true, false);
-               output = None;
-               config_file = Fpath.v "config.ml";
-               context_file = None;
-               dry_run = false;
-             };
-         }))
+       (Cli.Configure
+          {
+            depext = true;
+            extra_repo =
+              [
+                ( "opam-overlays",
+                  "https://github.com/dune-universe/opam-overlays.git" );
+                ( "mirage-overlays",
+                  "https://github.com/dune-universe/mirage-opam-overlays.git" );
+              ];
+            args =
+              {
+                context = (true, false);
+                output = None;
+                config_file = Fpath.v "config.ml";
+                context_file = None;
+                dry_run = false;
+              };
+          }))
     result
 
 let test_describe () =
@@ -77,20 +77,20 @@ let test_describe () =
   Alcotest.(check result_b)
     "describe"
     (`Ok
-      (Cli.Describe
-         {
-           args =
-             {
-               context = (false, true);
-               output = None;
-               config_file = Fpath.v "config.ml";
-               context_file = Some (Fpath.v "config.json");
-               dry_run = false;
-             };
-           dotcmd = "dot";
-           dot = false;
-           eval = Some true;
-         }))
+       (Cli.Describe
+          {
+            args =
+              {
+                context = (false, true);
+                output = None;
+                config_file = Fpath.v "config.ml";
+                context_file = Some (Fpath.v "config.json");
+                dry_run = false;
+              };
+            dotcmd = "dot";
+            dot = false;
+            eval = Some true;
+          }))
     result
 
 let test_clean () =
@@ -108,14 +108,14 @@ let test_clean () =
   Alcotest.(check result_b)
     "clean"
     (`Ok
-      (Cli.Clean
-         {
-           context = (false, false);
-           output = None;
-           config_file = Fpath.v "config.ml";
-           context_file = None;
-           dry_run = false;
-         }))
+       (Cli.Clean
+          {
+            context = (false, false);
+            output = None;
+            config_file = Fpath.v "config.ml";
+            context_file = None;
+            dry_run = false;
+          }))
     result
 
 let test_help () =

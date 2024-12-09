@@ -1,5 +1,6 @@
-### unreleased
+### v4.8.2 (2024-12-09)
 
+- allow ocaml-solo5 1.x (@hannesm #1595)
 - guide the user what to do next (#1592 @hannesm, fixes #921)
 - revise syslog devices, add monitoring (#1591 @hannesm)
 - add `ipv4_of_dhcp` device (#1593, @palainp)

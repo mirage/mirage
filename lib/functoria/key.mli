@@ -25,7 +25,7 @@ module Arg : sig
 
       This module extends
       {{:http://erratique.ch/software/cmdliner/doc/Cmdliner/Arg/index.html}
-        Cmdliner.Arg} to allow MetaOCaml-style typed cross-stage persistency of
+       Cmdliner.Arg} to allow MetaOCaml-style typed cross-stage persistency of
       command-line arguments. *)
 
   type 'a t
@@ -36,18 +36,18 @@ module Arg : sig
   val opt : 'a Arg.conv -> 'a -> Arg.info -> 'a t
   (** [opt conv v i] is similar to
       {{:http://erratique.ch/software/cmdliner/doc/Cmdliner/Arg/index.html#val-opt}
-        Cmdliner.Arg.opt} but for cross-stage optional command-line arguments. *)
+       Cmdliner.Arg.opt} but for cross-stage optional command-line arguments. *)
 
   val required : 'a Arg.conv -> Arg.info -> 'a option t
   (** [required conv i] is similar to
       {{:http://erratique.ch/software/cmdliner/doc/Cmdliner/Arg/index.html#val-required}
-        Cmdliner.Arg.required} but for cross-stage required command-line
+       Cmdliner.Arg.required} but for cross-stage required command-line
       arguments. *)
 
   val flag : Arg.info -> bool t
   (** [flag i] is similar to
       {{:http://erratique.ch/software/cmdliner/doc/Cmdliner/Arg/index.html#val-flag}
-        Cmdliner.Arg.flag} but for cross-stage command-line flags. *)
+       Cmdliner.Arg.flag} but for cross-stage command-line flags. *)
 
   val opt_all : 'a Arg.conv -> Arg.info -> 'a list t
 
@@ -77,9 +77,9 @@ val create : string -> 'a Arg.t -> 'a key
 
 type +'a value
 (** The type for configure-time and run-time values. Values are either {!pure}
-    or obtained by composing other values. Values might have {{!deps} data
-    dependencies}, which form an (implicit) directed and acyclic graph that need
-    to be evaluated. *)
+    or obtained by composing other values. Values might have
+    {{!deps} data dependencies}, which form an (implicit) directed and acyclic
+    graph that need to be evaluated. *)
 
 val pure : 'a -> 'a value
 (** [pure x] is a value without any dependency. *)
@@ -149,7 +149,7 @@ val add_to_context : 'a key -> 'a -> context -> context
 val context : Set.t -> context Cmdliner.Term.t
 (** [context ks] is a [Cmdliner]
     {{:http://erratique.ch/software/cmdliner/doc/Cmdliner/Term/index.html#type-t}
-      term} that evaluates into a parsing context for command-line arguments. *)
+     term} that evaluates into a parsing context for command-line arguments. *)
 
 val mem : context -> 'a value -> bool
 (** [mem c v] is [true] iff all the dependencies of [v] have been evaluated. *)

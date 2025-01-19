@@ -144,36 +144,55 @@ val qubesdb : qubesdb typ
 val default_qubesdb : qubesdb impl
 (** A default qubes database, guessed from the usual valid configurations. *)
 
-(** {2 Time} *)
+(** {2 Sleep} *)
 
-type time
-(** Abstract type for timers. *)
+type sleep
+(** Abstract type for sleep. *)
 
-val time : time typ
-(** Implementations of the [Mirage_time.S] signature. *)
+val sleep : sleep typ
+(** Implementations of the [Mirage_sleep] signature. *)
 
-val default_time : time impl
-(** The default timer implementation. *)
+val default_sleep : sleep impl
+(** The default sleep implementation. *)
 
-(** {2 Clocks} *)
+val no_sleep : sleep impl
+(** Disables the sleep implementation. *)
 
-type pclock
-(** Abstract type for POSIX clocks. *)
+(** {2 Posix time} *)
 
-val pclock : pclock typ
-(** Implementations of the [Mirage_clock.PCLOCK] signature. *)
+type ptime
+(** Abstract type for POSIX time. *)
 
-val default_posix_clock : pclock impl
-(** The default mirage-clock [Mirage_clock.PCLOCK] implementation. *)
+val ptime : ptime typ
+(** Implementations of the [Mirage_ptime] signature. *)
 
-type mclock
-(** Abstract type for monotonic clocks *)
+val default_ptime : ptime impl
+(** The default mirage-ptime implementation. *)
 
-val mclock : mclock typ
-(** Implementations of the [Mirage_clock.MCLOCK] signature. *)
+val no_ptime : ptime impl
+(** Disables the mirage-ptime implementation. *)
 
-val default_monotonic_clock : mclock impl
-(** The default mirage-clock [Mirage_clock.MCLOCK] implementation. *)
+val mock_ptime : ptime impl
+(** A ptime mock implementation where you can manually set the clock via
+    [Mirage_ptime_set]. *)
+
+(** {2 Monotonic time} *)
+
+type mtime
+(** Abstract type for monotonic time *)
+
+val mtime : mtime typ
+(** Implementations of the [Mirage_mtime] signature. *)
+
+val default_mtime : mtime impl
+(** The default mirage-mtime implementation. *)
+
+val no_mtime : mtime impl
+(** Disables the mirage-mtime implementation. *)
+
+val mock_mtime : mtime impl
+(** A mtime mock implementation where you can manually set the clock via
+    [Mirage_mtime_set]. *)
 
 (** {2 Log reporters} *)
 
@@ -183,11 +202,9 @@ type reporter
 val reporter : reporter typ
 (** Implementation of the log {!type:reporter} type. *)
 
-val default_reporter :
-  ?clock:pclock impl -> ?level:Logs.level option -> unit -> reporter impl
-(** [default_reporter ?clock ?level ()] is the log reporter that prints log
-    messages to the console, timestampted with [clock]. If not provided, the
-    default clock is {!default_posix_clock}. [level] is the default log
+val default_reporter : ?level:Logs.level option -> unit -> reporter impl
+(** [default_reporter ?level ()] is the log reporter that prints log messages to
+    the console, with a timestamp as prefix. [level] is the default log
     threshold. It is [Some Logs.Info] if not specified. *)
 
 val no_reporter : reporter impl
@@ -199,14 +216,14 @@ type random
 (** Abstract type for random sources. *)
 
 val random : random typ
-(** Implementations of the [Mirage_random.S] signature. *)
+(** Implementations of the [Mirage_crypto_rng_mirage2] signature. *)
 
 val default_random : random impl
 (** Default PRNG device to be used in unikernels. It uses getrandom/getentropy
     on Unix, and a Fortuna PRNG on other targets. *)
 
-val rng : ?time:time impl -> ?mclock:mclock impl -> unit -> random impl
-(** [rng ()] is the device [Mirage_crypto_rng.Make]. *)
+val no_random : random impl
+(** Disables the random device. *)
 
 (** {2 Block devices} *)
 
@@ -333,14 +350,10 @@ val direct_kv_rw : string -> kv_rw impl
 (** Direct access to the underlying filesystem as a key/value store. Only
     available on Unix backends. *)
 
-val kv_rw_mem : ?clock:pclock impl -> unit -> kv_rw impl
+val kv_rw_mem : unit -> kv_rw impl
 (** An in-memory key-value store using [mirage-kv-mem]. *)
 
-val chamelon :
-  program_block_size:int runtime_arg ->
-  ?pclock:pclock impl ->
-  block impl ->
-  kv_rw impl
+val chamelon : program_block_size:int runtime_arg -> block impl -> kv_rw impl
 (** [chamelon ~program_block_size] returns a {!kv_rw} filesystem which is an
     implementation of {{:https://github.com/littlefs-project/littlefs} littlefs}
     in OCaml. The [chamelon] device expects a {i block-device}.
@@ -377,7 +390,7 @@ val chamelon :
       $ chamelon format db.img 512
     ]} *)
 
-val tar_kv_rw : ?pclock:pclock impl -> block impl -> kv_rw impl
+val tar_kv_rw : block impl -> kv_rw impl
 (** [tar_kv_rw block] is a read/write tar archive. Note that the filesystem is
     append-only. That is, files can generally not be removed, [set_partial] only
     works on what is allocated, and there are restrictions on [rename]. *)
@@ -472,7 +485,7 @@ type arpv4
 val arpv4 : arpv4 typ
 (** Implementation of the [Arp.S] signature. *)
 
-val arp : ?time:time impl -> ethernet impl -> arpv4 impl
+val arp : ethernet impl -> arpv4 impl
 (** ARP implementation provided by the arp library *)
 
 (** {2 IP configuration}
@@ -511,21 +524,12 @@ type ipv6_config = {
 }
 (** Types for manual IPv6 configuration. *)
 
-val ipv4_of_dhcp :
-  ?random:random impl ->
-  ?clock:mclock impl ->
-  ?time:time impl ->
-  network impl ->
-  ethernet impl ->
-  arpv4 impl ->
-  ipv4 impl
+val ipv4_of_dhcp : network impl -> ethernet impl -> arpv4 impl -> ipv4 impl
 (** Configure the interface via DHCP *)
 
 val create_ipv4 :
   ?group:string ->
   ?config:ipv4_config ->
-  ?random:random impl ->
-  ?clock:mclock impl ->
   ethernet impl ->
   arpv4 impl ->
   ipv4 impl
@@ -534,20 +538,11 @@ val create_ipv4 :
     override those supplied in the ipv4 configuration record, if that has been
     provided. *)
 
-val ipv4_qubes :
-  ?random:random impl ->
-  ?clock:mclock impl ->
-  qubesdb impl ->
-  ethernet impl ->
-  arpv4 impl ->
-  ipv4 impl
+val ipv4_qubes : qubesdb impl -> ethernet impl -> arpv4 impl -> ipv4 impl
 (** Use a given initialized QubesDB to look up and configure the appropriate *
     IPv4 interface. *)
 
 val create_ipv6 :
-  ?random:random impl ->
-  ?time:time impl ->
-  ?clock:mclock impl ->
   ?group:string ->
   ?config:ipv6_config ->
   network impl ->
@@ -567,7 +562,7 @@ val udp : 'a udp typ
 (** Implementation of the [Tcpip.Udp.S] signature. *)
 
 val udpv4v6 : udpv4v6 typ
-val direct_udp : ?random:random impl -> 'a ip impl -> 'a udp impl
+val direct_udp : 'a ip impl -> 'a udp impl
 
 val socket_udpv4v6 :
   ?group:string -> Ipaddr.V4.t option -> Ipaddr.V6.t option -> udpv4v6 impl
@@ -581,13 +576,7 @@ val tcp : 'a tcp typ
 (** Implementation of the [Tcpip.Tcp.S] signature. *)
 
 val tcpv4v6 : tcpv4v6 typ
-
-val direct_tcp :
-  ?mclock:mclock impl ->
-  ?time:time impl ->
-  ?random:random impl ->
-  'a ip impl ->
-  'a tcp impl
+val direct_tcp : 'a ip impl -> 'a tcp impl
 
 val socket_tcpv4v6 :
   ?group:string -> Ipaddr.V4.t option -> Ipaddr.V6.t option -> tcpv4v6 impl
@@ -603,9 +592,6 @@ val stackv4v6 : stackv4v6 typ
 
 val direct_stackv4v6 :
   ?group:string ->
-  ?mclock:mclock impl ->
-  ?random:random impl ->
-  ?time:time impl ->
   ?tcp:tcpv4v6 impl ->
   network impl ->
   ethernet impl ->
@@ -658,16 +644,7 @@ val tcpv4v6_of_stackv4v6 : stackv4v6 impl -> tcpv4v6 impl
 type resolver
 
 val resolver : resolver typ
-
-val resolver_dns :
-  ?ns:string list ->
-  ?time:time impl ->
-  ?mclock:mclock impl ->
-  ?pclock:pclock impl ->
-  ?random:random impl ->
-  stackv4v6 impl ->
-  resolver impl
-
+val resolver_dns : ?ns:string list -> stackv4v6 impl -> resolver impl
 val resolver_unix_system : resolver impl
 
 (** {2 Happy-eyeballs} *)
@@ -692,8 +669,6 @@ val generic_happy_eyeballs :
   ?resolve_timeout:int64 ->
   ?resolve_retries:int ->
   ?timer_interval:int64 ->
-  ?time:time impl ->
-  ?mclock:mclock impl ->
   stackv4v6 impl ->
   happy_eyeballs impl
 (** [generic_happy_eyeballs stackv4v6] creates a new happy-eyeballs value which
@@ -724,10 +699,6 @@ val generic_dns_client :
   ?timeout:int64 ->
   ?nameservers:string list ->
   ?cache_size:int ->
-  ?random:random impl ->
-  ?time:time impl ->
-  ?mclock:mclock impl ->
-  ?pclock:pclock impl ->
   stackv4v6 impl ->
   happy_eyeballs impl ->
   dns_client impl
@@ -760,30 +731,18 @@ type syslog
 val syslog : syslog typ
 (** Implementation of the {!type:syslog} type. *)
 
-val syslog_udp :
-  ?group:string -> ?clock:pclock impl -> stackv4v6 impl -> syslog impl
+val syslog_udp : ?group:string -> stackv4v6 impl -> syslog impl
 (** Emit log messages via UDP. *)
 
-val syslog_tcp :
-  ?group:string -> ?clock:pclock impl -> stackv4v6 impl -> syslog impl
+val syslog_tcp : ?group:string -> stackv4v6 impl -> syslog impl
 (** Emit log messages via TCP. *)
 
-val syslog_tls :
-  ?group:string ->
-  ?clock:pclock impl ->
-  stackv4v6 impl ->
-  kv_ro impl ->
-  syslog impl
+val syslog_tls : ?group:string -> stackv4v6 impl -> kv_ro impl -> syslog impl
 (** Emit log messages via TLS, using the credentials (private key, certificate,
     trust anchor) provided in the KV_RO. *)
 
 (** {2 Monitoring} *)
-val monitoring :
-  ?group:string ->
-  ?time:time impl ->
-  ?clock:pclock impl ->
-  stackv4v6 impl ->
-  job impl
+val monitoring : ?group:string -> stackv4v6 impl -> job impl
 (** Monitor metrics to a remote Influx host, also allow adjustments to log
     sources and levels. The provided [stack] should not be publicly reachable.
 *)
@@ -793,9 +752,7 @@ val monitoring :
 type conduit
 
 val conduit : conduit typ
-
-val conduit_direct :
-  ?tls:bool -> ?random:random impl -> stackv4v6 impl -> conduit impl
+val conduit_direct : ?tls:bool -> stackv4v6 impl -> conduit impl
 
 (** {2 Mimic devices}
 
@@ -847,8 +804,7 @@ type http_client
 
 val http_client : http_client typ
 
-val cohttp_client :
-  ?pclock:pclock impl -> resolver impl -> conduit impl -> http_client impl
+val cohttp_client : resolver impl -> conduit impl -> http_client impl
 (** [cohttp_server] starts a Cohttp server. *)
 
 type http_server
@@ -922,8 +878,7 @@ type alpn_client
 
 val alpn_client : alpn_client typ
 
-val paf_client :
-  ?pclock:pclock impl -> tcpv4v6 impl -> mimic impl -> alpn_client impl
+val paf_client : tcpv4v6 impl -> mimic impl -> alpn_client impl
 (** [paf_client tcpv4v6 dns] creates an ALPN device which can do HTTP
     ([http/1.1] & [h2]) requests as a HTTP client. The device allocated
     represents values required to initiate a connection to HTTP webservers. The
@@ -1027,8 +982,6 @@ val git_ssh :
   ?authenticator:string ->
   ?key:string ->
   ?password:string ->
-  ?mclock:mclock impl ->
-  ?time:time impl ->
   tcpv4v6 impl ->
   mimic impl ->
   git_client impl
@@ -1053,7 +1006,6 @@ val git_http :
   ?group:string ->
   ?authenticator:string ->
   ?headers:(string * string) list ->
-  ?pclock:pclock impl ->
   tcpv4v6 impl ->
   mimic impl ->
   git_client impl
@@ -1089,6 +1041,10 @@ val runtime_args : argv impl -> job impl
 val register :
   ?argv:argv impl ->
   ?reporter:reporter impl ->
+  ?sleep:sleep impl ->
+  ?ptime:ptime impl ->
+  ?mtime:mtime impl ->
+  ?random:random impl ->
   ?src:[ `Auto | `None | `Some of string ] ->
   string ->
   job impl list ->
@@ -1096,12 +1052,24 @@ val register :
 (** [register ~argv ~reporter ~src name jobs] registers the application named by
     [name] which will executes the given [jobs].
 
-    @param reporter
-      Configure logging. The default log reporter is {!default_reporter}. To
-      disable logging, use {!no_reporter}.
     @param argv
       Configure command-line argument parsing. The default parser is
       {!default_argv}. To disable command-line parsing, use {!no_argv}.
+    @param reporter
+      Configure logging. The default log reporter is {!default_reporter}. To
+      disable logging, use {!no_reporter}.
+    @param sleep
+      Configure the sleep. The default is {!default_sleep}. To disable the
+      timer, use {!no_sleep}.
+    @param ptime
+      Configure the POSIX clock. The default is {!default_ptime}. To disable the
+      POSIX clock, use {!no_ptime}.
+    @param mtime
+      Configure the monotonic clock. The default is {!default_mtime}. To disable
+      the monotonic clock, use {!no_mtime}.
+    @param random
+      Configure the random number generator. The default is {!default_random}.
+      To disable the random device, use {!no_random}.
     @param src
       The source to use in the generated opam file. If [`None] no source is
       output. If [`Some mysource] the string [mysource] is used as the source.

@@ -1,5 +1,4 @@
 open Functoria.DSL
-open Pclock
 open Misc
 open Conduit
 open Resolver
@@ -19,24 +18,23 @@ let connect err _i modname = function
   | _ -> connect_err err 1
 
 let cohttp_server =
-  let packages = [ package ~min:"4.0.0" ~max:"6.0.0" "cohttp-mirage" ] in
+  let packages = [ package ~min:"6.1.0" ~max:"7.0.0" "cohttp-mirage" ] in
   impl ~packages ~connect:(connect "http") "Cohttp_mirage.Server.Make"
     (conduit @-> http)
 
 let cohttp_server conduit = cohttp_server $ conduit
 
 let cohttp_client =
-  let packages = [ package ~min:"4.0.0" ~max:"6.0.0" "cohttp-mirage" ] in
+  let packages = [ package ~min:"6.1.0" ~max:"7.0.0" "cohttp-mirage" ] in
   let connect _i modname = function
-    | [ _pclock; resolver; conduit ] ->
+    | [ resolver; conduit ] ->
         code ~pos:__POS__ "Lwt.return (%s.ctx %s %s)" modname resolver conduit
-    | _ -> connect_err "http" 3
+    | _ -> connect_err "http" 2
   in
   impl ~packages ~connect "Cohttp_mirage.Client.Make"
-    (pclock @-> resolver @-> conduit @-> http_client)
+    (resolver @-> conduit @-> http_client)
 
-let cohttp_client ?(pclock = default_posix_clock) resolver conduit =
-  cohttp_client $ pclock $ resolver $ conduit
+let cohttp_client resolver conduit = cohttp_client $ resolver $ conduit
 
 let httpaf_server conduit =
   let packages = [ package "httpaf-mirage" ] in
@@ -55,7 +53,7 @@ let paf_server port =
     | _ -> connect_err "paf_server" 2
   in
   let packages =
-    [ package "paf" ~sublibs:[ "mirage" ] ~min:"0.7.0" ~max:"0.8.0" ]
+    [ package "paf" ~sublibs:[ "mirage" ] ~min:"0.8.0" ~max:"0.9.0" ]
   in
   let runtime_args = Runtime_arg.[ v port ] in
   impl ~connect ~packages ~runtime_args "Paf_mirage.Make"
@@ -66,11 +64,11 @@ type alpn_client = ALPN_client
 let alpn_client = typ ALPN_client
 
 let paf_client =
-  let packages = [ package "http-mirage-client" ~min:"0.0.1" ~max:"0.1.0" ] in
+  let packages = [ package "http-mirage-client" ~min:"0.0.9" ~max:"0.1.0" ] in
   let connect _ modname = function
-    | [ _pclock; _tcpv4v6; ctx ] ->
+    | [ _tcpv4v6; ctx ] ->
         code ~pos:__POS__ {ocaml|%s.connect %s|ocaml} modname ctx
-    | _ -> connect_err "paf_client" 3
+    | _ -> connect_err "paf_client" 2
   in
   impl ~connect ~packages "Http_mirage_client.Make"
-    (pclock @-> tcpv4v6 @-> mimic @-> alpn_client)
+    (tcpv4v6 @-> mimic @-> alpn_client)

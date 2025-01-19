@@ -13,4 +13,4 @@ type rw
 
 val rw : rw typ
 val direct_kv_rw : string -> rw impl
-val mem_kv_rw : ?clock:Pclock.pclock impl -> unit -> rw impl
+val mem_kv_rw : unit -> rw impl

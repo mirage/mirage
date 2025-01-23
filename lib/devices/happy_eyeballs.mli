@@ -13,4 +13,4 @@ val generic_happy_eyeballs :
   ?resolve_retries:int ->
   ?timer_interval:int64 ->
   unit ->
-  (Time.time -> Mclock.mclock -> Stack.stackv4v6 -> happy_eyeballs) impl
+  (Stack.stackv4v6 -> happy_eyeballs) impl

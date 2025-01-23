@@ -215,7 +215,7 @@ module Solo5 = struct
 
   let build_packages =
     [
-      Functoria.package ~min:"0.8.2" ~max:"2.0.0" ~scope:`Switch ~build:true
+      Functoria.package ~min:"0.8.2" ~max:"1.0.0" ~scope:`Switch ~build:true
         "ocaml-solo5";
       Functoria.package ~min:"0.7.5" ~max:"0.10.0" ~scope:`Switch ~build:true
         "solo5";
@@ -224,9 +224,9 @@ module Solo5 = struct
   let runtime_packages target =
     match target with
     | #solo5_target ->
-        [ Functoria.package ~min:"0.9.0" ~max:"0.10.0" "mirage-solo5" ]
+        [ Functoria.package ~min:"1.0.0" ~max:"2.0.0" "mirage-solo5" ]
     | #xen_target ->
-        [ Functoria.package ~min:"8.0.0" ~max:"9.0.0" "mirage-xen" ]
+        [ Functoria.package ~min:"9.0.0" ~max:"10.0.0" "mirage-xen" ]
 
   let packages target = build_packages @ runtime_packages target
   let context_name _i = "solo5"

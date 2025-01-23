@@ -1,6 +1,4 @@
 open Functoria.DSL
-open Time
-open Mclock
 open Stack
 open Misc
 
@@ -11,7 +9,7 @@ let happy_eyeballs = typ Happy_eyeballs
 let generic_happy_eyeballs ?group ?aaaa_timeout ?connect_delay ?connect_timeout
     ?resolve_timeout ?resolve_retries ?timer_interval () =
   let packages =
-    [ package "happy-eyeballs-mirage" ~min:"1.2.0" ~max:"2.0.0" ]
+    [ package "happy-eyeballs-mirage" ~min:"2.0.0" ~max:"3.0.0" ]
   in
   let aaaa_timeout = Runtime_arg.he_aaaa_timeout ?group aaaa_timeout
   and connect_delay = Runtime_arg.he_connect_delay ?group connect_delay
@@ -32,8 +30,6 @@ let generic_happy_eyeballs ?group ?aaaa_timeout ?connect_delay ?connect_timeout
   in
   let connect _info modname = function
     | [
-        _time;
-        _mclock;
         stack;
         aaaa_timeout;
         connect_delay;
@@ -47,7 +43,7 @@ let generic_happy_eyeballs ?group ?aaaa_timeout ?connect_delay ?connect_timeout
 ?connect_timeout:%s ?resolve_timeout:%s ?resolve_retries:%s ?timer_interval:%s %s|ocaml}
           modname aaaa_timeout connect_delay connect_timeout resolve_timeout
           resolve_retries timer_interval stack
-    | _ -> connect_err "generic_happy_eyeballs" 9
+    | _ -> connect_err "generic_happy_eyeballs" 7
   in
   impl ~runtime_args ~packages ~connect "Happy_eyeballs_mirage.Make"
-    (time @-> mclock @-> stackv4v6 @-> happy_eyeballs)
+    (stackv4v6 @-> happy_eyeballs)

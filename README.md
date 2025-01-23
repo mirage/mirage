@@ -1,5 +1,5 @@
 <div align="center">
-  <a href="https://mirage.io">
+  <a href="https://mirageos.org">
     <img src="./logo.svg" alt="MirageOS logo"/>
   </a>
   <br />
@@ -36,7 +36,7 @@ like Amazon's Elastic Compute Cloud and Google Compute Engine, or
 private deployments.
 
 The most up-to-date documentation can be found at the
-[homepage](https://mirage.io). The site is [a self-hosted
+[homepage](https://mirageos.org). The site is [a self-hosted
 unikernel](https://github.com/mirage/mirage-www).  Simpler [skeleton
 applications](https://github.com/mirage/mirage-skeleton) are also
 available online.  MirageOS unikernels repositories are also available
@@ -79,6 +79,6 @@ There are multiple stages to using `mirage`:
 * call `dune build` to build a unikernel.
 
 You can find documentation, walkthroughs and tutorials over on the
-[MirageOS website](https://mirage.io).
-The [install instructions](https://mirage.io/wiki/install)
+[MirageOS website](https://mirageos.org).
+The [install instructions](https://mirageos.org/wiki/install)
 are a good place to begin!

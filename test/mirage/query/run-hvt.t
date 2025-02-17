@@ -24,12 +24,15 @@ Query opam file
     "cmdliner-stdlib" { ?monorepo & >= "1.0.1" & < "2.0.0" }
     "duration" { ?monorepo & < "1.0.0" }
     "lwt" { ?monorepo }
-    "mirage" { build & >= "4.8.1" & < "4.9.0" }
+    "mirage" { build & >= "4.8.0" & < "4.10.0" }
     "mirage-bootvar" { ?monorepo & >= "1.0.0" & < "2.0.0" }
-    "mirage-clock-solo5" { ?monorepo & >= "4.2.0" & < "5.0.0" }
-    "mirage-logs" { ?monorepo & >= "2.0.0" & < "3.0.0" }
-    "mirage-runtime" { ?monorepo & >= "4.8.1" & < "4.9.0" }
-    "mirage-solo5" { ?monorepo & >= "0.9.0" & < "0.10.0" }
+    "mirage-crypto-rng-mirage" { ?monorepo & >= "2.0.0" & < "3.0.0" }
+    "mirage-logs" { ?monorepo & >= "3.0.0" & < "4.0.0" }
+    "mirage-mtime" { ?monorepo & >= "5.0.0" & < "6.0.0" }
+    "mirage-ptime" { ?monorepo & >= "5.0.0" & < "6.0.0" }
+    "mirage-runtime" { ?monorepo & >= "4.8.0" & < "4.10.0" }
+    "mirage-sleep" { ?monorepo & >= "4.0.0" & < "5.0.0" }
+    "mirage-solo5" { ?monorepo & >= "0.10.0" & < "0.11.0" }
     "ocaml-solo5" { build & >= "0.8.2" & < "2.0.0" }
     "opam-monorepo" { build & >= "0.3.2" }
     "solo5" { build & >= "0.7.5" & < "0.10.0" }
@@ -55,12 +58,15 @@ Query packages
   "cmdliner-stdlib" { ?monorepo & >= "1.0.1" & < "2.0.0" }
   "duration" { ?monorepo & < "1.0.0" }
   "lwt" { ?monorepo }
-  "mirage" { build & >= "4.8.1" & < "4.9.0" }
+  "mirage" { build & >= "4.8.0" & < "4.10.0" }
   "mirage-bootvar" { ?monorepo & >= "1.0.0" & < "2.0.0" }
-  "mirage-clock-solo5" { ?monorepo & >= "4.2.0" & < "5.0.0" }
-  "mirage-logs" { ?monorepo & >= "2.0.0" & < "3.0.0" }
-  "mirage-runtime" { ?monorepo & >= "4.8.1" & < "4.9.0" }
-  "mirage-solo5" { ?monorepo & >= "0.9.0" & < "0.10.0" }
+  "mirage-crypto-rng-mirage" { ?monorepo & >= "2.0.0" & < "3.0.0" }
+  "mirage-logs" { ?monorepo & >= "3.0.0" & < "4.0.0" }
+  "mirage-mtime" { ?monorepo & >= "5.0.0" & < "6.0.0" }
+  "mirage-ptime" { ?monorepo & >= "5.0.0" & < "6.0.0" }
+  "mirage-runtime" { ?monorepo & >= "4.8.0" & < "4.10.0" }
+  "mirage-sleep" { ?monorepo & >= "4.0.0" & < "5.0.0" }
+  "mirage-solo5" { ?monorepo & >= "0.10.0" & < "0.11.0" }
   "ocaml-solo5" { build & >= "0.8.2" & < "2.0.0" }
   "opam-monorepo" { build & >= "0.3.2" }
   "solo5" { build & >= "0.7.5" & < "0.10.0" }
@@ -278,7 +284,9 @@ Query unikernel dune
    (name main)
    (modes (native exe))
    (libraries cmdliner-stdlib duration lwt mirage-bootvar mirage-bootvar.solo5
-     mirage-clock-solo5 mirage-logs mirage-runtime mirage-solo5)
+     mirage-crypto-rng-mirage mirage-logs mirage-mtime mirage-mtime.solo5
+     mirage-ptime mirage-ptime.solo5 mirage-runtime mirage-sleep
+     mirage-sleep.solo5 mirage-solo5)
    (link_flags :standard -w -70 -cclib "-z solo5-abi=hvt")
    (modules (:standard \ config manifest))
    (foreign_stubs (language c) (names manifest))

@@ -2,5 +2,5 @@
 
 Configure
   $ ./config.exe configure
-  Fatal error: exception Invalid_argument("Your configuration includes a job without arguments. Please add a dependency in your config.ml: use `let main = Mirage.main \"Unikernel.Hello\" (job @-> job) register \"hello\" [ main $ noop ]` instead of `.. job .. [ main ]`.")
-  [2]
+  adding unit argument to 'start ()' (to delay execution)
+  Successfully configured the unikernel. Now run 'make' (or more fine-grained steps: 'make all', 'make depends', or 'make lock').

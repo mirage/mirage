@@ -28,11 +28,14 @@ Query opam file
     "cmdliner-stdlib" { ?monorepo & >= "1.0.1" & < "2.0.0" }
     "duration" { ?monorepo & < "1.0.0" }
     "lwt" { ?monorepo }
-    "mirage" { build & >= "4.8.1" & < "4.9.0" }
+    "mirage" { build & >= "4.8.0" & < "4.10.0" }
     "mirage-bootvar" { ?monorepo & >= "1.0.0" & < "2.0.0" }
-    "mirage-clock-unix" { ?monorepo & >= "3.0.0" & < "5.0.0" }
-    "mirage-logs" { ?monorepo & >= "2.0.0" & < "3.0.0" }
-    "mirage-runtime" { ?monorepo & >= "4.8.1" & < "4.9.0" }
+    "mirage-crypto-rng-mirage" { ?monorepo & >= "2.0.0" & < "3.0.0" }
+    "mirage-logs" { ?monorepo & >= "3.0.0" & < "4.0.0" }
+    "mirage-mtime" { ?monorepo & >= "5.0.0" & < "6.0.0" }
+    "mirage-ptime" { ?monorepo & >= "5.0.0" & < "6.0.0" }
+    "mirage-runtime" { ?monorepo & >= "4.8.0" & < "4.10.0" }
+    "mirage-sleep" { ?monorepo & >= "4.0.0" & < "5.0.0" }
     "mirage-unix" { ?monorepo & >= "5.0.0" & < "6.0.0" }
     "opam-monorepo" { build & >= "0.3.2" }
   ]
@@ -57,11 +60,14 @@ Query packages
   "cmdliner-stdlib" { ?monorepo & >= "1.0.1" & < "2.0.0" }
   "duration" { ?monorepo & < "1.0.0" }
   "lwt" { ?monorepo }
-  "mirage" { build & >= "4.8.1" & < "4.9.0" }
+  "mirage" { build & >= "4.8.0" & < "4.10.0" }
   "mirage-bootvar" { ?monorepo & >= "1.0.0" & < "2.0.0" }
-  "mirage-clock-unix" { ?monorepo & >= "3.0.0" & < "5.0.0" }
-  "mirage-logs" { ?monorepo & >= "2.0.0" & < "3.0.0" }
-  "mirage-runtime" { ?monorepo & >= "4.8.1" & < "4.9.0" }
+  "mirage-crypto-rng-mirage" { ?monorepo & >= "2.0.0" & < "3.0.0" }
+  "mirage-logs" { ?monorepo & >= "3.0.0" & < "4.0.0" }
+  "mirage-mtime" { ?monorepo & >= "5.0.0" & < "6.0.0" }
+  "mirage-ptime" { ?monorepo & >= "5.0.0" & < "6.0.0" }
+  "mirage-runtime" { ?monorepo & >= "4.8.0" & < "4.10.0" }
+  "mirage-sleep" { ?monorepo & >= "4.0.0" & < "5.0.0" }
   "mirage-unix" { ?monorepo & >= "5.0.0" & < "6.0.0" }
   "opam-monorepo" { build & >= "0.3.2" }
 
@@ -282,7 +288,9 @@ Query unikernel dune
   (executable
    (name main)
    (libraries cmdliner-stdlib duration lwt mirage-bootvar mirage-bootvar.unix
-     mirage-clock-unix mirage-logs mirage-runtime mirage-unix)
+     mirage-crypto-rng-mirage mirage-logs mirage-mtime mirage-mtime.unix
+     mirage-ptime mirage-ptime.unix mirage-runtime mirage-sleep
+     mirage-sleep.unix mirage-unix)
    (link_flags (-thread))
    (modules (:standard \ config))
    (flags :standard -w -70)

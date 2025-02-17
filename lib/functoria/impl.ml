@@ -185,8 +185,7 @@ let rec equal : type t1 t2. t1 t -> t2 t -> (t1, t2) Typeid.witness =
 
 and equal_abstract (Abstract x) (Abstract y) = Typeid.to_bool @@ equal x y
 
-and equal_tl :
-    type t1 t2 v1 v2.
+and equal_tl : type t1 t2 v1 v2.
     (t1, v1) tl ->
     (t2, v2) tl ->
     (t1, t2) Typeid.witness ->
@@ -360,8 +359,7 @@ let map (type r) ~(mk_switch : _ f_switch) ~(mk_app : _ f_app)
 
 type label = If : _ Key.value -> label | Dev : _ Device.t -> label | App
 
-let collect :
-    type ty.
+let collect : type ty.
     (module Misc.Monoid with type t = ty) -> (label -> ty) -> abstract -> ty =
  fun (module M) op (Abstract t) ->
   let r = ref M.empty in

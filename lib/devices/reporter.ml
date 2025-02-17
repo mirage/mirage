@@ -1,5 +1,4 @@
 open Functoria.DSL
-open Pclock
 open Misc
 
 type reporter = job
@@ -14,22 +13,18 @@ let pp_level ppf = function
   | Some Logs.App -> Fmt.string ppf "(Some Logs.App)"
   | None -> Fmt.string ppf "None"
 
-let mirage_log ~default () =
-  let packages = [ package ~min:"2.0.0" ~max:"3.0.0" "mirage-logs" ] in
+let default_reporter ?(level = Some Logs.Info) () =
+  let packages = [ package ~min:"3.0.0" ~max:"4.0.0" "mirage-logs" ] in
   let runtime_args = [ Runtime_arg.v Runtime_arg.logs ] in
   let connect _ modname = function
-    | [ _pclock; logs ] ->
+    | [ logs ] ->
         code ~pos:__POS__
           "@[<v 2>let reporter = %s.create () in@ Mirage_runtime.set_level \
            ~default:%a %s;@ Logs.set_reporter reporter;@ Lwt.return reporter@]"
-          modname pp_level default logs
-    | _ -> connect_err "log" 2
+          modname pp_level level logs
+    | _ -> connect_err "log" 1
   in
-  impl ~packages ~runtime_args ~connect "Mirage_logs.Make" (pclock @-> reporter)
-
-let default_reporter ?(clock = default_posix_clock) ?(level = Some Logs.Info) ()
-    =
-  mirage_log ~default:level () $ clock
+  impl ~packages ~runtime_args ~connect "Mirage_logs" reporter
 
 let no_reporter =
   let connect _ _ _ = code ~pos:__POS__ "assert false" in

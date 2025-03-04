@@ -1,6 +1,7 @@
 Configure the project for Unix:
 
   $ mirage configure -t unix
+  mirage: [WARNING] Skipping version check, since our_version is not watermarked
   Successfully configured the unikernel. Now run 'make' (or more fine-grained steps: 'make all', 'make depends', or 'make lock').
   $ ls . mirage/
   .:
@@ -160,6 +161,7 @@ Configure the project for Unix:
 Configure the project for Xen:
 
   $ mirage configure -t xen
+  mirage: [WARNING] Skipping version check, since our_version is not watermarked
   Successfully configured the unikernel. Now run 'make' (or more fine-grained steps: 'make all', 'make depends', or 'make lock').
   $ ls . mirage/
   .:

@@ -1,3 +1,52 @@
+### v4.9.0 (2025-03-04)
+
+- Remove time, pclock, mclock, random from functor arguments
+  Instead, use the linking trick in mirage-mtime, mirage-ptime, mirage-sleep
+  libraries (#1599 @hannesm, discussion in #1513 and on the mailing list)
+  This removes the default_time, default_monotonic_clock, default_posix_clock
+  bindings, and allows "Mirage.register" to get ?sleep ?ptime ?mtime ?random
+  passed optionally, following how ?argv is handled.
+
+  This is a breaking change, and your unikernel likely needs to be updated. Have
+  a look at https://github.com/mirage/mirage-skeleton/pull/407 for how our
+  examples changed.
+
+  As example, the hello-key unikernel diff:
+```
+  --- a/tutorial/hello-key/config.ml
+  +++ b/tutorial/hello-key/config.ml
+  @@ -2,5 +2,5 @@
+   open Mirage
+   
+   let packages = [ package "duration" ]
+  -let main = main ~packages "Unikernel.Hello" (time @-> job)
+  -let () = register "hello-key" [ main $ default_time ]
+  +let main = main ~packages "Unikernel" job
+  +let () = register "hello-key" [ main ]
+
+  --- a/tutorial/hello-key/unikernel.ml
+  +++ b/tutorial/hello-key/unikernel.ml
+  @@ -5,13 +5,12 @@ let hello =
+     let doc = Arg.info ~doc:"How to say hello." [ "hello" ] in
+     Mirage_runtime.register_arg Arg.(value & opt string "Hello World!" doc)
+   
+  -module Hello (Time : Mirage_time.S) = struct
+  -  let start _time =
+  +let start () =
+     let rec loop = function
+       | 0 -> Lwt.return_unit
+       | n ->
+         Logs.info (fun f -> f "%s" (hello ()));
+  -          Time.sleep_ns (Duration.of_sec 1) >>= fun () -> loop (n - 1)
+  +      Mirage_sleep.ns (Duration.of_sec 1) >>= fun () ->
+  +      loop (n - 1)
+     in
+     loop 4
+  -end
+```
+- Inject a unit argument to the start function if otherwise it would have
+  no binding (discussed various times, including #1088 #873)
+
 ### v4.8.2 (2024-12-09)
 
 - allow ocaml-solo5 1.x (@hannesm #1595)

@@ -25,9 +25,9 @@
     are required and {{!section-combinators} combine} all of them together using
     {{:http://dx.doi.org/10.1017/S0956796807006326} applicative} operators.
 
-    The DSL expression is then compiled into an {{!section-app} application
-    builder}, which will, once evaluated, produced the final portable and
-    flexible application. *)
+    The DSL expression is then compiled into an
+    {{!section-app} application builder}, which will, once evaluated, produced
+    the final portable and flexible application. *)
 
 (** {1:combinators Combinators} *)
 
@@ -131,7 +131,7 @@ val package :
     leads to an invalid argument. Version constraints are given as [min]
     (inclusive) and [max] (exclusive). If [pin] is provided, a
     {{:https://opam.ocaml.org/doc/Manual.html#opamfield-pin-depends}
-      pin-depends} is generated, [pin_version] is ["dev"] by default. [~scope]
+     pin-depends} is generated, [pin_version] is ["dev"] by default. [~scope]
     specifies the installation location of the package. *)
 
 (** {1:app Application Builder}
@@ -190,9 +190,10 @@ val impl :
   string ->
   'a typ ->
   'a impl
-(** [impl ~packages ~packages_v ~install ~install_v ~keys ~runtime_args ~extra_deps ~connect ~dune ~configure ~files module_name module_type]
-    is an implementation of the device constructed by the arguments. [packages]
-    and [packages_v] are the dependencies (where [packages_v] is inside
+(** [impl ~packages ~packages_v ~install ~install_v ~keys ~runtime_args
+     ~extra_deps ~connect ~dune ~configure ~files module_name module_type] is an
+    implementation of the device constructed by the arguments. [packages] and
+    [packages_v] are the dependencies (where [packages_v] is inside
     {!Key.value}). [install] and [install_v] are the install instructions (used
     in the generated opam file), [keys] are the configuration-time keys,
     [runtime_args] the arguments at runtime, [extra_deps] are a list of extra

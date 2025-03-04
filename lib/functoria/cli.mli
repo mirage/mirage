@@ -140,4 +140,5 @@ type 'a result =
     also carry global command-line parameters. *)
 
 val peek : ?with_setup:bool -> mname:string -> string array -> unit result
-(** [peek] is the same as {!val:eval} but without failing on unknown arguments. *)
+(** [peek] is the same as {!val:eval} but without failing on unknown arguments.
+*)

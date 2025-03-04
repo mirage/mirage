@@ -103,7 +103,8 @@ val simplify : full:bool -> context:Context.t -> abstract -> abstract
 
 val eval : context:Context.t -> abstract -> Device.Graph.t
 (** [eval ~context impl] fully evaluates the implementation [impl] according to
-    keys present in the [context]. It returns a graph composed only of devices. *)
+    keys present in the [context]. It returns a graph composed only of devices.
+*)
 
 (** Collections *)
 

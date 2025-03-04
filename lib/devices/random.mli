@@ -1,9 +1,7 @@
 open Functoria
-open Time
-open Mclock
 
-type random
+type random = job
 
 val random : random typ
-val rng : ?time:time impl -> ?mclock:mclock impl -> unit -> random impl
+val no_random : random impl
 val default_random : random impl

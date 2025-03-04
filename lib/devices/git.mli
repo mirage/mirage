@@ -12,11 +12,11 @@ val git_ssh :
   ?key:string ->
   ?password:string ->
   unit ->
-  (Mclock.mclock -> Tcp.tcpv4v6 -> Time.time -> Mimic.mimic -> git_client) impl
+  (Tcp.tcpv4v6 -> Mimic.mimic -> git_client) impl
 
 val git_http :
   ?group:string ->
   ?authenticator:string ->
   ?headers:(string * string) list ->
   unit ->
-  (Pclock.pclock -> Tcp.tcpv4v6 -> Mimic.mimic -> git_client) impl
+  (Tcp.tcpv4v6 -> Mimic.mimic -> git_client) impl

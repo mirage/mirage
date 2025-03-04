@@ -36,26 +36,31 @@ type qubesdb = Qubesdb.qubesdb
 let qubesdb = Qubesdb.qubesdb
 let default_qubesdb = Qubesdb.default_qubesdb
 
-type time = Time.time
+type sleep = Sleep.sleep
 
-let time = Time.time
-let default_time = Time.default_time
+let sleep = Sleep.sleep
+let default_sleep = Sleep.default_sleep
+let no_sleep = Sleep.no_sleep
 
-type pclock = Pclock.pclock
+type ptime = Ptime.ptime
 
-let pclock = Pclock.pclock
-let default_posix_clock = Pclock.default_posix_clock
+let ptime = Ptime.ptime
+let default_ptime = Ptime.default_ptime
+let no_ptime = Ptime.no_ptime
+let mock_ptime = Ptime.mock_ptime
 
-type mclock = Mclock.mclock
+type mtime = Mtime.mtime
 
-let mclock = Mclock.mclock
-let default_monotonic_clock = Mclock.default_monotonic_clock
+let mtime = Mtime.mtime
+let default_mtime = Mtime.default_mtime
+let no_mtime = Mtime.no_mtime
+let mock_mtime = Mtime.mock_mtime
 
 type random = Random.random
 
 let random = Random.random
 let default_random = Random.default_random
-let rng = Random.rng
+let no_random = Random.no_random
 
 type kv_ro = Kv.ro
 
@@ -73,11 +78,10 @@ let kv_rw_mem = Kv.mem_kv_rw
 let docteur ?mode ?name ?output ?analyze ?branch ?extra_deps remote =
   Block.docteur ?mode ?name ?output ?analyze ?branch ?extra_deps remote
 
-let chamelon ~program_block_size ?(pclock = default_posix_clock) block =
-  Block.chamelon ~program_block_size $ block $ pclock
+let chamelon ~program_block_size block =
+  Block.chamelon ~program_block_size $ block
 
-let tar_kv_rw ?(pclock = default_posix_clock) block =
-  Block.tar_kv_rw pclock block
+let tar_kv_rw block = Block.tar_kv_rw block
 
 type block = Block.block
 
@@ -193,27 +197,18 @@ type happy_eyeballs = Happy_eyeballs.happy_eyeballs
 let happy_eyeballs = Happy_eyeballs.happy_eyeballs
 
 let generic_happy_eyeballs ?group ?aaaa_timeout ?connect_delay ?connect_timeout
-    ?resolve_timeout ?resolve_retries ?timer_interval ?(time = default_time)
-    ?(mclock = default_monotonic_clock) stackv4v6 =
+    ?resolve_timeout ?resolve_retries ?timer_interval stackv4v6 =
   Happy_eyeballs.generic_happy_eyeballs ?group ?aaaa_timeout ?connect_delay
     ?connect_timeout ?resolve_timeout ?resolve_retries ?timer_interval ()
-  $ time
-  $ mclock
   $ stackv4v6
 
 type dns_client = Dns.dns_client
 
 let dns_client = Dns.dns_client
 
-let generic_dns_client ?group ?timeout ?nameservers ?cache_size
-    ?(random = default_random) ?(time = default_time)
-    ?(mclock = default_monotonic_clock) ?(pclock = default_posix_clock)
-    stackv4v6 happy_eyeballs =
+let generic_dns_client ?group ?timeout ?nameservers ?cache_size stackv4v6
+    happy_eyeballs =
   Dns.generic_dns_client ?group ?timeout ?nameservers ?cache_size ()
-  $ random
-  $ time
-  $ mclock
-  $ pclock
   $ stackv4v6
   $ happy_eyeballs
 
@@ -244,9 +239,7 @@ let paf_server ~port tcpv4v6 = Http.paf_server port $ tcpv4v6
 type alpn_client = Http.alpn_client
 
 let alpn_client = Http.alpn_client
-
-let paf_client ?(pclock = default_posix_clock) tcpv4v6 mimic =
-  Http.paf_client $ pclock $ tcpv4v6 $ mimic
+let paf_client tcpv4v6 mimic = Http.paf_client $ tcpv4v6 $ mimic
 
 type argv = Functoria.argv
 
@@ -273,17 +266,11 @@ let git_client = Git.git_client
 let merge_git_clients ctx0 ctx1 = Git.git_merge_clients $ ctx0 $ ctx1
 let git_tcp tcpv4v6 ctx = Git.git_tcp $ tcpv4v6 $ ctx
 
-let git_ssh ?group ?authenticator ?key ?password
-    ?(mclock = default_monotonic_clock) ?(time = default_time) tcpv4v6 ctx =
-  Git.git_ssh ?group ?authenticator ?key ?password ()
-  $ mclock
-  $ tcpv4v6
-  $ time
-  $ ctx
+let git_ssh ?group ?authenticator ?key ?password tcpv4v6 ctx =
+  Git.git_ssh ?group ?authenticator ?key ?password () $ tcpv4v6 $ ctx
 
-let git_http ?group ?authenticator ?headers ?(pclock = default_posix_clock)
-    tcpv4v6 ctx =
-  Git.git_http ?group ?authenticator ?headers () $ pclock $ tcpv4v6 $ ctx
+let git_http ?group ?authenticator ?headers tcpv4v6 ctx =
+  Git.git_http ?group ?authenticator ?headers () $ tcpv4v6 $ ctx
 
 let delay = job
 
@@ -291,15 +278,9 @@ let delay_startup =
   let delay_key = Runtime_arg.delay in
   let runtime_args = [ Runtime_arg.v delay_key ] in
   let packages = [ package ~max:"1.0.0" "duration" ] in
-  let connect i _ = function
+  let connect _ _ = function
     | [ delay_key ] ->
-        let modname =
-          match Misc.get_target i with
-          | `Unix | `MacOSX -> "Unix_os.Time"
-          | `Xen | `Qubes -> "Xen_os.Time"
-          | `Virtio | `Hvt | `Spt | `Muen | `Genode -> "Solo5_os.Time"
-        in
-        code ~pos:__POS__ "%s.sleep_ns (Duration.of_sec %s)" modname delay_key
+        code ~pos:__POS__ "Mirage_sleep.ns (Duration.of_sec %s)" delay_key
     | _ -> Misc.connect_err "delay_startup" 1
   in
   impl ~packages ~runtime_args ~connect "Mirage_runtime" delay
@@ -368,7 +349,7 @@ let run t = %s.Main.run t ; exit 0|ocaml}
     let keys = Key.[ v target ] in
     let packages_v =
       (* XXX: use %%VERSION_NUM%% here instead of hardcoding a version? *)
-      let min = "4.8.1" and max = "4.9.0" in
+      let min = "4.8.0" and max = "4.10.0" in
       let common =
         [
           package ~scope:`Monorepo "lwt";
@@ -414,8 +395,9 @@ let ( ++ ) acc x =
   | None, Some x -> Some [ x ]
   | Some acc, Some x -> Some (acc @ [ x ])
 
-let register ?(argv = default_argv) ?(reporter = default_reporter ()) ?src name
-    jobs =
+let register ?(argv = default_argv) ?(reporter = default_reporter ())
+    ?(sleep = default_sleep) ?(ptime = default_ptime) ?(mtime = default_mtime)
+    ?(random = default_random) ?src name jobs =
   if List.exists Functoria.Impl.app_has_no_arguments jobs then
     invalid_arg
       "Your configuration includes a job without arguments. Please add a \
@@ -424,7 +406,15 @@ let register ?(argv = default_argv) ?(reporter = default_reporter ()) ?src name
        instead of `.. job .. [ main ]`.";
   let first = [ runtime_args argv; ocaml_runtime ] in
   let reporter = if reporter == no_reporter then None else Some reporter in
-  let init = Some first ++ Some delay_startup ++ reporter in
+  let init =
+    Some first
+    ++ Some delay_startup
+    ++ reporter
+    ++ Some sleep
+    ++ Some ptime
+    ++ Some mtime
+    ++ Some random
+  in
   register ?init ?src name jobs
 
 let connect_err = Devices.Misc.connect_err

@@ -2,12 +2,12 @@ open Functoria
 
 let result_t pp_a =
   let pp ppf = function
-    | `Error `Exn -> Fmt.string ppf "error exn"
-    | `Error `Parse -> Fmt.string ppf "error parse"
-    | `Error `Term -> Fmt.string ppf "error term"
-    | `Help -> Fmt.string ppf "help"
-    | `Version -> Fmt.string ppf "version"
-    | `Ok action ->
+    | Error `Exn -> Fmt.string ppf "error exn"
+    | Error `Parse -> Fmt.string ppf "error parse"
+    | Error `Term -> Fmt.string ppf "error term"
+    | Ok `Help -> Fmt.string ppf "help"
+    | Ok `Version -> Fmt.string ppf "version"
+    | Ok `Ok action ->
         let pp = Cli.pp_action pp_a in
         Fmt.pf ppf "ok %a" pp action
   in
@@ -31,7 +31,7 @@ let test_configure () =
   in
   Alcotest.(check result_b)
     "configure"
-    (`Ok
+    (Ok (`Ok
        (Cli.Configure
           {
             depext = true;
@@ -50,7 +50,7 @@ let test_configure () =
                 context_file = None;
                 dry_run = false;
               };
-          }))
+          })))
     result
 
 let test_describe () =
@@ -76,7 +76,7 @@ let test_describe () =
   in
   Alcotest.(check result_b)
     "describe"
-    (`Ok
+    (Ok (`Ok
        (Cli.Describe
           {
             args =
@@ -90,7 +90,7 @@ let test_describe () =
             dotcmd = "dot";
             dot = false;
             eval = Some true;
-          }))
+          })))
     result
 
 let test_clean () =
@@ -107,7 +107,7 @@ let test_clean () =
   in
   Alcotest.(check result_b)
     "clean"
-    (`Ok
+    (Ok (`Ok
        (Cli.Clean
           {
             context = (false, false);
@@ -115,7 +115,7 @@ let test_clean () =
             config_file = Fpath.v "config.ml";
             context_file = None;
             dry_run = false;
-          }))
+          })))
     result
 
 let test_help () =
@@ -132,7 +132,7 @@ let test_help () =
       ~describe:extra_term ~clean:extra_term ~help:extra_term ~mname:"test"
       [| "name"; "help"; "--help"; "plain" |]
   in
-  Alcotest.(check result_b) "help" `Help result
+  Alcotest.(check result_b) "help" (Ok `Help) result
 
 let test_default () =
   let extra_term =
@@ -148,7 +148,7 @@ let test_default () =
       ~describe:extra_term ~clean:extra_term ~help:extra_term ~mname:"test"
       [| "name" |]
   in
-  Alcotest.(check result_b) "default" `Help result
+  Alcotest.(check result_b) "default" (Ok `Help) result
 
 let test_read_full_eval () =
   let check = Alcotest.(check @@ option bool) in

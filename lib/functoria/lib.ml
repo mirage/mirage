@@ -402,9 +402,9 @@ module Make (P : S) = struct
     f "@[<v>%a@]" (Info.pp verbose) args.Cli.context.Config.info
 
   let handle_parse_args_result = function
-    | `Error _ -> exit ()
-    | `Version | `Help -> ok ()
-    | `Ok action -> (
+    | Error _ -> exit ()
+    | Ok `Version | Ok `Help -> ok ()
+    | Ok `Ok action -> (
         match action with
         | Cli.Help _ -> ok ()
         | Cli.Configure t ->

@@ -129,7 +129,7 @@ val register_arg : 'a Cmdliner.Term.t -> (unit -> 'a)
     and in the unikernel code
     [Logs.info (fun m -> m "hello argument is: %s" (hello ()))]. *)
 
-(** / *)
+(**/**)
 
 val with_argv : unit Cmdliner.Term.t list -> string -> string array -> unit
 val runtime_args : unit -> unit Cmdliner.Term.t list

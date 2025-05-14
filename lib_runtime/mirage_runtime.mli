@@ -33,12 +33,14 @@ val logs : log_threshold list Term.t
 (** [logs] is a command-liner term for setting the log_threshold. *)
 
 (** {2 Command-line converters} *)
+
 module Conv : sig
   val log_threshold : log_threshold Cmdliner.Arg.conv
   (** [log_threshold] converts log reporter threshold. *)
 end
 
 (** {2 Manpage sections} *)
+
 val s_net : string
 (** [s_net] is used for network options. *)
 
@@ -63,12 +65,12 @@ val s_tls : string
 val s_http : string
 (** [s_http] is used for HTTP options. *)
 
-(** {3 Blocks} *)
+(** {2 Blocks} *)
 
 val disk : string Term.t
 val analyze : bool Term.t
 
-(** {3 Startup delay} *)
+(** {2 Startup delay} *)
 
 val delay : int Term.t
 (** The initial delay, specified in seconds, before a unikernel starting up.
@@ -116,6 +118,8 @@ val argument_error : int
 val help_version : int
 (** [help_version] is the exit code used when help/version is used: 63. *)
 
+(** {2 Runtime Arguments} *)
+
 val register_arg : 'a Cmdliner.Term.t -> (unit -> 'a)
 (* the return value is (unit -> 'a), let's keep the parens although they're
    superfluous. *)
@@ -125,7 +129,7 @@ val register_arg : 'a Cmdliner.Term.t -> (unit -> 'a)
     and in the unikernel code
     [Logs.info (fun m -> m "hello argument is: %s" (hello ()))]. *)
 
-(** / *)
+(**/**)
 
 val with_argv : unit Cmdliner.Term.t list -> string -> string array -> unit
 val runtime_args : unit -> unit Cmdliner.Term.t list

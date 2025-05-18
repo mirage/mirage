@@ -18,19 +18,19 @@ let git_merge_clients =
 
 let git_tcp =
   let packages =
-    [ package "git-mirage" ~sublibs:[ "tcp" ] ~min:"3.18.0" ~max:"3.19.0" ]
+    [ package "git-net" ]
   in
   let connect _ modname = function
     | [ _tcpv4v6; ctx ] ->
         code ~pos:__POS__ {ocaml|%s.connect %s|ocaml} modname ctx
     | _ -> connect_err "git_tcp" 2
   in
-  impl ~packages ~connect "Git_mirage_tcp.Make"
+  impl ~packages ~connect "Git_net.TCP.Make"
     (tcpv4v6 @-> mimic @-> git_client)
 
 let git_ssh ?group ?authenticator ?key ?password () =
   let packages =
-    [ package "git-mirage" ~sublibs:[ "ssh" ] ~min:"3.18.0" ~max:"3.19.0" ]
+    [ package "git-net" ]
   in
   let key = Runtime_arg.ssh_key ?group key
   and password = Runtime_arg.ssh_password ?group password
@@ -43,12 +43,12 @@ let git_ssh ?group ?authenticator ?key ?password () =
           modname ctx modname authenticator key password
     | _ -> connect_err "git_ssh" 5
   in
-  impl ~packages ~connect ~runtime_args "Git_mirage_ssh.Make"
+  impl ~packages ~connect ~runtime_args "Git_net.SSH.Make"
     (tcpv4v6 @-> mimic @-> git_client)
 
 let git_http ?group ?authenticator ?headers () =
   let packages =
-    [ package "git-mirage" ~sublibs:[ "http" ] ~min:"3.18.0" ~max:"3.19.0" ]
+    [ package "git-net" ]
   in
   let authenticator = Runtime_arg.tls_authenticator ?group authenticator
   and headers = Runtime_arg.http_headers ?group headers in
@@ -60,5 +60,5 @@ let git_http ?group ?authenticator ?headers () =
           modname ctx modname headers authenticator
     | _ -> connect_err "git_http" 4
   in
-  impl ~packages ~connect ~runtime_args "Git_mirage_http.Make"
+  impl ~packages ~connect ~runtime_args "Git_net.HTTP.Make"
     (tcpv4v6 @-> mimic @-> git_client)

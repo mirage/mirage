@@ -32,7 +32,8 @@ let pp_group = Fmt.(option ~none:(any "the unikernel") @@ fmt "the %s group")
 type mode_unix = [ `Unix | `MacOSX ]
 type mode_xen = [ `Xen | `Qubes ]
 type mode_solo5 = [ `Hvt | `Spt | `Virtio | `Muen | `Genode ]
-type mode = [ mode_unix | mode_xen | mode_solo5 ]
+type mode_unikraft = [ `Firecracker | `QEMU ]
+type mode = [ mode_unix | mode_xen | mode_solo5 | mode_unikraft ]
 
 let (target_conv : mode Cmdliner.Arg.conv), target_doc_alts =
   let enum =
@@ -46,6 +47,8 @@ let (target_conv : mode Cmdliner.Arg.conv), target_doc_alts =
       ("qubes", `Qubes);
       ("genode", `Genode);
       ("spt", `Spt);
+      ("unikraft-firecracker", `Firecracker);
+      ("unikraft-qemu", `QEMU);
     ]
   in
   let parser, printer = Cmdliner.Arg.enum enum in
@@ -77,17 +80,22 @@ let target =
 let is_unix =
   Key.match_ Key.(value target) @@ function
   | #mode_unix -> true
-  | #mode_xen | #mode_solo5 -> false
+  | #mode_xen | #mode_solo5 | #mode_unikraft -> false
 
 let is_solo5 =
   Key.match_ Key.(value target) @@ function
   | #mode_solo5 -> true
-  | #mode_xen | #mode_unix -> false
+  | #mode_xen | #mode_unix | #mode_unikraft -> false
 
 let is_xen =
   Key.match_ Key.(value target) @@ function
   | #mode_xen -> true
-  | #mode_solo5 | #mode_unix -> false
+  | #mode_solo5 | #mode_unix | #mode_unikraft -> false
+
+let is_unikraft =
+  Key.match_ Key.(value target) @@ function
+  | #mode_unikraft -> true
+  | #mode_solo5 | #mode_unix | #mode_xen -> false
 
 (** {2 General mirage keys} *)
 

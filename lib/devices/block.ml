@@ -68,6 +68,7 @@ let block_conf file =
         (* XXX For now, on Solo5, just pass the "file" name through directly as
          * the Solo5 block device name *)
         file
+    | #Key.mode_unikraft -> file
   in
   let packages_v =
     Key.match_ Key.(value target) @@ function
@@ -76,6 +77,8 @@ let block_conf file =
         [ package ~min:"0.8.0" ~max:"0.9.0" "mirage-block-solo5" ]
     | #Key.mode_unix ->
         [ package ~min:"2.12.0" ~max:"3.0.0" "mirage-block-unix" ]
+    | #Key.mode_unikraft ->
+        [ package ~min:"1.0.0" ~max:"2.0.0" "mirage-block-unikraft" ]
   in
   let configure _ =
     let (_ : block_t) = make_block_t file in

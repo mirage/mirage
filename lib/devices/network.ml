@@ -19,6 +19,8 @@ let network_conf ?(intf : string runtime_arg option) name =
         [ package ~min:"2.1.0" ~max:"3.0.0" "mirage-net-xen"; Qubesdb.pkg ]
     | #Key.mode_solo5 ->
         [ package ~min:"0.8.0" ~max:"0.9.0" "mirage-net-solo5" ]
+    | #Key.mode_unikraft ->
+        [ package ~min:"1.0.0" ~max:"2.0.0" "mirage-net-unikraft" ]
   in
   let connect _ modname = function
     | [] -> code ~pos:__POS__ "%s.connect %S" modname name

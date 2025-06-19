@@ -297,6 +297,7 @@ let os_of_target i =
   | #Key.mode_solo5 -> "Solo5_os"
   | #Key.mode_unix -> "Unix_os"
   | #Key.mode_xen -> "Xen_os"
+  | #Key.mode_unikraft -> "Unikraft_os"
 
 module Project = struct
   let name = "mirage"

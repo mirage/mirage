@@ -34,6 +34,7 @@ type ('a, 'impl) t = {
   keys : Key.t list;
   runtime_args : Runtime_arg.t list;
   packages : package list value;
+  local_libs : string list;
   install : info -> Install.t value;
   connect : info -> string -> string list -> 'a code;
   dune : info -> Dune.stanza list;
@@ -75,7 +76,7 @@ let merge empty union a b =
 let merge_packages = merge [] List.append
 let merge_install = merge Install.empty Install.union
 
-let v ?packages ?packages_v ?install ?install_v ?(keys = [])
+let v ?packages ?packages_v ?(local_libs = []) ?install ?install_v ?(keys = [])
     ?(runtime_args = []) ?(extra_deps = []) ?(connect = default_connect)
     ?(dune = nil) ?(configure = niet) ?files module_name module_type =
   let id = Typeid.gen () in
@@ -92,6 +93,7 @@ let v ?packages ?packages_v ?install ?install_v ?(keys = [])
     runtime_args;
     connect;
     packages;
+    local_libs;
     install;
     dune;
     configure;
@@ -103,6 +105,7 @@ let id t = Typeid.id t.id
 let module_name t = t.module_name
 let module_type t = t.module_type
 let packages t = t.packages
+let local_libs t = t.local_libs
 let install t = t.install
 let connect t = t.connect
 let configure t = t.configure

@@ -33,6 +33,9 @@ val module_name : ('a, 'b) t -> string
 val packages : ('a, 'b) t -> Package.t list Key.value
 (** [packages t] is the list of OPAM packages that are needed by [t].*)
 
+val local_libs : ('a, 'b) t -> string list
+(** [local_libs t] is the list of local libraries that are needed by [t]. *)
+
 val install : ('a, 'b) t -> Info.t -> Install.t Key.value
 (** [install t i] is the list of files installed by [t], using the build
     information [i]. *)
@@ -116,6 +119,7 @@ val configure : ('a, 'b) t -> Info.t -> unit Action.t
 val v :
   ?packages:Package.t list ->
   ?packages_v:Package.t list Key.value ->
+  ?local_libs:string list ->
   ?install:(Info.t -> Install.t) ->
   ?install_v:(Info.t -> Install.t Key.value) ->
   ?keys:Key.t list ->

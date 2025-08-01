@@ -35,6 +35,7 @@ module Config = struct
     lock_location : Fpath.t option -> string -> string;
     build_cmd : Fpath.t option -> string;
     packages : package list Key.value;
+    local_libs : string list;
     if_keys : Key.Set.t;
     runtime_args : Runtime_arg.Set.t;
     init : job impl list;
@@ -59,6 +60,7 @@ module Config = struct
 
   let v ?(config_file = Fpath.v "config.ml") ?(init = []) ~configure_cmd
       ~pre_build_cmd ~lock_location ~build_cmd ~src ~project_name name jobs =
+    let local_libs = Impl.local_libs jobs in
     let jobs = Impl.abstract jobs in
     let if_keys = get_if_context jobs in
     let runtime_args = Runtime_arg.Set.empty in
@@ -74,6 +76,7 @@ module Config = struct
       lock_location;
       build_cmd;
       packages = Key.pure [];
+      local_libs;
       jobs;
       src;
     }
@@ -88,6 +91,7 @@ module Config = struct
         lock_location;
         build_cmd;
         packages;
+        local_libs;
         if_keys;
         runtime_args;
         jobs;
@@ -105,7 +109,7 @@ module Config = struct
     let keys = Key.Set.(elements (union if_keys all_keys)) in
     let mk packages _ context =
       let info =
-        Info.v ~config_file ~packages ~keys ~runtime_args ~context
+        Info.v ~config_file ~packages ~local_libs ~keys ~runtime_args ~context
           ~configure_cmd ~pre_build_cmd ~lock_location ~build_cmd ~src
           ~project_name n
       in

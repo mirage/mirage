@@ -150,6 +150,7 @@ val main :
   ?pos:string * int * int * int ->
   ?packages:package list ->
   ?packages_v:package list value ->
+  ?local_libs:string list ->
   ?runtime_args:Runtime_arg.t list ->
   ?deps:abstract_impl list ->
   string ->
@@ -178,6 +179,7 @@ val of_device : 'a device -> 'a impl
 val impl :
   ?packages:package list ->
   ?packages_v:package list Key.value ->
+  ?local_libs:string list ->
   ?install:(Info.t -> Install.t) ->
   ?install_v:(Info.t -> Install.t Key.value) ->
   ?keys:Key.t list ->

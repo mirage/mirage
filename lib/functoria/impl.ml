@@ -59,6 +59,7 @@ let rec app_has_no_arguments : type a. a t -> bool = function
 
 let mk_dev ~args ~deps dev = Dev { dev; args; deps }
 let of_device dev = mk_dev ~args:Nil ~deps:(Device.extra_deps dev) dev
+let local_libs = function Dev { dev; _ } -> Device.local_libs dev | _ -> []
 
 let v ?packages ?packages_v ?runtime_args ?keys ?extra_deps ?connect ?dune
     ?configure ?files module_name module_type =

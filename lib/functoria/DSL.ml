@@ -42,13 +42,16 @@ let dep = Impl.abstract
 let if_impl = Impl.if_
 let match_impl = Impl.match_
 
-let impl ?packages ?packages_v ?install ?install_v ?keys ?runtime_args
-    ?extra_deps ?connect ?dune ?configure ?files module_name module_type =
+let impl ?packages ?packages_v ?local_libs ?install ?install_v ?keys
+    ?runtime_args ?extra_deps ?connect ?dune ?configure ?files module_name
+    module_type =
   of_device
-  @@ Device.v ?packages ?packages_v ?install ?install_v ?keys ?runtime_args
-       ?extra_deps ?connect ?dune ?configure ?files module_name module_type
+  @@ Device.v ?packages ?packages_v ?local_libs ?install ?install_v ?keys
+       ?runtime_args ?extra_deps ?connect ?dune ?configure ?files module_name
+       module_type
 
-let main ?pos ?packages ?packages_v ?runtime_args ?deps module_name ty =
+let main ?pos ?packages ?packages_v ?local_libs ?runtime_args ?deps module_name
+    ty =
   let connect _ = Device.start ?pos in
   let extra_deps =
     if Type.is_functor ty then deps
@@ -60,7 +63,8 @@ let main ?pos ?packages ?packages_v ?runtime_args ?deps module_name ty =
           Some [ dep Job.noop ]
       | _ -> deps
   in
-  impl ?packages ?packages_v ?runtime_args ?extra_deps ~connect module_name ty
+  impl ?packages ?packages_v ?local_libs ?runtime_args ?extra_deps ~connect
+    module_name ty
 
 let runtime_arg ~pos ?packages str =
   Runtime_arg.v (Runtime_arg.create ~pos ?packages str)

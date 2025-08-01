@@ -54,6 +54,9 @@ val match_ : 'b Key.value -> default:'a t -> ('b * 'a t) list -> 'a t
 val of_device : 'a device -> 'a t
 (** [of_device t] is the tementation device [t]. *)
 
+val local_libs : 'a t -> string list
+(** [local_libs t] is the list of of local libraries that are needed by [t]. *)
+
 val v :
   ?packages:Package.t list ->
   ?packages_v:Package.t list Key.value ->

@@ -34,6 +34,7 @@ depends: [
   "opam-monorepo" {>= "0.4.0"}
   "alcotest" {with-test}
   "mirage-runtime" {with-test & = version}
+  "dune" {with-test & != "3.20.0" & != "3.20.1"}
 ]
 
 conflicts: [ "jbuilder" {with-test} ]

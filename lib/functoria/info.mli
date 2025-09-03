@@ -70,6 +70,7 @@ val get : t -> 'a Key.key -> 'a
 val v :
   ?config_file:Fpath.t ->
   packages:Package.t list ->
+  local_libs:string list ->
   keys:Key.t list ->
   runtime_args:Runtime_arg.t list ->
   context:Context.t ->

@@ -27,6 +27,7 @@ type t = {
   runtime_args : Runtime_arg.Set.t;
   context : Context.t;
   packages : Package.t String.Map.t;
+  local_libs : string list;
   opam :
     extra_repo:(string * string) list ->
     install:Install.t ->
@@ -56,7 +57,7 @@ let libraries ps =
     (List.fold_left String.Set.union String.Set.empty (List.map libs ps))
 
 let packages t = List.map snd (String.Map.bindings t.packages)
-let libraries t = libraries (packages t)
+let libraries t = libraries (packages t) @ t.local_libs
 
 let pins packages =
   List.fold_left
@@ -67,9 +68,9 @@ let keys t = Key.Set.elements t.keys
 let runtime_args t = Runtime_arg.Set.elements t.runtime_args
 let context t = t.context
 
-let v ?(config_file = Fpath.v "config.ml") ~packages ~keys ~runtime_args
-    ~context ?configure_cmd ?pre_build_cmd ?lock_location ~build_cmd ~src
-    ~project_name name =
+let v ?(config_file = Fpath.v "config.ml") ~packages ~local_libs ~keys
+    ~runtime_args ~context ?configure_cmd ?pre_build_cmd ?lock_location
+    ~build_cmd ~src ~project_name name =
   let keys = Key.Set.of_list keys in
   let runtime_args = Runtime_arg.Set.of_list runtime_args in
   let opam ~extra_repo ~install ~opam_name =
@@ -96,6 +97,7 @@ let v ?(config_file = Fpath.v "config.ml") ~packages ~keys ~runtime_args
     keys;
     runtime_args;
     packages;
+    local_libs;
     context;
     output = None;
     opam;
@@ -125,7 +127,8 @@ let pp verbose ppf ({ name; keys; context; output; _ } as t) =
 
 let t =
   let i =
-    v ~config_file:(Fpath.v "config.ml") ~packages:[] ~keys:[] ~runtime_args:[]
+    v ~config_file:(Fpath.v "config.ml") ~packages:[] ~local_libs:[] ~keys:[]
+      ~runtime_args:[]
       ~build_cmd:(fun _ -> "dummy")
       ~context:Context.empty ~src:`None "dummy" ~project_name:"dummy"
   in

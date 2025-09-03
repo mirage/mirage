@@ -361,11 +361,12 @@ let run t = %s.Main.run t ; exit 0|ocaml}
       Key.match_ Key.(value target) @@ fun target ->
       Target.packages target @ common
     in
+    let local_libs = List.map Impl.local_libs jobs |> List.concat in
     let install = Target.install in
     let extra_deps = List.map dep jobs in
     let connect _ _ _ = code ~pos:__POS__ "return ()" in
-    impl ~keys ~packages_v ~configure ~dune ~connect ~extra_deps ~install
-      "Mirage_runtime" job
+    impl ~keys ~packages_v ~local_libs ~configure ~dune ~connect ~extra_deps
+      ~install "Mirage_runtime" job
 end
 
 include Lib.Make (Project)

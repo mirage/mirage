@@ -17,21 +17,16 @@ let git_merge_clients =
     (git_client @-> git_client @-> git_client)
 
 let git_tcp =
-  let packages =
-    [ package ~max:"1.0.0" "git-net" ]
-  in
+  let packages = [ package ~max:"1.0.0" "git-net" ] in
   let connect _ modname = function
     | [ _tcpv4v6; ctx ] ->
         code ~pos:__POS__ {ocaml|%s.connect %s|ocaml} modname ctx
     | _ -> connect_err "git_tcp" 2
   in
-  impl ~packages ~connect "Git_net.TCP.Make"
-    (tcpv4v6 @-> mimic @-> git_client)
+  impl ~packages ~connect "Git_net.TCP.Make" (tcpv4v6 @-> mimic @-> git_client)
 
 let git_ssh ?group ?authenticator ?key ?password () =
-  let packages =
-    [ package ~max:"1.0.0" "git-net" ]
-  in
+  let packages = [ package ~max:"1.0.0" "git-net" ] in
   let key = Runtime_arg.ssh_key ?group key
   and password = Runtime_arg.ssh_password ?group password
   and authenticator = Runtime_arg.ssh_authenticator ?group authenticator in
@@ -47,9 +42,7 @@ let git_ssh ?group ?authenticator ?key ?password () =
     (tcpv4v6 @-> mimic @-> git_client)
 
 let git_http ?group ?authenticator ?headers () =
-  let packages =
-    [ package ~max:"1.0.0" "git-net" ]
-  in
+  let packages = [ package ~max:"1.0.0" "git-net" ] in
   let authenticator = Runtime_arg.tls_authenticator ?group authenticator
   and headers = Runtime_arg.http_headers ?group headers in
   let runtime_args = Runtime_arg.[ v authenticator; v headers ] in

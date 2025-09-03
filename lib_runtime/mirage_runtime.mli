@@ -77,6 +77,14 @@ val delay : int Term.t
     Defaults to 0. Useful for tenders and environments that take some time to
     bring devices up. *)
 
+(** {2 Name} *)
+
+val name_k : string Term.t
+(** The name key. *)
+
+val name : unit -> string
+(** The name of the unikernel. *)
+
 (** {2 Registering scheduler hooks} *)
 
 val at_exit : (unit -> unit Lwt.t) -> unit

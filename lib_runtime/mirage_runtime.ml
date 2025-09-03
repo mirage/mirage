@@ -119,6 +119,17 @@ let delay =
   in
   Arg.(value & opt int 0 doc)
 
+(** {3 Name} *)
+
+let name_k =
+  let doc =
+    Arg.info ~docs:Cmdliner.Manpage.s_common_options
+      ~doc:"Name of the unikernel" [ "name" ]
+  in
+  Arg.(value & opt string "no-name" doc)
+
+let name = Functoria_runtime.register_arg name_k
+
 (* Hooks *)
 
 let exit_hooks = ref []

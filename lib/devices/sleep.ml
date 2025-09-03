@@ -7,7 +7,7 @@ let no_sleep = impl "Mirage_runtime" sleep
 
 let impl sublib =
   let packages =
-    [ package ~min:"4.0.0" ~max:"5.0.0" ~sublibs:[ ""; sublib ] "mirage-sleep" ]
+    [ package ~min:"4.1.0" ~max:"5.0.0" ~sublibs:[ ""; sublib ] "mirage-sleep" ]
   in
   impl ~packages "Mirage_sleep" sleep
 

@@ -32,6 +32,8 @@ let runtime_network_key ~pos fmt =
 
 let delay = runtime_arg ~pos:__POS__ "delay"
 
+let name = runtime_arg ~pos:__POS__ "name_k"
+
 let pp_group ppf = function
   | None | Some "" -> ()
   | Some g -> Fmt.pf ppf "~group:%S " g

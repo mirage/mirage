@@ -185,3 +185,8 @@ val delay : int runtime_arg
 (** The initial delay, specified in seconds, before a unikernel starting up.
     Defaults to 0. Useful for tenders and environments that take some time to
     bring devices up. *)
+
+(** {3 Name} *)
+
+val name : string runtime_arg
+(** The name of the unikernel. *)

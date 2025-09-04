@@ -34,18 +34,18 @@ Configure the project for Unix:
   ;;
   
   let mirage_runtime_logs__key = Mirage_runtime.register_arg @@
-  # 206 "lib/devices/runtime_arg.ml"
+  # 205 "lib/devices/runtime_arg.ml"
     Mirage_runtime.logs
   ;;
   
   let cmdliner_stdlib_setup_backtracesome_true_randomize_hashtablessome_true___key = Mirage_runtime.register_arg @@
-  # 387 "lib/mirage.ml"
+  # 396 "lib/mirage.ml"
     Cmdliner_stdlib.setup ~backtrace:(Some true) ~randomize_hashtables:(Some true) ()
   ;;
   
   # 23 "mirage/main.ml"
   
-  module App_make__11 = App.Make(Unit)
+  module App_make__12 = App.Make(Unit)
   
   let mirage_bootvar__1 = lazy (
   # 15 "lib/devices/argv.ml"
@@ -105,20 +105,26 @@ Configure the project for Unix:
   );;
   # 83 "mirage/main.ml"
   
-  let unit__10 = lazy (
+  let mirage_runtime__10 = lazy (
+  # 292 "lib/mirage.ml"
+    Mirage_runtime.set_name "random"; Lwt.return_unit
+  );;
+  # 89 "mirage/main.ml"
+  
+  let unit__11 = lazy (
     return ()
   );;
-  # 88 "mirage/main.ml"
+  # 94 "mirage/main.ml"
   
-  let app_make__11 = lazy (
-    let __unit__10 = Lazy.force unit__10 in
-    __unit__10 >>= fun _unit__10 ->
+  let app_make__12 = lazy (
+    let __unit__11 = Lazy.force unit__11 in
+    __unit__11 >>= fun _unit__11 ->
   # 3 "config.ml"
-    (App_make__11.start _unit__10 : unit io)
+    (App_make__12.start _unit__11 : unit io)
   );;
-  # 96 "mirage/main.ml"
+  # 102 "mirage/main.ml"
   
-  let mirage_runtime__12 = lazy (
+  let mirage_runtime__13 = lazy (
     let __struct_end__2 = Lazy.force struct_end__2 in
     let __cmdliner_stdlib__3 = Lazy.force cmdliner_stdlib__3 in
     let __mirage_runtime__4 = Lazy.force mirage_runtime__4 in
@@ -127,7 +133,8 @@ Configure the project for Unix:
     let __mirage_ptime__7 = Lazy.force mirage_ptime__7 in
     let __mirage_mtime__8 = Lazy.force mirage_mtime__8 in
     let __mirage_crypto_rng_mirage__9 = Lazy.force mirage_crypto_rng_mirage__9 in
-    let __app_make__11 = Lazy.force app_make__11 in
+    let __mirage_runtime__10 = Lazy.force mirage_runtime__10 in
+    let __app_make__12 = Lazy.force app_make__12 in
     __struct_end__2 >>= fun _struct_end__2 ->
     __cmdliner_stdlib__3 >>= fun _cmdliner_stdlib__3 ->
     __mirage_runtime__4 >>= fun _mirage_runtime__4 ->
@@ -136,11 +143,12 @@ Configure the project for Unix:
     __mirage_ptime__7 >>= fun _mirage_ptime__7 ->
     __mirage_mtime__8 >>= fun _mirage_mtime__8 ->
     __mirage_crypto_rng_mirage__9 >>= fun _mirage_crypto_rng_mirage__9 ->
-    __app_make__11 >>= fun _app_make__11 ->
-  # 368 "lib/mirage.ml"
+    __mirage_runtime__10 >>= fun _mirage_runtime__10 ->
+    __app_make__12 >>= fun _app_make__12 ->
+  # 377 "lib/mirage.ml"
     return ()
   );;
-  # 120 "mirage/main.ml"
+  # 128 "mirage/main.ml"
   
   let () =
     let t = Lazy.force struct_end__2 >>= fun _ ->
@@ -151,7 +159,8 @@ Configure the project for Unix:
     Lazy.force mirage_ptime__7 >>= fun _ ->
     Lazy.force mirage_mtime__8 >>= fun _ ->
     Lazy.force mirage_crypto_rng_mirage__9 >>= fun _ ->
-    Lazy.force mirage_runtime__12 in
+    Lazy.force mirage_runtime__10 >>= fun _ ->
+    Lazy.force mirage_runtime__13 in
     run t
   ;;
 
@@ -199,18 +208,18 @@ Configure the project for Xen:
   ;;
   
   let mirage_runtime_logs__key = Mirage_runtime.register_arg @@
-  # 206 "lib/devices/runtime_arg.ml"
+  # 205 "lib/devices/runtime_arg.ml"
     Mirage_runtime.logs
   ;;
   
   let cmdliner_stdlib_setup_backtracesome_true_randomize_hashtablessome_true___key = Mirage_runtime.register_arg @@
-  # 387 "lib/mirage.ml"
+  # 396 "lib/mirage.ml"
     Cmdliner_stdlib.setup ~backtrace:(Some true) ~randomize_hashtables:(Some true) ()
   ;;
   
   # 23 "mirage/main.ml"
   
-  module App_make__11 = App.Make(Unit)
+  module App_make__12 = App.Make(Unit)
   
   let mirage_bootvar__1 = lazy (
   # 15 "lib/devices/argv.ml"
@@ -270,20 +279,26 @@ Configure the project for Xen:
   );;
   # 83 "mirage/main.ml"
   
-  let unit__10 = lazy (
+  let mirage_runtime__10 = lazy (
+  # 292 "lib/mirage.ml"
+    Mirage_runtime.set_name "random"; Lwt.return_unit
+  );;
+  # 89 "mirage/main.ml"
+  
+  let unit__11 = lazy (
     return ()
   );;
-  # 88 "mirage/main.ml"
+  # 94 "mirage/main.ml"
   
-  let app_make__11 = lazy (
-    let __unit__10 = Lazy.force unit__10 in
-    __unit__10 >>= fun _unit__10 ->
+  let app_make__12 = lazy (
+    let __unit__11 = Lazy.force unit__11 in
+    __unit__11 >>= fun _unit__11 ->
   # 3 "config.ml"
-    (App_make__11.start _unit__10 : unit io)
+    (App_make__12.start _unit__11 : unit io)
   );;
-  # 96 "mirage/main.ml"
+  # 102 "mirage/main.ml"
   
-  let mirage_runtime__12 = lazy (
+  let mirage_runtime__13 = lazy (
     let __struct_end__2 = Lazy.force struct_end__2 in
     let __cmdliner_stdlib__3 = Lazy.force cmdliner_stdlib__3 in
     let __mirage_runtime__4 = Lazy.force mirage_runtime__4 in
@@ -292,7 +307,8 @@ Configure the project for Xen:
     let __mirage_ptime__7 = Lazy.force mirage_ptime__7 in
     let __mirage_mtime__8 = Lazy.force mirage_mtime__8 in
     let __mirage_crypto_rng_mirage__9 = Lazy.force mirage_crypto_rng_mirage__9 in
-    let __app_make__11 = Lazy.force app_make__11 in
+    let __mirage_runtime__10 = Lazy.force mirage_runtime__10 in
+    let __app_make__12 = Lazy.force app_make__12 in
     __struct_end__2 >>= fun _struct_end__2 ->
     __cmdliner_stdlib__3 >>= fun _cmdliner_stdlib__3 ->
     __mirage_runtime__4 >>= fun _mirage_runtime__4 ->
@@ -301,11 +317,12 @@ Configure the project for Xen:
     __mirage_ptime__7 >>= fun _mirage_ptime__7 ->
     __mirage_mtime__8 >>= fun _mirage_mtime__8 ->
     __mirage_crypto_rng_mirage__9 >>= fun _mirage_crypto_rng_mirage__9 ->
-    __app_make__11 >>= fun _app_make__11 ->
-  # 368 "lib/mirage.ml"
+    __mirage_runtime__10 >>= fun _mirage_runtime__10 ->
+    __app_make__12 >>= fun _app_make__12 ->
+  # 377 "lib/mirage.ml"
     return ()
   );;
-  # 120 "mirage/main.ml"
+  # 128 "mirage/main.ml"
   
   let () =
     let t = Lazy.force struct_end__2 >>= fun _ ->
@@ -316,7 +333,8 @@ Configure the project for Xen:
     Lazy.force mirage_ptime__7 >>= fun _ ->
     Lazy.force mirage_mtime__8 >>= fun _ ->
     Lazy.force mirage_crypto_rng_mirage__9 >>= fun _ ->
-    Lazy.force mirage_runtime__12 in
+    Lazy.force mirage_runtime__10 >>= fun _ ->
+    Lazy.force mirage_runtime__13 in
     run t
   ;;
 

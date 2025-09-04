@@ -285,6 +285,15 @@ let delay_startup =
   in
   impl ~packages ~runtime_args ~connect "Mirage_runtime" delay
 
+let unikernel_name = job
+
+let unikernel_name =
+  let connect i _ _ =
+    code ~pos:__POS__ "Mirage_runtime.set_name %S; Lwt.return_unit"
+      (Info.name i)
+  in
+  impl ~connect "Mirage_runtime" unikernel_name
+
 (** Functoria devices *)
 
 type info = Functoria.info
@@ -416,6 +425,7 @@ let register ?(argv = default_argv) ?(reporter = default_reporter ())
     ++ Some ptime
     ++ Some mtime
     ++ Some random
+    ++ Some unikernel_name
   in
   register ?init ?src name jobs
 

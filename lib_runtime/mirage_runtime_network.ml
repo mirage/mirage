@@ -183,12 +183,6 @@ let syslog_keyname ?group ?(docs = Mirage_runtime.s_log) default =
   let doc = str "TLS key name used for syslog" in
   runtime_arg ~doc ~docs ?group ~default Arg.(some string) "syslog-keyname"
 
-let monitor_hostname ?(group = "") ?(docs = Mirage_runtime.s_log) () =
-  let doc = str "hostname used for syslog and monitoring" in
-  let prefix = if group = "" then group else group ^ "-" in
-  let doc = Arg.info ~docs ~docv:"NAME" ~doc [ prefix ^ "monitor-hostname" ] in
-  Arg.(required & opt (some string) None doc)
-
 let monitor ?group ?(docs = Mirage_runtime.s_log) default =
   let doc = str "monitor server" in
   runtime_arg ~doc ~docv:"IP" ~docs ?group ~default

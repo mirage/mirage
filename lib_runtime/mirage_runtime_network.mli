@@ -146,10 +146,6 @@ val syslog_keyname :
   ?group:string -> ?docs:string -> string option -> string option Term.t
 (** TLS key used for syslog, [docs] defaults to {!Mirage_runtime.s_log}. *)
 
-val monitor_hostname : ?group:string -> ?docs:string -> unit -> string Term.t
-(** The hostname used for syslog and monitoring, [docs] defaults to
-    {!Mirage_runtime.s_log}. *)
-
 val monitor :
   ?group:string -> ?docs:string -> Ipaddr.t option -> Ipaddr.t option Term.t
 (** The address to send monitor statistics to, [docs] defaults to

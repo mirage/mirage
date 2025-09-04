@@ -161,10 +161,6 @@ val syslog_keyname :
   ?group:string -> ?docs:string -> string option -> string option runtime_arg
 (** TLS key used for syslog, [docs] defaults to {!Mirage_runtime.s_log}. *)
 
-val monitor_hostname :
-  ?group:string -> ?docs:string -> unit -> string runtime_arg
-(** The hostname to use for syslog and monitoring. *)
-
 val monitor :
   ?group:string ->
   ?docs:string ->

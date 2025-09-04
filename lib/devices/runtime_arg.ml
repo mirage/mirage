@@ -191,10 +191,6 @@ let syslog_keyname ?group ?docs default =
   runtime_network_key ~pos:__POS__ "syslog_keyname %a%a%a" pp_group group
     pp_docs docs (pp_option Fmt.string) default
 
-let monitor_hostname ?group ?docs () =
-  runtime_network_key ~pos:__POS__ "monitor_hostname %a%a ()" pp_group group
-    pp_docs docs
-
 let monitor ?group ?docs default =
   runtime_network_key ~pos:__POS__ "monitor %a%a%a" pp_group group pp_docs docs
     (pp_option pp_ipaddr) default

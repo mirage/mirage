@@ -27,7 +27,8 @@ Help describe --man-format=plain
   MIRAGE PARAMETERS
          -t TARGET, --target=TARGET (absent=unix or MODE env)
              Target platform to compile the unikernel for. Valid values are:
-             one of unix, macosx, xen, virtio, hvt, muen, qubes, genode or spt
+             one of unix, macosx, xen, virtio, hvt, muen, qubes, genode, spt,
+             unikraft-firecracker or unikraft-qemu
   
   DESCRIBE OPTIONS
          --dot
@@ -132,7 +133,8 @@ Help describe --help=plain
   MIRAGE PARAMETERS
          -t TARGET, --target=TARGET (absent=unix or MODE env)
              Target platform to compile the unikernel for. Valid values are:
-             one of unix, macosx, xen, virtio, hvt, muen, qubes, genode or spt
+             one of unix, macosx, xen, virtio, hvt, muen, qubes, genode, spt,
+             unikraft-firecracker or unikraft-qemu
   
   DESCRIBE OPTIONS
          --dot

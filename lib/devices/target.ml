@@ -338,7 +338,7 @@ module Solo5 = struct
 |}
 
   let solo5_abi = function
-    | #Key.mode_unix -> assert false
+    | #Key.mode_unix | #Key.mode_unikraft -> assert false
     | #Key.mode_xen -> "xen"
     | `Virtio -> "virtio"
     | `Hvt -> "hvt"
@@ -389,9 +389,132 @@ module Solo5 = struct
     Install.v ~bin:[ (v out, v out) ] ~etc:additional_artifacts ()
 end
 
+module Unikraft = struct
+  type t = [ `Firecracker | `QEMU ]
+
+  let configure _ = Action.ok ()
+  let cast = function #t as t -> t | _ -> invalid_arg "not a Unikraft target."
+
+  let build_packages =
+    [
+      Functoria.package ~min:"1.0.0" ~max:"2.0.0" ~scope:`Switch ~build:true
+        "ocaml-unikraft";
+      Functoria.package ~min:"1.0.0" ~max:"2.0.0" "mirage-unikraft";
+    ]
+
+  let backend_packages target =
+    match target with
+    | `Firecracker ->
+        [
+          Functoria.package ~scope:`Switch ~build:true
+            "ocaml-unikraft-backend-firecracker";
+        ]
+    | `QEMU ->
+        [
+          Functoria.package ~scope:`Switch ~build:true
+            "ocaml-unikraft-backend-qemu";
+        ]
+
+  let packages target = build_packages @ backend_packages target
+  let context_name _ = "unikraft"
+
+  let unikraft_abi = function
+    | #Key.mode_unix | #Key.mode_solo5 | #Key.mode_xen -> assert false
+    | `Firecracker -> "firecracker"
+    | `QEMU -> "qemu"
+
+  let build_context ?build_dir:_ i =
+    let target = Info.get i Key.target in
+    let build_context =
+      Dune.stanzaf
+        {|
+(context
+ (default
+  (name %s)
+  (host default)
+  (toolchain unikraft)
+  (env
+   (_
+    (flags :standard -cclib "-z unikraft-backend=%s")
+    (c_flags :standard -z unikraft-backend=%s)))
+  (merlin)
+  (disable_dynamically_linked_foreign_archives true)))
+|}
+        (context_name i) (unikraft_abi target) (unikraft_abi target)
+    in
+    [ build_context ]
+
+  let ext = function
+    | `Firecracker -> ".fc"
+    | `QEMU -> ".qemu"
+    | _ -> invalid_arg "Unikraft bindings only defined for Unikraft targets"
+
+  let main i = Fpath.(base (rem_ext (Info.main i)))
+
+  let out i =
+    let target = Info.get i Key.target in
+    let public_name =
+      match Info.output i with None -> Info.name i | Some o -> o
+    in
+    public_name ^ ext target
+
+  let rename i =
+    let out = out i in
+    let main = Fpath.to_string (main i) in
+    Dune.stanzaf
+      {|
+(rule
+ (target %s)
+ (enabled_if (= %%{context_name} "%s"))
+ (deps %s.exe)
+ (action
+  (copy %s.exe %%{target})))
+|}
+      out (context_name i) main main
+
+  let flags =
+    (* Disable "70 [missing-mli] Missing interface file." as we are only
+       generating .ml files currently. *)
+    [ ":standard"; "-w"; "-70" ]
+    @ if Misc.terminal () then [ "-color"; "always" ] else []
+
+  let main i =
+    let libraries = Info.libraries i in
+    let main = Fpath.to_string (main i) in
+    let pp_list f = Dune.compact_list f in
+    Dune.stanzaf
+      {|
+(executable
+ (enabled_if
+  (= %%{context_name} "%s"))
+ (name %s)
+ (modes
+  (native exe))
+ (libraries %a)
+ (link_flags %a))
+|}
+      (context_name i) main (pp_list "libraries") libraries
+      (pp_list "link_flags") flags
+
+  let dune i = [ main i; rename i ]
+
+  let out i =
+    let target = Info.get i Key.target in
+    let public_name =
+      match Info.output i with None -> Info.name i | Some o -> o
+    in
+    public_name ^ ext target
+
+  let install i =
+    let out = out i in
+    let open Fpath in
+    Install.v ~bin:[ (v out, v out) ] ()
+end
+
 let choose : Key.mode -> (module TARGET) = function
   | #Solo5.t -> (module Solo5)
   | #Unix.t -> (module Unix)
+  | #Unikraft.t -> (module Unikraft)
 
 let dune i =
   let target = Info.get i Key.target in

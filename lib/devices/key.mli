@@ -21,7 +21,8 @@ include module type of Functoria.Key
 type mode_unix = [ `Unix | `MacOSX ]
 type mode_xen = [ `Xen | `Qubes ]
 type mode_solo5 = [ `Hvt | `Spt | `Virtio | `Muen | `Genode ]
-type mode = [ mode_unix | mode_xen | mode_solo5 ]
+type mode_unikraft = [ `Firecracker | `QEMU ]
+type mode = [ mode_unix | mode_xen | mode_solo5 | mode_unikraft ]
 
 (** {2 Mirage keys} *)
 
@@ -41,6 +42,9 @@ val is_solo5 : bool value
 
 val is_xen : bool value
 (** Is true iff the {!target} key is a Xen-based system (["xen" or "qubes"]). *)
+
+val is_unikraft : bool value
+(** Is true iff the {!target} key is a Unikraft-based target. *)
 
 (** {2 Generic keys}
 

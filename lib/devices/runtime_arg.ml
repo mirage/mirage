@@ -31,7 +31,6 @@ let runtime_network_key ~pos fmt =
     ("Mirage_runtime_network." ^^ fmt)
 
 let delay = runtime_arg ~pos:__POS__ "delay"
-let name = runtime_arg ~pos:__POS__ "name_k"
 
 let pp_group ppf = function
   | None | Some "" -> ()
@@ -191,10 +190,6 @@ let syslog_truncate ?group ?docs default =
 let syslog_keyname ?group ?docs default =
   runtime_network_key ~pos:__POS__ "syslog_keyname %a%a%a" pp_group group
     pp_docs docs (pp_option Fmt.string) default
-
-let monitor_hostname ?group ?docs () =
-  runtime_network_key ~pos:__POS__ "monitor_hostname %a%a ()" pp_group group
-    pp_docs docs
 
 let monitor ?group ?docs default =
   runtime_network_key ~pos:__POS__ "monitor %a%a%a" pp_group group pp_docs docs

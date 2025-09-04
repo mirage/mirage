@@ -79,6 +79,9 @@ val delay : int Term.t
 
 (** {2 Name} *)
 
+val set_name : string -> unit
+(** Set the default name. *)
+
 val name_k : string Term.t
 (** The name key. *)
 

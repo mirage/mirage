@@ -31,7 +31,6 @@ let runtime_network_key ~pos fmt =
     ("Mirage_runtime_network." ^^ fmt)
 
 let delay = runtime_arg ~pos:__POS__ "delay"
-
 let name = runtime_arg ~pos:__POS__ "name_k"
 
 let pp_group ppf = function

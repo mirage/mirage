@@ -233,7 +233,7 @@ module Make (P : S) = struct
     in
     let ok = Action.ok () in
     let error = Action.error error in
-    match result with `Version | `Help | `Ok (Cli.Help _) -> ok | _ -> error
+    match result with Ok `Version | Ok (`Ok (Cli.Help _)) -> ok | _ -> error
 
   let with_project_skeleton ~save_args t ?ppf ?err_ppf argv f =
     let file = t.Cli.config_file in

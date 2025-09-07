@@ -79,14 +79,13 @@ val delay : int Term.t
 
 (** {2 Name} *)
 
-val set_name : string -> unit
-(** Set the default name. *)
-
-val name_k : string Term.t
+val name_k : string option Term.t
 (** The name key. *)
 
 val name : unit -> string
-(** The name of the unikernel. *)
+(** The current name of the unikernel. This is expected to be the same during
+    the lifetime of an unikernel (but there's no guarantee since it can be
+    modified). *)
 
 (** {2 Registering scheduler hooks} *)
 
@@ -150,3 +149,6 @@ val register : 'a Cmdliner.Term.t -> (unit -> 'a)
    superfluous. *)
 [@@ocamlformat "disable"]
 [@@ocaml.deprecated "Use Mirage_runtime.register_arg instead."]
+
+val set_name : string -> unit
+(** Set the name of the unikernel, called at load time for the default name. *)

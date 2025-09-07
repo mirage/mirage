@@ -121,20 +121,29 @@ let delay =
 
 (** {3 Name} *)
 
-let _name = ref "no-name"
-
 let name_k =
   let doc =
     Arg.info ~docs:Cmdliner.Manpage.s_common_options
-      ~doc:"Name of the unikernel" [ "name" ]
+      ~doc:
+        "Runtime name of the unikernel. Accessible with `Mirage_runtime.name` \
+         (), used for example by syslog"
+      ~absent:
+        "defaults to the configuration-time name (first argument to \
+         `Mirage.register`)"
+      [ "name" ]
   in
-  Arg.(value & opt string !_name doc)
+  Arg.(value & opt (some' string) None doc)
 
-let set_name s = _name := s
+let _name : string option ref = ref None
+let set_name s = _name := Some s
 
 let name =
   let r = Functoria_runtime.register_arg name_k in
-  fun () -> match r () with "no-name" -> !_name | x -> x
+  fun () ->
+    match (r (), !_name) with
+    | Some x, _ -> x
+    | None, Some x -> x
+    | None, None -> "no-name"
 
 (* Hooks *)
 

@@ -512,42 +512,18 @@ val ipv6 : ipv6 typ
 val ipv4v6 : ipv4v6 typ
 (** The [Tcpip.Ip.S] module signature with ipaddr = Ipaddr.t. *)
 
-type ipv4_config = {
-  network : Ipaddr.V4.Prefix.t;
-  gateway : Ipaddr.V4.t option;
-}
-(** Types for manual IPv4 configuration. *)
-
-type ipv6_config = {
-  network : Ipaddr.V6.Prefix.t;
-  gateway : Ipaddr.V6.t option;
-}
-(** Types for manual IPv6 configuration. *)
-
 val ipv4_of_dhcp : network impl -> ethernet impl -> arpv4 impl -> ipv4 impl
 (** Configure the interface via DHCP *)
 
-val create_ipv4 :
-  ?group:string ->
-  ?config:ipv4_config ->
-  ethernet impl ->
-  arpv4 impl ->
-  ipv4 impl
+val create_ipv4 : ?group:string -> ethernet impl -> arpv4 impl -> ipv4 impl
 (** Use an IPv4 address Exposes the keys {!Runtime_arg.V4.network} and
-    {!Runtime_arg.V4.gateway}. If provided, the values of these keys will
-    override those supplied in the ipv4 configuration record, if that has been
-    provided. *)
+    {!Runtime_arg.V4.gateway}. *)
 
 val ipv4_qubes : qubesdb impl -> ethernet impl -> arpv4 impl -> ipv4 impl
 (** Use a given initialized QubesDB to look up and configure the appropriate *
     IPv4 interface. *)
 
-val create_ipv6 :
-  ?group:string ->
-  ?config:ipv6_config ->
-  network impl ->
-  ethernet impl ->
-  ipv6 impl
+val create_ipv6 : ?group:string -> network impl -> ethernet impl -> ipv6 impl
 (** Use an IPv6 address. Exposes the keys {!Runtime_arg.V6.network},
     {!Runtime_arg.V6.gateway}. *)
 
@@ -603,8 +579,6 @@ val direct_stackv4v6 :
 
 val generic_stackv4v6 :
   ?group:string ->
-  ?ipv6_config:ipv6_config ->
-  ?ipv4_config:ipv4_config ->
   ?dhcp_key:bool value ->
   ?net_key:[ `OCaml | `Host ] option value ->
   ?tcp:tcpv4v6 impl ->

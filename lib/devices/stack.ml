@@ -9,10 +9,7 @@ open Tcp
 open Udp
 
 let dhcp_ipv4 tap e a = ipv4_of_dhcp tap e a
-
-let static_ipv4 ?group ?config ~no_init e a =
-  keyed_create_ipv4 ?group ?config ~no_init e a
-
+let static_ipv4 ?group ~no_init e a = keyed_create_ipv4 ?group ~no_init e a
 let qubes_ipv4 ?(qubesdb = default_qubesdb) e a = ipv4_qubes qubesdb e a
 
 (** dual stack *)
@@ -64,8 +61,7 @@ let keyed_direct_stackv4v6 ?tcp ~ipv4_only ~ipv6_only network eth arp ipv4 ipv6
   $ direct_udp ip
   $ match tcp with None -> direct_tcp ip | Some tcp -> tcp
 
-let generic_ipv4v6_stack p ?group ?ipv6_config ?ipv4_config ?(arp = arp) ?tcp
-    tap =
+let generic_ipv4v6_stack p ?group ?(arp = arp) ?tcp tap =
   let ipv4_only = Runtime_arg.ipv4_only ?group ()
   and ipv6_only = Runtime_arg.ipv6_only ?group () in
   let e = ethif tap in
@@ -73,11 +69,9 @@ let generic_ipv4v6_stack p ?group ?ipv6_config ?ipv4_config ?(arp = arp) ?tcp
   let i4 =
     match_impl p
       [ (`Qubes, qubes_ipv4 e a); (`Dhcp, dhcp_ipv4 tap e a) ]
-      ~default:(static_ipv4 ?group ?config:ipv4_config ~no_init:ipv6_only e a)
+      ~default:(static_ipv4 ?group ~no_init:ipv6_only e a)
   in
-  let i6 =
-    keyed_create_ipv6 ?group ?config:ipv6_config ~no_init:ipv4_only tap e
-  in
+  let i6 = keyed_create_ipv6 ?group ~no_init:ipv4_only tap e in
   keyed_direct_stackv4v6 ~ipv4_only ~ipv6_only ?tcp tap e a i4 i6
 
 let socket_stackv4v6 ?(group = "") () =
@@ -99,8 +93,7 @@ let socket_stackv4v6 ?(group = "") () =
   impl ~packages_v ~extra_deps ~connect "Tcpip_stack_socket.V4V6" stackv4v6
 
 (** Generic stack *)
-let generic_stackv4v6 ?group ?ipv6_config ?ipv4_config
-    ?(dhcp_key = Key.value @@ Key.dhcp ?group ())
+let generic_stackv4v6 ?group ?(dhcp_key = Key.value @@ Key.dhcp ?group ())
     ?(net_key = Key.value @@ Key.net ?group ()) ?tcp (tap : network impl) :
     stackv4v6 impl =
   let choose target net dhcp =
@@ -114,4 +107,4 @@ let generic_stackv4v6 ?group ?ipv6_config ?ipv4_config
   let p = Key.(pure choose $ Key.(value target) $ net_key $ dhcp_key) in
   match_impl p
     [ (`Socket, socket_stackv4v6 ?group ()) ]
-    ~default:(generic_ipv4v6_stack p ?group ?ipv6_config ?ipv4_config ?tcp tap)
+    ~default:(generic_ipv4v6_stack p ?group ?tcp tap)

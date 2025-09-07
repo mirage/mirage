@@ -16,42 +16,19 @@ val ip : 'a ip typ
 val ipv4 : ipv4 typ
 val ipv6 : ipv6 typ
 val ipv4v6 : ipv4v6 typ
-
-type ipv4_config = {
-  network : Ipaddr.V4.Prefix.t;
-  gateway : Ipaddr.V4.t option;
-}
-
-type ipv6_config = {
-  network : Ipaddr.V6.Prefix.t;
-  gateway : Ipaddr.V6.t option;
-}
-
-val create_ipv4 :
-  ?group:string ->
-  ?config:ipv4_config ->
-  ethernet impl ->
-  arpv4 impl ->
-  ipv4 impl
+val create_ipv4 : ?group:string -> ethernet impl -> arpv4 impl -> ipv4 impl
 
 val keyed_create_ipv4 :
   ?group:string ->
-  ?config:ipv4_config ->
   no_init:bool runtime_arg ->
   ethernet impl ->
   arpv4 impl ->
   ipv4 impl
 
-val create_ipv6 :
-  ?group:string ->
-  ?config:ipv6_config ->
-  network impl ->
-  ethernet impl ->
-  ipv6 impl
+val create_ipv6 : ?group:string -> network impl -> ethernet impl -> ipv6 impl
 
 val keyed_create_ipv6 :
   ?group:string ->
-  ?config:ipv6_config ->
   no_init:bool runtime_arg ->
   network impl ->
   ethernet impl ->

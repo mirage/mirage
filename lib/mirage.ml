@@ -128,16 +128,6 @@ let create_ipv4 = Ip.create_ipv4
 let create_ipv6 = Ip.create_ipv6
 let create_ipv4v6 = Ip.create_ipv4v6
 
-type ipv4_config = Ip.ipv4_config = {
-  network : Ipaddr.V4.Prefix.t;
-  gateway : Ipaddr.V4.t option;
-}
-
-type ipv6_config = Ip.ipv6_config = {
-  network : Ipaddr.V6.Prefix.t;
-  gateway : Ipaddr.V6.t option;
-}
-
 type 'a udp = 'a Udp.udp
 
 let udp = Udp.udp

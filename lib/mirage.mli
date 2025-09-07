@@ -601,22 +601,6 @@ val direct_stackv4v6 :
   stackv4v6 impl
 (** Direct network stack with given ip. *)
 
-val socket_stackv4v6 : ?group:string -> unit -> stackv4v6 impl
-(** Network stack with sockets. *)
-
-val static_ipv4v6_stack :
-  ?group:string ->
-  ?ipv6_config:ipv6_config ->
-  ?ipv4_config:ipv4_config ->
-  ?arp:(ethernet impl -> arpv4 impl) ->
-  ?tcp:tcpv4v6 impl ->
-  network impl ->
-  stackv4v6 impl
-(** Build a stackv4v6 by checking the {!Runtime_arg.V6.network}, and
-    {!Runtime_arg.V6.gateway} keys for IPv4 and IPv6 configuration information,
-    filling in unspecified information from [?config], then building a stack on
-    top of that. *)
-
 val generic_stackv4v6 :
   ?group:string ->
   ?ipv6_config:ipv6_config ->
@@ -628,9 +612,10 @@ val generic_stackv4v6 :
   stackv4v6 impl
 (** Generic stack using a [net] keys: {!Key.net}.
 
-    - If [net] = [host] then {!socket_stackv4v6} is used
-    - Else, if [unix or macosx] then {!socket_stackv4v6} is used
-    - Else, {!static_ipv4v6_stack} is used.
+    - If [net] = [host] then the Unix sockets API is used;
+    - Else, if [qubes], a special IPv4 stack using the QubesDB is used;
+    - Else, if [dhcp] is true, a DHCP client is used for the IPv4 address;
+    - Else, an IP stack with a static IP address is used.
 
     If a key is not provided, it uses {!Key.net} (with the [group] argument) to
     create it. *)

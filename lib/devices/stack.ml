@@ -64,15 +64,6 @@ let keyed_direct_stackv4v6 ?tcp ~ipv4_only ~ipv6_only network eth arp ipv4 ipv6
   $ direct_udp ip
   $ match tcp with None -> direct_tcp ip | Some tcp -> tcp
 
-let static_ipv4v6_stack ?group ?ipv6_config ?ipv4_config ?(arp = arp) ?tcp tap =
-  let ipv4_only = Runtime_arg.ipv4_only ?group ()
-  and ipv6_only = Runtime_arg.ipv6_only ?group () in
-  let e = ethif tap in
-  let a = arp e in
-  let i4 = create_ipv4 ?group ?config:ipv4_config e a in
-  let i6 = create_ipv6 ?group ?config:ipv6_config tap e in
-  keyed_direct_stackv4v6 ~ipv4_only ~ipv6_only ?tcp tap e a i4 i6
-
 let generic_ipv4v6_stack p ?group ?ipv6_config ?ipv4_config ?(arp = arp) ?tcp
     tap =
   let ipv4_only = Runtime_arg.ipv4_only ?group ()

@@ -162,9 +162,7 @@ type stackv4v6 = Stack.stackv4v6
 
 let stackv4v6 = Stack.stackv4v6
 let generic_stackv4v6 = Stack.generic_stackv4v6
-let static_ipv4v6_stack = Stack.static_ipv4v6_stack
 let direct_stackv4v6 = Stack.direct_stackv4v6
-let socket_stackv4v6 = Stack.socket_stackv4v6
 
 let tcpv4v6_of_stackv4v6 v =
   let impl =

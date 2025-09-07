@@ -9,9 +9,6 @@ type tcpv4v6 = Ip.v4v6 tcp
 val tcpv4v6 : tcpv4v6 typ
 val direct_tcp : 'a Ip.ip impl -> 'a tcp impl
 
-val socket_tcpv4v6 :
-  ?group:string -> Ipaddr.V4.t option -> Ipaddr.V6.t option -> tcpv4v6 impl
-
 val tcpv4v6_socket_conf :
   ipv4_only:bool runtime_arg ->
   ipv6_only:bool runtime_arg ->

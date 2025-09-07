@@ -540,9 +540,6 @@ val udp : 'a udp typ
 val udpv4v6 : udpv4v6 typ
 val direct_udp : 'a ip impl -> 'a udp impl
 
-val socket_udpv4v6 :
-  ?group:string -> Ipaddr.V4.t option -> Ipaddr.V6.t option -> udpv4v6 impl
-
 (** {2 TCP configuration} *)
 
 type 'a tcp
@@ -553,9 +550,6 @@ val tcp : 'a tcp typ
 
 val tcpv4v6 : tcpv4v6 typ
 val direct_tcp : 'a ip impl -> 'a tcp impl
-
-val socket_tcpv4v6 :
-  ?group:string -> Ipaddr.V4.t option -> Ipaddr.V6.t option -> tcpv4v6 impl
 
 (** {2 Network stack configuration} *)
 

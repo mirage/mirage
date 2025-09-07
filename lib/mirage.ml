@@ -136,7 +136,6 @@ type udpv4v6 = Udp.udpv4v6
 
 let udpv4v6 = Udp.udpv4v6
 let direct_udp = Udp.direct_udp
-let socket_udpv4v6 = Udp.socket_udpv4v6
 
 type 'a tcp = 'a Tcp.tcp
 
@@ -146,7 +145,6 @@ type tcpv4v6 = Tcp.tcpv4v6
 
 let tcpv4v6 = Tcp.tcpv4v6
 let direct_tcp = Tcp.direct_tcp
-let socket_tcpv4v6 = Tcp.socket_tcpv4v6
 
 type stackv4v6 = Stack.stackv4v6
 

@@ -1,3 +1,17 @@
+### v4.10.0 (2025-09-08)
+
+- Add unikraft targets (#1607 @fabbing @shym)
+- Add a `?local_libs` parameter to allow local dune libs
+  (#1609 @omegametabroccolo)
+- Add a `--name` argument to each unikernel (`Mirage_runtime.name ()`),
+  remove `monitor_hostname` (#1611 @hannesm)
+- Use Git_net instead of Git_mirage (#1606 @dinosaure)
+- Fix Mirage_runtime documentation headers, use correct Stop special comment
+  (#1605 @reynir)
+- Exclude buggy dune versions from testing (#1609 @reynir)
+- Remove unused exports about ip stacks, ipv4_config, ipv6_config,
+  socket_tcpv4v6, and socket_udpv4v6 (#1612 @hannesm)
+
 ### v4.9.0 (2025-03-04)
 
 - Remove time, pclock, mclock, random from functor arguments

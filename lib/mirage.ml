@@ -128,16 +128,6 @@ let create_ipv4 = Ip.create_ipv4
 let create_ipv6 = Ip.create_ipv6
 let create_ipv4v6 = Ip.create_ipv4v6
 
-type ipv4_config = Ip.ipv4_config = {
-  network : Ipaddr.V4.Prefix.t;
-  gateway : Ipaddr.V4.t option;
-}
-
-type ipv6_config = Ip.ipv6_config = {
-  network : Ipaddr.V6.Prefix.t;
-  gateway : Ipaddr.V6.t option;
-}
-
 type 'a udp = 'a Udp.udp
 
 let udp = Udp.udp
@@ -146,7 +136,6 @@ type udpv4v6 = Udp.udpv4v6
 
 let udpv4v6 = Udp.udpv4v6
 let direct_udp = Udp.direct_udp
-let socket_udpv4v6 = Udp.socket_udpv4v6
 
 type 'a tcp = 'a Tcp.tcp
 
@@ -156,15 +145,12 @@ type tcpv4v6 = Tcp.tcpv4v6
 
 let tcpv4v6 = Tcp.tcpv4v6
 let direct_tcp = Tcp.direct_tcp
-let socket_tcpv4v6 = Tcp.socket_tcpv4v6
 
 type stackv4v6 = Stack.stackv4v6
 
 let stackv4v6 = Stack.stackv4v6
 let generic_stackv4v6 = Stack.generic_stackv4v6
-let static_ipv4v6_stack = Stack.static_ipv4v6_stack
 let direct_stackv4v6 = Stack.direct_stackv4v6
-let socket_stackv4v6 = Stack.socket_stackv4v6
 
 let tcpv4v6_of_stackv4v6 v =
   let impl =

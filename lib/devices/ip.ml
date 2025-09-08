@@ -18,12 +18,6 @@ let ipv4 : ipv4 typ = ip
 let ipv6 : ipv6 typ = ip
 let ipv4v6 : ipv4v6 typ = ip
 
-type ipv4_config = {
-  network : Ipaddr.V4.Prefix.t;
-  gateway : Ipaddr.V4.t option;
-}
-(** Types for IPv4 manual configuration. *)
-
 (* convenience function for linking tcpip.unix for checksums *)
 let right_tcpip_library ?libs ~sublibs pkg =
   let min = "9.0.0" and max = "10.0.0" in
@@ -57,32 +51,18 @@ let ipv4_dhcp_conf =
 
 let ipv4_of_dhcp net ethif arp = ipv4_dhcp_conf $ net $ ethif $ arp
 
-let keyed_create_ipv4 ?group ?config ~no_init etif arp =
-  let network, gateway =
-    match config with
-    | None -> (Ipaddr.V4.Prefix.of_string_exn "10.0.0.2/24", None)
-    | Some { network; gateway } -> (network, gateway)
-  in
+let keyed_create_ipv4 ?group ~no_init etif arp =
+  let network, gateway = (Ipaddr.V4.Prefix.of_string_exn "10.0.0.2/24", None) in
   let ip = Runtime_arg.V4.network ?group network
   and gateway = Runtime_arg.V4.gateway ?group gateway in
   ipv4_keyed_conf ~ip ~gateway ~no_init () $ etif $ arp
 
-let create_ipv4 ?group ?config etif arp =
-  let network, gateway =
-    match config with
-    | None -> (Ipaddr.V4.Prefix.of_string_exn "10.0.0.2/24", None)
-    | Some { network; gateway } -> (network, gateway)
-  in
+let create_ipv4 ?group etif arp =
+  let network, gateway = (Ipaddr.V4.Prefix.of_string_exn "10.0.0.2/24", None) in
   let ip = Runtime_arg.V4.network ?group network
   and gateway = Runtime_arg.V4.gateway ?group gateway
   and no_init = Runtime_arg.ipv6_only ?group () in
   ipv4_keyed_conf ~ip ~gateway ~no_init () $ etif $ arp
-
-type ipv6_config = {
-  network : Ipaddr.V6.Prefix.t;
-  gateway : Ipaddr.V6.t option;
-}
-(** Types for IP manual configuration. *)
 
 let ipv4_qubes_conf =
   let packages = [ package ~min:"2.0.0" ~max:"3.0.0" "mirage-qubes-ipv4" ] in
@@ -111,23 +91,15 @@ let ipv6_conf ~ip ~gateway ~handle_ra ~no_init () =
   impl ~packages_v ~runtime_args ~connect "Ipv6.Make"
     (network @-> ethernet @-> ipv6)
 
-let keyed_create_ipv6 ?group ?config ~no_init netif etif =
-  let network, gateway =
-    match config with
-    | None -> (None, None)
-    | Some { network; gateway } -> (Some network, gateway)
-  in
+let keyed_create_ipv6 ?group ~no_init netif etif =
+  let network, gateway = (None, None) in
   let ip = Runtime_arg.V6.network ?group network
   and gateway = Runtime_arg.V6.gateway ?group gateway
   and handle_ra = Runtime_arg.V6.accept_router_advertisements ?group () in
   ipv6_conf ~ip ~gateway ~handle_ra ~no_init () $ netif $ etif
 
-let create_ipv6 ?group ?config netif etif =
-  let network, gateway =
-    match config with
-    | None -> (None, None)
-    | Some { network; gateway } -> (Some network, gateway)
-  in
+let create_ipv6 ?group netif etif =
+  let network, gateway = (None, None) in
   let ip = Runtime_arg.V6.network ?group network
   and gateway = Runtime_arg.V6.gateway ?group gateway
   and handle_ra = Runtime_arg.V6.accept_router_advertisements ?group ()

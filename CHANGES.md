@@ -1,3 +1,7 @@
+### v4.10.1 (2025-09-09)
+
+- Fix the generated dependencies on mirage-runtime to 4.10.*
+
 ### v4.10.0 (2025-09-08)
 
 - Add unikraft targets (#1607 @fabbing @shym)

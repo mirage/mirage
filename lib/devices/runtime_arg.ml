@@ -26,8 +26,7 @@ let runtime_arg ~pos name =
 
 let runtime_network_key ~pos fmt =
   Fmt.kstr
-    (create ~pos
-       ~packages:[ package "mirage-runtime" ~sublibs:[ "network" ] ])
+    (create ~pos ~packages:[ package "mirage-runtime" ~sublibs:[ "network" ] ])
     ("Mirage_runtime_network." ^^ fmt)
 
 let delay = runtime_arg ~pos:__POS__ "delay"

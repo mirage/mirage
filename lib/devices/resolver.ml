@@ -1,7 +1,5 @@
 open Functoria.DSL
 open Functoria.Action
-open Misc
-open Stack
 
 type resolver = Resolver
 
@@ -14,7 +12,7 @@ let resolver_unix_system =
       []
   in
   let configure i =
-    match get_target i with
+    match Misc.get_target i with
     | `Unix | `MacOSX -> ok ()
     | _ -> error "Unix resolver not supported on non-UNIX targets."
   in
@@ -34,10 +32,10 @@ let resolver_dns_conf ~ns =
            | Ok r -> r@;\
            | Error (`Msg e) -> invalid_arg e@;"
           ns modname stack
-    | _ -> connect_err "resolver" 2
+    | _ -> Misc.connect_err "resolver" 2
   in
   impl ~packages ~runtime_args ~connect "Resolver_mirage.Make"
-    (stackv4v6 @-> resolver)
+    (Stack.stackv4v6 @-> resolver)
 
 let resolver_dns ?ns stack =
   let ns = Runtime_arg.resolver ?default:ns () in

@@ -1,6 +1,4 @@
 open Functoria.DSL
-open Stack
-open Misc
 
 type happy_eyeballs = Happy_eyeballs
 
@@ -43,7 +41,7 @@ let generic_happy_eyeballs ?group ?aaaa_timeout ?connect_delay ?connect_timeout
 ?connect_timeout:%s ?resolve_timeout:%s ?resolve_retries:%s ?timer_interval:%s %s|ocaml}
           modname aaaa_timeout connect_delay connect_timeout resolve_timeout
           resolve_retries timer_interval stack
-    | _ -> connect_err "generic_happy_eyeballs" 7
+    | _ -> Misc.connect_err "generic_happy_eyeballs" 7
   in
   impl ~runtime_args ~packages ~connect "Happy_eyeballs_mirage.Make"
-    (stackv4v6 @-> happy_eyeballs)
+    (Stack.stackv4v6 @-> happy_eyeballs)

@@ -16,8 +16,6 @@
 
 module Action = Functoria.Action
 module Key = Functoria.Key
-open Astring
-open Cmdliner
 
 (** {2 Documentation helper} *)
 
@@ -71,8 +69,8 @@ let target =
       target_doc_alts
   in
   let doc =
-    Arg.info ~docs:mirage_section ~docv:"TARGET" ~doc [ "t"; "target" ]
-      ~env:(Cmd.Env.info "MODE")
+    Cmdliner.Arg.info ~docs:mirage_section ~docv:"TARGET" ~doc [ "t"; "target" ]
+      ~env:(Cmdliner.Cmd.Env.info "MODE")
   in
   let key = Key.Arg.opt target_conv default_target doc in
   Key.create "target" key
@@ -102,8 +100,8 @@ let is_unikraft =
 let configure_key ?(group = "") ~doc ~default conv name =
   let prefix = if group = "" then group else group ^ "-" in
   let doc =
-    Arg.info ~docs:unikernel_section
-      ~docv:(String.Ascii.uppercase name)
+    Cmdliner.Arg.info ~docs:unikernel_section
+      ~docv:(String.uppercase_ascii name)
       ~doc
       [ prefix ^ name ]
   in
@@ -127,7 +125,7 @@ let block ?group () =
   let enum =
     [ ("xenstore", `XenstoreId); ("file", `BlockFile); ("ramdisk", `Ramdisk) ]
   in
-  let conv = Arg.enum enum in
+  let conv = Cmdliner.Arg.enum enum in
   let doc =
     Fmt.str "Use %s pass-through implementation for %a."
       (Cmdliner.Arg.doc_alts_enum enum)
@@ -139,7 +137,7 @@ let block ?group () =
 
 let dhcp ?group () =
   let doc = Fmt.str "Enable dhcp for %a." pp_group group in
-  configure_key ~doc ?group ~default:false Arg.bool "dhcp"
+  configure_key ~doc ?group ~default:false Cmdliner.Arg.bool "dhcp"
 
 let net ?group () : [ `Host | `OCaml ] option Key.key =
   let enum =
@@ -153,6 +151,6 @@ let net ?group () : [ `Host | `OCaml ] option Key.key =
       (Cmdliner.Arg.doc_alts_enum enum)
       pp_group group
   in
-  configure_key ~doc ?group ~default:None (Arg.some conv) "net"
+  configure_key ~doc ?group ~default:None (Cmdliner.Arg.some conv) "net"
 
 include Key

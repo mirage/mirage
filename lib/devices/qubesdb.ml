@@ -1,6 +1,5 @@
 open Functoria.DSL
 open Functoria.Action
-open Misc
 
 type qubesdb = QUBES_DB
 
@@ -10,7 +9,7 @@ let pkg = package ~min:"2.0.0" ~max:"3.0.0" "mirage-qubes"
 let default_qubesdb =
   let packages = [ pkg ] in
   let configure i =
-    match get_target i with
+    match Misc.get_target i with
     | `Qubes | `Xen -> ok ()
     | _ ->
         error

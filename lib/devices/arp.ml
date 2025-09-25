@@ -1,6 +1,4 @@
 open Functoria.DSL
-open Ethernet
-open Misc
 
 type arpv4 = Arpv4
 
@@ -12,8 +10,8 @@ let arp_conf =
   in
   let connect _ modname = function
     | [ eth ] -> code ~pos:__POS__ "%s.connect %s" modname eth
-    | _ -> connect_err "arp" 1
+    | _ -> Misc.connect_err "arp" 1
   in
-  impl ~packages ~connect "Arp.Make" (ethernet @-> arpv4)
+  impl ~packages ~connect "Arp.Make" (Ethernet.ethernet @-> arpv4)
 
-let arp (eth : ethernet impl) = arp_conf $ eth
+let arp (eth : Ethernet.ethernet impl) = arp_conf $ eth

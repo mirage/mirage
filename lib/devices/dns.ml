@@ -1,7 +1,4 @@
 open Functoria.DSL
-open Stack
-open Misc
-open Happy_eyeballs
 
 type dns_client = Dns_client
 
@@ -18,7 +15,7 @@ let generic_dns_client ?group ?timeout ?nameservers ?cache_size () =
         code ~pos:__POS__
           {ocaml|%s.connect @[?nameservers:%s ?timeout:%s ?cache_size:%s@ (%s, %s)@]|ocaml}
           modname nameservers timeout cache_size stackv4v6 happy_eyeballs
-    | _ -> connect_err "generic_dns_client" 5
+    | _ -> Misc.connect_err "generic_dns_client" 5
   in
   impl ~runtime_args ~packages ~connect "Dns_client_mirage.Make"
-    (stackv4v6 @-> happy_eyeballs @-> dns_client)
+    (Stack.stackv4v6 @-> Happy_eyeballs.happy_eyeballs @-> dns_client)

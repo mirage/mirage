@@ -1,6 +1,5 @@
 open Functoria.DSL
 open Functoria.Action
-open Misc
 
 type network = NETWORK
 
@@ -25,7 +24,7 @@ let network_conf ?(intf : string runtime_arg option) name =
   let connect _ modname = function
     | [] -> code ~pos:__POS__ "%s.connect %S" modname name
     | [ intf ] -> code ~pos:__POS__ "%s.connect %s" modname intf
-    | _ -> connect_err "network_conf (sometimes 0 arguments)" 1
+    | _ -> Misc.connect_err "network_conf (sometimes 0 arguments)" 1
   in
   let configure _ =
     add_new_network name;

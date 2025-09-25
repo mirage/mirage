@@ -16,7 +16,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Functoria.DSL
 open Devices
 module Type = Functoria.Type
 module Impl = Functoria.Impl

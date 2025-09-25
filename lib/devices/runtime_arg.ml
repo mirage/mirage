@@ -15,18 +15,18 @@
  *)
 
 open Functoria.DSL
-module Runtime_arg = Functoria.Runtime_arg
+include Functoria.Runtime_arg
 
 (** {2 OCaml runtime} *)
 
 let runtime_arg ~pos name =
-  Runtime_arg.create ~pos
+  create ~pos
     ~packages:[ package "mirage-runtime" ]
     (Fmt.str "Mirage_runtime.%s" name)
 
 let runtime_network_key ~pos fmt =
   Fmt.kstr
-    (Runtime_arg.create ~pos
+    (create ~pos
        ~packages:[ package "mirage-runtime" ~sublibs:[ "network" ] ])
     ("Mirage_runtime_network." ^^ fmt)
 

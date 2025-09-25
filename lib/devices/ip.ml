@@ -1,9 +1,4 @@
 open Functoria.DSL
-open Arp
-open Ethernet
-open Misc
-open Network
-open Qubesdb
 
 type v4
 type v6
@@ -31,10 +26,10 @@ let ipv4_keyed_conf ~ip ~gateway ~no_init () =
         code ~pos:__POS__
           "%s.connect@[~no_init:%s@ ~cidr:%s@ ?gateway:%s@ %s@ %s@]" modname
           no_init ip gateway etif arp
-    | _ -> connect_err "ipv4 keyed" 5
+    | _ -> Misc.connect_err "ipv4 keyed" 5
   in
   impl ~packages_v ~runtime_args ~connect "Static_ipv4.Make"
-    (ethernet @-> arpv4 @-> ipv4)
+    (Ethernet.ethernet @-> Arp.arpv4 @-> ipv4)
 
 let ipv4_dhcp_conf =
   let packages =
@@ -44,10 +39,10 @@ let ipv4_dhcp_conf =
     | [ network; ethernet; arp ] ->
         code ~pos:__POS__ "%s.connect@[@ %s@ %s@ %s@]" modname network ethernet
           arp
-    | _ -> connect_err "ipv4 dhcp" 3
+    | _ -> Misc.connect_err "ipv4 dhcp" 3
   in
   impl ~packages ~connect "Dhcp_ipv4.Make"
-    (network @-> ethernet @-> arpv4 @-> ipv4)
+    (Network.network @-> Ethernet.ethernet @-> Arp.arpv4 @-> ipv4)
 
 let ipv4_of_dhcp net ethif arp = ipv4_dhcp_conf $ net $ ethif $ arp
 
@@ -69,10 +64,10 @@ let ipv4_qubes_conf =
   let connect _ modname = function
     | [ db; etif; arp ] ->
         code ~pos:__POS__ "%s.connect@[@ %s@ %s@ %s@]" modname db etif arp
-    | _ -> connect_err "qubes_ipv4" 3
+    | _ -> Misc.connect_err "qubes_ipv4" 3
   in
   impl ~packages ~connect "Qubesdb_ipv4.Make"
-    (qubesdb @-> ethernet @-> arpv4 @-> ipv4)
+    (Qubesdb.qubesdb @-> Ethernet.ethernet @-> Arp.arpv4 @-> ipv4)
 
 let ipv4_qubes db ethernet arp = ipv4_qubes_conf $ db $ ethernet $ arp
 
@@ -85,11 +80,11 @@ let ipv6_conf ~ip ~gateway ~handle_ra ~no_init () =
           "%s.connect@[~no_init:%s@ ~handle_ra:%s@ ?cidr:%s@ ?gateway:%s@ %s@ \
            %s@]"
           modname no_init handle_ra ip gateway netif etif
-    | _ -> connect_err "ipv6" 6
+    | _ -> Misc.connect_err "ipv6" 6
   in
 
   impl ~packages_v ~runtime_args ~connect "Ipv6.Make"
-    (network @-> ethernet @-> ipv6)
+    (Network.network @-> Ethernet.ethernet @-> ipv6)
 
 let keyed_create_ipv6 ?group ~no_init netif etif =
   let network, gateway = (None, None) in
@@ -113,7 +108,7 @@ let ipv4v6_conf ~ipv4_only ~ipv6_only () =
     | [ ipv4; ipv6; ipv4_only; ipv6_only ] ->
         code ~pos:__POS__ "%s.connect@[@ ~ipv4_only:%s@ ~ipv6_only:%s@ %s@ %s@]"
           modname ipv4_only ipv6_only ipv4 ipv6
-    | _ -> connect_err "ipv4v6" 4
+    | _ -> Misc.connect_err "ipv4v6" 4
   in
   impl ~packages_v ~runtime_args ~connect "Tcpip_stack_direct.IPV4V6"
     (ipv4 @-> ipv6 @-> ipv4v6)

@@ -1,6 +1,4 @@
 open Functoria.DSL
-open Stack
-open Misc
 
 type conduit = Conduit
 
@@ -11,15 +9,15 @@ let tcp =
   let packages = [ pkg ] in
   let connect _ _ = function
     | [ stack ] -> code ~pos:__POS__ "Lwt.return %s@;" stack
-    | _ -> connect_err "tcp_conduit" 1
+    | _ -> Misc.connect_err "tcp_conduit" 1
   in
-  impl ~packages ~connect "Conduit_mirage.TCP" (stackv4v6 @-> conduit)
+  impl ~packages ~connect "Conduit_mirage.TCP" (Stack.stackv4v6 @-> conduit)
 
 let tls =
   let packages = [ pkg; package ~min:"2.0.0" ~max:"3.0.0" "tls-mirage" ] in
   let connect _ _ = function
     | [ stack ] -> code ~pos:__POS__ "Lwt.return %s@;" stack
-    | _ -> connect_err "tls_conduit" 1
+    | _ -> Misc.connect_err "tls_conduit" 1
   in
   impl ~packages ~connect "Conduit_mirage.TLS" (conduit @-> conduit)
 

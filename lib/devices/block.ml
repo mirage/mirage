@@ -3,9 +3,6 @@ module Info = Functoria.Info
 module Install = Functoria.Install
 open Functoria.DSL
 open Functoria.Action
-open Misc
-open Kv
-open Cmdliner
 
 type block = BLOCK
 
@@ -38,7 +35,7 @@ let xen_block_packages =
    also understands *)
 let xenstore_conf id =
   let configure i =
-    match get_target i with
+    match Misc.get_target i with
     | `Qubes | `Xen -> ok ()
     | _ ->
         error
@@ -85,9 +82,10 @@ let block_conf file =
     ok ()
   in
   let connect i s _ =
-    match get_target i with
+    match Misc.get_target i with
     | `Muen -> failwith "Block devices not supported on Muen target."
-    | _ -> code ~pos:__POS__ "%s.connect %S" s (connect_name (get_target i))
+    | _ ->
+        code ~pos:__POS__ "%s.connect %S" s (connect_name (Misc.get_target i))
   in
   Functoria.Device.v ~configure ~packages_v ~connect "Block" block
 
@@ -111,7 +109,7 @@ let tar_kv_ro_conf =
   let packages = [ package ~min:"1.0.0" ~max:"4.0.0" "tar-mirage" ] in
   let connect _ modname = function
     | [ block ] -> code ~pos:__POS__ "%s.connect %s" modname block
-    | _ -> connect_err "tar_kv_ro" 1
+    | _ -> Misc.connect_err "tar_kv_ro" 1
   in
   impl ~packages ~connect "Tar_mirage.Make_KV_RO" (block @-> Kv.ro)
 
@@ -119,7 +117,7 @@ let tar_kv_rw_conf =
   let packages = [ package ~min:"2.2.0" ~max:"4.0.0" "tar-mirage" ] in
   let connect _ modname = function
     | [ block ] -> code ~pos:__POS__ "%s.connect %s" modname block
-    | _ -> connect_err "tar_kv_rw" 1
+    | _ -> Misc.connect_err "tar_kv_rw" 1
   in
   impl ~packages ~connect "Tar_mirage.Make_KV_RW" (block @-> Kv.rw)
 
@@ -130,7 +128,7 @@ let fat_conf =
   let packages = [ package ~min:"0.15.0" ~max:"0.16.0" "fat-filesystem" ] in
   let connect _ modname = function
     | [ block ] -> code ~pos:__POS__ "%s.connect %s" modname block
-    | _ -> connect_err "fat" 1
+    | _ -> Misc.connect_err "fat" 1
   in
   impl ~packages ~connect "Fat.KV_RO" (block @-> Kv.ro)
 
@@ -197,14 +195,14 @@ let docteur_unix (mode : mode) extra_deps ~name:_ ~output branch analyze remote
              let f = Rresult.R.(failwith_error_msg <.> reword_error (msgf "%%a" %s.pp_error)) in
              Lwt.map f (%s.connect ~analyze:%s %S)|ocaml}
           modname modname analyze name
-    | _ -> connect_err "docteur_unix" 1
+    | _ -> Misc.connect_err "docteur_unix" 1
   in
   let keys = [ Key.v output ] in
   let runtime_args = Runtime_arg.[ v analyze ] in
   let packages = [ package "docteur-unix" ~min:"0.0.6" ] in
   impl ~runtime_args ~keys ~packages ~dune ~install ~configure ~connect
     (Fmt.str "Docteur_unix.%a" pp_mode mode)
-    ro
+    Kv.ro
 
 let docteur_solo5 (mode : mode) extra_deps ~name ~output branch analyze remote =
   let dune info =
@@ -256,31 +254,32 @@ let docteur_solo5 (mode : mode) extra_deps ~name ~output branch analyze remote =
              let f = Rresult.R.(failwith_error_msg <.> reword_error (msgf "%%a" %s.pp_error)) in
              Lwt.map f (%s.connect ~analyze:%s %S)|ocaml}
           modname modname analyze name
-    | _ -> connect_err "docteur_solo5" 1
+    | _ -> Misc.connect_err "docteur_solo5" 1
   in
   let keys = [ Key.v output; Key.v name ] in
   let runtime_args = Runtime_arg.[ v analyze ] in
   let packages = [ package "docteur-solo5" ~min:"0.0.6" ] in
   impl ~keys ~runtime_args ~packages ~dune ~install ~configure ~connect
     (Fmt.str "Docteur_solo5.%a" pp_mode mode)
-    ro
+    Kv.ro
 
 let disk_name =
   let doc =
-    Arg.info
+    Cmdliner.Arg.info
       ~doc:
         "Name of the docteur disk (for Solo5 targets, the name must contains \
          only alpanumeric characters)."
       [ "disk-name" ]
   in
-  let key = Key.Arg.opt Arg.string "docteur" doc in
+  let key = Key.Arg.opt Cmdliner.Arg.string "docteur" doc in
   Key.create "disk-name" key
 
 let disk_output =
   let doc =
-    Arg.info ~doc:"The output of the generated docteur image." [ "disk-output" ]
+    Cmdliner.Arg.info ~doc:"The output of the generated docteur image."
+      [ "disk-output" ]
   in
-  let key = Key.Arg.opt Arg.string "disk.img" doc in
+  let key = Key.Arg.opt Cmdliner.Arg.string "disk.img" doc in
   Key.create "disk-output" key
 
 let docteur_solo5 (mode : mode) extra_deps ?(name = disk_name)
@@ -320,7 +319,7 @@ let chamelon ~program_block_size =
                  >|= Result.map_error (Fmt.str "%%a" %s.pp_error)
                  >|= Result.fold ~ok:Fun.id ~error:failwith|ocaml}
           modname program_block_size block modname
-    | _ -> connect_err "chameleon" 2
+    | _ -> Misc.connect_err "chameleon" 2
   in
   impl ~packages ~runtime_args ~connect "Kv.Make" (block @-> Kv.rw)
 
@@ -341,6 +340,6 @@ let ccm_block ?nonce_len key =
           key modname
           Fmt.(parens (Dump.option int))
           nonce_len block
-    | _ -> connect_err "ccm_block" 2
+    | _ -> Misc.connect_err "ccm_block" 2
   in
   impl ~packages ~runtime_args ~connect "Block_ccm.Make" (block @-> block)

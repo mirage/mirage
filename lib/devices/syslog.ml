@@ -1,6 +1,4 @@
 open Functoria.DSL
-open Misc
-open Stack
 
 type syslog = SYSLOG
 
@@ -22,10 +20,10 @@ let syslog_udp_conf ?group () =
            ~hostname:(Mirage_runtime.name ()) ~port:%s server ?truncate:%s ()@ \
            in@ Logs.set_reporter reporter;@ Lwt.return_unit@]"
           endpoint modname stack port truncate
-    | _ -> connect_err "syslog_udp" 5
+    | _ -> Misc.connect_err "syslog_udp" 5
   in
   impl ~packages ~runtime_args ~connect "Logs_syslog_mirage.Udp"
-    (stackv4v6 @-> syslog)
+    (Stack.stackv4v6 @-> syslog)
 
 let syslog_udp ?group stack = syslog_udp_conf ?group () $ stack
 
@@ -45,10 +43,10 @@ let syslog_tcp_conf ?group () =
            Logs.set_reporter reporter; Lwt.return_unit@ | Error e -> \
            invalid_arg e@]"
           endpoint modname stack port truncate
-    | _ -> connect_err "syslog_tcp" 5
+    | _ -> Misc.connect_err "syslog_tcp" 5
   in
   impl ~packages ~runtime_args ~connect "Logs_syslog_mirage.Tcp"
-    (stackv4v6 @-> syslog)
+    (Stack.stackv4v6 @-> syslog)
 
 let syslog_tcp ?group stack = syslog_tcp_conf ?group () $ stack
 
@@ -71,10 +69,10 @@ let syslog_tls_conf ?group () =
            reporter -> Logs.set_reporter reporter; Lwt.return_unit@ | Error e \
            -> invalid_arg e@]"
           endpoint modname stack kv port truncate keyname
-    | _ -> connect_err "syslog_tls" 8
+    | _ -> Misc.connect_err "syslog_tls" 8
   in
   impl ~packages ~runtime_args ~connect "Logs_syslog_mirage_tls.Tls"
-    (stackv4v6 @-> Kv.ro @-> syslog)
+    (Stack.stackv4v6 @-> Kv.ro @-> syslog)
 
 let syslog_tls ?group stack kv = syslog_tls_conf ?group () $ stack $ kv
 
@@ -92,6 +90,6 @@ let monitoring_conf ?group () =
     | _ -> assert false
   in
   impl ~packages ~runtime_args ~connect "Mirage_monitoring.Make"
-    (stackv4v6 @-> Functoria.job)
+    (Stack.stackv4v6 @-> Functoria.job)
 
 let monitoring ?group stack = monitoring_conf ?group () $ stack

@@ -1,31 +1,31 @@
 module Action = Functoria.Action
 open Functoria.DSL
-open Ip
-open Misc
 
 type 'a udp = UDP
-type udpv4v6 = v4v6 udp
+type udpv4v6 = Ip.v4v6 udp
 
 let udp = Functoria.Type.Type UDP
 let udpv4v6 : udpv4v6 typ = udp
 
 (* Value restriction ... *)
 let udp_direct_func () =
-  let packages_v = right_tcpip_library ~sublibs:[ "udp" ] "tcpip" in
+  let packages_v = Ip.right_tcpip_library ~sublibs:[ "udp" ] "tcpip" in
   let connect _ modname = function
     | [ ip ] -> code ~pos:__POS__ "%s.connect %s" modname ip
-    | _ -> connect_err "udp" 1
+    | _ -> Misc.connect_err "udp" 1
   in
-  impl ~packages_v ~connect "Udp.Make" (ip @-> udp)
+  impl ~packages_v ~connect "Udp.Make" (Ip.ip @-> udp)
 
 let direct_udp ip = udp_direct_func () $ ip
 
 let udpv4v6_socket_conf ~ipv4_only ~ipv6_only ipv4_key ipv6_key =
   let v = Runtime_arg.v in
   let runtime_args = [ v ipv4_only; v ipv6_only; v ipv4_key; v ipv6_key ] in
-  let packages_v = right_tcpip_library ~sublibs:[ "udpv4v6-socket" ] "tcpip" in
+  let packages_v =
+    Ip.right_tcpip_library ~sublibs:[ "udpv4v6-socket" ] "tcpip"
+  in
   let configure i =
-    match get_target i with
+    match Misc.get_target i with
     | `Unix | `MacOSX -> Action.ok ()
     | _ -> Action.error "UDPv4v6 socket not supported on non-UNIX targets."
   in
@@ -33,6 +33,6 @@ let udpv4v6_socket_conf ~ipv4_only ~ipv6_only ipv4_key ipv6_key =
     | [ ipv4_only; ipv6_only; ipv4_key; ipv6_key ] ->
         code ~pos:__POS__ "%s.connect ~ipv4_only:%s ~ipv6_only:%s %s %s" modname
           ipv4_only ipv6_only ipv4_key ipv6_key
-    | _ -> connect_err "udpv4v6_socket_conf" 4
+    | _ -> Misc.connect_err "udpv4v6_socket_conf" 4
   in
   impl ~runtime_args ~packages_v ~configure ~connect "Udpv4v6_socket" udpv4v6

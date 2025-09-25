@@ -16,13 +16,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Functoria
 open Devices
-module Type = Type
+module Type = Functoria.Type
 module Impl = Functoria.Impl
-module Info = Info
-module Dune = Dune
-module Context = Context
+module Info = Functoria.Info
+module Dune = Functoria.Dune
+module Context = Functoria.Context
 module Key = Devices.Key
 module Runtime_arg = Devices.Runtime_arg
 include Functoria.DSL
@@ -258,7 +257,7 @@ let git_ssh ?group ?authenticator ?key ?password tcpv4v6 ctx =
 let git_http ?group ?authenticator ?headers tcpv4v6 ctx =
   Git.git_http ?group ?authenticator ?headers () $ tcpv4v6 $ ctx
 
-let delay = job
+let delay = Functoria.job
 
 let delay_startup =
   let delay_key = Runtime_arg.delay in
@@ -271,7 +270,7 @@ let delay_startup =
   in
   impl ~packages ~runtime_args ~connect "Mirage_runtime" delay
 
-let unikernel_name = job
+let unikernel_name = Functoria.job
 
 let unikernel_name =
   let connect i _ _ =
@@ -365,8 +364,8 @@ let run t = %s.Main.run t ; exit 0|ocaml}
       ~install "Mirage_runtime" job
 end
 
-include Lib.Make (Project)
-module Tool = Tool.Make (Project)
+include Functoria.Lib.Make (Project)
+module Tool = Functoria.Tool.Make (Project)
 
 (** Custom registration *)
 

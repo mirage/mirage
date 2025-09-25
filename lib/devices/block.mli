@@ -1,4 +1,4 @@
-open Functoria
+open Functoria.DSL
 
 type block
 

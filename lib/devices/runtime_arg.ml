@@ -14,8 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Functoria
-include Runtime_arg
+open Functoria.DSL
+module Runtime_arg = Functoria.Runtime_arg
 
 (** {2 OCaml runtime} *)
 

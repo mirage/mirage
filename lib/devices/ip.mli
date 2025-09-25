@@ -1,4 +1,4 @@
-open Functoria
+open Functoria.DSL
 
 type v4
 type v6

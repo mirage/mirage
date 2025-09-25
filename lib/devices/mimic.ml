@@ -12,4 +12,7 @@ let mimic_happy_eyeballs =
     | _ -> Misc.connect_err "mimic" 3
   in
   impl ~packages ~connect "Mimic_happy_eyeballs.Make"
-    (Stack.stackv4v6 @-> Happy_eyeballs.happy_eyeballs @-> Dns.dns_client @-> mimic)
+    (Stack.stackv4v6
+    @-> Happy_eyeballs.happy_eyeballs
+    @-> Dns.dns_client
+    @-> mimic)

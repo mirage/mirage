@@ -2,7 +2,9 @@ open Functoria.DSL
 
 let dhcp_ipv4 tap e a = Ip.ipv4_of_dhcp tap e a
 let static_ipv4 ?group ~no_init e a = Ip.keyed_create_ipv4 ?group ~no_init e a
-let qubes_ipv4 ?(qubesdb = Qubesdb.default_qubesdb) e a = Ip.ipv4_qubes qubesdb e a
+
+let qubes_ipv4 ?(qubesdb = Qubesdb.default_qubesdb) e a =
+  Ip.ipv4_qubes qubesdb e a
 
 (** dual stack *)
 
@@ -86,8 +88,8 @@ let socket_stackv4v6 ?(group = "") () =
 
 (** Generic stack *)
 let generic_stackv4v6 ?group ?(dhcp_key = Key.value @@ Key.dhcp ?group ())
-    ?(net_key = Key.value @@ Key.net ?group ()) ?tcp (tap : Network.network impl) :
-    stackv4v6 impl =
+    ?(net_key = Key.value @@ Key.net ?group ()) ?tcp
+    (tap : Network.network impl) : stackv4v6 impl =
   let choose target net dhcp =
     match (target, net, dhcp) with
     | `Qubes, _, _ -> `Qubes

@@ -84,7 +84,8 @@ let block_conf file =
   let connect i s _ =
     match Misc.get_target i with
     | `Muen -> failwith "Block devices not supported on Muen target."
-    | _ -> code ~pos:__POS__ "%s.connect %S" s (connect_name (Misc.get_target i))
+    | _ ->
+        code ~pos:__POS__ "%s.connect %S" s (connect_name (Misc.get_target i))
   in
   Functoria.Device.v ~configure ~packages_v ~connect "Block" block
 
@@ -275,7 +276,8 @@ let disk_name =
 
 let disk_output =
   let doc =
-    Cmdliner.Arg.info ~doc:"The output of the generated docteur image." [ "disk-output" ]
+    Cmdliner.Arg.info ~doc:"The output of the generated docteur image."
+      [ "disk-output" ]
   in
   let key = Key.Arg.opt Cmdliner.Arg.string "disk.img" doc in
   Key.create "disk-output" key

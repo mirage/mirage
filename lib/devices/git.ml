@@ -20,7 +20,8 @@ let git_tcp =
         code ~pos:__POS__ {ocaml|%s.connect %s|ocaml} modname ctx
     | _ -> Misc.connect_err "git_tcp" 2
   in
-  impl ~packages ~connect "Git_net.TCP.Make" (Tcp.tcpv4v6 @-> Mimic.mimic @-> git_client)
+  impl ~packages ~connect "Git_net.TCP.Make"
+    (Tcp.tcpv4v6 @-> Mimic.mimic @-> git_client)
 
 let git_ssh ?group ?authenticator ?key ?password () =
   let packages = [ package ~max:"1.0.0" "git-net" ] in

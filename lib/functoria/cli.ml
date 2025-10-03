@@ -413,7 +413,7 @@ module Subcommands = struct
               (Arg.enum (List.rev_map (fun s -> (s, s)) ("topics" :: cmds)))
           in
           match parser topic with
-          | Error `Msg e -> `Error (false, e)
+          | Error (`Msg e) -> `Error (false, e)
           | Ok t when t = "topics" ->
               List.iter print_endline cmds;
               `Ok ()

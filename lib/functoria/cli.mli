@@ -124,7 +124,7 @@ val eval :
   help:'a Term.t ->
   mname:string ->
   string array ->
-  'a action Term.result
+  [ `Ok of 'a action | `Error of [`Parse | `Term | `Exn ] | `Version | `Help ]
 (** Parse the functoria command line. The arguments to [~configure],
     [~describe], etc., describe extra command-line arguments that should be
     accepted by the corresponding subcommands.

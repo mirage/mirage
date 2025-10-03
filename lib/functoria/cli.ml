@@ -408,15 +408,16 @@ module Subcommands = struct
       match topic with
       | None -> `Help (man_format, None)
       | Some topic -> (
-          let parser, _ =
-            Arg.enum (List.rev_map (fun s -> (s, s)) ("topics" :: cmds))
+          let parser =
+            Arg.conv_parser
+              (Arg.enum (List.rev_map (fun s -> (s, s)) ("topics" :: cmds)))
           in
           match parser topic with
-          | `Error e -> `Error (false, e)
-          | `Ok t when t = "topics" ->
+          | Error `Msg e -> `Error (false, e)
+          | Ok t when t = "topics" ->
               List.iter print_endline cmds;
               `Ok ()
-          | `Ok t -> `Help (man_format, Some t))
+          | Ok t -> `Help (man_format, Some t))
     in
     ( Term.(
         const (fun args _ _ _ () -> Help args)

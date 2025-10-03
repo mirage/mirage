@@ -138,7 +138,7 @@ module Make (P : S) = struct
         let file = context_file t in
         let+ is_file = Action.is_file file in
         if is_file then
-          Array.append argv [| "--context"; Fpath.to_string file |]
+          Array.append argv [| "--context-file"; Fpath.to_string file |]
         else (* should only happen when doing configure --help *) argv
 
   let run_cmd ?ppf ?err_ppf command =

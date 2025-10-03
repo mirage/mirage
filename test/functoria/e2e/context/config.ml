@@ -6,8 +6,7 @@ let x = Impl.v ~packages:[ package "x" ] "X" job
 let y = Impl.v ~packages:[ package "y" ] "Y" job
 
 let target_conv : [ `X | `Y ] Cmdliner.Arg.conv =
-  let parser, printer = Cmdliner.Arg.enum [ ("y", `Y); ("x", `X) ] in
-  (parser, printer)
+  Cmdliner.Arg.enum [ ("y", `Y); ("x", `X) ]
 
 let target =
   let doc = Arg.info ~doc:"Target." [ "t" ] in

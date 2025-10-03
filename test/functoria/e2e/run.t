@@ -2,7 +2,7 @@ Run an application
 
   $ ./test.exe configure --file app/config.ml
   test.exe: [WARNING] Skipping version check, since our_version ("1.0~test") fails to parse: only digits and . allowed in version
-  $ dune exec -- ./app/main.exe --arg=yo --require=bar
+  $ dune exec -- ./app/main.exe --arg=yo --required=bar
   Success: hello=Hello World! arg=yo
   $ dune exec -- ./app/main.exe --help=plain
   NAME

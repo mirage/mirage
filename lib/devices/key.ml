@@ -49,10 +49,10 @@ let (target_conv : mode Cmdliner.Arg.conv), target_doc_alts =
       ("unikraft-qemu", `QEMU);
     ]
   in
-  let parser, printer = Cmdliner.Arg.enum enum in
-  ((parser, printer), Cmdliner.Arg.doc_alts_enum enum)
+  let conv = Cmdliner.Arg.enum enum in
+  (conv, Cmdliner.Arg.doc_alts_enum enum)
 
-let pp_target fmt m = snd target_conv fmt m
+let pp_target fmt m = Cmdliner.Arg.conv_printer target_conv fmt m
 
 let default_target =
   match Sys.getenv "MIRAGE_DEFAULT_TARGET" with

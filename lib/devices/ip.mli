@@ -18,6 +18,8 @@ val create_ipv4 :
 
 val keyed_create_ipv4 :
   ?group:string ->
+  ?network:Ipaddr.V4.Prefix.t ->
+  ?gateway:Ipaddr.V4.t ->
   no_init:bool runtime_arg ->
   Ethernet.ethernet impl ->
   Arp.arpv4 impl ->
@@ -28,6 +30,8 @@ val create_ipv6 :
 
 val keyed_create_ipv6 :
   ?group:string ->
+  ?network:Ipaddr.V6.Prefix.t ->
+  ?gateway:Ipaddr.V6.t ->
   no_init:bool runtime_arg ->
   Network.network impl ->
   Ethernet.ethernet impl ->

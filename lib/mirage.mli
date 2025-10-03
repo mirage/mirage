@@ -575,6 +575,10 @@ val generic_stackv4v6 :
   ?group:string ->
   ?dhcp_key:bool value ->
   ?net_key:[ `OCaml | `Host ] option value ->
+  ?ipv4_network:Ipaddr.V4.Prefix.t ->
+  ?ipv4_gateway:Ipaddr.V4.t ->
+  ?ipv6_network:Ipaddr.V6.Prefix.t ->
+  ?ipv6_gateway:Ipaddr.V6.t ->
   ?tcp:tcpv4v6 impl ->
   network impl ->
   stackv4v6 impl

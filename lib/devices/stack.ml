@@ -1,7 +1,6 @@
 open Functoria.DSL
 
 let dhcp_ipv4 tap e a = Ip.ipv4_of_dhcp tap e a
-let static_ipv4 ?group ~no_init e a = Ip.keyed_create_ipv4 ?group ~no_init e a
 
 let qubes_ipv4 ?(qubesdb = Qubesdb.default_qubesdb) e a =
   Ip.ipv4_qubes qubesdb e a
@@ -55,7 +54,8 @@ let keyed_direct_stackv4v6 ?tcp ~ipv4_only ~ipv6_only network eth arp ipv4 ipv6
   $ Udp.direct_udp ip
   $ match tcp with None -> Tcp.direct_tcp ip | Some tcp -> tcp
 
-let generic_ipv4v6_stack p ?group ?(arp = Arp.arp) ?tcp tap =
+let generic_ipv4v6_stack p ?group ?ipv4_network ?ipv4_gateway ?ipv6_network
+    ?ipv6_gateway ?(arp = Arp.arp) ?tcp tap =
   let ipv4_only = Runtime_arg.ipv4_only ?group ()
   and ipv6_only = Runtime_arg.ipv6_only ?group () in
   let e = Ethernet.ethif tap in
@@ -63,9 +63,14 @@ let generic_ipv4v6_stack p ?group ?(arp = Arp.arp) ?tcp tap =
   let i4 =
     match_impl p
       [ (`Qubes, qubes_ipv4 e a); (`Dhcp, dhcp_ipv4 tap e a) ]
-      ~default:(static_ipv4 ?group ~no_init:ipv6_only e a)
+      ~default:
+        (Ip.keyed_create_ipv4 ?group ?network:ipv4_network ?gateway:ipv4_gateway
+           ~no_init:ipv6_only e a)
   in
-  let i6 = Ip.keyed_create_ipv6 ?group ~no_init:ipv4_only tap e in
+  let i6 =
+    Ip.keyed_create_ipv6 ?group ?network:ipv6_network ?gateway:ipv6_gateway
+      ~no_init:ipv4_only tap e
+  in
   keyed_direct_stackv4v6 ~ipv4_only ~ipv6_only ?tcp tap e a i4 i6
 
 let socket_stackv4v6 ?(group = "") () =
@@ -88,8 +93,9 @@ let socket_stackv4v6 ?(group = "") () =
 
 (** Generic stack *)
 let generic_stackv4v6 ?group ?(dhcp_key = Key.value @@ Key.dhcp ?group ())
-    ?(net_key = Key.value @@ Key.net ?group ()) ?tcp
-    (tap : Network.network impl) : stackv4v6 impl =
+    ?(net_key = Key.value @@ Key.net ?group ()) ?ipv4_network ?ipv4_gateway
+    ?ipv6_network ?ipv6_gateway ?tcp (tap : Network.network impl) :
+    stackv4v6 impl =
   let choose target net dhcp =
     match (target, net, dhcp) with
     | `Qubes, _, _ -> `Qubes
@@ -101,4 +107,6 @@ let generic_stackv4v6 ?group ?(dhcp_key = Key.value @@ Key.dhcp ?group ())
   let p = Key.(pure choose $ Key.(value target) $ net_key $ dhcp_key) in
   match_impl p
     [ (`Socket, socket_stackv4v6 ?group ()) ]
-    ~default:(generic_ipv4v6_stack p ?group ?tcp tap)
+    ~default:
+      (generic_ipv4v6_stack p ?group ?ipv4_network ?ipv4_gateway ?ipv6_network
+         ?ipv6_gateway ?tcp tap)

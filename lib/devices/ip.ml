@@ -46,8 +46,9 @@ let ipv4_dhcp_conf =
 
 let ipv4_of_dhcp net ethif arp = ipv4_dhcp_conf $ net $ ethif $ arp
 
-let keyed_create_ipv4 ?group ~no_init etif arp =
-  let network, gateway = (Ipaddr.V4.Prefix.of_string_exn "10.0.0.2/24", None) in
+let keyed_create_ipv4 ?group
+    ?(network = Ipaddr.V4.Prefix.of_string_exn "10.0.0.2/24") ?gateway ~no_init
+    etif arp =
   let ip = Runtime_arg.V4.network ?group network
   and gateway = Runtime_arg.V4.gateway ?group gateway in
   ipv4_keyed_conf ~ip ~gateway ~no_init () $ etif $ arp
@@ -86,8 +87,7 @@ let ipv6_conf ~ip ~gateway ~handle_ra ~no_init () =
   impl ~packages_v ~runtime_args ~connect "Ipv6.Make"
     (Network.network @-> Ethernet.ethernet @-> ipv6)
 
-let keyed_create_ipv6 ?group ~no_init netif etif =
-  let network, gateway = (None, None) in
+let keyed_create_ipv6 ?group ?network ?gateway ~no_init netif etif =
   let ip = Runtime_arg.V6.network ?group network
   and gateway = Runtime_arg.V6.gateway ?group gateway
   and handle_ra = Runtime_arg.V6.accept_router_advertisements ?group () in

@@ -54,5 +54,5 @@ Bad context cache
   $ ./test.exe configure -t nonexistent --context-file=context/z.context -f context/config.ml
   test.exe: [WARNING] Skipping version check, since our_version ("1.0~test") fails to parse: only digits and . allowed in version
   Usage: test configure [--help] [-t ENUM] [OPTION]…
-  test: option -t: invalid value nonexistent, expected either y or x
+  test: option '-t': invalid value 'nonexistent', expected either 'y' or 'x'
   [1]

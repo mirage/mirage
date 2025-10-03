@@ -109,7 +109,7 @@ val pp_action : 'a Fmt.t -> 'a action Fmt.t
 val args : 'a action -> 'a args
 (** [args a] are [a]'s global arguments. *)
 
-(** {1 Evalutation} *)
+(** {1 Evaluation} *)
 
 val eval :
   ?with_setup:bool ->

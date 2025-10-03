@@ -1,3 +1,10 @@
+### v4.10.2 (2025-10-03)
+
+- Add a way to provide network and address to generic_stackv4v6 (removed in
+  4.10.0, requested by @ansiwen in #1612, #1615)
+- Upgrade to cmdliner 2.0.0 (#1614 @hannesm fixes #1602)
+- Refactor open into qualified access in devices (#1613 @reynir)
+
 ### v4.10.1 (2025-09-09)
 
 - Fix the generated dependencies on mirage-runtime to 4.10.*

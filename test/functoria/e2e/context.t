@@ -51,7 +51,7 @@ Describe - y target  - x.context
              warn_error=false (default)
 
 Bad context cache
-  $ ./test.exe configure -t nonexistent --context-file=context/z.context -f context/config.ml | tr -d \'
+  $ ./test.exe configure -t nonexistent --context-file=context/z.context -f context/config.ml 2>&1 | tr -d \'
   test.exe: [WARNING] Skipping version check, since our_version ("1.0~test") fails to parse: only digits and . allowed in version
   Usage: test configure [--help] [-t ENUM] [OPTION]…
   test: option -t: invalid value nonexistent, expected either y or x

@@ -67,7 +67,7 @@ let test_describe () =
       [|
         "name";
         "describe";
-        "--context=config.json";
+        "--context-file=config.json";
         "--cde";
         "--color=always";
         "--dot-command=dot";

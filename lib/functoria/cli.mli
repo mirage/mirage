@@ -109,7 +109,7 @@ val pp_action : 'a Fmt.t -> 'a action Fmt.t
 val args : 'a action -> 'a args
 (** [args a] are [a]'s global arguments. *)
 
-(** {1 Evalutation} *)
+(** {1 Evaluation} *)
 
 val eval :
   ?with_setup:bool ->
@@ -124,7 +124,7 @@ val eval :
   help:'a Term.t ->
   mname:string ->
   string array ->
-  'a action Term.result
+  [ `Ok of 'a action | `Error of [ `Parse | `Term | `Exn ] | `Version | `Help ]
 (** Parse the functoria command line. The arguments to [~configure],
     [~describe], etc., describe extra command-line arguments that should be
     accepted by the corresponding subcommands.

@@ -55,6 +55,7 @@ module Arg : sig
     ?deprecated:string ->
     ?absent:string ->
     ?docs:string ->
+    ?doc_envs:Cmd.Env.info list ->
     ?docv:string ->
     ?doc:string ->
     ?env:Cmd.Env.info ->

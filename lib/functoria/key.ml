@@ -29,7 +29,7 @@ module Arg = struct
     | Required : 'a Arg.conv -> 'a option kind
     | Flag : bool kind
 
-  let pp_conv c = snd c
+  let pp_conv c = Arg.conv_printer c
 
   let pp_kind : type a. a kind -> a Fmt.t = function
     | Opt (_, c) -> pp_conv c
@@ -39,7 +39,7 @@ module Arg = struct
 
   let compare_kind : type a b. a kind -> b kind -> int =
    fun a b ->
-    let default cx x = Fmt.to_to_string (snd cx) x in
+    let default cx x = Fmt.to_to_string (Arg.conv_printer cx) x in
     match (a, b) with
     | Opt (x, cx), Opt (y, cy) -> String.compare (default cx x) (default cy y)
     | Required _, Required _ -> 0

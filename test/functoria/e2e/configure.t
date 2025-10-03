@@ -83,9 +83,7 @@ Check that `test help configure` works when no config.ml file is present.
 
 Check that errors are reported correcty:
 
-  $ ./test.exe configure a b c --file=app/config.ml
+  $ ./test.exe configure a b c --file=app/config.ml 2>&1 | tr -d \'
   test.exe: [WARNING] Skipping version check, since our_version ("1.0~test") fails to parse: only digits and . allowed in version
-  test: too many arguments, don't know what to do with 'a', 'b', 'c'
-  Usage: test configure [OPTION]…
-  Try 'test configure --help' or 'test --help' for more information.
-  [1]
+  Usage: test configure [--help] [OPTION]…
+  test: too many arguments, dont know what to do with a, b, c

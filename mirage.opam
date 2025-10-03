@@ -21,8 +21,7 @@ depends: [
   "ocaml" {>= "4.13.0"}
   "dune" {>= "2.9.0"}
   "astring"
-  "cmdliner" {>= "1.2.0"}
-  "cmdliner" {with-test & >= "2.0.0"}
+  "cmdliner" {>= "2.0.0"}
   "emile" {>= "1.1"}
   "fmt" {>= "0.8.7"}
   "ipaddr" {>= "5.0.0"}

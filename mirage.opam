@@ -36,8 +36,6 @@ depends: [
   "dune" {with-test & != "3.20.0" & != "3.20.1"}
 ]
 
-conflicts: [ "jbuilder" {with-test} ]
-
 synopsis: "The MirageOS library operating system"
 description: """
 MirageOS is a library operating system that constructs unikernels for

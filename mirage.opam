@@ -45,7 +45,8 @@ secure, high-performance network applications across a variety of
 cloud computing and mobile platforms. Code can be developed on a
 normal OS such as Linux or MacOS X, and then compiled into a
 fully-standalone, specialised unikernel that runs under the Xen
-hypervisor.
+or KVM (or FreeBSD BHyve or OpenBSD VMM) hypervisor. It also runs
+on the Muen separation kernel.
 
 Since Xen powers most public cloud computing infrastructure such as
 Amazon EC2 or Rackspace, this lets your servers run more cheaply,

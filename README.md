@@ -54,7 +54,7 @@ supported targets.
 
 You will need the following:
 
-* a working [OCaml](https://ocaml.org) compiler (4.08.0 or higher).
+* a working [OCaml](https://ocaml.org) compiler (4.13.0 or higher).
 * the [Opam](https://opam.ocaml.org) source package manager (2.1.0 or higher).
 * an x86\_64 or armel Linux host to compile Xen kernels, or FreeBSD, OpenBSD or
   MacOS X for the solo5 and userlevel versions.

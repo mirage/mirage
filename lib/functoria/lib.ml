@@ -128,6 +128,7 @@ module type S = sig
   val version : string
   val create : job impl list -> job impl
   val name_of_target : Info.t -> string
+  val target_filename : Info.t -> string
   val dune_project : Dune.stanza list
   val dune_workspace : (?build_dir:Fpath.t -> info -> Dune.t) option
   val context_name : Info.t -> string
@@ -324,7 +325,8 @@ module Make (P : S) = struct
     Filegen.write file contents
 
   let public_name info =
-    Option.value ~default:(Info.name info) (Info.output info)
+    let default = P.target_filename info in
+    Option.value ~default (Info.output info)
 
   let query ({ args; kind; depext; extra_repo } : _ Cli.query_args) =
     let { Config.jobs; info; _ } = args.Cli.context in

@@ -316,6 +316,7 @@ let run t = %s.Main.run t ; exit 0|ocaml}
         let target = Info.get i Key.target in
         Fmt.str "%s-%a" name Key.pp_target target
 
+  let target_filename i = Devices.Target.out i
   let dune i = Target.dune i
   let configure i = Target.configure i
 

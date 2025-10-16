@@ -53,6 +53,10 @@ module type S = sig
       projects (like [mirage]), the name is suffixed by the value of the target
       key defined in [i]. *)
 
+  val target_filename : Info.t -> string
+  (** [target_filename i] is the filename of this project's output, as it will
+      be installed by dune. *)
+
   val dune_project : Dune.stanza list
   val dune_workspace : (?build_dir:Fpath.t -> info -> Dune.t) option
   val context_name : Info.t -> string

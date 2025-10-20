@@ -15,6 +15,9 @@ module type TARGET = sig
   val dune : Info.t -> Dune.stanza list
   (** Dune rules to build the unikernel *)
 
+  val out : Info.t -> string
+  (** Name of the output file (with extension) for this target *)
+
   val configure : Info.t -> unit Action.t
   (** Configure-time actions. *)
 
@@ -51,6 +54,8 @@ module Unix = struct
        generating .ml files currently. *)
     [ ":standard"; "-w"; "-70" ]
     @ if Misc.terminal () then [ "-color"; "always" ] else []
+
+  let out = public_name
 
   let dune i =
     let libraries = Info.libraries i in
@@ -544,6 +549,11 @@ let context_name i =
   let target = Info.get i Key.target in
   let (module Target) = choose target in
   Target.context_name i
+
+let out i =
+  let target = Info.get i Key.target in
+  let (module Target) = choose target in
+  Target.out i
 
 let packages target =
   let (module Target) = choose target in

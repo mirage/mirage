@@ -39,7 +39,7 @@ Configure the project for Unix:
   ;;
   
   let cmdliner_stdlib_setup_backtracesome_true_randomize_hashtablessome_true___key = Mirage_runtime.register_arg @@
-  # 381 "lib/mirage.ml"
+  # 382 "lib/mirage.ml"
     Cmdliner_stdlib.setup ~backtrace:(Some true) ~randomize_hashtables:(Some true) ()
   ;;
   
@@ -145,7 +145,7 @@ Configure the project for Unix:
     __mirage_crypto_rng_mirage__9 >>= fun _mirage_crypto_rng_mirage__9 ->
     __mirage_runtime__10 >>= fun _mirage_runtime__10 ->
     __app_make__12 >>= fun _app_make__12 ->
-  # 362 "lib/mirage.ml"
+  # 363 "lib/mirage.ml"
     return ()
   );;
   # 128 "mirage/main.ml"
@@ -213,7 +213,7 @@ Configure the project for Xen:
   ;;
   
   let cmdliner_stdlib_setup_backtracesome_true_randomize_hashtablessome_true___key = Mirage_runtime.register_arg @@
-  # 381 "lib/mirage.ml"
+  # 382 "lib/mirage.ml"
     Cmdliner_stdlib.setup ~backtrace:(Some true) ~randomize_hashtables:(Some true) ()
   ;;
   
@@ -319,7 +319,7 @@ Configure the project for Xen:
     __mirage_crypto_rng_mirage__9 >>= fun _mirage_crypto_rng_mirage__9 ->
     __mirage_runtime__10 >>= fun _mirage_runtime__10 ->
     __app_make__12 >>= fun _app_make__12 ->
-  # 362 "lib/mirage.ml"
+  # 363 "lib/mirage.ml"
     return ()
   );;
   # 128 "mirage/main.ml"

@@ -64,6 +64,7 @@ module C = struct
       job
 
   let name_of_target i = Info.name i
+  let target_filename = name_of_target
   let dune_project = []
   let dune_workspace = None
   let context_name _ = "default"

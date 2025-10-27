@@ -1,3 +1,9 @@
+### v4.10.3 (2025-10-27)
+
+- Include output file extension in generated Makefile (#1619 @Firobe,
+  fixes #1610)
+- Allow solo5 0.10.0 (#1620 @hannesm)
+
 ### v4.10.2 (2025-10-03)
 
 - Add a way to provide network and address to generic_stackv4v6 (removed in

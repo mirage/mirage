@@ -222,7 +222,7 @@ module Solo5 = struct
     [
       Functoria.package ~min:"0.8.2" ~max:"2.0.0" ~scope:`Switch ~build:true
         "ocaml-solo5";
-      Functoria.package ~min:"0.7.5" ~max:"0.10.0" ~scope:`Switch ~build:true
+      Functoria.package ~min:"0.7.5" ~max:"0.11.0" ~scope:`Switch ~build:true
         "solo5";
     ]
 

@@ -57,7 +57,7 @@ let merge a b =
       | None, None -> None
       | None, Some a | Some a, None -> Some a
       | Some (an, au), Some (bn, bu)
-        when String.equal an au && String.equal bn bu ->
+        when String.equal an bn && String.equal au bu ->
           a.pin
       | _ -> invalid_arg ("conflicting pin depends for " ^ name)
     and build = a.build || b.build

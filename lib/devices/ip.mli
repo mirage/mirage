@@ -52,5 +52,4 @@ val keyed_ipv4v6 :
   ipv6 impl ->
   ipv4v6 impl
 
-val right_tcpip_library :
-  ?libs:string list -> sublibs:string list -> string -> package list value
+val right_tcpip_library : string list -> package

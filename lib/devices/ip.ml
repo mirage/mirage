@@ -14,12 +14,12 @@ let ipv6 : ipv6 typ = ip
 let ipv4v6 : ipv4v6 typ = ip
 
 (* convenience function for linking tcpip.unix for checksums *)
-let right_tcpip_library ?libs ~sublibs pkg =
+let right_tcpip_library sublibs =
   let min = "9.0.0" and max = "10.0.0" in
-  Key.pure [ package ~min ~max ?libs ~sublibs pkg ]
+  package ~min ~max ~sublibs "tcpip"
 
 let ipv4_keyed_conf ~ip ~gateway ~no_init () =
-  let packages_v = right_tcpip_library ~sublibs:[ "ipv4" ] "tcpip" in
+  let packages = [ right_tcpip_library [ "ipv4" ] ] in
   let runtime_args = Runtime_arg.[ v ip; v gateway; v no_init ] in
   let connect _ modname = function
     | [ etif; arp; ip; gateway; no_init ] ->
@@ -28,7 +28,7 @@ let ipv4_keyed_conf ~ip ~gateway ~no_init () =
           no_init ip gateway etif arp
     | _ -> Misc.connect_err "ipv4 keyed" 5
   in
-  impl ~packages_v ~runtime_args ~connect "Static_ipv4.Make"
+  impl ~packages ~runtime_args ~connect "Static_ipv4.Make"
     (Ethernet.ethernet @-> Arp.arpv4 @-> ipv4)
 
 let ipv4_dhcp_conf =
@@ -73,7 +73,7 @@ let ipv4_qubes_conf =
 let ipv4_qubes db ethernet arp = ipv4_qubes_conf $ db $ ethernet $ arp
 
 let ipv6_conf ~ip ~gateway ~handle_ra ~no_init () =
-  let packages_v = right_tcpip_library ~sublibs:[ "ipv6" ] "tcpip" in
+  let packages = [ right_tcpip_library [ "ipv6" ] ] in
   let runtime_args = Runtime_arg.[ v ip; v gateway; v handle_ra; v no_init ] in
   let connect _ modname = function
     | [ netif; etif; ip; gateway; handle_ra; no_init ] ->
@@ -84,7 +84,7 @@ let ipv6_conf ~ip ~gateway ~handle_ra ~no_init () =
     | _ -> Misc.connect_err "ipv6" 6
   in
 
-  impl ~packages_v ~runtime_args ~connect "Ipv6.Make"
+  impl ~packages ~runtime_args ~connect "Ipv6.Make"
     (Network.network @-> Ethernet.ethernet @-> ipv6)
 
 let keyed_create_ipv6 ?group ?network ?gateway ~no_init netif etif =
@@ -102,7 +102,7 @@ let create_ipv6 ?group netif etif =
   ipv6_conf ~ip ~gateway ~handle_ra ~no_init () $ netif $ etif
 
 let ipv4v6_conf ~ipv4_only ~ipv6_only () =
-  let packages_v = right_tcpip_library ~sublibs:[ "stack-direct" ] "tcpip" in
+  let packages = [ right_tcpip_library [ "stack-direct" ] ] in
   let runtime_args = [ Runtime_arg.v ipv4_only; Runtime_arg.v ipv6_only ] in
   let connect _ modname = function
     | [ ipv4; ipv6; ipv4_only; ipv6_only ] ->
@@ -110,7 +110,7 @@ let ipv4v6_conf ~ipv4_only ~ipv6_only () =
           modname ipv4_only ipv6_only ipv4 ipv6
     | _ -> Misc.connect_err "ipv4v6" 4
   in
-  impl ~packages_v ~runtime_args ~connect "Tcpip_stack_direct.IPV4V6"
+  impl ~packages ~runtime_args ~connect "Tcpip_stack_direct.IPV4V6"
     (ipv4 @-> ipv6 @-> ipv4v6)
 
 let keyed_ipv4v6 ~ipv4_only ~ipv6_only ipv4 ipv6 =

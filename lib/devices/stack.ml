@@ -12,14 +12,14 @@ type stackv4v6 = STACKV4V6
 let stackv4v6 = typ STACKV4V6
 
 let stackv4v6_direct_conf () =
-  let packages_v = Ip.right_tcpip_library ~sublibs:[ "stack-direct" ] "tcpip" in
+  let packages = [ Ip.right_tcpip_library [ "stack-direct" ] ] in
   let connect _i modname = function
     | [ interface; ethif; arp; ipv4v6; icmpv4; udp; tcp ] ->
         code ~pos:__POS__ "%s.connect %s %s %s %s %s %s %s" modname interface
           ethif arp ipv4v6 icmpv4 udp tcp
     | _ -> Misc.connect_err "direct stack" 7
   in
-  impl ~packages_v ~connect "Tcpip_stack_direct.MakeV4V6"
+  impl ~packages ~connect "Tcpip_stack_direct.MakeV4V6"
     (Network.network
     @-> Ethernet.ethernet
     @-> Arp.arpv4
@@ -78,7 +78,7 @@ let socket_stackv4v6 ?(group = "") () =
   let v6key = Runtime_arg.V6.network ~group None in
   let ipv4_only = Runtime_arg.ipv4_only ~group () in
   let ipv6_only = Runtime_arg.ipv6_only ~group () in
-  let packages_v = Ip.right_tcpip_library ~sublibs:[ "stack-socket" ] "tcpip" in
+  let packages = [ Ip.right_tcpip_library [ "stack-socket" ] ] in
   let extra_deps =
     [
       dep (Udp.udpv4v6_socket_conf ~ipv4_only ~ipv6_only v4key v6key);
@@ -89,7 +89,7 @@ let socket_stackv4v6 ?(group = "") () =
     | [ udp; tcp ] -> code ~pos:__POS__ "%s.connect %s %s" modname udp tcp
     | _ -> Misc.connect_err "socket_stackv4v6" 2
   in
-  impl ~packages_v ~extra_deps ~connect "Tcpip_stack_socket.V4V6" stackv4v6
+  impl ~packages ~extra_deps ~connect "Tcpip_stack_socket.V4V6" stackv4v6
 
 (** Generic stack *)
 let generic_stackv4v6 ?group ?(dhcp_key = Key.value @@ Key.dhcp ?group ())

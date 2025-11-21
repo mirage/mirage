@@ -159,8 +159,7 @@ let tcpv4v6_of_stackv4v6 v =
           code ~pos:__POS__ {ocaml|%s.connect %s|ocaml} modname stackv4v6
       | _ -> Misc.connect_err "tcpv4v6_of_stackv4v6" 1
     in
-    impl ~packages ~connect "Tcpip_stack_direct.TCPV4V6"
-      (stackv4v6 @-> tcpv4v6)
+    impl ~packages ~connect "Tcpip_stack_direct.TCPV4V6" (stackv4v6 @-> tcpv4v6)
   in
   impl $ v
 

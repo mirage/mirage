@@ -156,7 +156,7 @@ module Make (P : S) = struct
       |> Array.to_list
       |> List.tl
       |> List.filter (fun arg ->
-             arg <> "configure" && arg <> "query" && arg <> "opam")
+          arg <> "configure" && arg <> "query" && arg <> "opam")
       |> String.concat ~sep:" "
     in
     let opts =

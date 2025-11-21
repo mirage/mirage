@@ -1,3 +1,8 @@
+### v4.10.4 (2025-11-21)
+
+- Refactor `right_tcpip_library` (#1622 @reynir, review by @hannesm)
+- Correctly compare package pins when merging (#1623 @reynir, review by @hannesm)
+
 ### v4.10.3 (2025-10-27)
 
 - Include output file extension in generated Makefile (#1619 @Firobe,

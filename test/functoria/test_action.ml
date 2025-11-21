@@ -346,8 +346,8 @@ let test_with_output () =
     let got =
       Action.dry_run ~env
       @@ Action.with_output ~mode ~path ~purpose (fun fmt ->
-             called := true;
-             Fmt.pf fmt "%s" contents)
+          called := true;
+          Fmt.pf fmt "%s" contents)
     in
     Alcotest.check (domain pp_unit) msg
       (dom expected

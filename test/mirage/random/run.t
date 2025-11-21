@@ -39,7 +39,7 @@ Configure the project for Unix:
   ;;
   
   let cmdliner_stdlib_setup_backtracesome_true_randomize_hashtablessome_true___key = Mirage_runtime.register_arg @@
-  # 382 "lib/mirage.ml"
+  # 380 "lib/mirage.ml"
     Cmdliner_stdlib.setup ~backtrace:(Some true) ~randomize_hashtables:(Some true) ()
   ;;
   
@@ -69,7 +69,7 @@ Configure the project for Unix:
   
   let mirage_runtime__4 = lazy (
     let _mirage_runtime_delay = (mirage_runtime_delay__key ()) in
-  # 268 "lib/mirage.ml"
+  # 266 "lib/mirage.ml"
     Mirage_sleep.ns (Duration.of_sec _mirage_runtime_delay)
   );;
   # 52 "mirage/main.ml"
@@ -106,7 +106,7 @@ Configure the project for Unix:
   # 83 "mirage/main.ml"
   
   let mirage_runtime__10 = lazy (
-  # 277 "lib/mirage.ml"
+  # 275 "lib/mirage.ml"
     Mirage_runtime.set_name "random"; Lwt.return_unit
   );;
   # 89 "mirage/main.ml"
@@ -145,7 +145,7 @@ Configure the project for Unix:
     __mirage_crypto_rng_mirage__9 >>= fun _mirage_crypto_rng_mirage__9 ->
     __mirage_runtime__10 >>= fun _mirage_runtime__10 ->
     __app_make__12 >>= fun _app_make__12 ->
-  # 363 "lib/mirage.ml"
+  # 361 "lib/mirage.ml"
     return ()
   );;
   # 128 "mirage/main.ml"
@@ -213,7 +213,7 @@ Configure the project for Xen:
   ;;
   
   let cmdliner_stdlib_setup_backtracesome_true_randomize_hashtablessome_true___key = Mirage_runtime.register_arg @@
-  # 382 "lib/mirage.ml"
+  # 380 "lib/mirage.ml"
     Cmdliner_stdlib.setup ~backtrace:(Some true) ~randomize_hashtables:(Some true) ()
   ;;
   
@@ -243,7 +243,7 @@ Configure the project for Xen:
   
   let mirage_runtime__4 = lazy (
     let _mirage_runtime_delay = (mirage_runtime_delay__key ()) in
-  # 268 "lib/mirage.ml"
+  # 266 "lib/mirage.ml"
     Mirage_sleep.ns (Duration.of_sec _mirage_runtime_delay)
   );;
   # 52 "mirage/main.ml"
@@ -280,7 +280,7 @@ Configure the project for Xen:
   # 83 "mirage/main.ml"
   
   let mirage_runtime__10 = lazy (
-  # 277 "lib/mirage.ml"
+  # 275 "lib/mirage.ml"
     Mirage_runtime.set_name "random"; Lwt.return_unit
   );;
   # 89 "mirage/main.ml"
@@ -319,7 +319,7 @@ Configure the project for Xen:
     __mirage_crypto_rng_mirage__9 >>= fun _mirage_crypto_rng_mirage__9 ->
     __mirage_runtime__10 >>= fun _mirage_runtime__10 ->
     __app_make__12 >>= fun _app_make__12 ->
-  # 363 "lib/mirage.ml"
+  # 361 "lib/mirage.ml"
     return ()
   );;
   # 128 "mirage/main.ml"

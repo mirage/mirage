@@ -24,6 +24,7 @@ Make an empty commit and rename it to main. Otherwise we don't have any branches
 Configure the project for Unix:
 
   $ mirage configure -t unix
+  mirage: [WARNING] Skipping version check, since our_version is not watermarked
   Successfully configured the unikernel. Now run 'make' (or more fine-grained steps: 'make all', 'make depends', or 'make lock').
 
 Check the source url of the generated opam package
@@ -38,6 +39,7 @@ Now, let's use a remote with ssh transport:
 Configure the project again for Unix:
 
   $ mirage configure -t unix
+  mirage: [WARNING] Skipping version check, since our_version is not watermarked
   Successfully configured the unikernel. Now run 'make' (or more fine-grained steps: 'make all', 'make depends', or 'make lock').
 
 Check the source url of the generated opam package

@@ -196,9 +196,9 @@ type dns_client = Dns.dns_client
 
 let dns_client = Dns.dns_client
 
-let generic_dns_client ?group ?timeout ?nameservers ?cache_size stackv4v6
+let generic_dns_client ?dhcp ?group ?timeout ?nameservers ?cache_size stackv4v6
     happy_eyeballs =
-  Dns.generic_dns_client ?group ?timeout ?nameservers ?cache_size ()
+  Dns.generic_dns_client ?dhcp ?group ?timeout ?nameservers ?cache_size ()
   $ stackv4v6
   $ happy_eyeballs
 

@@ -674,6 +674,7 @@ type dns_client
 val dns_client : dns_client typ
 
 val generic_dns_client :
+  ?dhcp:dhcp_requests * lease impl ->
   ?group:string ->
   ?timeout:int64 ->
   ?nameservers:string list ->

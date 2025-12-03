@@ -117,15 +117,23 @@ type 'a ip = 'a Ip.ip
 type ipv4 = Ip.ipv4
 type ipv6 = Ip.ipv6
 type ipv4v6 = Ip.ipv4v6
+type dhcp_ipv4 = Ip.dhcp_ipv4
+type lease = Ip.lease
+type dhcp_requests = Ip.Dhcp_requests.t
 
 let ipv4 = Ip.ipv4
 let ipv6 = Ip.ipv6
 let ipv4_qubes = Ip.ipv4_qubes
 let ipv4v6 = Ip.ipv4v6
+let dhcp_ipv4 = Ip.dhcp_ipv4
+let lease = Ip.lease
 let ipv4_of_dhcp = Ip.ipv4_of_dhcp
+let dhcp_proj_ipv4 = Ip.dhcp_proj_ipv4
+let dhcp_proj_lease = Ip.dhcp_proj_lease
 let create_ipv4 = Ip.create_ipv4
 let create_ipv6 = Ip.create_ipv6
 let create_ipv4v6 = Ip.create_ipv4v6
+let add_dhcp_request = Ip.Dhcp_requests.add
 
 type 'a udp = 'a Udp.udp
 

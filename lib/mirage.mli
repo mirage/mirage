@@ -502,6 +502,9 @@ type 'a ip
 type ipv4 = v4 ip
 type ipv6 = v6 ip
 type ipv4v6 = v4v6 ip
+type dhcp_ipv4
+type lease
+type dhcp_requests
 
 val ipv4 : ipv4 typ
 (** The [Tcpip.Ip.S] module signature with ipaddr = Ipaddr.V4. *)
@@ -512,8 +515,27 @@ val ipv6 : ipv6 typ
 val ipv4v6 : ipv4v6 typ
 (** The [Tcpip.Ip.S] module signature with ipaddr = Ipaddr.t. *)
 
-val ipv4_of_dhcp : network impl -> ethernet impl -> arpv4 impl -> ipv4 impl
+val dhcp_ipv4 : dhcp_ipv4 typ
+(** The [Dhcp_ipv4.S] module signature. *)
+
+val lease : lease typ
+(** The [Dhcp_wire.dhcp_option list option] type. *)
+
+val ipv4_of_dhcp :
+  network impl -> ethernet impl -> arpv4 impl -> dhcp_requests * dhcp_ipv4 impl
 (** Configure the interface via DHCP *)
+
+val add_dhcp_request : dhcp_requests -> int -> unit
+(** [add_dhcp_request requests request] adds the dhcp option code [request] to
+    the desired dhcp options [requests]. *)
+
+val dhcp_proj_ipv4 : (dhcp_ipv4 -> ipv4) impl
+(** Projection from [Dhcp_ipv4.S] to [Tcpip.Ip.S] module signature with ipaddr =
+    Ipaddr.V4.t. *)
+
+val dhcp_proj_lease : (dhcp_ipv4 -> lease) impl
+(** Projection from [Dhcp_ipv4.S] to [Dhcp_wire.dhcp_option list option] type.
+*)
 
 val create_ipv4 : ?group:string -> ethernet impl -> arpv4 impl -> ipv4 impl
 (** Use an IPv4 address Exposes the keys {!Runtime_arg.V4.network} and

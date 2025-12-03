@@ -7,11 +7,32 @@ type 'a ip = IP
 type ipv4 = v4 ip
 type ipv6 = v6 ip
 type ipv4v6 = v4v6 ip
+type dhcp_ipv4 = DHCP_IPV4
+type lease = LEASE
 
 let ip = Functoria.Type.Type IP
 let ipv4 : ipv4 typ = ip
 let ipv6 : ipv6 typ = ip
 let ipv4v6 : ipv4v6 typ = ip
+let dhcp_ipv4 = typ DHCP_IPV4
+let lease = typ LEASE
+
+module Dhcp_requests = struct
+  module IntSet = Set.Make (Int)
+
+  type t = { mutable requests : IntSet.t; mutable consumed : bool }
+
+  let make () = { requests = IntSet.empty; consumed = false }
+
+  let add t req =
+    if t.consumed then invalid_arg "DHCP option code added too late";
+    t.requests <- IntSet.add req t.requests
+
+  let consume t =
+    assert (not t.consumed);
+    t.consumed <- true;
+    match IntSet.to_list t.requests with [] -> None | xs -> Some xs
+end
 
 (* convenience function for linking tcpip.unix for checksums *)
 let right_tcpip_library sublibs =
@@ -31,20 +52,51 @@ let ipv4_keyed_conf ~ip ~gateway ~no_init () =
   impl ~packages ~runtime_args ~connect "Static_ipv4.Make"
     (Ethernet.ethernet @-> Arp.arpv4 @-> ipv4)
 
-let ipv4_dhcp_conf =
+let ipv4_dhcp_conf () =
+  let requests = Dhcp_requests.make () in
   let packages =
     [ package ~min:"2.0.0" ~max:"3.0.0" ~sublibs:[ "mirage" ] "charrua-client" ]
   in
   let connect _ modname = function
     | [ network; ethernet; arp ] ->
-        code ~pos:__POS__ "%s.connect@[@ %s@ %s@ %s@]" modname network ethernet
-          arp
+        Dhcp_requests.add requests 1 (* SUBNET_MASK *);
+        Dhcp_requests.add requests 3 (* ROUTERS *);
+        let requests = Dhcp_requests.consume requests in
+        code ~pos:__POS__
+          "let requests =@[@ Option.map (List.map \
+           Dhcp_wire.int_to_option_code_exn) %a@]@ in@ %s.connect@[@ \
+           ?requests@ %s@ %s@ %s@]"
+          Fmt.(Dump.option (Dump.list int))
+          requests modname network ethernet arp
     | _ -> Misc.connect_err "ipv4 dhcp" 3
   in
-  impl ~packages ~connect "Dhcp_ipv4.Make"
-    (Network.network @-> Ethernet.ethernet @-> Arp.arpv4 @-> ipv4)
+  ( requests,
+    impl ~packages ~connect "Dhcp_ipv4.Make"
+      (Network.network @-> Ethernet.ethernet @-> Arp.arpv4 @-> dhcp_ipv4) )
 
-let ipv4_of_dhcp net ethif arp = ipv4_dhcp_conf $ net $ ethif $ arp
+let ipv4_of_dhcp net ethif arp =
+  let requests, conf = ipv4_dhcp_conf () in
+  (requests, conf $ net $ ethif $ arp)
+
+let dhcp_proj_ipv4 =
+  let packages =
+    [ package ~min:"2.0.0" ~max:"3.0.0" ~sublibs:[ "mirage" ] "charrua-client" ]
+  in
+  let connect _ modname = function
+    | [ dhcp ] -> code ~pos:__POS__ "%s.connect@[@ %s@]" modname dhcp
+    | _ -> Misc.connect_err "dhcp_proj_ipv4" 1
+  in
+  impl ~packages ~connect "Dhcp_ipv4.Proj_ipv4" (dhcp_ipv4 @-> ipv4)
+
+let dhcp_proj_lease =
+  let packages =
+    [ package ~min:"2.0.0" ~max:"3.0.0" ~sublibs:[ "mirage" ] "charrua-client" ]
+  in
+  let connect _ modname = function
+    | [ dhcp ] -> code ~pos:__POS__ "%s.connect@[@ %s@]" modname dhcp
+    | _ -> Misc.connect_err "dhcp_proj_ipv4" 1
+  in
+  impl ~packages ~connect "Dhcp_ipv4.Proj_lease" (dhcp_ipv4 @-> lease)
 
 let keyed_create_ipv4 ?group
     ?(network = Ipaddr.V4.Prefix.of_string_exn "10.0.0.2/24") ?gateway ~no_init

@@ -64,7 +64,7 @@ let generic_ipv4v6_stack p ?group ?dhcp_requests ?ipv4_network ?ipv4_gateway ?ip
   let a = arp e in
   let dhcp_ipv4 = Ip.ipv4_of_dhcp ?dhcp_requests tap e a in
   let tap =
-    match_impl p [ (`Dchp, Ip.dhcp_proj_net $ dhcp_ipv4) ] ~default:tap
+    match_impl p [ (`Dhcp, Ip.dhcp_proj_net $ dhcp_ipv4) ] ~default:tap
   in
   let i4 =
     match_impl p

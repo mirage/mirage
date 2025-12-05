@@ -29,11 +29,17 @@ let generic_dns_client ?dhcp ?group ?timeout ?nameservers ?cache_size () =
           | [
               stackv4v6; happy_eyeballs; lease; nameservers; timeout; cache_size;
             ] ->
+              (* The nameservers argument has to be turned into a string. *)
               code ~pos:__POS__
                 "let nameservers =@[@ \
-                 match %s, %s with@ | None, None -> None@ \
-                 | Some ns, _ -> Some ns@ \
-                 | None, Some lease ->@ Some (Dhcp_wire.collect_name_servers lease)@ @]\
+                   match %s, %s with@ | None, None -> None@ \
+                   | Some ns, _ -> Some ns@ \
+                   | None, Some lease ->@[@ \
+                     let nameservers = Dhcp_wire.collect_name_servers lease in@.\
+                     Some (List.concat_map (fun ip -> \
+                            [Fmt.str \"udp:%%a\" Ipaddr.V4.pp ip; \
+                             Fmt.str \"tcp:%%a\" Ipaddr.V4.pp ip]) nameservers)\
+                 @]@]@.\
                  in@.\
                  %s.connect @[?nameservers ?timeout:%s ?cache_size:%s@ (%s, %s)@]"
                 nameservers lease modname timeout cache_size stackv4v6

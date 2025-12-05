@@ -64,7 +64,7 @@ let ipv4_dhcp_conf () =
         let requests = Dhcp_requests.consume requests in
         code ~pos:__POS__
           "let requests =@[@ Option.map (List.map \
-           Dhcp_wire.int_to_option_code_exn) %a@]@ in@ %s.connect@[@ \
+           Dhcp_wire.int_to_option_code_exn) (%a)@]@ in@ %s.connect@[@ \
            ?requests@ %s@ %s@ %s@]"
           Fmt.(Dump.option (Dump.list int))
           requests modname network ethernet arp

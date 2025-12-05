@@ -78,6 +78,16 @@ let ipv4_of_dhcp net ethif arp =
   let requests, conf = ipv4_dhcp_conf () in
   (requests, conf $ net $ ethif $ arp)
 
+let dhcp_proj_net =
+  let packages =
+    [ package ~min:"2.0.0" ~max:"3.0.0" ~sublibs:[ "mirage" ] "charrua-client" ]
+  in
+  let connect _ modname = function
+    | [ dhcp ] -> code ~pos:__POS__ "%s.connect@[@ %s@]" modname dhcp
+    | _ -> Misc.connect_err "dhcp_proj_net" 1
+  in
+  impl ~packages ~connect "Dhcp_ipv4.Proj_net" (dhcp_ipv4 @-> Network.network)
+
 let dhcp_proj_ipv4 =
   let packages =
     [ package ~min:"2.0.0" ~max:"3.0.0" ~sublibs:[ "mirage" ] "charrua-client" ]

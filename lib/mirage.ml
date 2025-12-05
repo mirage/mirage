@@ -128,6 +128,7 @@ let ipv4v6 = Ip.ipv4v6
 let dhcp_ipv4 = Ip.dhcp_ipv4
 let lease = Ip.lease
 let ipv4_of_dhcp = Ip.ipv4_of_dhcp
+let dhcp_proj_net = Ip.dhcp_proj_net
 let dhcp_proj_ipv4 = Ip.dhcp_proj_ipv4
 let dhcp_proj_lease = Ip.dhcp_proj_lease
 let create_ipv4 = Ip.create_ipv4

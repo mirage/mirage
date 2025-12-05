@@ -1,6 +1,6 @@
 open Functoria.DSL
 
-let dhcp_ipv4 tap e a = Ip.dhcp_proj_ipv4 $ snd (Ip.ipv4_of_dhcp tap e a)
+let dhcp_ipv4 tap e a = snd (Ip.ipv4_of_dhcp tap e a)
 
 let qubes_ipv4 ?(qubesdb = Qubesdb.default_qubesdb) e a =
   Ip.ipv4_qubes qubesdb e a
@@ -60,9 +60,14 @@ let generic_ipv4v6_stack p ?group ?ipv4_network ?ipv4_gateway ?ipv6_network
   and ipv6_only = Runtime_arg.ipv6_only ?group () in
   let e = Ethernet.ethif tap in
   let a = arp e in
+  let tap =
+    match_impl p [ (`Dchp, Ip.dhcp_proj_net $ dhcp_ipv4 tap e a) ] ~default:tap
+  in
   let i4 =
     match_impl p
-      [ (`Qubes, qubes_ipv4 e a); (`Dhcp, dhcp_ipv4 tap e a) ]
+      [
+        (`Qubes, qubes_ipv4 e a); (`Dhcp, Ip.dhcp_proj_ipv4 $ dhcp_ipv4 tap e a);
+      ]
       ~default:
         (Ip.keyed_create_ipv4 ?group ?network:ipv4_network ?gateway:ipv4_gateway
            ~no_init:ipv6_only e a)

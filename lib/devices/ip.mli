@@ -53,6 +53,7 @@ val ipv4_of_dhcp :
   Arp.arpv4 impl ->
   Dhcp_requests.t * dhcp_ipv4 impl
 
+val dhcp_proj_net : (dhcp_ipv4 -> Network.network) impl
 val dhcp_proj_ipv4 : (dhcp_ipv4 -> ipv4) impl
 val dhcp_proj_lease : (dhcp_ipv4 -> lease) impl
 

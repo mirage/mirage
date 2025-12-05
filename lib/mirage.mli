@@ -529,6 +529,9 @@ val add_dhcp_request : dhcp_requests -> int -> unit
 (** [add_dhcp_request requests request] adds the dhcp option code [request] to
     the desired dhcp options [requests]. *)
 
+val dhcp_proj_net : (dhcp_ipv4 -> network) impl
+(** Projection from [Dhcp_ipv4.S] to [Mirage_net.S] module signature. *)
+
 val dhcp_proj_ipv4 : (dhcp_ipv4 -> ipv4) impl
 (** Projection from [Dhcp_ipv4.S] to [Tcpip.Ip.S] module signature with ipaddr =
     Ipaddr.V4.t. *)

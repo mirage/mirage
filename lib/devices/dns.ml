@@ -33,7 +33,7 @@ let generic_dns_client ?dhcp ?group ?timeout ?nameservers ?cache_size () =
               code ~pos:__POS__
                 "let nameservers =@[@ match %s, %s with@ | None, None -> None@ \
                  | Some ns, _ -> Some ns@ | None, Some lease ->@[@ let \
-                 nameservers = Dhcp_wire.collect_name_servers lease in@.Some \
+                 nameservers = Dhcp_wire.collect_dns_servers lease in@.Some \
                  (List.concat_map (fun ip -> [Fmt.str \"udp:%%a\" Ipaddr.V4.pp \
                  ip; Fmt.str \"tcp:%%a\" Ipaddr.V4.pp ip]) \
                  nameservers)@]@]@.in@.%s.connect @[?nameservers ?timeout:%s \

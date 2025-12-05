@@ -136,8 +136,9 @@ let block ?group () =
 (** {3 Stack keys} *)
 
 let dhcp ?group () =
-  let doc = Fmt.str "Enable dhcp for %a." pp_group group in
-  configure_key ~doc ?group ~default:false Cmdliner.Arg.bool "dhcp"
+  let default = true in
+  let doc = Fmt.str "Enable dhcp for %a (default %B)." pp_group group default in
+  configure_key ~doc ?group ~default Cmdliner.Arg.bool "dhcp"
 
 let net ?group () : [ `Host | `OCaml ] option Key.key =
   let enum =

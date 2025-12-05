@@ -52,31 +52,38 @@ let ipv4_keyed_conf ~ip ~gateway ~no_init () =
   impl ~packages ~runtime_args ~connect "Static_ipv4.Make"
     (Ethernet.ethernet @-> Arp.arpv4 @-> ipv4)
 
-let ipv4_dhcp_conf () =
+let ipv4_dhcp_conf ~ip ~gateway ~no_init () =
   let requests = Dhcp_requests.make () in
   let packages =
     [ package ~min:"2.0.0" ~max:"3.0.0" ~sublibs:[ "mirage" ] "charrua-client" ]
   in
+  let runtime_args = Runtime_arg.[ v ip; v gateway; v no_init ] in
   let connect _ modname = function
-    | [ network; ethernet; arp ] ->
+    | [ network; ethernet; arp; ip; gateway; no_init ] ->
         Dhcp_requests.add requests 1 (* SUBNET_MASK *);
         Dhcp_requests.add requests 3 (* ROUTERS *);
         let requests = Dhcp_requests.consume requests in
         code ~pos:__POS__
           "let requests =@[@ Option.map (List.map \
-           Dhcp_wire.int_to_option_code_exn) (%a)@]@ in@ %s.connect@[@ \
-           ?requests@ %s@ %s@ %s@]"
-          Fmt.(Dump.option (Dump.list int))
-          requests modname network ethernet arp
-    | _ -> Misc.connect_err "ipv4 dhcp" 3
+           Dhcp_wire.int_to_option_code_exn)@ %a@]@ in@ %s.connect@[@ \
+           ?requests@ ~no_init:%s@ ?cidr:%s@ ?gateway:%s@ %s@ %s@ %s@]"
+          Fmt.(parens (Dump.option (Dump.list int))) requests
+          modname no_init ip gateway network ethernet arp
+    | _ -> Misc.connect_err "ipv4 dhcp" 6
   in
   ( requests,
-    impl ~packages ~connect "Dhcp_ipv4.Make"
+    impl ~packages ~runtime_args ~connect "Dhcp_ipv4.Make"
       (Network.network @-> Ethernet.ethernet @-> Arp.arpv4 @-> dhcp_ipv4) )
 
-let ipv4_of_dhcp net ethif arp =
-  let requests, conf = ipv4_dhcp_conf () in
+let keyed_ipv4_of_dhcp ?group ?gateway ~no_init net ethif arp =
+  let ip = Runtime_arg.V4.optional_network ?group ()
+  and gateway = Runtime_arg.V4.gateway ?group gateway in
+  let requests, conf = ipv4_dhcp_conf ~ip ~gateway ~no_init () in
   (requests, conf $ net $ ethif $ arp)
+
+let ipv4_of_dhcp ?group ?gateway net ethif arp =
+  let no_init = Runtime_arg.ipv6_only ?group () in
+  keyed_ipv4_of_dhcp ?gateway ~no_init net ethif arp
 
 let dhcp_proj_net =
   let packages =

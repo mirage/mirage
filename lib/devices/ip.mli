@@ -47,7 +47,18 @@ val keyed_create_ipv6 :
   Ethernet.ethernet impl ->
   ipv6 impl
 
+val keyed_ipv4_of_dhcp :
+  ?group:string ->
+  ?gateway:Ipaddr.V4.t ->
+  no_init:bool runtime_arg ->
+  Network.network impl ->
+  Ethernet.ethernet impl ->
+  Arp.arpv4 impl ->
+  Dhcp_requests.t * dhcp_ipv4 impl
+
 val ipv4_of_dhcp :
+  ?group:string ->
+  ?gateway:Ipaddr.V4.t ->
   Network.network impl ->
   Ethernet.ethernet impl ->
   Arp.arpv4 impl ->

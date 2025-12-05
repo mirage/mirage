@@ -159,6 +159,7 @@ type stackv4v6 = Stack.stackv4v6
 
 let stackv4v6 = Stack.stackv4v6
 let generic_stackv4v6 = Stack.generic_stackv4v6
+let generic_stackv4v6_with_lease = Stack.generic_stackv4v6_with_lease
 let direct_stackv4v6 = Stack.direct_stackv4v6
 
 let tcpv4v6_of_stackv4v6 v =

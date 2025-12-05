@@ -1,7 +1,5 @@
 open Functoria.DSL
 
-let dhcp_ipv4 tap e a = Ip.ipv4_of_dhcp tap e a
-
 let qubes_ipv4 ?(qubesdb = Qubesdb.default_qubesdb) e a =
   Ip.ipv4_qubes qubesdb e a
 
@@ -54,19 +52,24 @@ let keyed_direct_stackv4v6 ?tcp ~ipv4_only ~ipv6_only network eth arp ipv4 ipv6
   $ Udp.direct_udp ip
   $ match tcp with None -> Tcp.direct_tcp ip | Some tcp -> tcp
 
-let generic_ipv4v6_stack p ?group ?ipv4_network ?ipv4_gateway ?ipv6_network
+let no_lease =
+  let connect _ _ _ = code ~pos:__POS__ "Lwt.return None" in
+  impl ~connect "Lwt" Ip.lease
+
+let generic_ipv4v6_stack p ?group ?dhcp_requests ?ipv4_network ?ipv4_gateway ?ipv6_network
     ?ipv6_gateway ?(arp = Arp.arp) ?tcp tap =
   let ipv4_only = Runtime_arg.ipv4_only ?group ()
   and ipv6_only = Runtime_arg.ipv6_only ?group () in
   let e = Ethernet.ethif tap in
   let a = arp e in
+  let dhcp_ipv4 = Ip.ipv4_of_dhcp ?dhcp_requests tap e a in
   let tap =
-    match_impl p [ (`Dchp, Ip.dhcp_proj_net $ dhcp_ipv4 tap e a) ] ~default:tap
+    match_impl p [ (`Dchp, Ip.dhcp_proj_net $ dhcp_ipv4) ] ~default:tap
   in
   let i4 =
     match_impl p
       [
-        (`Qubes, qubes_ipv4 e a); (`Dhcp, Ip.dhcp_proj_ipv4 $ dhcp_ipv4 tap e a);
+        (`Qubes, qubes_ipv4 e a); (`Dhcp, Ip.dhcp_proj_ipv4 $ dhcp_ipv4);
       ]
       ~default:
         (Ip.keyed_create_ipv4 ?group ?network:ipv4_network ?gateway:ipv4_gateway
@@ -76,7 +79,10 @@ let generic_ipv4v6_stack p ?group ?ipv4_network ?ipv4_gateway ?ipv6_network
     Ip.keyed_create_ipv6 ?group ?network:ipv6_network ?gateway:ipv6_gateway
       ~no_init:ipv4_only tap e
   in
-  keyed_direct_stackv4v6 ~ipv4_only ~ipv6_only ?tcp tap e a i4 i6
+  let lease =
+    match_impl p [ `Dhcp, Ip.dhcp_proj_lease $ dhcp_ipv4 ] ~default:no_lease
+  in
+  keyed_direct_stackv4v6 ~ipv4_only ~ipv6_only ?tcp tap e a i4 i6, lease
 
 let socket_stackv4v6 ?(group = "") () =
   let v4key = Runtime_arg.V4.network ~group Ipaddr.V4.Prefix.global in
@@ -97,10 +103,10 @@ let socket_stackv4v6 ?(group = "") () =
   impl ~packages ~extra_deps ~connect "Tcpip_stack_socket.V4V6" stackv4v6
 
 (** Generic stack *)
-let generic_stackv4v6 ?group ?(dhcp_key = Key.value @@ Key.dhcp ?group ())
+let generic_stackv4v6_with_lease ?group ?dhcp_requests ?(dhcp_key = Key.value @@ Key.dhcp ?group ())
     ?(net_key = Key.value @@ Key.net ?group ()) ?ipv4_network ?ipv4_gateway
     ?ipv6_network ?ipv6_gateway ?tcp (tap : Network.network impl) :
-    stackv4v6 impl =
+    stackv4v6 impl * Ip.lease impl =
   let choose target net dhcp =
     match (target, net, dhcp) with
     | `Qubes, _, _ -> `Qubes
@@ -110,8 +116,17 @@ let generic_stackv4v6 ?group ?(dhcp_key = Key.value @@ Key.dhcp ?group ())
     | _, _, _ -> `Static
   in
   let p = Key.(pure choose $ Key.(value target) $ net_key $ dhcp_key) in
+  let generic_ipv4v6_stack =
+    generic_ipv4v6_stack p ?group ?dhcp_requests ?ipv4_network ?ipv4_gateway ?ipv6_network
+      ?ipv6_gateway ?tcp tap
+  in
   match_impl p
     [ (`Socket, socket_stackv4v6 ?group ()) ]
-    ~default:
-      (generic_ipv4v6_stack p ?group ?ipv4_network ?ipv4_gateway ?ipv6_network
-         ?ipv6_gateway ?tcp tap)
+    ~default:(fst generic_ipv4v6_stack),
+  match_impl p
+    [ (`Socket, no_lease) ]
+    ~default:(snd generic_ipv4v6_stack)
+
+let generic_stackv4v6 ?group ?dhcp_key ?net_key ?ipv4_network ?ipv4_gateway ?ipv6_network ?ipv6_gateway ?tcp tap =
+  generic_stackv4v6_with_lease ?group ?dhcp_requests:None ?dhcp_key ?net_key ?ipv4_network ?ipv4_gateway ?ipv6_network ?ipv6_gateway ?tcp tap
+  |> fst

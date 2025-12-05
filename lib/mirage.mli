@@ -620,6 +620,19 @@ val generic_stackv4v6 :
     If a key is not provided, it uses {!Key.net} (with the [group] argument) to
     create it. *)
 
+val generic_stackv4v6_with_lease :
+  ?group:string ->
+  ?dhcp_requests:dhcp_requests ->
+  ?dhcp_key:bool value ->
+  ?net_key:[ `OCaml | `Host ] option value ->
+  ?ipv4_network:Ipaddr.V4.Prefix.t ->
+  ?ipv4_gateway:Ipaddr.V4.t ->
+  ?ipv6_network:Ipaddr.V6.Prefix.t ->
+  ?ipv6_gateway:Ipaddr.V6.t ->
+  ?tcp:tcpv4v6 impl ->
+  network impl ->
+  stackv4v6 impl * lease impl
+
 val tcpv4v6_of_stackv4v6 : stackv4v6 impl -> tcpv4v6 impl
 (** [tcpv4v6 stackv4v6] is an helper to extract the TCP/IP stack regardless the
     UDP/IP stack expected by some {i devices} such as protocols. *)

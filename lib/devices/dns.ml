@@ -30,7 +30,12 @@ let generic_dns_client ?dhcp ?group ?timeout ?nameservers ?cache_size () =
               stackv4v6; happy_eyeballs; lease; nameservers; timeout; cache_size;
             ] ->
               code ~pos:__POS__
-                {ocaml|let nameservers = match %s, %s with | None, None -> None | Some ns, _ -> Some ns | None, Some lease -> Some (Dhcp_wire.collect_name_servers lease) in %s.connect @[?nameservers ?timeout:%s ?cache_size:%s@ (%s, %s)@]|ocaml}
+                "let nameservers =@[@ \
+                 match %s, %s with@ | None, None -> None@ \
+                 | Some ns, _ -> Some ns@ \
+                 | None, Some lease ->@ Some (Dhcp_wire.collect_name_servers lease)@ @]\
+                 in@.\
+                 %s.connect @[?nameservers ?timeout:%s ?cache_size:%s@ (%s, %s)@]"
                 nameservers lease modname timeout cache_size stackv4v6
                 happy_eyeballs
           | _ -> Misc.connect_err "generic_dns_client" 6

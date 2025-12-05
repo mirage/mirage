@@ -21,6 +21,8 @@ module Dhcp_requests : sig
   type t
 
   val add : t -> int -> unit
+
+  val make : unit -> t
 end
 
 val create_ipv4 :
@@ -49,20 +51,22 @@ val keyed_create_ipv6 :
 
 val keyed_ipv4_of_dhcp :
   ?group:string ->
+  ?dhcp_requests:Dhcp_requests.t ->
   ?gateway:Ipaddr.V4.t ->
   no_init:bool runtime_arg ->
   Network.network impl ->
   Ethernet.ethernet impl ->
   Arp.arpv4 impl ->
-  Dhcp_requests.t * dhcp_ipv4 impl
+  dhcp_ipv4 impl
 
 val ipv4_of_dhcp :
   ?group:string ->
+  ?dhcp_requests:Dhcp_requests.t ->
   ?gateway:Ipaddr.V4.t ->
   Network.network impl ->
   Ethernet.ethernet impl ->
   Arp.arpv4 impl ->
-  Dhcp_requests.t * dhcp_ipv4 impl
+  dhcp_ipv4 impl
 
 val dhcp_proj_net : (dhcp_ipv4 -> Network.network) impl
 val dhcp_proj_ipv4 : (dhcp_ipv4 -> ipv4) impl

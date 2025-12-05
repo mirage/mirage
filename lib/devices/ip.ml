@@ -52,8 +52,7 @@ let ipv4_keyed_conf ~ip ~gateway ~no_init () =
   impl ~packages ~runtime_args ~connect "Static_ipv4.Make"
     (Ethernet.ethernet @-> Arp.arpv4 @-> ipv4)
 
-let ipv4_dhcp_conf ~ip ~gateway ~no_init () =
-  let requests = Dhcp_requests.make () in
+let ipv4_dhcp_conf ~ip ~gateway ~no_init requests =
   let packages =
     [ package ~min:"2.0.0" ~max:"3.0.0" ~sublibs:[ "mirage" ] "charrua-client" ]
   in
@@ -71,19 +70,18 @@ let ipv4_dhcp_conf ~ip ~gateway ~no_init () =
           modname no_init ip gateway network ethernet arp
     | _ -> Misc.connect_err "ipv4 dhcp" 6
   in
-  ( requests,
-    impl ~packages ~runtime_args ~connect "Dhcp_ipv4.Make"
-      (Network.network @-> Ethernet.ethernet @-> Arp.arpv4 @-> dhcp_ipv4) )
+  impl ~packages ~runtime_args ~connect "Dhcp_ipv4.Make"
+    (Network.network @-> Ethernet.ethernet @-> Arp.arpv4 @-> dhcp_ipv4)
 
-let keyed_ipv4_of_dhcp ?group ?gateway ~no_init net ethif arp =
+let keyed_ipv4_of_dhcp ?group ?(dhcp_requests = Dhcp_requests.make ()) ?gateway ~no_init net ethif arp =
   let ip = Runtime_arg.V4.optional_network ?group ()
   and gateway = Runtime_arg.V4.gateway ?group gateway in
-  let requests, conf = ipv4_dhcp_conf ~ip ~gateway ~no_init () in
-  (requests, conf $ net $ ethif $ arp)
+  let conf = ipv4_dhcp_conf ~ip ~gateway ~no_init dhcp_requests in
+  conf $ net $ ethif $ arp
 
-let ipv4_of_dhcp ?group ?gateway net ethif arp =
+let ipv4_of_dhcp ?group ?dhcp_requests ?gateway net ethif arp =
   let no_init = Runtime_arg.ipv6_only ?group () in
-  keyed_ipv4_of_dhcp ?gateway ~no_init net ethif arp
+  keyed_ipv4_of_dhcp ?group ?dhcp_requests ?gateway ~no_init net ethif arp
 
 let dhcp_proj_net =
   let packages =

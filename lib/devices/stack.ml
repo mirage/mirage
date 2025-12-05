@@ -1,6 +1,6 @@
 open Functoria.DSL
 
-let dhcp_ipv4 tap e a = snd (Ip.ipv4_of_dhcp tap e a)
+let dhcp_ipv4 tap e a = Ip.ipv4_of_dhcp tap e a
 
 let qubes_ipv4 ?(qubesdb = Qubesdb.default_qubesdb) e a =
   Ip.ipv4_qubes qubesdb e a

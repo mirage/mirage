@@ -134,6 +134,7 @@ let dhcp_proj_lease = Ip.dhcp_proj_lease
 let create_ipv4 = Ip.create_ipv4
 let create_ipv6 = Ip.create_ipv6
 let create_ipv4v6 = Ip.create_ipv4v6
+let make_dhcp_requests = Ip.Dhcp_requests.make
 let add_dhcp_request = Ip.Dhcp_requests.add
 
 type 'a udp = 'a Udp.udp

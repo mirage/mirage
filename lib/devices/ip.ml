@@ -66,14 +66,15 @@ let ipv4_dhcp_conf ~ip ~gateway ~no_init requests =
           "let requests =@[@ Option.map (List.map \
            Dhcp_wire.int_to_option_code_exn)@ %a@]@ in@ %s.connect@[@ \
            ?requests@ ~no_init:%s@ ?cidr:%s@ ?gateway:%s@ %s@ %s@ %s@]"
-          Fmt.(parens (Dump.option (Dump.list int))) requests
-          modname no_init ip gateway network ethernet arp
+          Fmt.(parens (Dump.option (Dump.list int)))
+          requests modname no_init ip gateway network ethernet arp
     | _ -> Misc.connect_err "ipv4 dhcp" 6
   in
   impl ~packages ~runtime_args ~connect "Dhcp_ipv4.Make"
     (Network.network @-> Ethernet.ethernet @-> Arp.arpv4 @-> dhcp_ipv4)
 
-let keyed_ipv4_of_dhcp ?group ?(dhcp_requests = Dhcp_requests.make ()) ?gateway ~no_init net ethif arp =
+let keyed_ipv4_of_dhcp ?group ?(dhcp_requests = Dhcp_requests.make ()) ?gateway
+    ~no_init net ethif arp =
   let ip = Runtime_arg.V4.optional_network ?group ()
   and gateway = Runtime_arg.V4.gateway ?group gateway in
   let conf = ipv4_dhcp_conf ~ip ~gateway ~no_init dhcp_requests in

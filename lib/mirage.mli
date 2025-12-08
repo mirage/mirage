@@ -522,7 +522,13 @@ val lease : lease typ
 (** The [Dhcp_wire.dhcp_option list option] type. *)
 
 val ipv4_of_dhcp :
-  ?group:string -> ?dhcp_requests:dhcp_requests -> ?gateway:Ipaddr.V4.t -> network impl -> ethernet impl -> arpv4 impl -> dhcp_ipv4 impl
+  ?group:string ->
+  ?dhcp_requests:dhcp_requests ->
+  ?gateway:Ipaddr.V4.t ->
+  network impl ->
+  ethernet impl ->
+  arpv4 impl ->
+  dhcp_ipv4 impl
 (** Configure the interface via DHCP *)
 
 val make_dhcp_requests : unit -> dhcp_requests

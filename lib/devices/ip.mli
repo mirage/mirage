@@ -21,7 +21,6 @@ module Dhcp_requests : sig
   type t
 
   val add : t -> int -> unit
-
   val make : unit -> t
 end
 

@@ -58,7 +58,7 @@ let no_lease =
 
 let ipv4_dhcp_conf ~ip ~gateway ~no_init requests =
   let packages =
-    [ package ~min:"2.0.0" ~max:"3.0.0" ~sublibs:[ "mirage" ] "charrua-client" ]
+    [ package ~min:"3.0.0" ~max:"4.0.0" ~sublibs:[ "mirage" ] "charrua-client" ]
   in
   let runtime_args = Runtime_arg.[ v ip; v gateway; v no_init ] in
   let connect _ modname = function
@@ -90,7 +90,7 @@ let ipv4_of_dhcp ?group ?dhcp_requests ?gateway net ethif arp =
 
 let dhcp_proj_net =
   let packages =
-    [ package ~min:"2.0.0" ~max:"3.0.0" ~sublibs:[ "mirage" ] "charrua-client" ]
+    [ package ~min:"3.0.0" ~max:"4.0.0" ~sublibs:[ "mirage" ] "charrua-client" ]
   in
   let connect _ modname = function
     | [ dhcp ] -> code ~pos:__POS__ "%s.connect@[@ %s@]" modname dhcp
@@ -100,7 +100,7 @@ let dhcp_proj_net =
 
 let dhcp_proj_ipv4 =
   let packages =
-    [ package ~min:"2.0.0" ~max:"3.0.0" ~sublibs:[ "mirage" ] "charrua-client" ]
+    [ package ~min:"3.0.0" ~max:"4.0.0" ~sublibs:[ "mirage" ] "charrua-client" ]
   in
   let connect _ modname = function
     | [ dhcp ] -> code ~pos:__POS__ "%s.connect@[@ %s@]" modname dhcp
@@ -110,7 +110,7 @@ let dhcp_proj_ipv4 =
 
 let dhcp_proj_lease =
   let packages =
-    [ package ~min:"2.0.0" ~max:"3.0.0" ~sublibs:[ "mirage" ] "charrua-client" ]
+    [ package ~min:"3.0.0" ~max:"4.0.0" ~sublibs:[ "mirage" ] "charrua-client" ]
   in
   let connect _ modname = function
     | [ dhcp ] -> code ~pos:__POS__ "%s.connect@[@ %s@]" modname dhcp

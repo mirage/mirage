@@ -57,7 +57,7 @@ let resolver_dns_conf ~dhcp ~ns =
           | _ -> Misc.connect_err "resolver" 3
         in
         let packages =
-          package ~min:"2.0.0" ~max:"3.0.0" "charrua" :: packages
+          package ~min:"2.0.0" ~max:"4.0.0" "charrua" :: packages
         in
         (packages, Some [ dep lease ], connect)
   in

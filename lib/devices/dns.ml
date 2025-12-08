@@ -42,7 +42,7 @@ let generic_dns_client ?dhcp ?group ?timeout ?nameservers ?cache_size () =
                 happy_eyeballs
           | _ -> Misc.connect_err "generic_dns_client" 6
         in
-        ( package ~min:"2.0.0" ~max:"3.0.0" "charrua" :: packages,
+        ( package ~min:"2.0.0" ~max:"4.0.0" "charrua" :: packages,
           Some [ dep lease ],
           connect )
   in

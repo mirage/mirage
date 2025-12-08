@@ -70,6 +70,7 @@ val ipv4_of_dhcp :
 val dhcp_proj_net : (dhcp_ipv4 -> Network.network) impl
 val dhcp_proj_ipv4 : (dhcp_ipv4 -> ipv4) impl
 val dhcp_proj_lease : (dhcp_ipv4 -> lease) impl
+val no_lease : lease impl
 
 val ipv4_qubes :
   Qubesdb.qubesdb impl -> Ethernet.ethernet impl -> Arp.arpv4 impl -> ipv4 impl

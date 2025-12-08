@@ -519,7 +519,8 @@ val dhcp_ipv4 : dhcp_ipv4 typ
 (** The [Dhcp_ipv4.S] module signature. *)
 
 val lease : lease typ
-(** The [Dhcp_wire.dhcp_option list option] type. *)
+(** The [Dhcp_wire.dhcp_option list option] type. It is [None] when no lease is
+    acquired and otherwise [Some _]. *)
 
 val ipv4_of_dhcp :
   ?group:string ->
@@ -548,6 +549,9 @@ val dhcp_proj_ipv4 : (dhcp_ipv4 -> ipv4) impl
 val dhcp_proj_lease : (dhcp_ipv4 -> lease) impl
 (** Projection from [Dhcp_ipv4.S] to [Dhcp_wire.dhcp_option list option] type.
 *)
+
+val no_lease : lease impl
+(** Constant [None] "lease". *)
 
 val create_ipv4 : ?group:string -> ethernet impl -> arpv4 impl -> ipv4 impl
 (** Use an IPv4 address Exposes the keys {!Runtime_arg.V4.network} and

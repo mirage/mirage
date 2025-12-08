@@ -52,6 +52,10 @@ let ipv4_keyed_conf ~ip ~gateway ~no_init () =
   impl ~packages ~runtime_args ~connect "Static_ipv4.Make"
     (Ethernet.ethernet @-> Arp.arpv4 @-> ipv4)
 
+let no_lease =
+  let connect _ _ _ = code ~pos:__POS__ "Lwt.return None" in
+  impl ~connect "Lwt" lease
+
 let ipv4_dhcp_conf ~ip ~gateway ~no_init requests =
   let packages =
     [ package ~min:"2.0.0" ~max:"3.0.0" ~sublibs:[ "mirage" ] "charrua-client" ]

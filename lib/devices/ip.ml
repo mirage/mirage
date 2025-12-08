@@ -31,7 +31,7 @@ module Dhcp_requests = struct
   let consume t =
     assert (not t.consumed);
     t.consumed <- true;
-    match IntSet.to_list t.requests with [] -> None | xs -> Some xs
+    match IntSet.elements t.requests with [] -> None | xs -> Some xs
 end
 
 (* convenience function for linking tcpip.unix for checksums *)

@@ -74,7 +74,9 @@ let generic_ipv4v6_stack p ?group ?dhcp_requests ?ipv4_network ?ipv4_gateway
       ~no_init:ipv4_only tap e
   in
   let lease =
-    match_impl p [ (`Dhcp, Ip.dhcp_proj_lease $ dhcp_ipv4) ] ~default:Ip.no_lease
+    match_impl p
+      [ (`Dhcp, Ip.dhcp_proj_lease $ dhcp_ipv4) ]
+      ~default:Ip.no_lease
   in
   (keyed_direct_stackv4v6 ~ipv4_only ~ipv6_only ?tcp tap e a i4 i6, lease)
 
@@ -118,7 +120,8 @@ let generic_stackv4v6_with_lease ?group ?dhcp_requests
   ( match_impl p
       [ (`Socket, socket_stackv4v6 ?group ()) ]
       ~default:(fst generic_ipv4v6_stack),
-    match_impl p [ (`Socket, Ip.no_lease) ] ~default:(snd generic_ipv4v6_stack) )
+    match_impl p [ (`Socket, Ip.no_lease) ] ~default:(snd generic_ipv4v6_stack)
+  )
 
 let generic_stackv4v6 ?group ?dhcp_key ?net_key ?ipv4_network ?ipv4_gateway
     ?ipv6_network ?ipv6_gateway ?tcp tap =

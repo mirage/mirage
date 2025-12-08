@@ -652,7 +652,13 @@ val tcpv4v6_of_stackv4v6 : stackv4v6 impl -> tcpv4v6 impl
 type resolver
 
 val resolver : resolver typ
-val resolver_dns : ?ns:string list -> stackv4v6 impl -> resolver impl
+
+val resolver_dns :
+  ?dhcp:dhcp_requests * lease impl ->
+  ?ns:string list ->
+  stackv4v6 impl ->
+  resolver impl
+
 val resolver_unix_system : resolver impl
 
 (** {2 Happy-eyeballs} *)

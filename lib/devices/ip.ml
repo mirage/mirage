@@ -26,6 +26,7 @@ module Dhcp_requests = struct
 
   let add t req =
     if t.consumed then invalid_arg "DHCP option code added too late";
+    if req <= 1 || req >= 255 then invalid_arg "Invalid DHCP option code";
     t.requests <- IntSet.add req t.requests
 
   let consume t =

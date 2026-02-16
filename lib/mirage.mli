@@ -549,7 +549,7 @@ val tcp : 'a tcp typ
 (** Implementation of the [Tcpip.Tcp.S] signature. *)
 
 val tcpv4v6 : tcpv4v6 typ
-val direct_tcp : 'a ip impl -> 'a tcp impl
+val direct_tcp : ?group:string -> 'a ip impl -> 'a tcp impl
 
 (** {2 Network stack configuration} *)
 

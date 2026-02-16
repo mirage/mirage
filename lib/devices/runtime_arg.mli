@@ -33,6 +33,10 @@ val v : 'a arg -> Functoria.Runtime_arg.t
 val interface : ?group:string -> ?docs:string -> string -> string runtime_arg
 (** A network interface. *)
 
+val tcp_max_open_connections :
+  ?group:string -> ?docs:string -> int -> int runtime_arg
+(** A limit on the number of open connections for the TCP layer *)
+
 (** Ipv4 Arguments. *)
 module V4 : sig
   open Ipaddr.V4

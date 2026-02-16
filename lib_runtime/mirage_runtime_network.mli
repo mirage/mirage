@@ -56,6 +56,10 @@ val ipv6_only : ?group:string -> ?docs:string -> unit -> bool Term.t
 (** An option for dual stack to only use IPv6, [docs] defaults to
     {!Mirage_runtime.s_net}. *)
 
+val tcp_max_open_connections :
+  ?group:string -> ?docs:string -> int -> int Term.t
+(** The maximum number of open TCP connections. *)
+
 val resolver :
   ?group:string ->
   ?docs:string ->

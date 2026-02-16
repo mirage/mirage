@@ -40,10 +40,10 @@ let direct_stackv4v6 ?group ?tcp network eth arp ipv4 ipv6 =
   $ ip
   $ Icmp.direct_icmpv4 ipv4
   $ Udp.direct_udp ip
-  $ match tcp with None -> Tcp.direct_tcp ip | Some tcp -> tcp
+  $ match tcp with None -> Tcp.direct_tcp ?group ip | Some tcp -> tcp
 
-let keyed_direct_stackv4v6 ?tcp ~ipv4_only ~ipv6_only network eth arp ipv4 ipv6
-    =
+let keyed_direct_stackv4v6 ?group ?tcp ~ipv4_only ~ipv6_only network eth arp
+    ipv4 ipv6 =
   let ip = Ip.keyed_ipv4v6 ~ipv4_only ~ipv6_only ipv4 ipv6 in
   stackv4v6_direct_conf ()
   $ network
@@ -52,7 +52,7 @@ let keyed_direct_stackv4v6 ?tcp ~ipv4_only ~ipv6_only network eth arp ipv4 ipv6
   $ ip
   $ Icmp.direct_icmpv4 ipv4
   $ Udp.direct_udp ip
-  $ match tcp with None -> Tcp.direct_tcp ip | Some tcp -> tcp
+  $ match tcp with None -> Tcp.direct_tcp ?group ip | Some tcp -> tcp
 
 let generic_ipv4v6_stack p ?group ?ipv4_network ?ipv4_gateway ?ipv6_network
     ?ipv6_gateway ?(arp = Arp.arp) ?tcp tap =
@@ -71,7 +71,7 @@ let generic_ipv4v6_stack p ?group ?ipv4_network ?ipv4_gateway ?ipv6_network
     Ip.keyed_create_ipv6 ?group ?network:ipv6_network ?gateway:ipv6_gateway
       ~no_init:ipv4_only tap e
   in
-  keyed_direct_stackv4v6 ~ipv4_only ~ipv6_only ?tcp tap e a i4 i6
+  keyed_direct_stackv4v6 ?group ~ipv4_only ~ipv6_only ?tcp tap e a i4 i6
 
 let socket_stackv4v6 ?(group = "") () =
   let v4key = Runtime_arg.V4.network ~group Ipaddr.V4.Prefix.global in

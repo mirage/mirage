@@ -76,6 +76,15 @@ let ipv6_only ?group ?(docs = Mirage_runtime.s_net) () =
   let doc = str "Only use IPv6 for %a." pp_group group in
   runtime_arg ~doc ~docs ?group ~default:false Arg.bool "ipv6-only"
 
+let tcp_max_open_connections ?group ?(docs = Mirage_runtime.s_net) default =
+  let doc =
+    str
+      "Maximum number of open TCP connections for %a. Incoming connections \
+       after that limit are dropped."
+      pp_group group
+  in
+  runtime_arg ~doc ~docs ?group ~default Arg.int "tcp-max-open-connections"
+
 let resolver ?group ?(docs = Mirage_runtime.s_net) ?default () =
   let doc = str "DNS resolver (default to anycast.censurfridns.dk)" in
   runtime_arg ~doc ~docv:"IP" ~docs ?group ~default

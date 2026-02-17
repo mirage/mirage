@@ -51,6 +51,10 @@ let interface ?group ?docs default =
   runtime_network_key ~pos:__POS__ "interface %a%a%S" pp_group group pp_docs
     docs default
 
+let tcp_max_open_connections ?group ?docs default =
+  runtime_network_key ~pos:__POS__ "tcp_max_open_connections %a%a%d" pp_group
+    group pp_docs docs default
+
 module V4 = struct
   open Ipaddr.V4
 

@@ -41,6 +41,10 @@ module V4 : sig
     ?group:string -> ?docs:string -> Prefix.t -> Prefix.t runtime_arg
   (** A network defined by an address and netmask. *)
 
+  val optional_network :
+    ?group:string -> ?docs:string -> unit -> Prefix.t runtime_arg
+  (** An optional network defined by an address and a netmask. *)
+
   val gateway :
     ?group:string -> ?docs:string -> t option -> t option runtime_arg
   (** A default gateway option. *)

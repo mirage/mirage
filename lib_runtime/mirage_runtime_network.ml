@@ -41,6 +41,17 @@ module V4 = struct
     in
     runtime_arg ~doc ~docs ~docv:"PREFIX" ~default ?group ipv4 "ipv4"
 
+  let optional_network ?group ?(docs = Mirage_runtime.s_net) () =
+    let doc =
+      str
+        "The optional network of %a specified as an IP address and netmask, \
+         e.g. 192.168.0.1/16 ."
+        pp_group group
+    in
+    runtime_arg ~doc ~docs ~docv:"PREFIX" ~default:None ?group
+      Arg.(some ipv4)
+      "ipv4"
+
   let gateway ?group ?(docs = Mirage_runtime.s_net) default =
     let doc = str "The gateway of %a." pp_group group in
     runtime_arg ~doc ~docs ~docv:"IP" ~default ?group

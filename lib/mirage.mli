@@ -502,6 +502,9 @@ type 'a ip
 type ipv4 = v4 ip
 type ipv6 = v6 ip
 type ipv4v6 = v4v6 ip
+type dhcp_ipv4
+type lease
+type dhcp_requests
 
 val ipv4 : ipv4 typ
 (** The [Tcpip.Ip.S] module signature with ipaddr = Ipaddr.V4. *)
@@ -512,8 +515,43 @@ val ipv6 : ipv6 typ
 val ipv4v6 : ipv4v6 typ
 (** The [Tcpip.Ip.S] module signature with ipaddr = Ipaddr.t. *)
 
-val ipv4_of_dhcp : network impl -> ethernet impl -> arpv4 impl -> ipv4 impl
+val dhcp_ipv4 : dhcp_ipv4 typ
+(** The [Dhcp_ipv4.S] module signature. *)
+
+val lease : lease typ
+(** The [Dhcp_wire.dhcp_option list option] type. It is [None] when no lease is
+    acquired and otherwise [Some _]. *)
+
+val ipv4_of_dhcp :
+  ?group:string ->
+  ?dhcp_requests:dhcp_requests ->
+  ?gateway:Ipaddr.V4.t ->
+  network impl ->
+  ethernet impl ->
+  arpv4 impl ->
+  dhcp_ipv4 impl
 (** Configure the interface via DHCP *)
+
+val make_dhcp_requests : unit -> dhcp_requests
+(** [make_dhcp_requests ()] is the empty set of desired dhcp option codes. *)
+
+val add_dhcp_request : dhcp_requests -> int -> unit
+(** [add_dhcp_request requests request] adds the dhcp option code [request] to
+    the desired dhcp options [requests]. *)
+
+val dhcp_proj_net : (dhcp_ipv4 -> network) impl
+(** Projection from [Dhcp_ipv4.S] to [Mirage_net.S] module signature. *)
+
+val dhcp_proj_ipv4 : (dhcp_ipv4 -> ipv4) impl
+(** Projection from [Dhcp_ipv4.S] to [Tcpip.Ip.S] module signature with ipaddr =
+    Ipaddr.V4.t. *)
+
+val dhcp_proj_lease : (dhcp_ipv4 -> lease) impl
+(** Projection from [Dhcp_ipv4.S] to [Dhcp_wire.dhcp_option list option] type.
+*)
+
+val no_lease : lease impl
+(** Constant [None] "lease". *)
 
 val create_ipv4 : ?group:string -> ethernet impl -> arpv4 impl -> ipv4 impl
 (** Use an IPv4 address Exposes the keys {!Runtime_arg.V4.network} and
@@ -592,6 +630,19 @@ val generic_stackv4v6 :
     If a key is not provided, it uses {!Key.net} (with the [group] argument) to
     create it. *)
 
+val generic_stackv4v6_with_lease :
+  ?group:string ->
+  ?dhcp_requests:dhcp_requests ->
+  ?dhcp_key:bool value ->
+  ?net_key:[ `OCaml | `Host ] option value ->
+  ?ipv4_network:Ipaddr.V4.Prefix.t ->
+  ?ipv4_gateway:Ipaddr.V4.t ->
+  ?ipv6_network:Ipaddr.V6.Prefix.t ->
+  ?ipv6_gateway:Ipaddr.V6.t ->
+  ?tcp:tcpv4v6 impl ->
+  network impl ->
+  stackv4v6 impl * lease impl
+
 val tcpv4v6_of_stackv4v6 : stackv4v6 impl -> tcpv4v6 impl
 (** [tcpv4v6 stackv4v6] is an helper to extract the TCP/IP stack regardless the
     UDP/IP stack expected by some {i devices} such as protocols. *)
@@ -601,7 +652,13 @@ val tcpv4v6_of_stackv4v6 : stackv4v6 impl -> tcpv4v6 impl
 type resolver
 
 val resolver : resolver typ
-val resolver_dns : ?ns:string list -> stackv4v6 impl -> resolver impl
+
+val resolver_dns :
+  ?dhcp:dhcp_requests * lease impl ->
+  ?ns:string list ->
+  stackv4v6 impl ->
+  resolver impl
+
 val resolver_unix_system : resolver impl
 
 (** {2 Happy-eyeballs} *)
@@ -652,6 +709,7 @@ type dns_client
 val dns_client : dns_client typ
 
 val generic_dns_client :
+  ?dhcp:dhcp_requests * lease impl ->
   ?group:string ->
   ?timeout:int64 ->
   ?nameservers:string list ->

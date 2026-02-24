@@ -26,6 +26,11 @@ module V4 : sig
   (** A network defined by an address and netmask, [docs] defaults to
       {!Mirage_runtime.s_net}. *)
 
+  val optional_network :
+    ?group:string -> ?docs:string -> unit -> Prefix.t option Term.t
+  (** An optional network defined by an address and netmask, [docs] defaults to
+      {!Mirage_runtime.s_net}. *)
+
   val gateway : ?group:string -> ?docs:string -> t option -> t option Term.t
   (** A default gateway option, [docs] defaults to {!Mirage_runtime.s_net}. *)
 end

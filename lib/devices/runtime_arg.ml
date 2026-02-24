@@ -63,6 +63,10 @@ module V4 = struct
     runtime_network_key ~pos:__POS__ "V4.network %a%a%a" pp_group group pp_docs
       docs pp_prefix default
 
+  let optional_network ?group ?docs () =
+    runtime_network_key ~pos:__POS__ "V4.optional_network %a%a()" pp_group group
+      pp_docs docs
+
   let gateway ?group ?docs default =
     runtime_network_key ~pos:__POS__ "V4.gateway %a%a%a" pp_group group pp_docs
       docs (pp_option pp) default

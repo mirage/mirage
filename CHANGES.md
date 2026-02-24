@@ -1,3 +1,19 @@
+### v4.10.5 (2026-02-24)
+
+- Enable DHCP by default, and request and use DHCP lease information as fit
+  (plus allow dynamically to request further DHCP options) (#1628 @reynir,
+  review by @palainp @hannesm)
+- Provide `Mirage.generic_stackv4v6_with_lease` (#1628 @reynir)
+- Provide `Mirage_runtime_network.optional_network` (#1628 @reynir)
+- Allow dhcp to provide information to DNS (`Mirage.resolver_dns` and
+  `Mirage.generic_dnc_client`) and other entities (via
+  `Mirage.make_dhcp_requests`/`Mirage.add_dhcp_requests`/`Mirage.dhcp_requests`)
+  (#1628 @reynir)
+- Update to charrua 3.0 (#1628 @reynir)
+- Upgrade to ocamlformat 0.28.1 (#1625 @reynir)
+- Avoid lwt 6 due to a dune issue (https://github.com/ocaml/dune/issues/13299,
+  #1629, 35c43d39927b33ca92f6084c874fcfa7669f11ee @hannesm)
+
 ### v4.10.4 (2025-11-21)
 
 - Refactor `right_tcpip_library` (#1622 @reynir, review by @hannesm)

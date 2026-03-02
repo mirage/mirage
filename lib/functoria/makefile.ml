@@ -40,7 +40,7 @@ let depext_rules =
   {|
 depext-lockfile: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked
 	echo " ↳ install external dependencies for monorepo"
-	env OPAMVAR_monorepo="opam-monorepo" $(OPAM) monorepo depext -y -l $<
+	env OPAMVAR_monorepo="opam-monorepo" $(OPAM) monorepo depext -v -y -l $<
 |}
 
 let opam_repo_add_rule extra =
@@ -126,7 +126,7 @@ all::
 
 $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam%a
 	@@echo " ↳ generate lockfile for monorepo dependencies"
-	@@env OPAMVAR_monorepo="opam-monorepo" $(OPAM) monorepo lock --require-cross-compile --build-only $(UNIKERNEL_NAME) -l $@@ --ocaml-version $(shell ocamlc --version)%a
+	@@env OPAMVAR_monorepo="opam-monorepo" $(OPAM) monorepo lock -v --require-cross-compile --build-only $(UNIKERNEL_NAME) -l $@@ --ocaml-version $(shell ocamlc --version)%a
 
 lock::
 	@@$(MAKE) -B $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked
@@ -134,7 +134,7 @@ lock::
 
 pull:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked
 	@@echo " ↳ fetch monorepo dependencies in the duniverse folder"
-	@@env OPAMVAR_monorepo="opam-monorepo" $(OPAM) monorepo pull -l $< -r $(abspath $(BUILD_DIR))
+	@@env OPAMVAR_monorepo="opam-monorepo" $(OPAM) monorepo pull -v -l $< -r $(abspath $(BUILD_DIR))
 	@@echo "The sources have been pulled to the duniverse folder. Run 'make build' to build the unikernel."
 
 install-switch:: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam

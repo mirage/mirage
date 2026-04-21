@@ -1,3 +1,8 @@
+### v4.10.6 (2026-04-21)
+
+- Fix missing group to runtime arguments (#1635 @reynir)
+- Send --name as hostname in DHCP (#1632 @hannesm, review by @reynir)
+
 ### v4.10.5 (2026-02-24)
 
 - Enable DHCP by default, and request and use DHCP lease information as fit

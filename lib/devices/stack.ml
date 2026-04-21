@@ -58,7 +58,7 @@ let generic_ipv4v6_stack p ?group ?dhcp_requests ?ipv4_network ?ipv4_gateway
   and ipv6_only = Runtime_arg.ipv6_only ?group () in
   let e = Ethernet.ethif tap in
   let a = arp e in
-  let dhcp_ipv4 = Ip.ipv4_of_dhcp ?dhcp_requests tap e a in
+  let dhcp_ipv4 = Ip.ipv4_of_dhcp ?group ?dhcp_requests tap e a in
   let tap =
     match_impl p [ (`Dhcp, Ip.dhcp_proj_net $ dhcp_ipv4) ] ~default:tap
   in

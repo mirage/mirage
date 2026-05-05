@@ -3,16 +3,20 @@
 Describe before configure (using defaults)
   $ ./config.exe describe -t spt
   Name       describe
-  Keys       dhcp=true (default),
-             net= (default),
-             target=spt
+  Keys      
+    dhcp=true (default),
+    net= (default),
+    service-utcp=false (default),
+    target=spt
 
 Describe before configure (no eval)
   $ ./config.exe describe --no-eval --dot -o-
   Name       describe
-  Keys       dhcp=true (default),
-             net= (default),
-             target=unix (default)
+  Keys      
+    dhcp=true (default),
+    net= (default),
+    service-utcp=false (default),
+    target=unix (default)
   Output     -digraph G {
                 ordering=out;
                 1 [label="tcpv4v6_socket__1\nTcpv4v6_socket\n", shape="box"];
@@ -55,38 +59,40 @@ Describe before configure (no eval)
                 38 [label="static_ipv4_make__38\nStatic_ipv4.Make\n", shape="box"];
                 39 [label="If\ndhcp, net,\ntarget"];
                 40 [label="tcpip_stack_direct_ipv4v6__40\nTcpip_stack_direct.IPV4V6\n", shape="box"];
-                41 [label="tcp_flow_make__41\nTcp.Flow.Make\n", shape="box"];
-                42 [label="udp_make__42\nUdp.Make\n", shape="box"];
-                43 [label="icmpv4_make__43\nIcmpv4.Make\n", shape="box"];
-                44 [label="tcpip_stack_direct_makev4v6__44\nTcpip_stack_direct.MakeV4V6\n", shape="box"];
-                45 [label="If\ndhcp, net,\ntarget"];
-                46 [label="app__46\nApp\n", shape="box"];
-                47 [label="mirage_runtime__47\nMirage_runtime\n", shape="box"];
-                48 [label="mirage_crypto_rng_mirage__48\nMirage_crypto_rng_mirage\n", shape="box"];
-                49 [label="mirage_mtime__49\nMirage_mtime\n", shape="box"];
-                50 [label="mirage_mtime__50\nMirage_mtime\n", shape="box"];
+                41 [label="utcp_mirage_make__41\nUtcp_mirage.Make\n", shape="box"];
+                42 [label="tcp_flow_make__42\nTcp.Flow.Make\n", shape="box"];
+                43 [label="If\nservice-utcp"];
+                44 [label="udp_make__44\nUdp.Make\n", shape="box"];
+                45 [label="icmpv4_make__45\nIcmpv4.Make\n", shape="box"];
+                46 [label="tcpip_stack_direct_makev4v6__46\nTcpip_stack_direct.MakeV4V6\n", shape="box"];
+                47 [label="If\ndhcp, net,\ntarget"];
+                48 [label="app__48\nApp\n", shape="box"];
+                49 [label="mirage_runtime__49\nMirage_runtime\n", shape="box"];
+                50 [label="mirage_crypto_rng_mirage__50\nMirage_crypto_rng_mirage\n", shape="box"];
                 51 [label="mirage_mtime__51\nMirage_mtime\n", shape="box"];
-                52 [label="If\ntarget"];
-                53 [label="If\ntarget"];
-                54 [label="mirage_ptime__54\nMirage_ptime\n", shape="box"];
-                55 [label="mirage_ptime__55\nMirage_ptime\n", shape="box"];
+                52 [label="mirage_mtime__52\nMirage_mtime\n", shape="box"];
+                53 [label="mirage_mtime__53\nMirage_mtime\n", shape="box"];
+                54 [label="If\ntarget"];
+                55 [label="If\ntarget"];
                 56 [label="mirage_ptime__56\nMirage_ptime\n", shape="box"];
-                57 [label="If\ntarget"];
-                58 [label="If\ntarget"];
-                59 [label="mirage_sleep__59\nMirage_sleep\n", shape="box"];
-                60 [label="mirage_sleep__60\nMirage_sleep\n", shape="box"];
+                57 [label="mirage_ptime__57\nMirage_ptime\n", shape="box"];
+                58 [label="mirage_ptime__58\nMirage_ptime\n", shape="box"];
+                59 [label="If\ntarget"];
+                60 [label="If\ntarget"];
                 61 [label="mirage_sleep__61\nMirage_sleep\n", shape="box"];
-                62 [label="If\ntarget"];
-                63 [label="If\ntarget"];
-                64 [label="mirage_logs__64\nMirage_logs\n", shape="box"];
-                65 [label="mirage_runtime__65\nMirage_runtime\n", shape="box"];
-                66 [label="cmdliner_stdlib__66\nCmdliner_stdlib\n", shape="box"];
-                67 [label="mirage_bootvar__67\nMirage_bootvar\n", shape="box"];
-                68 [label="mirage_bootvar__68\nMirage_bootvar\n", shape="box"];
+                62 [label="mirage_sleep__62\nMirage_sleep\n", shape="box"];
+                63 [label="mirage_sleep__63\nMirage_sleep\n", shape="box"];
+                64 [label="If\ntarget"];
+                65 [label="If\ntarget"];
+                66 [label="mirage_logs__66\nMirage_logs\n", shape="box"];
+                67 [label="mirage_runtime__67\nMirage_runtime\n", shape="box"];
+                68 [label="cmdliner_stdlib__68\nCmdliner_stdlib\n", shape="box"];
                 69 [label="mirage_bootvar__69\nMirage_bootvar\n", shape="box"];
-                70 [label="If\ntarget"];
-                71 [label="struct_end__71\nstruct end\n", shape="box"];
-                72 [label="mirage_runtime__72\nMirage_runtime\ntarget", shape="box"];
+                70 [label="mirage_bootvar__70\nMirage_bootvar\n", shape="box"];
+                71 [label="mirage_bootvar__71\nMirage_bootvar\n", shape="box"];
+                72 [label="If\ntarget"];
+                73 [label="struct_end__73\nstruct end\n", shape="box"];
+                74 [label="mirage_runtime__74\nMirage_runtime\ntarget", shape="box"];
                 
                 3 -> 2 [style="dashed"];
                 3 -> 1 [style="dashed"];
@@ -145,60 +151,65 @@ Describe before configure (no eval)
                 40 -> 34 [];
                 41 -> 40 [];
                 42 -> 40 [];
-                43 -> 39 [];
-                44 -> 33 [];
-                44 -> 29 [];
-                44 -> 30 [];
+                43 -> 41 [style="dotted", headport="n"];
+                43 -> 42 [style="bold", style="dotted", headport="n"];
                 44 -> 40 [];
-                44 -> 43 [];
-                44 -> 42 [];
-                44 -> 41 [];
-                45 -> 3 [style="dotted", headport="n"];
-                45 -> 44 [style="bold", style="dotted", headport="n"];
+                45 -> 39 [];
+                46 -> 33 [];
+                46 -> 29 [];
+                46 -> 30 [];
+                46 -> 40 [];
                 46 -> 45 [];
-                52 -> 50 [style="dotted", headport="n"];
-                52 -> 51 [style="dotted", headport="n"];
-                52 -> 50 [style="bold", style="dotted", headport="n"];
-                53 -> 49 [style="dotted", headport="n"];
-                53 -> 52 [style="dotted", headport="n"];
-                53 -> 49 [style="bold", style="dotted", headport="n"];
-                57 -> 55 [style="dotted", headport="n"];
-                57 -> 56 [style="dotted", headport="n"];
-                57 -> 55 [style="bold", style="dotted", headport="n"];
-                58 -> 54 [style="dotted", headport="n"];
-                58 -> 57 [style="dotted", headport="n"];
-                58 -> 54 [style="bold", style="dotted", headport="n"];
-                62 -> 60 [style="dotted", headport="n"];
-                62 -> 61 [style="dotted", headport="n"];
-                62 -> 60 [style="bold", style="dotted", headport="n"];
-                63 -> 59 [style="dotted", headport="n"];
-                63 -> 62 [style="dotted", headport="n"];
-                63 -> 59 [style="bold", style="dotted", headport="n"];
-                70 -> 67 [style="dotted", headport="n"];
-                70 -> 67 [style="dotted", headport="n"];
-                70 -> 68 [style="dotted", headport="n"];
-                70 -> 68 [style="dotted", headport="n"];
-                70 -> 68 [style="dotted", headport="n"];
-                70 -> 68 [style="dotted", headport="n"];
-                70 -> 68 [style="dotted", headport="n"];
-                70 -> 69 [style="bold", style="dotted", headport="n"];
-                71 -> 70 [style="dashed"];
-                72 -> 71 [style="dashed"];
-                72 -> 66 [style="dashed"];
-                72 -> 65 [style="dashed"];
-                72 -> 64 [style="dashed"];
-                72 -> 63 [style="dashed"];
-                72 -> 58 [style="dashed"];
-                72 -> 53 [style="dashed"];
-                72 -> 48 [style="dashed"];
-                72 -> 47 [style="dashed"];
-                72 -> 46 [style="dashed"];
+                46 -> 44 [];
+                46 -> 43 [];
+                47 -> 3 [style="dotted", headport="n"];
+                47 -> 46 [style="bold", style="dotted", headport="n"];
+                48 -> 47 [];
+                54 -> 52 [style="dotted", headport="n"];
+                54 -> 53 [style="dotted", headport="n"];
+                54 -> 52 [style="bold", style="dotted", headport="n"];
+                55 -> 51 [style="dotted", headport="n"];
+                55 -> 54 [style="dotted", headport="n"];
+                55 -> 51 [style="bold", style="dotted", headport="n"];
+                59 -> 57 [style="dotted", headport="n"];
+                59 -> 58 [style="dotted", headport="n"];
+                59 -> 57 [style="bold", style="dotted", headport="n"];
+                60 -> 56 [style="dotted", headport="n"];
+                60 -> 59 [style="dotted", headport="n"];
+                60 -> 56 [style="bold", style="dotted", headport="n"];
+                64 -> 62 [style="dotted", headport="n"];
+                64 -> 63 [style="dotted", headport="n"];
+                64 -> 62 [style="bold", style="dotted", headport="n"];
+                65 -> 61 [style="dotted", headport="n"];
+                65 -> 64 [style="dotted", headport="n"];
+                65 -> 61 [style="bold", style="dotted", headport="n"];
+                72 -> 69 [style="dotted", headport="n"];
+                72 -> 69 [style="dotted", headport="n"];
+                72 -> 70 [style="dotted", headport="n"];
+                72 -> 70 [style="dotted", headport="n"];
+                72 -> 70 [style="dotted", headport="n"];
+                72 -> 70 [style="dotted", headport="n"];
+                72 -> 70 [style="dotted", headport="n"];
+                72 -> 71 [style="bold", style="dotted", headport="n"];
+                73 -> 72 [style="dashed"];
+                74 -> 73 [style="dashed"];
+                74 -> 68 [style="dashed"];
+                74 -> 67 [style="dashed"];
+                74 -> 66 [style="dashed"];
+                74 -> 65 [style="dashed"];
+                74 -> 60 [style="dashed"];
+                74 -> 55 [style="dashed"];
+                74 -> 50 [style="dashed"];
+                74 -> 49 [style="dashed"];
+                74 -> 48 [style="dashed"];
                 }
 
 Describe after configure
   $ echo "-txen" > context
   $ ./config.exe describe --context-file=context
   Name       describe
-  Keys       dhcp=true (default),
-             net= (default),
-             target=xen
+  Keys      
+    dhcp=true (default),
+    net= (default),
+    service-utcp=false (default),
+    target=xen

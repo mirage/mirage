@@ -140,6 +140,13 @@ let dhcp ?group () =
   let doc = Fmt.str "Enable dhcp for %a (default %B)." pp_group group default in
   configure_key ~doc ?group ~default Cmdliner.Arg.bool "dhcp"
 
+let utcp ?group () =
+  let default = false in
+  let doc =
+    Fmt.str "Enable µTCP stack for %a (default %B)." pp_group group default
+  in
+  configure_key ~doc ?group ~default Cmdliner.Arg.bool "utcp"
+
 let net ?group () : [ `Host | `OCaml ] option Key.key =
   let enum =
     [

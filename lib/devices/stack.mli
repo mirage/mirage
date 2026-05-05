@@ -5,7 +5,6 @@ type stackv4v6
 val stackv4v6 : stackv4v6 typ
 
 val direct_stackv4v6 :
-  ?use_utcp:bool ->
   ?group:string ->
   Network.network impl ->
   Ethernet.ethernet impl ->
@@ -15,7 +14,6 @@ val direct_stackv4v6 :
   stackv4v6 impl
 
 val generic_stackv4v6 :
-  ?use_utcp:bool ->
   ?group:string ->
   ?dhcp_key:bool value ->
   ?net_key:[ `OCaml | `Host ] option value ->
@@ -27,7 +25,6 @@ val generic_stackv4v6 :
   stackv4v6 impl
 
 val generic_stackv4v6_with_lease :
-  ?use_utcp:bool ->
   ?group:string ->
   ?dhcp_requests:Ip.Dhcp_requests.t ->
   ?dhcp_key:bool value ->

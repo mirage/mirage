@@ -587,7 +587,7 @@ val tcp : 'a tcp typ
 (** Implementation of the [Tcpip.Tcp.S] signature. *)
 
 val tcpv4v6 : tcpv4v6 typ
-val direct_tcp : string -> 'a ip impl -> 'a tcp impl
+val direct_tcp : ?group:string -> 'a ip impl -> 'a tcp impl
 
 (** {2 Network stack configuration} *)
 
@@ -610,8 +610,6 @@ val direct_stackv4v6 :
 
 val generic_stackv4v6 :
   ?group:string ->
-  ?dhcp_key:bool value ->
-  ?net_key:[ `OCaml | `Host ] option value ->
   ?ipv4_network:Ipaddr.V4.Prefix.t ->
   ?ipv4_gateway:Ipaddr.V4.t ->
   ?ipv6_network:Ipaddr.V6.Prefix.t ->
@@ -631,8 +629,6 @@ val generic_stackv4v6 :
 val generic_stackv4v6_with_lease :
   ?group:string ->
   ?dhcp_requests:dhcp_requests ->
-  ?dhcp_key:bool value ->
-  ?net_key:[ `OCaml | `Host ] option value ->
   ?ipv4_network:Ipaddr.V4.Prefix.t ->
   ?ipv4_gateway:Ipaddr.V4.t ->
   ?ipv6_network:Ipaddr.V6.Prefix.t ->

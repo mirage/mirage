@@ -24,10 +24,11 @@ let tcp_direct_func _name =
   in
   impl ~packages ~connect "Tcp.Flow.Make" (Ip.ip @-> tcp)
 
-let direct_tcp name ip =
-  let use_utcp_key = Key.value @@ Key.utcp ~group:name () in
+let direct_tcp ?group ip =
+  let use_utcp_key = Key.value @@ Key.utcp ?group () in
   let choose utcp = match utcp with true -> `Utcp | false -> `No in
   let use_utcp = Key.(pure choose $ use_utcp_key) in
+  let name = Option.value ~default:"service" group in
   match_impl use_utcp
     [ (`Utcp, utcp_direct_func name $ ip) ]
     ~default:(tcp_direct_func name $ ip)

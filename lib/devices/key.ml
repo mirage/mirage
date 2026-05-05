@@ -135,17 +135,24 @@ let block ?group () =
 
 (** {3 Stack keys} *)
 
-let dhcp ?group () =
-  let default = true in
-  let doc = Fmt.str "Enable dhcp for %a (default %B)." pp_group group default in
-  configure_key ~doc ?group ~default Cmdliner.Arg.bool "dhcp"
+let configure_flag ?(group = "") ~doc name =
+  let prefix = if group = "" then group else group ^ "-" in
+  let doc =
+    Cmdliner.Arg.info ~docs:unikernel_section
+      ~docv:(String.uppercase_ascii name)
+      ~doc
+      [ prefix ^ name ]
+  in
+  let key = Key.Arg.flag doc in
+  Key.create (prefix ^ name) key
+
+let no_dhcp ?group () =
+  let doc = Fmt.str "Enable dhcp for %a." pp_group group in
+  configure_flag ~doc ?group "no-dhcp"
 
 let utcp ?group () =
-  let default = false in
-  let doc =
-    Fmt.str "Enable µTCP stack for %a (default %B)." pp_group group default
-  in
-  configure_key ~doc ?group ~default Cmdliner.Arg.bool "utcp"
+  let doc = Fmt.str "Enable µTCP stack for %a." pp_group group in
+  configure_flag ~doc ?group "utcp"
 
 let net ?group () : [ `Host | `OCaml ] option Key.key =
   let enum =

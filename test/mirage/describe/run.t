@@ -4,19 +4,19 @@ Describe before configure (using defaults)
   $ ./config.exe describe -t spt
   Name       describe
   Keys      
-    dhcp=true (default),
     net= (default),
-    service-utcp=false (default),
-    target=spt
+    no-dhcp=false (default),
+    target=spt,
+    utcp=false (default)
 
 Describe before configure (no eval)
   $ ./config.exe describe --no-eval --dot -o-
   Name       describe
   Keys      
-    dhcp=true (default),
     net= (default),
-    service-utcp=false (default),
-    target=unix (default)
+    no-dhcp=false (default),
+    target=unix (default),
+    utcp=false (default)
   Output     -digraph G {
                 ordering=out;
                 1 [label="tcpv4v6_socket__1\nTcpv4v6_socket\n", shape="box"];
@@ -51,21 +51,21 @@ Describe before configure (no eval)
                 30 [label="arp_make__30\nArp.Make\n", shape="box"];
                 31 [label="dhcp_ipv4_make__31\nDhcp_ipv4.Make\n", shape="box"];
                 32 [label="dhcp_ipv4_proj_net__32\nDhcp_ipv4.Proj_net\n", shape="box"];
-                33 [label="If\ndhcp, net,\ntarget"];
+                33 [label="If\nnet, no-dhcp,\ntarget"];
                 34 [label="ipv6_make__34\nIpv6.Make\n", shape="box"];
                 35 [label="qubes_db__35\nQubes.DB\n", shape="box"];
                 36 [label="qubesdb_ipv4_make__36\nQubesdb_ipv4.Make\n", shape="box"];
                 37 [label="dhcp_ipv4_proj_ipv4__37\nDhcp_ipv4.Proj_ipv4\n", shape="box"];
                 38 [label="static_ipv4_make__38\nStatic_ipv4.Make\n", shape="box"];
-                39 [label="If\ndhcp, net,\ntarget"];
+                39 [label="If\nnet, no-dhcp,\ntarget"];
                 40 [label="tcpip_stack_direct_ipv4v6__40\nTcpip_stack_direct.IPV4V6\n", shape="box"];
                 41 [label="utcp_mirage_make__41\nUtcp_mirage.Make\n", shape="box"];
                 42 [label="tcp_flow_make__42\nTcp.Flow.Make\n", shape="box"];
-                43 [label="If\nservice-utcp"];
+                43 [label="If\nutcp"];
                 44 [label="udp_make__44\nUdp.Make\n", shape="box"];
                 45 [label="icmpv4_make__45\nIcmpv4.Make\n", shape="box"];
                 46 [label="tcpip_stack_direct_makev4v6__46\nTcpip_stack_direct.MakeV4V6\n", shape="box"];
-                47 [label="If\ndhcp, net,\ntarget"];
+                47 [label="If\nnet, no-dhcp,\ntarget"];
                 48 [label="app__48\nApp\n", shape="box"];
                 49 [label="mirage_runtime__49\nMirage_runtime\n", shape="box"];
                 50 [label="mirage_crypto_rng_mirage__50\nMirage_crypto_rng_mirage\n", shape="box"];
@@ -209,7 +209,7 @@ Describe after configure
   $ ./config.exe describe --context-file=context
   Name       describe
   Keys      
-    dhcp=true (default),
     net= (default),
-    service-utcp=false (default),
-    target=xen
+    no-dhcp=false (default),
+    target=xen,
+    utcp=false (default)

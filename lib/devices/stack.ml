@@ -27,7 +27,7 @@ let stackv4v6_direct_conf () =
     @-> Tcp.tcp
     @-> stackv4v6)
 
-let direct_stackv4v6 ?group ?tcp network eth arp ipv4 ipv6 =
+let direct_stackv4v6 ?group network eth arp ipv4 ipv6 =
   let ipv4_only = Runtime_arg.ipv4_only ?group ()
   and ipv6_only = Runtime_arg.ipv6_only ?group () in
   let ip = Ip.keyed_ipv4v6 ~ipv4_only ~ipv6_only ipv4 ipv6 in
@@ -38,10 +38,10 @@ let direct_stackv4v6 ?group ?tcp network eth arp ipv4 ipv6 =
   $ ip
   $ Icmp.direct_icmpv4 ipv4
   $ Udp.direct_udp ip
-  $ match tcp with None -> Tcp.direct_tcp ip | Some tcp -> tcp
+  $ Tcp.direct_tcp ?group ip
 
-let keyed_direct_stackv4v6 ?tcp ~ipv4_only ~ipv6_only network eth arp ipv4 ipv6
-    =
+let keyed_direct_stackv4v6 ~ipv4_only ~ipv6_only ?group network eth arp ipv4
+    ipv6 =
   let ip = Ip.keyed_ipv4v6 ~ipv4_only ~ipv6_only ipv4 ipv6 in
   stackv4v6_direct_conf ()
   $ network
@@ -50,10 +50,10 @@ let keyed_direct_stackv4v6 ?tcp ~ipv4_only ~ipv6_only network eth arp ipv4 ipv6
   $ ip
   $ Icmp.direct_icmpv4 ipv4
   $ Udp.direct_udp ip
-  $ match tcp with None -> Tcp.direct_tcp ip | Some tcp -> tcp
+  $ Tcp.direct_tcp ?group ip
 
 let generic_ipv4v6_stack p ?group ?dhcp_requests ?ipv4_network ?ipv4_gateway
-    ?ipv6_network ?ipv6_gateway ?(arp = Arp.arp) ?tcp tap =
+    ?ipv6_network ?ipv6_gateway ?(arp = Arp.arp) tap =
   let ipv4_only = Runtime_arg.ipv4_only ?group ()
   and ipv6_only = Runtime_arg.ipv6_only ?group () in
   let e = Ethernet.ethif tap in
@@ -78,7 +78,7 @@ let generic_ipv4v6_stack p ?group ?dhcp_requests ?ipv4_network ?ipv4_gateway
       [ (`Dhcp, Ip.dhcp_proj_lease $ dhcp_ipv4) ]
       ~default:Ip.no_lease
   in
-  (keyed_direct_stackv4v6 ~ipv4_only ~ipv6_only ?tcp tap e a i4 i6, lease)
+  (keyed_direct_stackv4v6 ~ipv4_only ~ipv6_only ?group tap e a i4 i6, lease)
 
 let socket_stackv4v6 ?(group = "") () =
   let v4key = Runtime_arg.V4.network ~group Ipaddr.V4.Prefix.global in
@@ -99,23 +99,23 @@ let socket_stackv4v6 ?(group = "") () =
   impl ~packages ~extra_deps ~connect "Tcpip_stack_socket.V4V6" stackv4v6
 
 (** Generic stack *)
-let generic_stackv4v6_with_lease ?group ?dhcp_requests
-    ?(dhcp_key = Key.value @@ Key.dhcp ?group ())
-    ?(net_key = Key.value @@ Key.net ?group ()) ?ipv4_network ?ipv4_gateway
-    ?ipv6_network ?ipv6_gateway ?tcp (tap : Network.network impl) :
+let generic_stackv4v6_with_lease ?group ?dhcp_requests ?ipv4_network
+    ?ipv4_gateway ?ipv6_network ?ipv6_gateway (tap : Network.network impl) :
     stackv4v6 impl * Ip.lease impl =
-  let choose target net dhcp =
-    match (target, net, dhcp) with
+  let no_dhcp_key = Key.value @@ Key.no_dhcp ?group () in
+  let net_key = Key.value @@ Key.net ?group () in
+  let choose target net no_dhcp =
+    match (target, net, no_dhcp) with
     | `Qubes, _, _ -> `Qubes
     | _, Some `Host, _ -> `Socket
-    | _, _, true -> `Dhcp
-    | (`Unix | `MacOSX), None, false -> `Socket
+    | _, _, false -> `Dhcp
+    | (`Unix | `MacOSX), None, true -> `Socket
     | _, _, _ -> `Static
   in
-  let p = Key.(pure choose $ Key.(value target) $ net_key $ dhcp_key) in
+  let p = Key.(pure choose $ Key.(value target) $ net_key $ no_dhcp_key) in
   let generic_ipv4v6_stack =
     generic_ipv4v6_stack p ?group ?dhcp_requests ?ipv4_network ?ipv4_gateway
-      ?ipv6_network ?ipv6_gateway ?tcp tap
+      ?ipv6_network ?ipv6_gateway tap
   in
   ( match_impl p
       [ (`Socket, socket_stackv4v6 ?group ()) ]
@@ -123,8 +123,8 @@ let generic_stackv4v6_with_lease ?group ?dhcp_requests
     match_impl p [ (`Socket, Ip.no_lease) ] ~default:(snd generic_ipv4v6_stack)
   )
 
-let generic_stackv4v6 ?group ?dhcp_key ?net_key ?ipv4_network ?ipv4_gateway
-    ?ipv6_network ?ipv6_gateway ?tcp tap =
-  generic_stackv4v6_with_lease ?group ?dhcp_requests:None ?dhcp_key ?net_key
-    ?ipv4_network ?ipv4_gateway ?ipv6_network ?ipv6_gateway ?tcp tap
+let generic_stackv4v6 ?group ?ipv4_network ?ipv4_gateway ?ipv6_network
+    ?ipv6_gateway tap =
+  generic_stackv4v6_with_lease ?group ?dhcp_requests:None ?ipv4_network
+    ?ipv4_gateway ?ipv6_network ?ipv6_gateway tap
   |> fst

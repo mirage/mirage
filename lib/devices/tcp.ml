@@ -7,8 +7,16 @@ type tcpv4v6 = Ip.v4v6 tcp
 let tcp = Functoria.Type.Type TCP
 let tcpv4v6 : tcpv4v6 typ = tcp
 
-(* this needs to be a function due to the value restriction. *)
-let tcp_direct_func () =
+let utcp_direct_func name =
+  let packages = [ package "utcp" ~sublibs:[ "mirage" ] ] in
+  let connect _ modname = function
+    | [ ip ] ->
+        code ~pos:__POS__ "Lwt.return (%s.connect %S %s)" modname name ip
+    | _ -> Misc.connect_err "utcp" 1
+  in
+  impl ~packages ~connect "Utcp_mirage.Make" (Ip.ip @-> tcp)
+
+let tcp_direct_func _name =
   let packages = [ Ip.right_tcpip_library [ "tcp" ] ] in
   let connect _ modname = function
     | [ ip ] -> code ~pos:__POS__ "%s.connect %s" modname ip
@@ -16,7 +24,14 @@ let tcp_direct_func () =
   in
   impl ~packages ~connect "Tcp.Flow.Make" (Ip.ip @-> tcp)
 
-let direct_tcp ip = tcp_direct_func () $ ip
+let direct_tcp ?group ip =
+  let use_utcp_key = Key.value @@ Key.utcp ?group () in
+  let choose utcp = match utcp with true -> `Utcp | false -> `No in
+  let use_utcp = Key.(pure choose $ use_utcp_key) in
+  let name = Option.value ~default:"service" group in
+  match_impl use_utcp
+    [ (`Utcp, utcp_direct_func name $ ip) ]
+    ~default:(tcp_direct_func name $ ip)
 
 let tcpv4v6_socket_conf ~ipv4_only ~ipv6_only ipv4_key ipv6_key =
   let v = Runtime_arg.v in

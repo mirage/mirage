@@ -7,7 +7,6 @@ val stackv4v6 : stackv4v6 typ
 val direct_stackv4v6 :
   ?use_utcp:bool ->
   ?group:string ->
-  ?tcp:Tcp.tcpv4v6 impl ->
   Network.network impl ->
   Ethernet.ethernet impl ->
   Arp.arpv4 impl ->
@@ -24,7 +23,6 @@ val generic_stackv4v6 :
   ?ipv4_gateway:Ipaddr.V4.t ->
   ?ipv6_network:Ipaddr.V6.Prefix.t ->
   ?ipv6_gateway:Ipaddr.V6.t ->
-  ?tcp:Tcp.tcpv4v6 impl ->
   Network.network impl ->
   stackv4v6 impl
 
@@ -38,6 +36,5 @@ val generic_stackv4v6_with_lease :
   ?ipv4_gateway:Ipaddr.V4.t ->
   ?ipv6_network:Ipaddr.V6.Prefix.t ->
   ?ipv6_gateway:Ipaddr.V6.t ->
-  ?tcp:Tcp.tcpv4v6 impl ->
   Network.network impl ->
   stackv4v6 impl * Ip.lease impl

@@ -27,7 +27,7 @@ let stackv4v6_direct_conf () =
     @-> Tcp.tcp
     @-> stackv4v6)
 
-let direct_stackv4v6 ?use_utcp ?group ?tcp network eth arp ipv4 ipv6 =
+let direct_stackv4v6 ?use_utcp ?group network eth arp ipv4 ipv6 =
   let ipv4_only = Runtime_arg.ipv4_only ?group ()
   and ipv6_only = Runtime_arg.ipv6_only ?group () in
   let ip = Ip.keyed_ipv4v6 ~ipv4_only ~ipv6_only ipv4 ipv6 in
@@ -39,10 +39,10 @@ let direct_stackv4v6 ?use_utcp ?group ?tcp network eth arp ipv4 ipv6 =
   $ ip
   $ Icmp.direct_icmpv4 ipv4
   $ Udp.direct_udp ip
-  $ match tcp with None -> Tcp.direct_tcp ?use_utcp name ip | Some tcp -> tcp
+  $ Tcp.direct_tcp ?use_utcp name ip
 
-let keyed_direct_stackv4v6 ?use_utcp ?tcp ~ipv4_only ~ipv6_only name network eth
-    arp ipv4 ipv6 =
+let keyed_direct_stackv4v6 ?use_utcp ~ipv4_only ~ipv6_only name network eth arp
+    ipv4 ipv6 =
   let ip = Ip.keyed_ipv4v6 ~ipv4_only ~ipv6_only ipv4 ipv6 in
   stackv4v6_direct_conf ()
   $ network
@@ -51,10 +51,10 @@ let keyed_direct_stackv4v6 ?use_utcp ?tcp ~ipv4_only ~ipv6_only name network eth
   $ ip
   $ Icmp.direct_icmpv4 ipv4
   $ Udp.direct_udp ip
-  $ match tcp with None -> Tcp.direct_tcp ?use_utcp name ip | Some tcp -> tcp
+  $ Tcp.direct_tcp ?use_utcp name ip
 
 let generic_ipv4v6_stack p ?use_utcp ?group ?dhcp_requests ?ipv4_network
-    ?ipv4_gateway ?ipv6_network ?ipv6_gateway ?(arp = Arp.arp) ?tcp tap =
+    ?ipv4_gateway ?ipv6_network ?ipv6_gateway ?(arp = Arp.arp) tap =
   let ipv4_only = Runtime_arg.ipv4_only ?group ()
   and ipv6_only = Runtime_arg.ipv6_only ?group () in
   let e = Ethernet.ethif tap in
@@ -80,8 +80,7 @@ let generic_ipv4v6_stack p ?use_utcp ?group ?dhcp_requests ?ipv4_network
       ~default:Ip.no_lease
   in
   let name = Option.value ~default:"service" group in
-  ( keyed_direct_stackv4v6 ?use_utcp ?tcp ~ipv4_only ~ipv6_only name tap e a i4
-      i6,
+  ( keyed_direct_stackv4v6 ?use_utcp ~ipv4_only ~ipv6_only name tap e a i4 i6,
     lease )
 
 let socket_stackv4v6 ?(group = "") () =
@@ -106,7 +105,7 @@ let socket_stackv4v6 ?(group = "") () =
 let generic_stackv4v6_with_lease ?use_utcp ?group ?dhcp_requests
     ?(dhcp_key = Key.value @@ Key.dhcp ?group ())
     ?(net_key = Key.value @@ Key.net ?group ()) ?ipv4_network ?ipv4_gateway
-    ?ipv6_network ?ipv6_gateway ?tcp (tap : Network.network impl) :
+    ?ipv6_network ?ipv6_gateway (tap : Network.network impl) :
     stackv4v6 impl * Ip.lease impl =
   let choose target net dhcp =
     match (target, net, dhcp) with
@@ -119,7 +118,7 @@ let generic_stackv4v6_with_lease ?use_utcp ?group ?dhcp_requests
   let p = Key.(pure choose $ Key.(value target) $ net_key $ dhcp_key) in
   let generic_ipv4v6_stack =
     generic_ipv4v6_stack p ?use_utcp ?group ?dhcp_requests ?ipv4_network
-      ?ipv4_gateway ?ipv6_network ?ipv6_gateway ?tcp tap
+      ?ipv4_gateway ?ipv6_network ?ipv6_gateway tap
   in
   ( match_impl p
       [ (`Socket, socket_stackv4v6 ?group ()) ]
@@ -128,7 +127,7 @@ let generic_stackv4v6_with_lease ?use_utcp ?group ?dhcp_requests
   )
 
 let generic_stackv4v6 ?use_utcp ?group ?dhcp_key ?net_key ?ipv4_network
-    ?ipv4_gateway ?ipv6_network ?ipv6_gateway ?tcp tap =
+    ?ipv4_gateway ?ipv6_network ?ipv6_gateway tap =
   generic_stackv4v6_with_lease ?use_utcp ?group ?dhcp_requests:None ?dhcp_key
-    ?net_key ?ipv4_network ?ipv4_gateway ?ipv6_network ?ipv6_gateway ?tcp tap
+    ?net_key ?ipv4_network ?ipv4_gateway ?ipv6_network ?ipv6_gateway tap
   |> fst

@@ -144,11 +144,5 @@ val register_arg : 'a Cmdliner.Term.t -> (unit -> 'a)
 val with_argv : unit Cmdliner.Term.t list -> string -> string array -> unit
 val runtime_args : unit -> unit Cmdliner.Term.t list
 
-val register : 'a Cmdliner.Term.t -> (unit -> 'a)
-(* the return value is (unit -> 'a), let's keep the parens although they're
-   superfluous. *)
-[@@ocamlformat "disable"]
-[@@ocaml.deprecated "Use Mirage_runtime.register_arg instead."]
-
 val set_name : string -> unit
 (** Set the name of the unikernel, called at load time for the default name. *)

@@ -7,7 +7,7 @@ val tcp : 'a tcp typ
 type tcpv4v6 = Ip.v4v6 tcp
 
 val tcpv4v6 : tcpv4v6 typ
-val direct_tcp : 'a Ip.ip impl -> 'a tcp impl
+val direct_tcp : ?group:string -> 'a Ip.ip impl -> 'a tcp impl
 
 val tcpv4v6_socket_conf :
   ipv4_only:bool runtime_arg ->

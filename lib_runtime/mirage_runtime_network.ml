@@ -97,55 +97,55 @@ let dns_servers ?group ?(docs = Mirage_runtime.s_dns) default =
   let doc = str "DNS servers (default to anycast.censurfridns.dk)" in
   runtime_arg ~doc ~docv:"DNS-SERVER" ~docs ?group ~default
     Arg.(some (list string))
-    "dns_servers"
+    "dns-servers"
 
 let dns_timeout ?group ?(docs = Mirage_runtime.s_dns) default =
   let doc = str "DNS timeout (in nanoseconds)" in
   runtime_arg ~doc ~docv:"DNS-TIMEOUT" ~docs ?group ~default
     Arg.(some int64)
-    "dns_timeout"
+    "dns-timeout"
 
 let dns_cache_size ?group ?(docs = Mirage_runtime.s_dns) default =
   let doc = str "DNS cache size" in
   runtime_arg ~doc ~docv:"DNS-CACHE-SIZE" ~docs ?group ~default
     Arg.(some int)
-    "dns_cache_size"
+    "dns-cache-size"
 
 let he_aaaa_timeout ?group ?(docs = Mirage_runtime.s_he) default =
   let doc = str "AAAA timeout (in nanoseconds)" in
   runtime_arg ~doc ~docv:"AAAA-TIMEOUT" ~docs ?group ~default
     Arg.(some int64)
-    "he_aaaa_timeout"
+    "he-aaaa-timeout"
 
 let he_connect_delay ?group ?(docs = Mirage_runtime.s_he) default =
   let doc = str "Delay (in nanoseconds) for connection establishment" in
   runtime_arg ~doc ~docv:"CONNECT-DELAY" ~docs ?group ~default
     Arg.(some int64)
-    "he_connect_delay"
+    "he-connect-delay"
 
 let he_connect_timeout ?group ?(docs = Mirage_runtime.s_he) default =
   let doc = str "Connection establishment timeout (in nanoseconds)" in
   runtime_arg ~doc ~docv:"CONNECT-TIMEOUT" ~docs ?group ~default
     Arg.(some int64)
-    "he_connect_timeout"
+    "he-connect-timeout"
 
 let he_resolve_timeout ?group ?(docs = Mirage_runtime.s_he) default =
   let doc = str "DNS resolution timeout (in nanoseconds)" in
   runtime_arg ~doc ~docv:"RESOLVE-TIMEOUT" ~docs ?group ~default
     Arg.(some int64)
-    "he_resolve_timeout"
+    "he-resolve-timeout"
 
 let he_resolve_retries ?group ?(docs = Mirage_runtime.s_he) default =
   let doc = str "Amount of DNS resolution attempts" in
   runtime_arg ~doc ~docv:"RESOLVE-RETRIES" ~docs ?group ~default
     Arg.(some int)
-    "he_resolve_retries"
+    "he-resolve-retries"
 
 let he_timer_interval ?group ?(docs = Mirage_runtime.s_he) default =
   let doc = str "Interal (in nanoseconds) for execution of the timer" in
   runtime_arg ~doc ~docv:"TIMER-INTERVAL" ~docs ?group ~default
     Arg.(some int64)
-    "he_timer_interval"
+    "he-timer-interval"
 
 let ssh_key ?group ?(docs = Mirage_runtime.s_ssh) default =
   let doc = str "Private SSH key (rsa:<seed> or ed25519:<b64-key>)." in

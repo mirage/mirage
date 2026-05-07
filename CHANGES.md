@@ -1,3 +1,27 @@
+### v4.11.0 (2026-05-07)
+
+- Introduce a "--utcp" configuration-time flag (and "--management-utcp")
+  (#1636 @hannesm @palainp)
+- BREAKING: the "--dhcp" configuration-time argument is now a flag "--no-dhcp"
+  (and "--management-no-dhcp") (#1636 @hannesm)
+- Mirage.{direct_tcp, direct_stackv4v6, generic_stackv4v6,
+  generic_stackv4v6_with_lease}: remove ?tcp argument (#1636 @hannesm)
+- Mirage.direct_tcp has an optional ?group argument now (#1636 @hannesm)
+- Mirage.{generic_stackv4v6, generic_stackv4v6_with_lease}: remove ?dhcp_key
+  and ?net_key argument, they are now always constructed (#1636 @hannesm)
+- BREAKING: remove deprecated Mirage_runtime.register (#1638 @hannesm)
+- BREAKING: use "-" instead of "_" in DNS and happy eyeballs boot arguments:
+  dns-servers (was dns_servers),
+  dns-timeout (was dns_timeout),
+  dns-cache-size (was dns_cache_size),
+  he-aaaa-timeout (was he_aaaa_timeout),
+  he-connect-delay (was he_connect_delay),
+  he-connect-timeout (was he_connect_timeout),
+  he-resolve-timeout (was he_resolve_timeout),
+  he-resolve-retries (was he_resolve_retries),
+  he-timer-interval (was he_timer_interval)
+  (#1638 @hannesm)
+
 ### v4.10.6 (2026-04-21)
 
 - Fix missing group to runtime arguments (#1635 @reynir)

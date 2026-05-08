@@ -147,7 +147,7 @@ let configure_flag ?(group = "") ~doc name =
   Key.create (prefix ^ name) key
 
 let no_dhcp ?group () =
-  let doc = Fmt.str "Enable dhcp for %a." pp_group group in
+  let doc = Fmt.str "Disable dhcp for %a." pp_group group in
   configure_flag ~doc ?group "no-dhcp"
 
 let utcp ?group () =

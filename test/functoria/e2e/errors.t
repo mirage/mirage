@@ -3,11 +3,12 @@ of a device's connect function:
 
   $ ./test.exe configure -f errors/in_device.ml
   test.exe: [WARNING] Skipping version check, since our_version ("1.0~test") fails to parse: only digits and . allowed in version
-  $ dune build
-  File "errors/in_device.ml", line 6, characters 2-26:
-  Error: Unbound value Unikernel_make__4.start'
-  Hint: Did you mean start?
+  $ dune build 2>out.stderr
   [1]
+  $ sed -e 's/Unikernel_make__4.//' -re 's/ +/ /g' out.stderr
+  File "errors/in_device.ml", line 6, characters 2-26:
+  Error: Unbound value start'
+  Hint: Did you mean start?
   $ ./test.exe clean -f errors/in_device.ml
 
 Check what happens when the number of the arguments passed to the functor is
@@ -23,10 +24,11 @@ Then, not enough:
 
   $ ./test.exe configure -f errors/in_functor_not_enough.ml
   test.exe: [WARNING] Skipping version check, since our_version ("1.0~test") fails to parse: only digits and . allowed in version
-  $ dune build
-  File "errors/test/main.ml", line 34, characters 3-26:
-  Error: The module Unikernel_make__4 is a functor, it cannot have any components
+  $ dune build 2>out.stderr
   [1]
+  $ sed -re 's/[0-9]+/N/g' out.stderr
+  File "errors/test/main.ml", line N, characters N-N:
+  Error: The module Unikernel_make__N is a functor, it cannot have any components
   $ ./test.exe clean -f errors/in_functor_not_enough.ml
 
 Also check that we have proper errors when the config file is missing:

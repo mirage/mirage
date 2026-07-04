@@ -1,3 +1,9 @@
+### v4.11.1 (2026-07-04)
+
+- Raise solo5 upper bounds to < 0.13 (#1641 #1642 @hannesm)
+- Tests: fix difference between OCaml 4 and OCaml 5 (#1640 @edwintorok)
+- Fix documentation of `--no-dhcp` (#1639 @reynir)
+
 ### v4.11.0 (2026-05-07)
 
 - Introduce a "--utcp" configuration-time flag (and "--management-utcp")

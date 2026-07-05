@@ -27,6 +27,9 @@ val config_file : t -> Fpath.t
 val name : t -> string
 (** [name t] is the name of the application. *)
 
+val hostname : t -> string
+(** [hostname t] is the hostname of the application. *)
+
 val project_name : t -> string
 (** [project_name t] is the project name. *)
 
@@ -80,6 +83,7 @@ val v :
   build_cmd:(Fpath.t option -> string) ->
   src:[ `Auto | `None | `Some of string ] ->
   project_name:string ->
+  ?hostname:string ->
   string ->
   t
 (** [create context n r] contains information about the application being built.

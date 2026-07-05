@@ -71,7 +71,7 @@ let ipv4_dhcp_conf ~ip ~gateway ~no_init requests =
         code ~pos:__POS__
           "let requests =@[@ Option.map (List.map \
            Dhcp_wire.int_to_option_code_exn)@ %a@]@ in@ let options = [ \
-           Dhcp_wire.Hostname (Mirage_runtime.name ()) ] in@ %s.connect@[@ \
+           Dhcp_wire.Hostname (Mirage_runtime.hostname ()) ] in@ %s.connect@[@ \
            ~no_init:%s@ ?cidr:%s@ ?gateway:%s@ ?requests@ ~options@ %s@ %s@ \
            %s@]"
           Fmt.(parens (Dump.option (Dump.list int)))

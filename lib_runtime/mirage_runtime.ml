@@ -140,7 +140,7 @@ let hostname_k =
       ~doc:
         "Hostname of the unikernel. Accessible with `Mirage_runtime.hostname` \
          (), used for DHCP request."
-      ~absent:"defaults to `name`" [ "hostname" ]
+      ~absent:"defaults to `name`" [ "dhcp-hostname" ]
   in
   Arg.(value & opt (some' string) None doc)
 

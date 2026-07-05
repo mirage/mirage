@@ -134,8 +134,20 @@ let name_k =
   in
   Arg.(value & opt (some' string) None doc)
 
+let hostname_k =
+  let doc =
+    Arg.info ~docs:Cmdliner.Manpage.s_common_options
+      ~doc:
+        "Hostname of the unikernel. Accessible with `Mirage_runtime.hostname` \
+         (), used for DHCP request."
+      ~absent:"defaults to `name`" [ "dhcp-hostname" ]
+  in
+  Arg.(value & opt (some' string) None doc)
+
 let _name : string option ref = ref None
+let _hostname : string option ref = ref None
 let set_name s = _name := Some s
+let set_hostname s = _hostname := Some s
 
 let name =
   let r = Functoria_runtime.register_arg name_k in
@@ -144,6 +156,14 @@ let name =
     | Some x, _ -> x
     | None, Some x -> x
     | None, None -> "no-name"
+
+let hostname =
+  let r = Functoria_runtime.register_arg hostname_k in
+  fun () ->
+    match (r (), !_hostname) with
+    | Some x, _ -> x
+    | None, Some x -> x
+    | None, None -> name ()
 
 (* Hooks *)
 

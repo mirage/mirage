@@ -82,10 +82,18 @@ val delay : int Term.t
 val name_k : string option Term.t
 (** The name key. *)
 
+val hostname_k : string option Term.t
+(** The hostname key. *)
+
 val name : unit -> string
 (** The current name of the unikernel. This is expected to be the same during
     the lifetime of an unikernel (but there's no guarantee since it can be
     modified). *)
+
+val hostname : unit -> string
+(** The current hostname of the unikernel. This is expected to be the same
+    during the lifetime of an unikernel (but there's no guarantee since it can
+    be modified). *)
 
 (** {2 Registering scheduler hooks} *)
 
@@ -146,3 +154,7 @@ val runtime_args : unit -> unit Cmdliner.Term.t list
 
 val set_name : string -> unit
 (** Set the name of the unikernel, called at load time for the default name. *)
+
+val set_hostname : string -> unit
+(** Set the hostname of the unikernel, called at load time for the default
+    hostname. *)

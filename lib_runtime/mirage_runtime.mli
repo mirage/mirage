@@ -146,3 +146,5 @@ val runtime_args : unit -> unit Cmdliner.Term.t list
 
 val set_name : string -> unit
 (** Set the name of the unikernel, called at load time for the default name. *)
+
+val malloc_trim: int -> bool

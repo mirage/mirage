@@ -185,3 +185,5 @@ let runtime_args = Functoria_runtime.runtime_args
 let register_arg = Functoria_runtime.register_arg
 let argument_error = Functoria_runtime.argument_error
 let help_version = Functoria_runtime.help_version
+
+external malloc_trim : int -> bool = "stub_malloc_trim_noalloc" [@@noalloc]

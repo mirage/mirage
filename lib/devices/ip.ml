@@ -68,12 +68,17 @@ let ipv4_dhcp_conf ~ip ~gateway ~no_init requests =
         Dhcp_requests.add requests 1 (* SUBNET_MASK *);
         Dhcp_requests.add requests 3 (* ROUTERS *);
         let requests = Dhcp_requests.consume requests in
-        code ~pos:__POS__
-          "let requests =@[@ Option.map (List.map \
-           Dhcp_wire.int_to_option_code_exn)@ %a@]@ in@ let options = [ \
-           Dhcp_wire.Hostname (Mirage_runtime.name ()) ] in@ %s.connect@[@ \
-           ~no_init:%s@ ?cidr:%s@ ?gateway:%s@ ?requests@ ~options@ %s@ %s@ \
-           %s@]"
+        let code_fmt : _ format4 =
+          "let requests =@[@ \
+             Option.map (List.map Dhcp_wire.int_to_option_code_exn)@ %a@]@ \
+           in@ \
+           let options = [ Dhcp_wire.Hostname (Mirage_runtime.name ()) ] in@ \
+           %s.connect@[@ \
+             ~no_init:%s@ ?cidr:%s@ ?gateway:%s@ ?requests@ ~options@ %s@ %s@ \
+             %s@]"
+          [@ocamlformat "disable"]
+        in
+        code ~pos:__POS__ code_fmt
           Fmt.(parens (Dump.option (Dump.list int)))
           requests modname no_init ip gateway network ethernet arp
     | _ -> Misc.connect_err "ipv4 dhcp" 6

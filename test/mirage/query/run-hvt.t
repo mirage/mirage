@@ -45,9 +45,7 @@ Query opam file
   x-mirage-pre-build: [make "lock" "depext-lockfile" "pull"]
   
   x-mirage-extra-repo: [
-  ["opam-overlays" "https://github.com/dune-universe/opam-overlays.git"]
-  
-  ["mirage-overlays" "https://github.com/dune-universe/mirage-opam-overlays.git"]]
+  ["opam-overlays" "https://github.com/dune-universe/opam-overlays.git"]]
   
   x-opam-monorepo-opam-provided: ["mirage" "ocaml-solo5" "opam-monorepo" "solo5"]
   
@@ -91,15 +89,13 @@ Query Makefile
   .PHONY: all lock install-switch pull clean depend depends build repo-add repo-rm depext-lockfile
   
   repo-add:
-  	@printf "\033[2musing overlay repository mirage: [opam-overlays, mirage-overlays] \033[0m\n"
+  	@printf "\033[2musing overlay repository mirage: [opam-overlays] \033[0m\n"
   	$(OPAM) repo add opam-overlays https://github.com/dune-universe/opam-overlays.git || $(OPAM) repo set-url opam-overlays https://github.com/dune-universe/opam-overlays.git
-  	$(OPAM) repo add mirage-overlays https://github.com/dune-universe/mirage-opam-overlays.git || $(OPAM) repo set-url mirage-overlays https://github.com/dune-universe/mirage-opam-overlays.git
   
   
   repo-rm:
-  	@printf "\033[2mremoving overlay repository [opam-overlays, mirage-overlays]\033[0m\n"
+  	@printf "\033[2mremoving overlay repository [opam-overlays]\033[0m\n"
   	$(OPAM) repo remove opam-overlays https://github.com/dune-universe/opam-overlays.git
-  	$(OPAM) repo remove mirage-overlays https://github.com/dune-universe/mirage-opam-overlays.git
   
   
   
@@ -157,15 +153,13 @@ Query Makefile without depexts
   .PHONY: all lock install-switch pull clean depend depends build repo-add repo-rm
   
   repo-add:
-  	@printf "\033[2musing overlay repository mirage: [opam-overlays, mirage-overlays] \033[0m\n"
+  	@printf "\033[2musing overlay repository mirage: [opam-overlays] \033[0m\n"
   	$(OPAM) repo add opam-overlays https://github.com/dune-universe/opam-overlays.git || $(OPAM) repo set-url opam-overlays https://github.com/dune-universe/opam-overlays.git
-  	$(OPAM) repo add mirage-overlays https://github.com/dune-universe/mirage-opam-overlays.git || $(OPAM) repo set-url mirage-overlays https://github.com/dune-universe/mirage-opam-overlays.git
   
   
   repo-rm:
-  	@printf "\033[2mremoving overlay repository [opam-overlays, mirage-overlays]\033[0m\n"
+  	@printf "\033[2mremoving overlay repository [opam-overlays]\033[0m\n"
   	$(OPAM) repo remove opam-overlays https://github.com/dune-universe/opam-overlays.git
-  	$(OPAM) repo remove mirage-overlays https://github.com/dune-universe/mirage-opam-overlays.git
   
   
   $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam.locked: $(MIRAGE_DIR)/$(UNIKERNEL_NAME).opam
@@ -216,15 +210,13 @@ Query Makefile with depext
   .PHONY: all lock install-switch pull clean depend depends build repo-add repo-rm depext-lockfile
   
   repo-add:
-  	@printf "\033[2musing overlay repository mirage: [opam-overlays, mirage-overlays] \033[0m\n"
+  	@printf "\033[2musing overlay repository mirage: [opam-overlays] \033[0m\n"
   	$(OPAM) repo add opam-overlays https://github.com/dune-universe/opam-overlays.git || $(OPAM) repo set-url opam-overlays https://github.com/dune-universe/opam-overlays.git
-  	$(OPAM) repo add mirage-overlays https://github.com/dune-universe/mirage-opam-overlays.git || $(OPAM) repo set-url mirage-overlays https://github.com/dune-universe/mirage-opam-overlays.git
   
   
   repo-rm:
-  	@printf "\033[2mremoving overlay repository [opam-overlays, mirage-overlays]\033[0m\n"
+  	@printf "\033[2mremoving overlay repository [opam-overlays]\033[0m\n"
   	$(OPAM) repo remove opam-overlays https://github.com/dune-universe/opam-overlays.git
-  	$(OPAM) repo remove mirage-overlays https://github.com/dune-universe/mirage-opam-overlays.git
   
   
   

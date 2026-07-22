@@ -16,12 +16,11 @@ Help query --man-format=plain
              Enable call to `opam depext' in the project Makefile.
   
          --extra-repos=NAME1:URL1,NAME2:URL2,...
-         (absent=opam-overlays:https://github.com/dune-universe/opam-overlays.git,mirage-overlays:https://github.com/dune-universe/mirage-opam-overlays.git
+         (absent=opam-overlays:https://github.com/dune-universe/opam-overlays.git
          or MIRAGE_EXTRA_REPOS env)
              Additional opam-repositories to use when using `opam monorepo
              lock' to gather local sources. Default:
-             https://github.com/dune-universe/opam-overlays.git &
-             https://github.com/dune-universe/mirage-opam-overlays.git.
+             https://github.com/dune-universe/opam-overlays.git.
   
          --no-depext
              Disable call to `opam depext' in the project Makefile.
@@ -116,12 +115,11 @@ Help query --help=plain
              Enable call to `opam depext' in the project Makefile.
   
          --extra-repos=NAME1:URL1,NAME2:URL2,...
-         (absent=opam-overlays:https://github.com/dune-universe/opam-overlays.git,mirage-overlays:https://github.com/dune-universe/mirage-opam-overlays.git
+         (absent=opam-overlays:https://github.com/dune-universe/opam-overlays.git
          or MIRAGE_EXTRA_REPOS env)
              Additional opam-repositories to use when using `opam monorepo
              lock' to gather local sources. Default:
-             https://github.com/dune-universe/opam-overlays.git &
-             https://github.com/dune-universe/mirage-opam-overlays.git.
+             https://github.com/dune-universe/opam-overlays.git.
   
          --no-depext
              Disable call to `opam depext' in the project Makefile.

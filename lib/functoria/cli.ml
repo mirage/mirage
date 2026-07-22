@@ -94,8 +94,7 @@ let extra_repos doc_section =
       ~doc:
         "Additional opam-repositories to use when using `opam monorepo lock' \
          to gather local sources. Default: \
-         https://github.com/dune-universe/opam-overlays.git & \
-         https://github.com/dune-universe/mirage-opam-overlays.git."
+         https://github.com/dune-universe/opam-overlays.git."
       [ "extra-repos" ]
   in
   Arg.(
@@ -103,8 +102,6 @@ let extra_repos doc_section =
     & opt (list key)
         [
           ("opam-overlays", "https://github.com/dune-universe/opam-overlays.git");
-          ( "mirage-overlays",
-            "https://github.com/dune-universe/mirage-opam-overlays.git" );
         ]
     & doc)
 

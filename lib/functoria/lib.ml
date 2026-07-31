@@ -415,6 +415,10 @@ module Make (P : S) = struct
         | Cli.Help _ -> ok ()
         | Cli.Configure t ->
             let t = { t with args = with_output t.args } in
+            (* Messages queued while evaluating the config DSL only concern
+               [configure]: flush them here so the other sub-commands stay
+               quiet (mirage/mirage#1608). *)
+            Misc.flush_deferred_messages ();
             Log.info (fun m -> pp_info m (Some Logs.Debug) t.args);
             configure t
         | Cli.Query t ->

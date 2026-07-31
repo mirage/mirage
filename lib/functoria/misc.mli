@@ -41,3 +41,16 @@ module Name : sig
   val opamify : string -> Opam.t
   val ocamlify : string -> string
 end
+
+(** {2 Deferred messages} *)
+
+val defer_message : string -> unit
+(** [defer_message msg] queues [msg] instead of printing it directly. The
+    configuration DSL is evaluated before the command line is parsed, so a
+    message printed at evaluation time would show up for every sub-command. The
+    caller decides which sub-commands flush the queue with
+    {!flush_deferred_messages}. *)
+
+val flush_deferred_messages : unit -> unit
+(** [flush_deferred_messages ()] prints the messages queued by {!defer_message}
+    on standard output, in queueing order, and empties the queue. *)

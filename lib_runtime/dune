@@ -2,6 +2,9 @@
  (name mirage_runtime)
  (public_name mirage-runtime)
  (modules mirage_runtime)
+ (foreign_stubs
+  (language c)
+  (names stub_mirage_runtime))
  (libraries mirage-runtime.functoria lwt logs))
 
 (library

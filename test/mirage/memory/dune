@@ -1,0 +1,7 @@
+(test
+ (name test_malloc_trim)
+ ; malloc_trim is glibc specific, so restrict to Linux
+ ; /proc/self/smaps_rollup is Linux specific too
+ (enabled_if
+  (= %{system} linux))
+ (libraries mirage-runtime))

@@ -58,7 +58,7 @@ let main ?pos ?packages ?packages_v ?local_libs ?runtime_args ?deps module_name
     else
       match deps with
       | None | Some [] ->
-          print_endline
+          Misc.defer_message
             "adding unit argument to 'start ()' (to delay execution)";
           Some [ dep Job.noop ]
       | _ -> deps

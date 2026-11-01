@@ -66,3 +66,12 @@ module Name = struct
       raise (Invalid_argument s);
     s'
 end
+
+(* {Deferred messages} *)
+
+let deferred_messages = ref []
+let defer_message msg = deferred_messages := msg :: !deferred_messages
+
+let flush_deferred_messages () =
+  List.iter print_endline (List.rev !deferred_messages);
+  deferred_messages := []

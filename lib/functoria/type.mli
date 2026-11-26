@@ -30,7 +30,7 @@ val ( @-> ) : 'a t -> 'b t -> ('a -> 'b) t
     functor parameters. For example:
 
     {[
-      kv_ro @-> ip @-> kv_ro
+    kv_ro @-> ip @-> kv_ro
     ]}
 
     This describes a functor type that accepts two arguments -- a [kv_ro] and an

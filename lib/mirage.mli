@@ -360,10 +360,10 @@ val chamelon : program_block_size:int runtime_arg -> block impl -> kv_rw impl
 
     [unikernel.ml]:
     {[
-      open Cmdliner
+    open Cmdliner
 
-      let program_block_size =
-        Arg.(value & opt int 16 & info [ "program-block-size" ])
+    let program_block_size =
+      Arg.(value & opt int 16 & info [ "program-block-size" ])
     ]}
     [config.ml]:
     {[
@@ -414,11 +414,11 @@ val ccm_block :
 
     Accept the key as a runtime argument, in [unikernel.ml]:
     {[
-      open Cmdliner
+    open Cmdliner
 
-      let aes_ccm_key =
-        let doc = "The key of the block device (hex formatted)" in
-        Arg.(required & opt (some string) None & info ~doc [ "aes-ccm-key" ])
+    let aes_ccm_key =
+      let doc = "The key of the block device (hex formatted)" in
+      Arg.(required & opt (some string) None & info ~doc [ "aes-ccm-key" ])
     ]}
 
     Then, into you [config.ml], you just need to compose your block device with
@@ -446,7 +446,7 @@ val ccm_block :
     device (and you have a encrypted file-system!):
 
     {[
-      let fs = chamelon ~program_block_size encrypted_block
+    let fs = chamelon ~program_block_size encrypted_block
     ]} *)
 
 (** {2 Network interfaces} *)
@@ -831,54 +831,54 @@ val paf_server : port:int runtime_arg -> tcpv4v6 impl -> http_server impl
     This is a simple example of how to launch an HTTP server: {b unikernel.ml}
 
     {[
-      open Cmdliner
+    open Cmdliner
 
-      let port =
-        let doc = "Port of the HTTP service." in
-        Arg.(value & opt int 8080 & info [ "p"; "port" ])
+    let port =
+      let doc = "Port of the HTTP service." in
+      Arg.(value & opt int 8080 & info [ "p"; "port" ])
 
-      module Make (HTTP_server : Paf_mirage.S with type ipaddr = Ipaddr.t) =
-      struct
-        let error_handler (_ipaddr, _port) ?request:_ _error _send = ()
+    module Make (HTTP_server : Paf_mirage.S with type ipaddr = Ipaddr.t) =
+    struct
+      let error_handler (_ipaddr, _port) ?request:_ _error _send = ()
 
-        let request_handler :
-            HTTP_server.TCP.flow -> Ipaddr.t * int -> Httpaf.Reqd.t -> unit =
-         fun _socket (_ipaddr, _port) reqd ->
-          let contents = "Hello World!\n" in
-          let headers =
-            Httpaf.Headers.of_list
-              [
-                ("content-length", string_of_int (String.length contents));
-                ("content-type", "text/plain");
-                ("connection", "close");
-              ]
-          in
-          let response = Httpaf.Response.create ~headers `OK in
-          Httpaf.Reqd.respond_with_string reqd response contents
+      let request_handler :
+          HTTP_server.TCP.flow -> Ipaddr.t * int -> Httpaf.Reqd.t -> unit =
+       fun _socket (_ipaddr, _port) reqd ->
+        let contents = "Hello World!\n" in
+        let headers =
+          Httpaf.Headers.of_list
+            [
+              ("content-length", string_of_int (String.length contents));
+              ("content-type", "text/plain");
+              ("connection", "close");
+            ]
+        in
+        let response = Httpaf.Response.create ~headers `OK in
+        Httpaf.Reqd.respond_with_string reqd response contents
 
-        let start http_server port =
-          let service =
-            HTTP_service.http_service ~error_handler request_handler
-          in
-          let (`Initialized thread) = HTTP_server.serve service http_server in
-          thread
-      end
+      let start http_server port =
+        let service =
+          HTTP_service.http_service ~error_handler request_handler
+        in
+        let (`Initialized thread) = HTTP_server.serve service http_server in
+        thread
+    end
     ]}
 
     {b config.ml}
 
     {[
-      open Mirage
+    open Mirage
 
-      let port = Runtime_arg.create ~pos:__POS__ "Unikernel.port"
-      let main = main "Unikernel.Make" (http_server @-> job)
-      let stackv4v6 = generic_stackv4v6 default_network
-      let http_server = paf_server ~port (tcpv4v6_of_stackv4v6 stackv4v6)
+    let port = Runtime_arg.create ~pos:__POS__ "Unikernel.port"
+    let main = main "Unikernel.Make" (http_server @-> job)
+    let stackv4v6 = generic_stackv4v6 default_network
+    let http_server = paf_server ~port (tcpv4v6_of_stackv4v6 stackv4v6)
 
-      let () =
-        register "main"
-          ~runtime_args:[ Runtime_arg.v port ]
-          [ main $ http_server ]
+    let () =
+      register "main"
+        ~runtime_args:[ Runtime_arg.v port ]
+        [ main $ http_server ]
     ]} *)
 
 type alpn_client
@@ -911,18 +911,18 @@ val paf_client : tcpv4v6 impl -> mimic impl -> alpn_client impl
     {b config.ml}
 
     {[
-      open Mirage
+    open Mirage
 
-      let main = main "Unikernel.Make" (alpn_client @-> job)
-      let stackv4v6 = generic_stackv4v6 default_network
-      let he = generic_happy_eyeballs stack
-      let dns = generic_dns_client stack he
+    let main = main "Unikernel.Make" (alpn_client @-> job)
+    let stackv4v6 = generic_stackv4v6 default_network
+    let he = generic_happy_eyeballs stack
+    let dns = generic_dns_client stack he
 
-      let alpn_client =
-        let mimic = mimic_happy_eyeballs stackv4v6 he dns in
-        paf_client (tcpv4v6_of_stackv4v6 stackv4v6) mimic
+    let alpn_client =
+      let mimic = mimic_happy_eyeballs stackv4v6 he dns in
+      paf_client (tcpv4v6_of_stackv4v6 stackv4v6) mimic
 
-      let () = register "main" [ main $ alpn_client ]
+    let () = register "main" [ main $ alpn_client ]
     ]} *)
 
 (** {2 Argv configuration} *)
@@ -960,16 +960,14 @@ val no_argv : argv impl
     can be implemented like:
 
     {[
-      let he = generic_happy_eyeballs stack
-      let dns = generic_dns_client stack he
+    let he = generic_happy_eyeballs stack
+    let dns = generic_dns_client stack he
 
-      let git_client =
-        let mimic = mimic_happy_eyeballs stackv4v6 he dns in
-        let ssh =
-          git_ssh ~key ~password (tcpv4v6_of_stackv4v6 stackv4v6) mimic
-        in
-        let tcp = git_tcp (tcpv4v6_of_stackv4v6 stackv4v6) mimic in
-        merge_git_clients ssh tcp
+    let git_client =
+      let mimic = mimic_happy_eyeballs stackv4v6 he dns in
+      let ssh = git_ssh ~key ~password (tcpv4v6_of_stackv4v6 stackv4v6) mimic in
+      let tcp = git_tcp (tcpv4v6_of_stackv4v6 stackv4v6) mimic in
+      merge_git_clients ssh tcp
     ]} *)
 
 type git_client

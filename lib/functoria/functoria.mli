@@ -37,7 +37,7 @@
     functor arrow.
 
     {[
-      let main = main "Unikernel.Main" (m @-> job)
+    let main = main "Unikernel.Main" (m @-> job)
     ]}
 
     This declares that the functor [Unikernel.Main] takes a module of type [m]
@@ -67,12 +67,12 @@
     following code:
 
     {[
-      let lang_key =
-        let doc =
-          Key.Arg.info ~doc:"The default language for the application."
-            [ "l"; "lang" ]
-        in
-        Key.create "language" @@ Key.Arg.(opt ~stage:`Both string "en" doc)
+    let lang_key =
+      let doc =
+        Key.Arg.info ~doc:"The default language for the application."
+          [ "l"; "lang" ]
+      in
+      Key.create "language" @@ Key.Arg.(opt ~stage:`Both string "en" doc)
     ]}
 
     Here, we defined both a long option ["--lang"] and a short one ["-l"] (the
@@ -93,7 +93,7 @@
     To register a new application, use [register]:
 
     {[
-      let () = register "app" [ main $ impl ]
+    let () = register "app" [ main $ impl ]
     ]}
 
     This function (which should only be called once) takes as argument the name
@@ -109,14 +109,14 @@
     [lang_key] is instanciated with a given string:
 
     {[
-      let lang_is "s" = Key.(pure (( = ) s) $ value lang_key)
+    let lang_is "s" = Key.(pure (( = ) s) $ value lang_key)
     ]}
 
     Then by using the {!if_impl} combinator to choose between two
     implementations depending on the value of the key:
 
     {[
-      let impl = if_impl (is "fi") finnish_impl not_finnish_implementation
+    let impl = if_impl (is "fi") finnish_impl not_finnish_implementation
     ]} *)
 
 module type DSL = module type of DSL
